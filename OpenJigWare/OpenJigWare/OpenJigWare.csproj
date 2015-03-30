@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{E0E62640-C66D-46A3-A57C-80A42A1C3E39}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>OpenJigWare</RootNamespace>
+    <AssemblyName>OpenJigWare</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Contracts">
+      <HintPath>..\..\Released_DLL\Microsoft.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="MyoSharp">
+      <HintPath>..\..\Released_DLL\MyoSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Tao.FreeGlut, Version=2.4.0.2, Culture=neutral, PublicKeyToken=6e602a6ad6c0d06d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Tao.FreeGlut.dll</HintPath>
+    </Reference>
+    <Reference Include="Tao.Ode, Version=0.9.0.0, Culture=neutral, PublicKeyToken=e499629dc69cd531, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Tao.Ode.dll</HintPath>
+    </Reference>
+    <Reference Include="Tao.OpenGl, Version=2.1.0.12, Culture=neutral, PublicKeyToken=1ca010269a4501ef, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Tao.OpenGl.dll</HintPath>
+    </Reference>
+    <Reference Include="Tao.Platform.Windows, Version=1.0.0.5, Culture=neutral, PublicKeyToken=701104b2da67a104, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Tao.Platform.Windows.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="COjw_00_Main.cs" />
+    <Compile Include="COjw_04_Convert.cs" />
+    <Compile Include="COjw_02_InputBox.cs" />
+    <Compile Include="COjw_01_Struct.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="COjw_03_Message.cs" />
+    <Compile Include="COjw_05_Math.cs" />
+    <Compile Include="COjw_06_Encrypt.cs" />
+    <Compile Include="COjw_07_File.cs" />
+    <Compile Include="COjw_08_Timer.cs" />
+    <Compile Include="COjw_10_Kinematics.cs" />
+    <Compile Include="COjw_11_2D.cs" />
+    <Compile Include="COjw_09_Register.cs" />
+    <Compile Include="COjw_12_3D.cs" />
+    <Compile Include="COjw_14_Socket.cs" />
+    <Compile Include="COjw_13_Serial.cs" />
+    <Compile Include="COjw_15_Mx28.cs" />
+    <Compile Include="COjw_16_EmguCv.cs" />
+    <Compile Include="COjw_17_Myo.cs" />
+    <Compile Include="COjw_19_Herculex.cs" />
+    <Compile Include="COjw_18_Mouse.cs" />
+    <Compile Include="COjw_20_Grid.cs" />
+    <Compile Include="COjw_21_Graph.cs" />
+    <Compile Include="COjw_22_DC2408.cs" />
+    <Compile Include="COjw_23_User.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"</PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

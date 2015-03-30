@@ -1,0 +1,11 @@
+D:\Bin\C#\Ojw\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.dll
+D:\Bin\C#\Ojw\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.pdb
+D:\Bin\C#\Ojw\OpenJigWare\OpenJigWare\obj\Debug\ResolveAssemblyReference.cache
+D:\Bin\C#\Ojw\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
+D:\Bin\C#\Ojw\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.dll
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.pdb
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Contracts.dll
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\MyoSharp.dll
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
