@@ -1633,6 +1633,7 @@ namespace OpenJigWare
             //        }
             //    }
             //}
+            public void Delete() { dgAngle.Rows.Clear(); }
             public void Delete(int nDeleteCnt) { Delete(m_nCurrntCell, nDeleteCnt); }
             public void Delete(int nIndex, int nDeleteCnt)
             {
@@ -1707,20 +1708,39 @@ namespace OpenJigWare
             {
                 for (int i = 0; i < dgAngle.RowCount; i++) Clear(i);
             }
+            public int OjwGrid_GetCurrentLine() { return m_nCurrntCell; }
+            public int OjwGrid_GetCurrentColumn() { return m_nCurrntColumn; }
+            private bool m_bIgnore_CellEnter = false;
+            
+            public void Ignore_CellEnter(bool bIgnore)
+            {
+                m_bIgnore_CellEnter = bIgnore;
+            }
             private void OjwGrid_CellEnter(DataGridView dgGrid, DataGridViewCellEventArgs e)
             {
-                //if (m_bStart == true) return; // 속도의 버벅거림이 없게하기 위해 모션 수행시 이 함수를 실행하지 못하도록 한다.
-
-                if ((dgGrid.CurrentCell.ColumnIndex == m_nCurrntColumn) && (dgGrid.CurrentCell.RowIndex == m_nCurrntCell)) return;
-                m_nCurrntColumn = dgGrid.CurrentCell.ColumnIndex;
-                if (dgGrid.Focused == true)
+                if (m_bIgnore_CellEnter == false)
                 {
-                    m_nCurrntCell = dgGrid.CurrentCell.RowIndex;
-                    
-                    //Grid_DisplayLine(m_nCurrntCell);
-                    //CheckFlag(m_nCurrntCell);
-                    //lbMotion_Message.Text = "CellEnter=" + Ojw.CConvert.IntToStr(dgGrid.CurrentCell.RowIndex);
+                    //if (m_bStart == true) return; // 속도의 버벅거림이 없게하기 위해 모션 수행시 이 함수를 실행하지 못하도록 한다.
+
+                    if ((dgGrid.CurrentCell.ColumnIndex == m_nCurrntColumn) && (dgGrid.CurrentCell.RowIndex == m_nCurrntCell)) return;
+                    m_nCurrntColumn = dgGrid.CurrentCell.ColumnIndex;
+                    if (dgGrid.Focused == true)
+                    {
+                        m_nCurrntCell = dgGrid.CurrentCell.RowIndex;
+
+                        //Grid_DisplayLine(m_nCurrntCell);
+                        //CheckFlag(m_nCurrntCell);
+                        //lbMotion_Message.Text = "CellEnter=" + Ojw.CConvert.IntToStr(dgGrid.CurrentCell.RowIndex);
+                    }
                 }
+            }
+            public void SetChangeCurrentLine(int nLine)
+            {
+                m_nCurrntCell = nLine;
+            }
+            public void SetChangeCurrentCol(int nColumn)
+            {
+                m_nCurrntColumn = nColumn;
             }
 
             #region Control Data
@@ -1925,7 +1945,8 @@ namespace OpenJigWare
                 //                            Color.Coral     // Speed, Delay
                 //                        };
                 //int nColorIndex = 0;
-                for (int j = 1; j < dgAngle.ColumnCount - (9-1); j++)
+                //for (int j = 1; j < dgAngle.ColumnCount - (9 - 1); j++)
+                for (int j = 0; j < dgAngle.ColumnCount - (9 - 1); j++)
                 {
                     //nColorIndex = 0; // White
 
@@ -1970,7 +1991,7 @@ namespace OpenJigWare
                         //                        Ojw.CConvert.Clip(255, 0, (int)(m_aSGridTable[nAxis].cColor.B + nAdd_B))
                         //                        );
 #else
-                        cColor = m_aSGridTable[nAxis].cColor;
+                        cColor = (nAxis >= 0) ? m_aSGridTable[nAxis].cColor : Color.White;
 #endif
                         //}
                         //else
@@ -2049,13 +2070,17 @@ namespace OpenJigWare
                 }
             }
             #endregion Control Data
-
+            //private int m_nCurrentLine = -1;
+            //private int m_nCurrentCol = -1;
             private void dgAngle_CellEnter(object sender, DataGridViewCellEventArgs e)
             {
-                if (dgAngle.Focused == true)// || (m_bStart == true))
+                if (m_bIgnore_CellEnter == false)
                 {
-                    //m_bClick_dbAngle = true;
-                    OjwGrid_CellEnter(dgAngle, e);
+                    if (dgAngle.Focused == true)// || (m_bStart == true))
+                    {
+                        //m_bClick_dbAngle = true;
+                        OjwGrid_CellEnter(dgAngle, e);
+                    }
                 }
             }
 
@@ -2065,7 +2090,8 @@ namespace OpenJigWare
             // 20, 21, 22 - LED Change(20-Red, 21-Green, 22-Blue) - 0 일때 클리어, 1 일때 동작
             // 23 - Motor Enable() - LED 와 동일
             // 24 - MotorType() - LED 와 동일
-            // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)       
+            // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)     
+            public DataGridView GetHandle() { return dgAngle; }
             public void Calc(int nType, float fValue) { Calc(dgAngle, nType, fValue); }
             public void Calc(DataGridView OjwDataGrid, int nType, float fValue)
             {
@@ -2251,7 +2277,7 @@ namespace OpenJigWare
                                     #region Flip Position
                                     else if (nType == 10) // Flip Position
                                     {
-                                        int nMotID = j + 1;// Grid_GetAxisNum_byIndex(j);
+                                        int nMotID = j - 1;// Grid_GetAxisNum_byIndex(j);
                                         int nMirror = CheckMirror(nMotID);
                                         int nGap = nMirror - nMotID;
                                         if (nMirror >= 0) // 축 플리핑

@@ -288,7 +288,12 @@ namespace OpenJigWare
 
                     return true;
                 }
-
+                public static bool CalcKinematics_ToString(CDhParamAll DhParamAll, float[] afAxisValue, out String strResult)
+                {
+                    //float[][] floats = mtx.Select(r => r.Select(Convert.ToSingle).ToArray()).ToArray();
+                    double[] adAxisValue = Array.ConvertAll(afAxisValue, element => (double)element);
+                    return CalcKinematics_ToString(DhParamAll, adAxisValue, out strResult);
+                }
                 public static bool CalcKinematics_ToString(CDhParamAll DhParamAll, double[] adAxisValue, out String strResult)
                 {
                     //dX = dY = dZ = 0.0;
@@ -298,7 +303,17 @@ namespace OpenJigWare
                     CalcDhParamAll_ToString(DhParamAll, adAxisValue, out strResult);
                     return true;
                 }
-                
+                public static bool CalcKinematics(CDhParamAll DhParamAll, float[] afAxisValue, out float fX, out float fY, out float fZ)
+                {
+                    double[] adAxisValue = Array.ConvertAll(afAxisValue, element => (double)element);
+
+                    double dX, dY, dZ;
+                    bool bRet = CalcKinematics(DhParamAll, adAxisValue, out dX, out dY, out dZ);
+                    fX = (float)dX;
+                    fY = (float)dY;
+                    fZ = (float)dZ;
+                    return bRet;
+                }
                 public static bool CalcKinematics(CDhParamAll DhParamAll, double[] adAxisValue, out double dX, out double dY, out double dZ)
                 {
                     dX = dY = dZ = 0.0;
@@ -306,6 +321,24 @@ namespace OpenJigWare
                     if (DhParamAll.GetCount() <= 0) return false;
                     CalcDhParamAll(DhParamAll, adAxisValue, out dX, out dY, out dZ);
                     return true;
+                }
+                public static bool CalcKinematics(CDhParamAll DhParamAll, float[] afAxisValue, out float[] afColX, out float[] afColY, out float[] afColZ, out float fX, out float fY, out float fZ)
+                {
+                    double[] adAxisValue = Array.ConvertAll(afAxisValue, element => (double)element);
+                    double dX, dY, dZ;
+                    double[] adColX;
+                    double[] adColY;
+                    double[] adColZ;
+                    bool bRet = CalcKinematics(DhParamAll, adAxisValue, out adColX, out adColY, out adColZ, out dX, out dY, out dZ);
+                    fX = (float)dX;
+                    fY = (float)dY;
+                    fZ = (float)dZ;
+
+                    afColX = Array.ConvertAll(adColX, element => (float)element);
+                    afColY = Array.ConvertAll(adColY, element => (float)element);
+                    afColZ = Array.ConvertAll(adColZ, element => (float)element);
+
+                    return bRet;
                 }
                 public static bool CalcKinematics(CDhParamAll DhParamAll, double[] adAxisValue, out double[] dColX, out double[] dColY, out double[] dColZ, out double dX, out double dY, out double dZ)
                 {

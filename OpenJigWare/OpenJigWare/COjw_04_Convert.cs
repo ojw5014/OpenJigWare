@@ -1365,6 +1365,8 @@ namespace OpenJigWare
                     }
                 }
             }
+            public static double[] FloatsToDoubles(float[] afFloats) { return Array.ConvertAll(afFloats, element => (double)element); }
+            public static float[] DoublesToFloats(float[] adDoubles) { return Array.ConvertAll(adDoubles, element => (float)element); }
         }
     }
 }

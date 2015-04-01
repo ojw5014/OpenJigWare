@@ -85,7 +85,7 @@ namespace OpenJigWare
             {
                 float fMechMove = 2048.0f;// 4096.0f;// 1024.0f;
                 float fDegree = 360.0f;
-                int nCenterPos = 1024;// 2047;// 512;                
+                int nCenterPos = 0;// 1024;// 2047;// 512;                
 
                 for (int nAxis = 0; nAxis < _MOTOR_MAX; nAxis++)
                 {
@@ -634,7 +634,8 @@ namespace OpenJigWare
                 //if (strData.IndexOf("PA") == 0)
                 if (strData.IndexOf("QP") == 0)
                 {
-                    SetPos(nAxis, CConvert.HexStrToInt(strData.Substring(2, strData.IndexOf(',') - 2)));
+                    //SetPos(nAxis, CConvert.HexStrToInt(strData.Substring(2, strData.IndexOf(',') - 2)));
+                    SetPos(nAxis, CConvert.HexStrToInt(strData.Substring(2, strData.IndexOf(',') - 2)) - 5000000); // 기준 위치가 5000000
                 }
                 #endregion Position
 
@@ -769,8 +770,7 @@ namespace OpenJigWare
                         {
                             Reader = new Thread(new ThreadStart(serialPort1_DataReceived));
                             Reader.Start();
-
-
+                            
                             SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
                             CTimer.Wait(100);
                             SendCommand("SM0202;");
@@ -778,8 +778,8 @@ namespace OpenJigWare
                             SendCommand("Sa250,250,250,250;");
                             CTimer.Wait(100); 
                             SendCommand("SS0010,2000;");
-                            CTimer.Wait(100);
-                            SendCommand("Ss100,200;");
+                            //CTimer.Wait(100);
+                            //SendCommand("Ss100,200;");
                             //SendCommand("PE0001;");                
                         }
 
@@ -931,7 +931,8 @@ namespace OpenJigWare
                 //m_bBusy = true; // request answer
                 //Tick_Send(nAxis);       
                 //PA5000000,5100000; 
-                SendCommand("PA" + CConvert.IntToStr(sData,7) + ",5100000;");                         
+                //SendCommand("PA" + CConvert.IntToStr(sData,7) + ",5100000;");     
+                SendCommand("PA5" + CConvert.IntToStr(sData,6) + ",5000000;");                          
             }
         }
     }

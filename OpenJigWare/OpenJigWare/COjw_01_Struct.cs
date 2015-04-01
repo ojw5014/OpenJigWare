@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenJigWare
 {
+    //using UserEventHandler = EventHandler;
     partial class Ojw
     {
         #region Structure
@@ -143,5 +144,40 @@ namespace OpenJigWare
         }        
         #endregion Define structure for motor(SParam_t. SParam_Axis_t)
         #endregion Structure
+
+        #region UserEvent
+        public class CUserEventArgs : EventArgs
+        {
+            public string strMessage { get; set; }
+            //public List<int> arg { get; set; }
+            //public int nEvent { get; set; }
+        }
+        public class CUserEvent
+        {
+            //typeof EventHandler UserEvent;
+            public event EventHandler UserEvent;
+            //public CUserEvent()
+            //{
+            //    RunEvent();
+            //}
+            public void RunEvent()
+            {
+                try
+                {
+                    if (UserEvent != null)
+                    {
+                        CUserEventArgs CEventArg = new CUserEventArgs();
+                        CEventArg.strMessage = "UserEvent";
+                        //CEventArg.arg = new List<int>();
+                        UserEvent(null, CEventArg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Ojw.CMessage.Write_Error(ex.ToString());
+                }
+            }
+        }
+        #endregion UserEvent
     }
 }

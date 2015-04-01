@@ -64,9 +64,7 @@ D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\Ope
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
-D:\Bin\C#\GitHub\OpenJigWare\DLL\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
-D:\Bin\C#\GitHub\OpenJigWare\DLL\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
-D:\Bin\C#\GitHub\OpenJigWare\DLL\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
-D:\Bin\C#\GitHub\OpenJigWare\DLL\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Microsoft.Contracts.dll
-D:\Bin\C#\GitHub\OpenJigWare\DLL\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\MyoSharp.dll
-D:\Bin\C#\GitHub\OpenJigWare\DLL\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
+D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
+D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
+D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
+D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb

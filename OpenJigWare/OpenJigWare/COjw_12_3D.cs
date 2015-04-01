@@ -342,7 +342,7 @@ namespace OpenJigWare
             }
             private void CheckObjectModelFile(String strName)
             {
-                Ojw.C3d.COjwDisp CDisp = GetVirtualClass_Data();
+                COjwDisp CDisp = GetVirtualClass_Data();
                 CDisp.strDispObject = strName;
                 // if you never loaded this file. it would be loaded
 #if false
@@ -1123,11 +1123,11 @@ namespace OpenJigWare
                 }
                 #region #### Var(Group0) ####
                 private string _strVersion = "1.0.0";
-                private int _nMouseMode = 0;
+                private int _nMouseMode = 1; // m_nMouseControlMode 변수의 셋팅값을 따라갈 것
                 private bool _bEmpty = false;
                 private bool _bLight = true;
-                private bool _bShowStandardAxis = true;
-                private bool _bShowVirtualAxis = true;
+                private bool _bShowStandardAxis = false; // m_bStandardAxis 변수의 셋팅값을 따라갈 것
+                private bool _bShowVirtualAxis = false; // m_bVirtualClass 변수의 셋팅값을 따라갈 것
                 private int _nDefaultFunctionNum = -1;
                 private float _fAlpha_All = 1.0f;
                 // Robot Rot, Mov
@@ -1608,7 +1608,10 @@ namespace OpenJigWare
                             m_bMouseLeftClick = false;
                             m_nMouse_X_Right = e.X;
                             m_nMouse_Y_Right = e.Y;
-                            if ((GetMouseMode() == 0) && (e.Button == MouseButtons.Right)) m_nMenuStatus = 1;
+                            // mousecontrol mode 인 경우에만...
+                            //if ((GetMouseMode() == 0) && (e.Button == MouseButtons.Right)) m_nMenuStatus = 1;
+                            
+                            if (e.Button == MouseButtons.Right) m_nMenuStatus = 1;
                         }
                                                 
                         #region Forward
@@ -1623,19 +1626,160 @@ namespace OpenJigWare
                 }
                 public void OjwMouseUp(object sender, MouseEventArgs e) { OjwMouseUp(e); }
                 ContextMenuStrip m_ctxmenuMouse = new ContextMenuStrip();
+                private int m_nMenu = -1;
+                private const int _MENU_FILE = 0;
+                private const int _MENU_ITEM = 1;
+                private const int _MENU_SUB_OPEN = 0;
+                private const int _MENU_SUB_SAVE = 1;
+                private const int _MENU_SUB_ITEM_ADD = 0;
+
+                public CUserEvent Event_ItemAdd = new CUserEvent();
+                //private void EventAdd()
+                //{
+                //    try
+                //    {
+                //        Event_ItemAdd.UserEvent += ItemAdded;                        
+                //    }
+                //    catch (Exception ex)
+                //    {
+                //        Ojw.CMessage.Write_Error(ex.ToString());
+                //        //throw;
+                //    }
+                //}
+                private void ItemAdded(object sender, EventArgs e)
+                {
+                    // 이벤트 발생시 동작 기능들...
+                    if (IsDrawTest() == true) 
+                        m_txtDraw.Text = GetHeader_strDrawModel();
+                }
+                            
                 private void m_ctxmenuMouse_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
-                    if (e.ClickedItem != m_ctxmenuMouse.Items[1])
-                        MessageBox.Show(e.ClickedItem.Text);                                            
+                    //if (e.ClickedItem != m_ctxmenuMouse.Items[_MENU_FILE])
+                    //    MessageBox.Show(e.ClickedItem.Text);        
+                    if (e.ClickedItem == m_ctxmenuMouse.Items[_MENU_FILE])//"File")
+                    {
+                        m_nMenu = _MENU_FILE;
+                    }
+                    else if (e.ClickedItem == m_ctxmenuMouse.Items[_MENU_ITEM])
+                    {
+                        m_nMenu = _MENU_ITEM;
+                    }
+                    else m_nMenu = -1;
                 }
                 private void m_ctxmenuMouse_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
-                    MessageBox.Show("[Sub]" + e.ClickedItem.Text);
+                    //MessageBox.Show("[Sub]" + e.ClickedItem.Text);
+                    if (m_nMenu >= 0)
+                    {
+                        //if (e.ClickedItem.Text == "Open")
+                        if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_OPEN])
+                        {
+                            #region File Open
+                            OpenFileDialog ofdDesign = new OpenFileDialog();
+
+                            //SetAseFile_Path("ase"); // set ase file path
+
+                            ofdDesign.FileName = "*." + _STR_EXT;
+                            ofdDesign.Filter = "디자인 파일(*." + _STR_EXT + ")|*." + _STR_EXT;
+
+                            ofdDesign.DefaultExt = _STR_EXT;
+                            if (ofdDesign.ShowDialog() == DialogResult.OK)
+                            {
+                                String fileName = ofdDesign.FileName;
+                                if (FileOpen(fileName) == false)
+                                {
+                                    Ojw.CMessage.Write_Error("It's not a our Modeling File.");
+                                }
+                                else
+                                {
+                                    Ojw.CMessage.Write("Design File - " + fileName + "(v" + m_strVersion + ")");
+                                    if (IsDrawTest() == true)
+                                    {
+                                        //Ojw.CMessage.Write2(m_txtDraw, m_CHeader.strDrawModel);
+                                        m_txtDraw.Text = GetHeader_strDrawModel();
+                                    }
+                                    #region DH
+                                    //cmbDhRefresh(0);
+                                    #endregion DH
+
+                                    //cmbVersion.SelectedIndex = m_C3d.m_strVersion - 11;
+                                    float[] afData = new float[3];
+                                    GetPos_Display(out afData[0], out afData[1], out afData[2]);
+                                    int i = 0;
+                                    //txtDisplay_X.Text = Ojw.CConvert.FloatToStr(afData[i++]);
+                                    //txtDisplay_Y.Text = Ojw.CConvert.FloatToStr(afData[i++]);
+                                    //txtDisplay_Z.Text = Ojw.CConvert.FloatToStr(afData[i++]);
+                                    GetAngle_Display(out afData[0], out afData[1], out afData[2]);
+                                    i = 0;                                    
+                                }
+                            }
+                            #endregion File Open
+                        }
+                        else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_SAVE])
+                        {
+                            #region File Save
+                            SaveFileDialog saveDlg = new SaveFileDialog();
+                            saveDlg.FileName = "*." + _STR_EXT;
+                            saveDlg.Filter = "Design file(*." + _STR_EXT + ")|*." + _STR_EXT;
+
+                            saveDlg.DefaultExt = _STR_EXT;
+                            if (saveDlg.ShowDialog() == DialogResult.OK)
+                            {
+                                String fileName = saveDlg.FileName;
+                                if (fileName != null)
+                                {
+                                    if (fileName.Length > 0)
+                                    {
+                                        //m_strWorkDirectory = Directory.GetCurrentDirectory();
+                                        //txtFileName.Text = fileName;
+
+                                        FileSave(fileName, m_CHeader);
+                                        Ojw.CMessage.Write(fileName + "(" + m_CHeader.strVersion + ") file saved");
+                                    }
+                                }
+                            }
+                            #endregion File Save
+                        }
+                        else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItems[_MENU_SUB_ITEM_ADD])
+                        {
+                            AddVirtualClassToReal();
+                        }
+                    }
                 }
+                private TextBox m_txtDraw = null;
+                public void SetDrawText_ForDisplay(TextBox txtDraw) { m_txtDraw = txtDraw; }
+                private bool IsDrawTest() 
+                {
+                    bool bRet = false;
+                    try
+                    {
+                        //bRet = ((m_txtDraw == null) ? false : true);
+                        if (m_txtDraw != null)
+                        {
+                            if (m_txtDraw.IsHandleCreated == true) 
+                                bRet = true;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //Ojw.CMessage.Write_Error(e.ToString());
+                    }
+                    return bRet;
+                }
+
                 private void PopupMenu()
                 {
+#if true
                     m_ctxmenuMouse.Items.Clear();
-
+                    m_ctxmenuMouse.Items.Add("File");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Open");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Save");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_DropDownItemClicked);
+                    m_ctxmenuMouse.Items.Add("Item");
+                    (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItems.Add("Add");
+                    (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_DropDownItemClicked);
+#else
                     m_ctxmenuMouse.Items.Add("Test0");
                     m_ctxmenuMouse.Items.Add("Test1");
                     m_ctxmenuMouse.Items.Add("Test2");
@@ -1646,6 +1790,7 @@ namespace OpenJigWare
                     (m_ctxmenuMouse.Items[1] as ToolStripMenuItem).DropDownItems.Add("SubTest0");
                     (m_ctxmenuMouse.Items[1] as ToolStripMenuItem).DropDownItems.Add("SubTest1");
                     (m_ctxmenuMouse.Items[1] as ToolStripMenuItem).DropDownItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_DropDownItemClicked);
+#endif
                     //m_ctxmenuMouse.Items[1].Click += new EventHandler(m_ctxmenuMouse);
 
                     m_ctxmenuMouse.Show(Cursor.Position.X, Cursor.Position.Y);
@@ -1672,10 +1817,19 @@ namespace OpenJigWare
                             //m_fLeg0 = m_fMouseMove - e.X;
                             if (m_bShowPopup == true)
                             {
-                                if ((GetMouseMode() == 0) && (m_nMenuStatus != 0))
-                                {
-                                    PopupMenu();
-                                }
+                                // m_nMenuStatus == 0 => Dragging...
+                                //if ((GetMouseMode() == 0) && (m_nMenuStatus != 0))
+                                if (m_nMenuStatus != 0)
+                                    PopupMenu();                                
+                            }
+                        }
+
+                        //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
+                        if (m_bGridInit == true)
+                        {
+                            for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                            {
+                                GridView_SetMotor(GridView_GetCurrentLine(), i, GetData(i));
                             }
                         }
                     }
@@ -1683,7 +1837,7 @@ namespace OpenJigWare
                     m_bMouseClick = false;
                 }
             
-                private int m_nMouseControlMode = 0;
+                private int m_nMouseControlMode = 1;// 0;
                 public void SetMouseMode_Move() { SetMouseMode(0); }
                 public void SetMouseMode_Control() { SetMouseMode(1); }
                 public void SetMouseMode_Ext() { SetMouseMode(2); }
@@ -1700,7 +1854,7 @@ namespace OpenJigWare
                 public bool GetFreeze_Z() { return m_bFreeze_Z; }
                 public void OjwMouseMove(object sender, MouseEventArgs e) { OjwMouseMove(e); }
                 public int m_nMenuStatus = 0;
-                public bool m_bShowPopup = false;
+                public bool m_bShowPopup = true;//false;
                 public void ShowPopup(bool bEn) { m_bShowPopup = bEn; }
                 public void OjwMouseMove(MouseEventArgs e)
                 {
@@ -1797,6 +1951,16 @@ namespace OpenJigWare
                                 m_fY_Robot += (m_nMouse_Y_Left - e.Y);
                                 #endregion Robot Control(Translation)
                             }
+
+                            //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
+                            if (m_bGridInit == true)
+                            {
+                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                {
+                                    GridView_SetMotor(GridView_GetCurrentLine(), i, GetData(i));
+                                }
+                            }
+
                             m_nMouse_X_Left = e.X;
                             m_nMouse_Y_Left = e.Y;                            
                         }
@@ -1935,7 +2099,8 @@ namespace OpenJigWare
 
                     SelectObject_Clear();
 
-                    m_ctxmenuMouse.ItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_ItemClicked);                    
+                    m_ctxmenuMouse.ItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_ItemClicked);
+                    Event_ItemAdd.UserEvent += new EventHandler(ItemAdded);//+= new (ItemAdded);
                 }
                 public void AddMouseEvent(MouseEventHandler FDown, MouseEventHandler FMove, MouseEventHandler FUp, MouseEventHandler FWheel)
                 {
@@ -2096,6 +2261,7 @@ namespace OpenJigWare
                 public void glFlush() { Gl.glFlush(); }
                 public void glDraw_Ready()
                 {
+                    //Glut.glutInit();
                     //m_szDisplaySize = this.Size;
                     //SizeChange(m_szDisplaySize);
                     SizeChange(this.Size);
@@ -2127,6 +2293,117 @@ namespace OpenJigWare
                     }
                 }
                 #endregion glDraw_Ready()
+
+                #region Grid For Motion
+                private Ojw.CGridView m_CGridView = new Ojw.CGridView();
+                private bool m_bGridInit = false;
+                public void Gridview_Init(DataGridView dgAngle, int nWidth, int nLines)
+                {
+                    // 모터의 갯수
+                    int nCnt = m_CHeader.nMotorCnt;
+                    // GridView
+                    //int nWidth = 65;
+                    //int nLines = 0;
+                    SGridTable_t[] aSTable = new SGridTable_t[nCnt + 2]; // Speed, Delay
+                    Color[] acColor = new Color[] { Color.Orange, Color.Green, Color.Yellow, Color.Cyan, Color.GreenYellow, Color.DarkOrange };
+                    for (int i = 0; i < nCnt; i++)
+                    {
+                        Color cColor = acColor[m_CHeader.pSMotorInfo[i].nGroupNumber % acColor.Length];
+                        string strName = CConvert.RemoveChar(m_CHeader.pSMotorInfo[i].strNickName, '\0');
+                        strName = (strName.Length > 0) ? strName : "Motor" + CConvert.IntToStr(i);
+                        aSTable[i] = new SGridTable_t(strName, nWidth, m_CHeader.pSMotorInfo[i].nGroupNumber, m_CHeader.pSMotorInfo[i].nAxis_Mirror, cColor, m_CHeader.pSMotorInfo[i].fInitAngle);
+                    }
+                    // Time
+                    aSTable[nCnt] = new SGridTable_t("Time", nWidth, 0, -1, Color.OrangeRed, 1000);
+                    // Delay
+                    aSTable[nCnt + 1] = new SGridTable_t("Delay", nWidth, 0, -1, Color.Olive, 0);
+                    m_CGridView.Create(dgAngle, nLines, aSTable);
+                    m_CGridView.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridView_Event_CellEnter);
+                    
+                    m_CGridView.Ignore_CellEnter(true);
+
+                    m_bGridInit = true;
+                }
+                public void GridView_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
+                {
+                    if (m_CGridView.GetHandle().Focused == true)// || (m_bStart == true))
+                    {
+                        
+                        //m_bClick_dbAngle = true;
+                        if ((e.ColumnIndex == m_CGridView.OjwGrid_GetCurrentColumn()) && (e.RowIndex == m_CGridView.OjwGrid_GetCurrentLine())) return;
+                        m_CGridView.SetChangeCurrentCol(e.ColumnIndex);
+                        if (m_CGridView.GetHandle().Focused == true)
+                        {
+                            m_CGridView.SetChangeCurrentLine(e.RowIndex);
+                            Gridview_Draw(e.RowIndex);
+                        }
+                    }
+                }
+                public int GridView_GetCurrentLine() { return m_CGridView.OjwGrid_GetCurrentLine(); }
+                public int GridView_GetCurrentColumn() { return m_CGridView.OjwGrid_GetCurrentColumn(); }
+                public void GridView_SetEnable(int nLine, bool bEn) { m_CGridView.SetEnable(nLine, bEn); }
+                public bool GridView_GetEnable(int nLine) { return m_CGridView.GetEnable(nLine); }
+                public void GridView_SetGroup(int nLine, int nGroup) { m_CGridView.SetGroup(nLine, nGroup); }
+                public int GridView_GetGroup(int nLine) { return m_CGridView.GetGroup(nLine); }
+                public void GridView_SetTime(int nLine, int nGroup) { m_CGridView.SetData(nLine, m_CGridView.GetTableCount() - 2, nGroup); }
+                public int GridView_GetTime(int nLine) { return Convert.ToInt32(m_CGridView.GetData(nLine, m_CGridView.GetTableCount() - 2)); }
+                public void GridView_SetDelay(int nLine, int nGroup) { m_CGridView.SetData(nLine, m_CGridView.GetTableCount() - 1, nGroup); }
+                public int GridView_GetDelay(int nLine) { return Convert.ToInt32(m_CGridView.GetData(nLine, m_CGridView.GetTableCount() - 1)); }
+                public int GridView_GetLines()
+                {
+                    return m_CGridView.GetLineCount();
+                }
+                public int GridView_GetCols()
+                {
+                    return m_CGridView.GetTableCount() - 2; // Time, Delay
+                }
+                public float GridView_GetMotor(int nLine, int nMotorID)
+                {
+                    try
+                    {
+                        float fValue = Convert.ToSingle(m_CGridView.GetData(nLine, nMotorID));
+                        return fValue;
+                        //return Convert.ToSingle(m_CGridView.GetData(nLine, nMotorID));
+                    }
+                    catch
+                    {
+                        return 0.0f;
+                    }
+                }
+                // 0 - (+), 1 - (-), 2 - mul, 3 - div, 4 - increment, 5 - decrement, 6 - Change, 7 - Flip Value, 8 - Interpolation, 9 - 'S'Curve, 10 - Flip Position, 11 - Evd(+), 12 - Evd(-), 13 - EvdSet, 14 - Angle(+), 15 - Angle(-), 16 - AngleSet, 
+                // 17, 18, 19 - Gravity Set(18 - Tilt 만 변화, 19 - Swing 만 변화)
+                // 20, 21, 22 - LED Change(20-Red, 21-Green, 22-Blue) - 0 일때 클리어, 1 일때 동작
+                // 23 - Motor Enable() - LED 와 동일
+                // 24 - MotorType() - LED 와 동일
+                // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)       
+                public void GridView_Calc(ECalc_t ECalc, float fValue) { GridView_Calc(m_CGridView.GetHandle(), ECalc, fValue); }
+                public void GridView_Calc(DataGridView OjwDataGrid, ECalc_t ECalc, float fValue) { m_CGridView.Calc((int)ECalc, fValue); }
+                public void GridView_Clear() { m_CGridView.Clear(); }
+                public void GridView_SetMotor(int nLine, int nMotorID, float fValue)
+                {
+                    m_CGridView.SetData(nLine, nMotorID, fValue);
+                }
+                public void GridView_SetSelectedGroup(int nGroup) { m_CGridView.SetSelectedGroup(nGroup); }
+                
+                public void Gridview_Draw(int nLine)
+                {
+                    if (m_bGridInit == true)
+                    {
+                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                        {
+                            float fValue = GetData(i);
+                            try
+                            {
+                                SetData(i, GridView_GetMotor(nLine, i));
+                            }
+                            catch
+                            {
+                                SetData(i, fValue);
+                            }
+                        }
+                    }
+                }
+                #endregion Grid For Motion
 
                 #region OjwDraw()
                 private int m_nStatus_GroupA = 0;
@@ -2387,8 +2664,10 @@ namespace OpenJigWare
                         
 
                         long lRet = glDraw_End();
-                        bPick = IsPicking();
-                        if (bPick == true)
+                        //bPick = IsPicking();
+                        //if (bPick == true)
+                        bPick = (lRet > 0) ? true : false;
+                        if (IsPicking() == true)
                         {
                             if (lRet > 0)
                             {
@@ -2636,11 +2915,11 @@ namespace OpenJigWare
                     }
                 }
                 #endregion OjwDraw()
-
+            
                 #region glDraw_End()
                 public long glDraw_End()
                 {
-
+                    //Refresh();
                     if (m_bPickMouseClick == true)
                     {
                         Picking_End();
@@ -2658,7 +2937,8 @@ namespace OpenJigWare
                     {
                         glFlush();
                     }
-                    Refresh();
+                    this.SwapBuffers();
+                    //Refresh();
                     return -1;
                 }
                 #endregion glDraw_End()
@@ -3201,8 +3481,8 @@ namespace OpenJigWare
 
                 private bool m_bPickColor = true;
                 private bool m_bPickAlpha = true;
-                private Color m_cPickColor = Color.FromArgb(50, 50, 255);
-                private float m_fPickAlpha = 1.0f;
+                private Color m_cPickColor = Color.Green;//Color.FromArgb(50, 50, 255);
+                private float m_fPickAlpha = 0.5f;//1.0f;
                 public void SetPick_ColorMode(bool bOn)
                 {
                     m_bPickColor = bOn;
@@ -3261,8 +3541,8 @@ namespace OpenJigWare
                     GetPickingData(out nGroupA, out nGroupB, out nGroupC, out nInverseKinematics);
                     float fAlpha = (m_bAlpha) ? m_fAlpha : OjwDisp.fAlpha;
                     bool bPicked = false;
-                    if (m_bPickColor == true)
-                    {
+                    //if (m_bPickColor == true)
+                    //{
                         if(
                             (((nGroupA + nGroupB) > 0) &&
                         (OjwDisp.nPickGroup_A == nGroupA) &&
@@ -3276,7 +3556,7 @@ namespace OpenJigWare
                             if (m_bPickAlpha) fAlpha = m_fPickAlpha;
                             bPicked = true;
                         }                        
-                    }
+                    //}
 
                     for (int i = 0; i < _CNT_SECOND_COLOR; i++)
                     {
@@ -3480,7 +3760,8 @@ namespace OpenJigWare
                     {
                         //if (GetDrawFastMode() == 0)
                         //{
-                        OjwAse_Outside(bFilled, cColor, fAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z, OjwDisp.strDispObject);
+                        if (OjwDisp.strDispObject.IndexOf('#') < 0)
+                            OjwAse_Outside(bFilled, cColor, fAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z, OjwDisp.strDispObject);
                         //}
                     }
                     //else if ((OjwDisp.nDispModel >= 0x1000) && (OjwDisp.nDispModel < 0x2000))
@@ -4526,6 +4807,9 @@ namespace OpenJigWare
                     //DispModelString();
                     InitVirtualClass();
                     Prop_Update_VirtualObject();
+
+                    // Event 발생
+                    Event_ItemAdd.RunEvent();
                 }
 
 
@@ -6997,6 +7281,7 @@ namespace OpenJigWare
                 public void SetHeader_strVersion(String strValue) { m_CHeader.strVersion = strValue; }
                 #endregion Set
                 #region Get
+                public COjwDesignerHeader GetHeader() { return m_CHeader; }
                 public bool GetHeader_bDisplay_Axis() { return m_CHeader.bDisplay_Axis; }
                 public bool GetHeader_bDisplay_Invisible() { return m_CHeader.bDisplay_Invisible; }
                 public bool GetHeader_bDisplay_Light() { return m_CHeader.bDisplay_Light; }
