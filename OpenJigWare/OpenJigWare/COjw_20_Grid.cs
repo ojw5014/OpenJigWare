@@ -907,7 +907,20 @@ namespace OpenJigWare
         public class CProperty
         {
             private PropertyGrid m_propGrid = null;//new PropertyGrid();
-            //private object m_obj = null;
+            //private object m_obj = null;     
+            private Panel m_pnProp_Selected = null;
+            public void Destroy()
+            {
+                Destroy(m_pnProp_Selected);
+            }
+            public void Destroy(Panel pnProp)
+            {
+                if (m_propGrid != null)
+                {
+                    pnProp.Controls.Remove(m_propGrid);
+                    m_propGrid.Dispose();
+                }
+            }
             public void Create(Panel pnProp, object objectClass)
             {
                 m_propGrid = new PropertyGrid();
@@ -930,6 +943,7 @@ namespace OpenJigWare
                 //m_propGrid.Text = "";
                 //m_propGrid.TextChanged += new System.EventHandler(m_atxtPos_TextChanged);
                 pnProp.Controls.Add(m_propGrid);
+                m_pnProp_Selected = pnProp;
             }
             public void SetEvent_Changed(PropertyValueChangedEventHandler FFunction)
             {                
@@ -1374,8 +1388,8 @@ namespace OpenJigWare
             public bool m_bKey_Alt = false;
             public bool m_bKey_Shift = false;
 
-            private int m_nCurrntCell = 0;
-            private int m_nCurrntColumn = 0;
+            public int m_nCurrntCell = 0;
+            public int m_nCurrntColumn = 0;
             private int m_nCnt_Col = 0;
             private SGridTable_t[] m_aSGridTable = null;
             //private List<SGridLineInfo_t> m_lstLineInfo = new List<SGridLineInfo_t>();
@@ -1446,6 +1460,7 @@ namespace OpenJigWare
 
                 dgAngle.Columns.Clear();
                 dgAngle.AllowUserToAddRows = false; // 자동추가 방지
+                dgAngle.RowHeadersWidth = 150;
                 dgAngle.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 
                 // 0 - En
@@ -1969,7 +1984,7 @@ namespace OpenJigWare
                     for (int i = nIndex; i < nIndex + nCount; i++)
                     {
                         nAxis = j - 1;// Grid_GetAxisNum_byIndex(j);
-                        int nAddColor = 0;// 30;
+                        //int nAddColor = 0;// 30;
 
                         Color cColor;// = colorData[nColorIndex];
                         //if (m_aSGridTable[j].cColor != null)
@@ -2458,6 +2473,9 @@ namespace OpenJigWare
             }
             #endregion Calc
 
+            public bool m_bGridMotionEditing = false;
+            //public bool m_bGridAdded = false;
+
             //int m_nFirstPos_Min_X = 9999999;
             //int m_nFirstPos_Min_Line = 9999999;
             private void dgAngle_KeyDown(object sender, KeyEventArgs e)
@@ -2477,32 +2495,132 @@ namespace OpenJigWare
                     #region Keys.Insert - 삽입
                     case Keys.Insert:
                         {
-                            if (dgGrid.Focused == true)
+                            if (m_bBlock == false)
                             {
-                                string strValue = "1";
-                                if (e.Control)
+                                if (dgGrid.Focused == true)
                                 {
-                                    if (Ojw.CInputBox.Show("Insert", "뒤로 추가할 테이블의 수를 지정하시오", ref strValue) == DialogResult.OK)
+                                    string strValue = "1";
+                                    if (e.Control)
                                     {
-                                        int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
-                                        int nFirst = m_nCurrntCell;
-                                        Add(m_nCurrntCell, nInsertCnt);
+                                        if (Ojw.CInputBox.Show("Insert", "뒤로 추가할 테이블의 수를 지정하시오", ref strValue) == DialogResult.OK)
+                                        {
+                                            int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
+                                            int nFirst = m_nCurrntCell;
+                                            Add(m_nCurrntCell, nInsertCnt);
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    if (Ojw.CInputBox.Show("Insert", "삽입할 테이블의 수를 지정하시오", ref strValue) == DialogResult.OK)
+                                    else
                                     {
-                                        //m_bKeyInsert = true;
-                                        int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
-                                        int nFirst = m_nCurrntCell;
-                                        Insert(m_nCurrntCell, nInsertCnt);
-                                        //Grid_Insert(nFirst, nInsertCnt);
-                                        //m_bKeyInsert = false;
+                                        if (Ojw.CInputBox.Show("Insert", "삽입할 테이블의 수를 지정하시오", ref strValue) == DialogResult.OK)
+                                        {
+                                            //m_bKeyInsert = true;
+                                            int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
+                                            int nFirst = m_nCurrntCell;
+                                            Insert(m_nCurrntCell, nInsertCnt);
+                                            //Grid_Insert(nFirst, nInsertCnt);
+                                            //m_bKeyInsert = false;
+                                        }
                                     }
+                                    //Grid_DisplayLine(m_nCurrntCell);
                                 }
-                                //Grid_DisplayLine(m_nCurrntCell);
                             }
+                            else
+                            {
+                                if (m_txtDraw != null)
+                                {
+                                    if (dgGrid.Focused == true)
+                                    {
+                                        string strValue = "1";
+                                        if (e.Control)
+                                        {
+                                            if (Ojw.CInputBox.Show("Insert", "뒤로 추가할 테이블의 수를 지정하시오", ref strValue) == DialogResult.OK)
+                                            {
+                                                int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
+                                                if (nInsertCnt > 0)
+                                                {
+                                                    int nFirst = m_nCurrntCell;
+                                                    string strDraw = String.Empty;
+                                                    if (m_txtDraw.Lines.Length > 0)
+                                                    {
+                                                        for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                                        {
+                                                            strDraw += m_txtDraw.Lines[i];
+
+                                                            if (i == m_nCurrntCell)
+                                                            {
+                                                                for (int j = 0; j < nInsertCnt; j++)
+                                                                {
+                                                                    strDraw += "\r\n//";
+                                                                }
+                                                            }
+                                                            if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        for (int j = 0; j < nInsertCnt; j++)
+                                                        {
+                                                            strDraw += "//";
+                                                            if (j < nInsertCnt - 1) strDraw += "\r\n";
+                                                        }
+                                                        //strDraw = "//";
+                                                    }
+                                                    m_bGridMotionEditing = true;
+                                                    m_txtDraw.Text = strDraw;
+                                                    //Add(m_nCurrntCell, nInsertCnt);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (Ojw.CInputBox.Show("Insert", "삽입할 테이블의 수를 지정하시오", ref strValue) == DialogResult.OK)
+                                            {
+                                                //m_bKeyInsert = true;
+                                                int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
+                                                if (nInsertCnt > 0)
+                                                {
+                                                    int nFirst = m_nCurrntCell;
+                                                    string strDraw = String.Empty;
+                                                    if (m_txtDraw.Lines.Length > 0)
+                                                    {
+                                                        for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                                        {
+                                                            if (i == m_nCurrntCell)
+                                                            {
+                                                                for (int j = 0; j < nInsertCnt; j++)
+                                                                {
+                                                                    strDraw += "//\r\n";
+                                                                }
+                                                            }
+                                                            strDraw += m_txtDraw.Lines[i];
+
+                                                            if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        for (int j = 0; j < nInsertCnt; j++)
+                                                        {
+                                                            strDraw += "//";
+                                                            if (j < nInsertCnt - 1) strDraw += "\r\n"; 
+                                                        }
+                                                        //strDraw = "//";
+                                                    }
+                                                    m_bGridMotionEditing = true;
+                                                    m_txtDraw.Text = strDraw;
+
+                                                    //Insert(m_nCurrntCell, nInsertCnt);
+                                                    //Grid_Insert(nFirst, nInsertCnt);
+                                                    //m_bKeyInsert = false;
+                                                }
+                                            }
+                                        }
+                                        //Grid_DisplayLine(m_nCurrntCell);
+                                        //m_bGridAdded = true; // For COjw_12_3D.cs only
+                                    }
+                                }
+                            }
+
                         }
                         break;
                     #endregion Keys.Insert - 삽입
@@ -2600,83 +2718,114 @@ namespace OpenJigWare
                     #region Keys.Delete: - 삭제하기
                     case Keys.Delete:
                         {
-                            if (dgGrid.Focused == true)
+                            if (m_bBlock == false)
                             {
-                                if (e.Control)
+                                if (dgGrid.Focused == true)
                                 {
-                                    Delete(m_nCurrntCell, 1);
-                                }
-                                else
-                                {
-                                    int nPos_Start_X = 0, nPos_Start_Y = 0;
-                                    int nPos_End_X = 0, nPos_End_Y = 0;
-                                    int nX_Limit = dgGrid.RowCount;
-                                    int nY_Limit = dgGrid.ColumnCount;
-                                    // 첫 위치 찾아내기
-                                    int k = 0;
-                                    bool bStart = false;
-                                    for (int j = 0; j < nY_Limit; j++)
+                                    if (e.Control)
                                     {
-                                        bStart = false;
-                                        for (int i = 0; i < nX_Limit; i++)
+                                        Delete(m_nCurrntCell, 1);
+                                    }
+                                    else
+                                    {
+                                        int nPos_Start_X = 0, nPos_Start_Y = 0;
+                                        int nPos_End_X = 0, nPos_End_Y = 0;
+                                        int nX_Limit = dgGrid.RowCount;
+                                        int nY_Limit = dgGrid.ColumnCount;
+                                        // 첫 위치 찾아내기
+                                        int k = 0;
+                                        bool bStart = false;
+                                        for (int j = 0; j < nY_Limit; j++)
                                         {
-                                            if (dgGrid[j, i].Selected == true)
+                                            bStart = false;
+                                            for (int i = 0; i < nX_Limit; i++)
                                             {
-                                                // Start
-                                                if (i == 0)
+                                                if (dgGrid[j, i].Selected == true)
                                                 {
-                                                    bStart = true;
-                                                }
-                                                else if (dgGrid[j, i - 1].Selected == false)
-                                                {
-                                                    bStart = true;
-                                                }
-                                                else bStart = false;
-
-                                                if (bStart == true)
-                                                {
-                                                    nPos_Start_X = i; nPos_Start_Y = j;
-
-                                                    for (k = i; k < nX_Limit; k++)
+                                                    // Start
+                                                    if (i == 0)
                                                     {
-                                                        if (k >= (nX_Limit - 1))
+                                                        bStart = true;
+                                                    }
+                                                    else if (dgGrid[j, i - 1].Selected == false)
+                                                    {
+                                                        bStart = true;
+                                                    }
+                                                    else bStart = false;
+
+                                                    if (bStart == true)
+                                                    {
+                                                        nPos_Start_X = i; nPos_Start_Y = j;
+
+                                                        for (k = i; k < nX_Limit; k++)
                                                         {
-                                                            nPos_End_X = k; nPos_End_Y = j; // j는 항상 같게...
-                                                        }
-                                                        else
-                                                        {
-                                                            if (dgGrid[j, k + 1].Selected == false)
+                                                            if (k >= (nX_Limit - 1))
                                                             {
                                                                 nPos_End_X = k; nPos_End_Y = j; // j는 항상 같게...
+                                                            }
+                                                            else
+                                                            {
+                                                                if (dgGrid[j, k + 1].Selected == false)
+                                                                {
+                                                                    nPos_End_X = k; nPos_End_Y = j; // j는 항상 같게...
 
-                                                                break;
+                                                                    break;
+                                                                }
                                                             }
                                                         }
-                                                    }
 
-                                                    for (k = nPos_Start_X; k <= nPos_End_X; k++)
-                                                    {
-                                                        dgGrid[j, k].Selected = true;
-                                                        if (j == dgGrid.ColumnCount - 1) dgGrid[j, k].Value = ""; // Caption
-                                                        //else if (j == 0) {} // Index
-                                                        else
+                                                        for (k = nPos_Start_X; k <= nPos_End_X; k++)
                                                         {
-                                                            dgGrid[j, k].Value = 0;
-                                                            //if ((j > 0) && (j <= m_pCHeader[m_nCurrentRobot].nMotorCnt))
-                                                            //{
+                                                            dgGrid[j, k].Selected = true;
+                                                            if (j == dgGrid.ColumnCount - 1) dgGrid[j, k].Value = ""; // Caption
+                                                            //else if (j == 0) {} // Index
+                                                            else
+                                                            {
+                                                                dgGrid[j, k].Value = 0;
+                                                                //if ((j > 0) && (j <= m_pCHeader[m_nCurrentRobot].nMotorCnt))
+                                                                //{
                                                                 // Led만 클리어 한다.
                                                                 //Grid_SetFlag_Led(k, j, 0);
-                                                            //    m_pnFlag[k, j - 1] = (int)(m_pnFlag[k, j - 1] & 0x18);// | (int)(nLed & 0x07));
-                                                            //}
+                                                                //    m_pnFlag[k, j - 1] = (int)(m_pnFlag[k, j - 1] & 0x18);// | (int)(nLed & 0x07));
+                                                                //}
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
                                     }
+                                    //Grid_DisplayLine(m_nCurrntCell);
+                                    //CheckFlag(m_nCurrntCell);
                                 }
-                                //Grid_DisplayLine(m_nCurrntCell);
-                                //CheckFlag(m_nCurrntCell);
+                            }
+                            else
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    if (e.Control)
+                                    {
+                                        int nTmp = 0;
+                                        string strDraw = String.Empty;
+                                        if (m_txtDraw.Lines.Length > 0)
+                                        {
+                                            for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                            {
+                                                if (i != m_nCurrntCell)
+                                                {
+                                                    strDraw += m_txtDraw.Lines[i];
+                                                    if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";                                                    
+                                                }
+                                                else nTmp++;
+                                            }
+                                        }
+                                        if (m_nCurrntCell > 0) m_nCurrntCell -= nTmp;
+
+                                        //else strDraw = "//";
+                                        m_bGridMotionEditing = true;
+                                        m_txtDraw.Text = strDraw;
+                                    }
+                                }
                             }
                         }
                         break;
@@ -2684,172 +2833,175 @@ namespace OpenJigWare
                     #region Keys.V - 붙여넣기
                     case Keys.V:
                         {
-                            if (dgGrid.Focused == true)
+                            if (m_bBlock == false)
                             {
-                                try
+                                if (dgGrid.Focused == true)
                                 {
-                                    //int nCntPos = 0;
-
-                                    int nPos_X = 0, nPos_Y = 0;
-                                    bool bPass = false;
-                                    int nX_Limit = dgGrid.RowCount;
-                                    int nY_Limit = dgGrid.ColumnCount;
-
-                                    #region 첫 위치 찾아내기
-                                    for (int i = 0; i < nX_Limit; i++)
+                                    try
                                     {
-                                        for (int j = 0; j < nY_Limit; j++)
+                                        //int nCntPos = 0;
+
+                                        int nPos_X = 0, nPos_Y = 0;
+                                        bool bPass = false;
+                                        int nX_Limit = dgGrid.RowCount;
+                                        int nY_Limit = dgGrid.ColumnCount;
+
+                                        #region 첫 위치 찾아내기
+                                        for (int i = 0; i < nX_Limit; i++)
                                         {
-                                            if ((dgGrid[j, i].Selected == true) && (bPass == false))
+                                            for (int j = 0; j < nY_Limit; j++)
                                             {
-                                                nPos_X = i; nPos_Y = j;
-                                                //Message(OjwConvert.IntToStr(nPos_X) + ", " + OjwConvert.IntToStr(nPos_Y));
-                                                bPass = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    #endregion
-
-                                    // 복사된 행의 열을 구하기 위하여 클립보드 사용.
-                                    IDataObject iData = Clipboard.GetDataObject();
-                                    string strClp = (string)iData.GetData(DataFormats.Text);
-
-                                    if (strClp == null) break;
-
-                                    string strClip = "";
-
-                                    #region Tab, \r\n 의 개수를 셈
-                                    int nCnt = 0;
-                                    int nT_Cnt = 0;
-                                    int nLine_Cnt = 0;
-                                    string strDisp = "";
-                                    for (int i = 0; i < strClp.Length; i++)
-                                    {
-                                        if (strClp[i] == '\t') nT_Cnt++;
-                                        else if (strClp[i] == '\n') nLine_Cnt++;
-                                        if (strClp[i] != '\r')
-                                        {
-                                            if ((i == strClp.Length - 1) && (strClp[i] < 0x20)) break;
-                                            if ((strClp[i] >= 0x20) && (strClp[i] != '\t') && (strClp[i] != '\n'))
-                                            {
-                                                nCnt++;
-                                                strDisp += strClp[i];
-                                            }
-                                            strClip += strClp[i];
-                                        }
-                                    }
-                                    #endregion
-
-                                    int nW = 0, nH = 0;
-                                    int nAll = 0;
-                                    if (strClip.Length > 0)
-                                    {
-                                        // strClip -> 이 데이타가 진짜
-                                        //nW = 1; 
-                                        nH = 1;
-                                        nAll = 1;
-                                        for (int i = 0; i < strClip.Length; i++)
-                                        {
-                                            // 가로열, 세로열 카운트
-                                            if (strClip[i] == '\n') nH++;
-                                            if ((strClip[i] == '\n') || (strClip[i] == '\t')) nAll++;
-                                        }
-                                        nW = (int)Math.Round((float)nAll / (float)nH, 0);
-                                        //Message("nW = " + OjwConvert.IntToStr(nW) + ", nH = " + OjwConvert.IntToStr(nH));
-
-                                        bool bW = false, bH = false;
-                                        if (nW >= nY_Limit) bW = true;
-                                        if (nH >= nX_Limit) bH = true;
-
-                                        String[,] pstrValue = new string[nW, nH];
-                                        bool[,] pbValid = new bool[nW, nH];
-                                        int nX = 0, nY = 0;
-                                        for (int i = 0; i < nW; i++) // 초기화
-                                            for (int j = 0; j < nH; j++)
-                                            {
-                                                pstrValue[i, j] = "";
-                                                pbValid[i, j] = false;
-                                            }
-
-                                        for (int i = 0; i < strClip.Length; i++)
-                                        {
-                                            if (strClip[i] == '\n') { nY++; nX = 0; }
-                                            else if (strClip[i] == '\t') nX++;
-                                            else
-                                            {
-                                                pbValid[nX, nY] = true;
-                                                pstrValue[nX, nY] += strClip[i];
-                                            }
-                                        }
-
-                                        if (e.Shift)
-                                            Insert(m_nCurrntCell, nH);
-                                        //Grid_Insert(nPos_X, nH);
-                                        else
-                                        {
-                                            // 모자란 라인 채우기
-                                            if (nH > dgGrid.RowCount)
-                                            {
-                                                Insert(m_nCurrntCell, nH - dgGrid.RowCount);
-                                            }
-                                        }
-
-                                        #region 실 데이타 저장
-                                        ////// 실 데이타 저장 ///////
-                                        // Display
-                                        int nOffset_i = 0, nOffset_j = 0;
-                                        if (bW == true) nOffset_i++;
-                                        if (bH == true) nOffset_j++;
-                                        string strTmp;
-
-                                        for (int j = 0; j < nH - nOffset_j; j++)
-                                            for (int i = 0; i < nW - nOffset_i; i++)
-                                            {
-                                                strTmp = pstrValue[i + nOffset_i, j + nOffset_j];
-                                                if (((nPos_X + j) < dgGrid.RowCount) && ((nPos_Y + i) < nY_Limit))
+                                                if ((dgGrid[j, i].Selected == true) && (bPass == false))
                                                 {
-                                                    if ((pbValid[i + nOffset_i, j + nOffset_j] == true))
-                                                    {
-                                                        //dgGrid[nPos_Y + i, nPos_X + j].Style.BackColor = Color.Blue;
-                                                        // Data
-                                                        dgGrid[nPos_Y + i, nPos_X + j].Value = strTmp;
-                                                        dgGrid[nPos_Y + i, nPos_X + j].Selected = true;
-
-                                                        //                                             if (dgGrid == dgAngle)
-                                                        //                                             {
-                                                        //                                                 // Forward
-                                                        //                                                 int nGroup = CheckKinematicsMotor_ByIndex(nPos_X + j);
-                                                        //                                                 if (nGroup >= 0)
-                                                        //                                                 {
-                                                        //                                                     Grid_ForwardKinematics_Separation(nPos_Y + i, nGroup);
-                                                        //                                                 }
-                                                        //                                             }
-                                                        //                                             else// dataGrid_XY2Angle(k);
-                                                        //                                             {
-                                                        //                                                 int nGroup = j / 3;
-                                                        //                                                 Grid_InverseKinematics_Separation(nPos_Y + i, nGroup);
-                                                        //                                             }
-                                                    }
+                                                    nPos_X = i; nPos_Y = j;
+                                                    //Message(OjwConvert.IntToStr(nPos_X) + ", " + OjwConvert.IntToStr(nPos_Y));
+                                                    bPass = true;
+                                                    break;
                                                 }
                                             }
-                                        //                                 for (int j = 0; j < nH - nOffset_j; j++)
-                                        //                                 {
-                                        //                                     if (dgGrid == dataGrid_Angle) dataGrid_Angle2XY(nPos_X + j);
-                                        //                                     else dataGrid_XY2Angle(nPos_X + j);
-                                        //                                 }
+                                        }
                                         #endregion
 
+                                        // 복사된 행의 열을 구하기 위하여 클립보드 사용.
+                                        IDataObject iData = Clipboard.GetDataObject();
+                                        string strClp = (string)iData.GetData(DataFormats.Text);
+
+                                        if (strClp == null) break;
+
+                                        string strClip = "";
+
+                                        #region Tab, \r\n 의 개수를 셈
+                                        int nCnt = 0;
+                                        int nT_Cnt = 0;
+                                        int nLine_Cnt = 0;
+                                        string strDisp = "";
+                                        for (int i = 0; i < strClp.Length; i++)
+                                        {
+                                            if (strClp[i] == '\t') nT_Cnt++;
+                                            else if (strClp[i] == '\n') nLine_Cnt++;
+                                            if (strClp[i] != '\r')
+                                            {
+                                                if ((i == strClp.Length - 1) && (strClp[i] < 0x20)) break;
+                                                if ((strClp[i] >= 0x20) && (strClp[i] != '\t') && (strClp[i] != '\n'))
+                                                {
+                                                    nCnt++;
+                                                    strDisp += strClp[i];
+                                                }
+                                                strClip += strClp[i];
+                                            }
+                                        }
+                                        #endregion
+
+                                        int nW = 0, nH = 0;
+                                        int nAll = 0;
+                                        if (strClip.Length > 0)
+                                        {
+                                            // strClip -> 이 데이타가 진짜
+                                            //nW = 1; 
+                                            nH = 1;
+                                            nAll = 1;
+                                            for (int i = 0; i < strClip.Length; i++)
+                                            {
+                                                // 가로열, 세로열 카운트
+                                                if (strClip[i] == '\n') nH++;
+                                                if ((strClip[i] == '\n') || (strClip[i] == '\t')) nAll++;
+                                            }
+                                            nW = (int)Math.Round((float)nAll / (float)nH, 0);
+                                            //Message("nW = " + OjwConvert.IntToStr(nW) + ", nH = " + OjwConvert.IntToStr(nH));
+
+                                            bool bW = false, bH = false;
+                                            if (nW >= nY_Limit) bW = true;
+                                            if (nH >= nX_Limit) bH = true;
+
+                                            String[,] pstrValue = new string[nW, nH];
+                                            bool[,] pbValid = new bool[nW, nH];
+                                            int nX = 0, nY = 0;
+                                            for (int i = 0; i < nW; i++) // 초기화
+                                                for (int j = 0; j < nH; j++)
+                                                {
+                                                    pstrValue[i, j] = "";
+                                                    pbValid[i, j] = false;
+                                                }
+
+                                            for (int i = 0; i < strClip.Length; i++)
+                                            {
+                                                if (strClip[i] == '\n') { nY++; nX = 0; }
+                                                else if (strClip[i] == '\t') nX++;
+                                                else
+                                                {
+                                                    pbValid[nX, nY] = true;
+                                                    pstrValue[nX, nY] += strClip[i];
+                                                }
+                                            }
+
+                                            if (e.Shift)
+                                                Insert(m_nCurrntCell, nH);
+                                            //Grid_Insert(nPos_X, nH);
+                                            else
+                                            {
+                                                // 모자란 라인 채우기
+                                                if (nH > dgGrid.RowCount)
+                                                {
+                                                    Insert(m_nCurrntCell, nH - dgGrid.RowCount);
+                                                }
+                                            }
+
+                                            #region 실 데이타 저장
+                                            ////// 실 데이타 저장 ///////
+                                            // Display
+                                            int nOffset_i = 0, nOffset_j = 0;
+                                            if (bW == true) nOffset_i++;
+                                            if (bH == true) nOffset_j++;
+                                            string strTmp;
+
+                                            for (int j = 0; j < nH - nOffset_j; j++)
+                                                for (int i = 0; i < nW - nOffset_i; i++)
+                                                {
+                                                    strTmp = pstrValue[i + nOffset_i, j + nOffset_j];
+                                                    if (((nPos_X + j) < dgGrid.RowCount) && ((nPos_Y + i) < nY_Limit))
+                                                    {
+                                                        if ((pbValid[i + nOffset_i, j + nOffset_j] == true))
+                                                        {
+                                                            //dgGrid[nPos_Y + i, nPos_X + j].Style.BackColor = Color.Blue;
+                                                            // Data
+                                                            dgGrid[nPos_Y + i, nPos_X + j].Value = strTmp;
+                                                            dgGrid[nPos_Y + i, nPos_X + j].Selected = true;
+
+                                                            //                                             if (dgGrid == dgAngle)
+                                                            //                                             {
+                                                            //                                                 // Forward
+                                                            //                                                 int nGroup = CheckKinematicsMotor_ByIndex(nPos_X + j);
+                                                            //                                                 if (nGroup >= 0)
+                                                            //                                                 {
+                                                            //                                                     Grid_ForwardKinematics_Separation(nPos_Y + i, nGroup);
+                                                            //                                                 }
+                                                            //                                             }
+                                                            //                                             else// dataGrid_XY2Angle(k);
+                                                            //                                             {
+                                                            //                                                 int nGroup = j / 3;
+                                                            //                                                 Grid_InverseKinematics_Separation(nPos_Y + i, nGroup);
+                                                            //                                             }
+                                                        }
+                                                    }
+                                                }
+                                            //                                 for (int j = 0; j < nH - nOffset_j; j++)
+                                            //                                 {
+                                            //                                     if (dgGrid == dataGrid_Angle) dataGrid_Angle2XY(nPos_X + j);
+                                            //                                     else dataGrid_XY2Angle(nPos_X + j);
+                                            //                                 }
+                                            #endregion
 
 
+
+                                        }
+                                        //m_nFirstPos_Min_X = 9999999;
+                                        //m_nFirstPos_Min_Line = 9999999;
+                                        //Grid_DisplayLine(m_nCurrntCell);
                                     }
-                                    //m_nFirstPos_Min_X = 9999999;
-                                    //m_nFirstPos_Min_Line = 9999999;
-                                    //Grid_DisplayLine(m_nCurrntCell);
-                                }
-                                catch (Exception e2)
-                                {
-                                    MessageBox.Show(e2.ToString());
+                                    catch (Exception e2)
+                                    {
+                                        MessageBox.Show(e2.ToString());
+                                    }
                                 }
                             }
                         }
@@ -2981,6 +3133,9 @@ namespace OpenJigWare
                     #endregion Keys.C - 복사하기
                 }
             }
+            private bool m_bBlock = false;
+            private TextBox m_txtDraw = null;
+            public void dgAngle_Block_GridChange(TextBox txtDraw, bool bBlock) { m_txtDraw = txtDraw; m_bBlock = bBlock; }
             private void dgAngle_MouseClick(object sender, MouseEventArgs e)
             {
                 if (e.Button == MouseButtons.Right)

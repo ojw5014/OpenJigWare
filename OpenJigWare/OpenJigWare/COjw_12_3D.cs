@@ -53,7 +53,11 @@ namespace OpenJigWare
 
             #region PropertyGrid
             private CProp_User m_CPropAll = new CProp_User();
+            private CProp_Selected m_CPropAll_Selected = new CProp_Selected();
+
             private CProperty m_CProperty = new CProperty();
+            private CProperty m_CProperty_Selected = new CProperty();
+
             //private CProp m_CProp_Main = new CProp();
             public void CreateProb(Panel pnProp)
             {
@@ -332,6 +336,676 @@ namespace OpenJigWare
                     #endregion Set
                 }
             }
+            #region Prop_Selected
+            private COjwDisp m_CDisp_Selected = null;// = new COjwDisp();
+            private Panel m_panelSelected = null;
+            public void CreateProp_Selected(int nLine)
+            {
+                if (m_panelSelected != null)
+                    CreateProp_Selected(m_panelSelected, OjwDispAll.GetData(nLine));
+            }
+            public void CreateProp_Selected(COjwDisp CDisp)
+            {
+                if (m_panelSelected != null)
+                    CreateProp_Selected(m_panelSelected, CDisp);
+            }
+            public void CreateProp_Selected(Panel pnProp, int nLine)
+            {
+                CreateProp_Selected(pnProp, OjwDispAll.GetData(nLine));
+            }
+            public void CreateProp_Selected(Panel pnProp, COjwDisp CDisp)
+            {
+#if false
+                m_CProperty_Selected.Destroy(pnProp); 
+                m_CDisp_Selected = null;
+                if (CDisp != null)
+                {
+                    if (CDisp.strDispObject != "#-1")
+                    {
+                        //m_CPropAll_Selected = null;
+                        //CProp_Selected
+                        m_CPropAll_Selected.Create(CDisp);//m_CDisp);
+                        m_CProperty_Selected.Create(pnProp, m_CPropAll_Selected);//m_CProp_Main);
+                        m_CProperty_Selected.SetEvent_Changed(Prop_PropertyValueChanged_Selected);
+
+                        m_CDisp_Selected = CDisp;
+
+                        //Prop_Update_Selected();
+                    }
+                }
+                m_panelSelected = pnProp;
+#else
+                m_CProperty_Selected.Destroy(pnProp);
+                m_CDisp_Selected = null;
+                if (CDisp != null)
+                {
+                    //if (CDisp.strDispObject != "#-1")
+                    //{
+                        //m_CPropAll_Selected = null;
+                        //CProp_Selected
+                        m_CPropAll_Selected.Create(CDisp);//m_CDisp);
+                        m_CProperty_Selected.Create(pnProp, m_CPropAll_Selected);//m_CProp_Main);
+                        m_CProperty_Selected.SetEvent_Changed(Prop_PropertyValueChanged_Selected);
+
+                        m_CDisp_Selected = CDisp;
+
+                        //Prop_Update_Selected();
+                    //}
+                }
+                m_panelSelected = pnProp;
+#endif
+            }
+
+            [DefaultPropertyAttribute("OpenJigWare")]
+            [RefreshProperties(RefreshProperties.All)]
+            private class CProp_Selected
+            {
+                public CProp_Selected()
+                {
+                }
+                ~CProp_Selected()
+                {
+                }
+                public void Destroy()
+                {
+                    CDisp = null;
+                }
+                public void Create(COjwDisp OjwDisp)
+                {
+                    CDisp = OjwDisp;
+                }
+                public void Visible(String strName, bool bVisible)
+                {
+                    PropertyDescriptor descriptor = TypeDescriptor.GetProperties(this.GetType())[strName];
+                    BrowsableAttribute attrib = (BrowsableAttribute)descriptor.Attributes[typeof(BrowsableAttribute)];
+                    FieldInfo isBrow = attrib.GetType().GetField("browsable", BindingFlags.NonPublic | BindingFlags.Instance);
+                    isBrow.SetValue(attrib, bVisible);
+                }
+
+                COjwDisp CDisp = null;
+                private const string strGroup = "[1]Object";
+                //private int _nTest = 0;
+                //[DisplayName("Test"), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("Test Main")]
+                //public int nTest { get { return _nTest; } set { _nTest = value; } }
+
+                #region Item add : Step 2/4
+                // item add : step 2 / 4
+                [DisplayName(m_pstrProp_0),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("Axis Number(-1:None, 0~253)")]
+                public int nAxisName { get { return (CDisp == null) ? 0 : CDisp.nName; } set { CDisp.nName = value; } }
+
+                [DisplayName(m_pstrProp_1),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("Object Color")]
+                public Color cColor { get { return (CDisp == null) ? Color.White : CDisp.cColor; } set { CDisp.cColor = value; } }
+
+                private CSlider<float> m_fSliderAlpha = new CSlider<float>(1.0f, 0.0f, 1.0f, 0.1f);
+                [DisplayName(m_pstrProp_Alpha),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                    //Editor(typeof(CSlider<float>), typeof(CSlider<float>)),
+                    //Editor(typeof(CustomSlider), typeof(PropertyValueEditor)),
+                DescriptionAttribute("~1.0 : Default 1.0")]
+                public float fAlpha { get { return (CDisp == null) ? 0.0f : CDisp.fAlpha; } set { CDisp.fAlpha = value; } }
+                //                public CSlider<float> fSliderAlpha { get { return m_fSliderAlpha; } set { m_fSliderAlpha = value; } }
+                //                public class CustomSlider : ExtendedPropertyValueEditor
+                //                {
+                //                    public CustomSlider()
+                //                    {
+                //                        // Template for normal view
+                //                        string template1 = @"
+                //                        <DataTemplate
+                //                            xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
+                //                            xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
+                //                            xmlns:pe='clr-namespace:System.Activities.Presentation.PropertyEditing;assembly=System.Activities.Presentation' 
+                //                            xmlns:wpg='clr-namespace:PropertyGrid;assembly=PropertyGrid' > 
+                //                            <DockPanel LastChildFill='True'>
+                //                                    <TextBox Text='{Binding Path=Value.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}' Width='40' TextAlignment='Center' />
+                //                                    <Slider x:Name='slider1' Value='{Binding Path=Value.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}' Margin='2,0,0,0' Minimum='{Binding Value.Min}' Maximum='{Binding Value.Max}' />
+                //                            </DockPanel>
+                //                        </DataTemplate>";
+
+                //                        // Load templates
+                //                        using (var sr = new MemoryStream(Encoding.UTF8.GetBytes(template1)))
+                //                        {
+                //                            this.InlineEditorTemplate = XamlReader.Load(sr) as DataTemplate;
+                //                        }
+                //                    }
+                //                }
+
+                [DisplayName(m_pstrProp_2),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("#0~#14 : Default, and FileName")]
+                public String strDispObject { get { return (CDisp == null) ? "" : CDisp.strDispObject; } set { CDisp.strDispObject = value; } }
+
+                [DisplayName(m_pstrProp_3),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("Fill & Empty")]
+                public bool bFill { get { return (CDisp == null) ? false : CDisp.bFilled; } set { CDisp.bFilled = value; } }
+
+                [DisplayName(m_pstrProp_4),
+                Browsable(false),
+                ReadOnlyAttribute(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("reserve...")]
+                public int nTexture { get { return (CDisp == null) ? 0 : CDisp.nTexture; } set { CDisp.nTexture = value; } }
+
+                [DisplayName(m_pstrProp_5),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("Initialize Position & Angle")]
+                public bool bInit { get { return (CDisp == null) ? false : CDisp.bInit; } set { CDisp.bInit = value; } }
+
+                [DisplayName(m_pstrProp_6),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("")]
+                public float fWidth_Or_Radius { get { return (CDisp == null) ? 0.0f : CDisp.fWidth_Or_Radius; } set { CDisp.fWidth_Or_Radius = value; } }
+
+                [DisplayName(m_pstrProp_7), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fHeight_Or_Depth { get { return (CDisp == null) ? 0.0f : CDisp.fHeight_Or_Depth; } set { CDisp.fHeight_Or_Depth = value; } }
+                [DisplayName(m_pstrProp_8), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fDepth_Or_Cnt { get { return (CDisp == null) ? 0 : CDisp.fDepth_Or_Cnt; } set { CDisp.fDepth_Or_Cnt = value; } }
+                [DisplayName(m_pstrProp_9), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fThickness { get { return (CDisp == null) ? 0 : CDisp.fThickness; } set { CDisp.fThickness = value; } }
+                [DisplayName(m_pstrProp_10), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fGap { get { return (CDisp == null) ? 0 : CDisp.fGap; } set { CDisp.fGap = value; } }
+                [DisplayName(m_pstrProp_11), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public string strCaption { get { return (CDisp == null) ? "" : CDisp.strCaption; } set { CDisp.strCaption = value; } }
+                [DisplayName(m_pstrProp_12), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public int nAxisMoveType { get { return (CDisp == null) ? 0 : CDisp.nAxisMoveType; } set { CDisp.nAxisMoveType = value; } }
+                [DisplayName(m_pstrProp_13), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public int nDir { get { return (CDisp == null) ? 0 : CDisp.nDir; } set { CDisp.nDir = value; } }
+                [DisplayName(m_pstrProp_14), Browsable(true), ReadOnlyAttribute(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fAngle { get { return (CDisp == null) ? 0 : CDisp.fAngle; } set { CDisp.fAngle = value; } }
+                [DisplayName(m_pstrProp_15), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fAngle_Offset { get { return (CDisp == null) ? 0 : CDisp.fAngle_Offset; } set { CDisp.fAngle_Offset = value; } }
+
+                private const string strGroup1 = "[2]Offset Rotation/Translation";
+                [DisplayName(m_pstrProp_16), Browsable(true), CategoryAttribute(strGroup1), DescriptionAttribute("Offset Translation"), TypeConverter(typeof(CVector3DConvert))]
+                public SVector3D_t SOffset_Trans { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.SOffset_Trans; } set { CDisp.SOffset_Trans = value; } }
+                public class CVector3DConvert : TypeConverter
+                {
+                    //// http://kindtis.tistory.com/458 참조
+                    // string 으로 부터 변환이 가능한가?
+                    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+                    {
+                        if (sourceType == typeof(string))
+                            return true;
+                        return base.CanConvertFrom(context, sourceType);
+                    }
+
+                    // string 으로 부터 vector3로 변환
+                    public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
+                    {
+                        if (value is string)
+                        {
+                            string[] v = ((string)value).Split(new char[] { ',' });
+                            return new SVector3D_t(float.Parse(v[0]), float.Parse(v[1]), float.Parse(v[2]));
+                        }
+                        return base.ConvertFrom(context, culture, value);
+                    }
+
+                    // vector3 에서 string으로 변환
+                    public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
+                    {
+                        if (destinationType == typeof(string))
+                            return ((SVector3D_t)value).x + "," + ((SVector3D_t)value).y + "," + ((SVector3D_t)value).z;
+                        return base.ConvertTo(context, culture, value, destinationType);
+                    }
+                }
+                public class CAngle3DConvert : TypeConverter
+                {
+                    //// http://kindtis.tistory.com/458 참조
+                    // string 으로 부터 변환이 가능한가?
+                    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+                    {
+                        if (sourceType == typeof(string))
+                            return true;
+                        return base.CanConvertFrom(context, sourceType);
+                    }
+
+                    // string 으로 부터 angle3로 변환
+                    public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
+                    {
+                        if (value is string)
+                        {
+                            string[] v = ((string)value).Split(new char[] { ',' });
+                            return new SAngle3D_t(float.Parse(v[0]), float.Parse(v[1]), float.Parse(v[2]));
+                        }
+                        return base.ConvertFrom(context, culture, value);
+                    }
+
+                    // angle3 에서 string으로 변환
+                    public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
+                    {
+                        if (destinationType == typeof(string))
+                            return ((SAngle3D_t)value).pan + "," + ((SAngle3D_t)value).tilt + "," + ((SAngle3D_t)value).swing;
+                        return base.ConvertTo(context, culture, value, destinationType);
+                    }
+                }
+                public class CPoint3DConvert : TypeConverter
+                {
+                    //// http://kindtis.tistory.com/458 참조
+                    // string 으로 부터 변환이 가능한가?
+                    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+                    {
+                        if (sourceType == typeof(string))
+                            return true;
+                        return base.CanConvertFrom(context, sourceType);
+                    }
+
+                    // string 으로 부터 Point3d로 변환
+                    public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
+                    {
+                        if (value is string)
+                        {
+                            string[] v = ((string)value).Split(new char[] { ',' });
+                            return new SPoint3D_t(int.Parse(v[0]), int.Parse(v[1]), int.Parse(v[2]));
+                        }
+                        return base.ConvertFrom(context, culture, value);
+                    }
+
+                    // Point3d 에서 string으로 변환
+                    public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
+                    {
+                        if (destinationType == typeof(string))
+                            return ((SPoint3D_t)value).x + "," + ((SPoint3D_t)value).y + "," + ((SPoint3D_t)value).z;
+                        return base.ConvertTo(context, culture, value, destinationType);
+                    }
+                }
+
+                private const string strGroup2 = strGroup1;//"[2]Offset Rotation";
+                [DisplayName(m_pstrProp_19), Browsable(true), CategoryAttribute(strGroup2), DescriptionAttribute("Offset Rotation"), TypeConverter(typeof(CAngle3DConvert))]
+                public SAngle3D_t SOffset_Rot { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.SOffset_Rot; } set { CDisp.SOffset_Rot = value; } }
+
+                private const string strGroup3 = "[3]Rotation/Translation";
+                [DisplayName(m_pstrProp_22), Browsable(true), CategoryAttribute(strGroup3), DescriptionAttribute("1\'st Translation"), TypeConverter(typeof(CVector3DConvert))]
+                public SVector3D_t STrans_1 { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.afTrans[0]; } set { CDisp.afTrans[0] = value; } }
+
+                private const string strGroup4 = strGroup3;//"[3]1\'st Rotation";
+                [DisplayName(m_pstrProp_25), Browsable(true), CategoryAttribute(strGroup4), DescriptionAttribute("1\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
+                public SAngle3D_t SRot_1 { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.afRot[0]; } set { CDisp.afRot[0] = value; } }
+
+                private const string strGroup5 = strGroup3;//"[4]2\'st Translation";
+                [DisplayName(m_pstrProp_28), Browsable(true), CategoryAttribute(strGroup5), DescriptionAttribute("2\'st Translation"), TypeConverter(typeof(CVector3DConvert))]
+                public SVector3D_t STrans_2 { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.afTrans[1]; } set { CDisp.afTrans[1] = value; } }
+
+                private const string strGroup6 = strGroup3;//"[4]2\'st Rotation";
+                [DisplayName(m_pstrProp_31), Browsable(true), CategoryAttribute(strGroup6), DescriptionAttribute("2\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
+                public SAngle3D_t SRot_2 { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.afRot[1]; } set { CDisp.afRot[1] = value; } }
+
+                private const string strGroup7 = strGroup3;//"[5]3\'st Translation";
+                [DisplayName(m_pstrProp_34), Browsable(true), CategoryAttribute(strGroup7), DescriptionAttribute("3\'st Translation"), TypeConverter(typeof(CVector3DConvert))]
+                public SVector3D_t STrans_3 { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.afTrans[2]; } set { CDisp.afTrans[2] = value; } }
+
+                private const string strGroup8 = strGroup3;//"[5]3\'st Rotation";
+                [DisplayName(m_pstrProp_37), Browsable(true), CategoryAttribute(strGroup8), DescriptionAttribute("3\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
+                public SAngle3D_t SRot_3 { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.afRot[2]; } set { CDisp.afRot[2] = value; } }
+
+                private const string strGroup9 = strGroup3;//"[6]4\'st Translation";
+                [DisplayName(m_pstrProp_40), Browsable(true), CategoryAttribute(strGroup9), DescriptionAttribute("4\'st Translation"), TypeConverter(typeof(CVector3DConvert))]
+                public SVector3D_t STrans_4 { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.afTrans[3]; } set { CDisp.afTrans[3] = value; } }
+
+                private const string strGroup10 = strGroup3;//"[6]4\'st Rotation";
+                [DisplayName(m_pstrProp_43), Browsable(true), CategoryAttribute(strGroup10), DescriptionAttribute("4\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
+                public SAngle3D_t SRot_4 { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.afRot[3]; } set { CDisp.afRot[3] = value; } }
+
+                private const string strGroup11 = strGroup3;//"[7]5\'st Translation";
+                [DisplayName(m_pstrProp_46), Browsable(true), CategoryAttribute(strGroup11), DescriptionAttribute("5\'st Translation"), TypeConverter(typeof(CVector3DConvert))]
+                public SVector3D_t STrans_5 { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.afTrans[4]; } set { CDisp.afTrans[4] = value; } }
+
+                private const string strGroup12 = strGroup3;//"[7]5\'st Rotation";
+                [DisplayName(m_pstrProp_49), Browsable(true), CategoryAttribute(strGroup12), DescriptionAttribute("5\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
+                public SAngle3D_t SRot_5 { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.afRot[4]; } set { CDisp.afRot[4] = value; } }
+
+                [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
+                public SPoint3D_t SPickGroup { get { return (CDisp == null) ? new SPoint3D_t(0, 0, 0) : new SPoint3D_t(CDisp.nPickGroup_A, CDisp.nPickGroup_B, CDisp.nPickGroup_C); } set { CDisp.nPickGroup_A = value.x; CDisp.nPickGroup_B = value.y; CDisp.nPickGroup_C = value.z; } }
+
+                [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public int nInverseKinematicsNumber { get { return (CDisp == null) ? 0 : CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+                [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fScale_Serve0 { get { return (CDisp == null) ? 0 : CDisp.fScale_Serve0; } set { CDisp.fScale_Serve0 = value; } }
+                [DisplayName(m_pstrProp_57), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public float fScale_Serve1 { get { return (CDisp == null) ? 0 : CDisp.fScale_Serve1; } set { CDisp.fScale_Serve1 = value; } }
+                [DisplayName(m_pstrProp_58), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public int nMotorType { get { return (CDisp == null) ? 0 : CDisp.nMotorType; } set { CDisp.nMotorType = value; } }
+                [DisplayName(m_pstrProp_59), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public int nMotorControl_MousePoint { get { return (CDisp == null) ? 0 : CDisp.nMotorControl_MousePoint; } set { CDisp.nMotorControl_MousePoint = value; } }
+                [DisplayName(m_pstrProp_60), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public String strPickGroup_Comment { get { return (CDisp == null) ? "" : CDisp.strPickGroup_Comment; } set { CDisp.strPickGroup_Comment = value; } }
+
+                //// if you want to add , just do like below ////
+
+                //[DisplayName(m_pstrProp_), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                //public { get { return CDisp.; } set { CDisp. = value; } }
+
+                #endregion Item add : Step 2/4
+            }
+
+
+            private void Prop_PropertyValueChanged_Selected(object s, PropertyValueChangedEventArgs e)
+            {
+                // item add : step 4 / 4
+                switch (e.ChangedItem.Label)
+                {                    
+                    #region Selected
+                    #region AxisName
+                    case m_pstrProp_0:
+                        Prop_Set_Name_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion AxisName
+                    #region Color
+                    case m_pstrProp_1:
+                        Prop_Set_Color_Selected((Color)e.ChangedItem.Value);
+                        break;
+                    #endregion Color
+                    #region Model
+                    case m_pstrProp_2: // Model                        
+                        Prop_Set_DispObject_Selected((String)e.ChangedItem.Value);
+                        break;
+                    #endregion Model
+                    #region Fill
+                    case m_pstrProp_3: // Fill                        
+                        Prop_Set_Fill_Selected((bool)e.ChangedItem.Value);
+                        break;
+                    #endregion Fill
+                    #region Texture
+                    case m_pstrProp_4: // Texture                        
+                        Prop_Set_Texture_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion Texture
+                    #region Init
+                    case m_pstrProp_5: // Init
+                        Prop_Set_Init_Selected((bool)e.ChangedItem.Value);
+                        break;
+                    #endregion Init
+                    #region Width or Radius
+                    case m_pstrProp_6:
+                        Prop_Set_Width_Or_Radius_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion Width or Radius
+                    #region Width or Radius
+                    case m_pstrProp_7:
+                        Prop_Set_Height_Or_Depth_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion Width or Radius
+                    #region Depth or Cnt
+                    case m_pstrProp_8:
+                        Prop_Set_Depth_Or_Cnt_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region Thickness
+                    case m_pstrProp_9:
+                        Prop_Set_Thickness_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region fGap
+                    case m_pstrProp_10:
+                        Prop_Set_Gap_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region strCaption
+                    case m_pstrProp_11:
+                        Prop_Set_Caption_Selected((string)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region nAxisMoveType
+                    case m_pstrProp_12:
+                        Prop_Set_AxisMoveType_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region nDir
+                    case m_pstrProp_13:
+                        Prop_Set_Dir_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion Dir
+                    #region fAngle
+                    case m_pstrProp_14:
+                        Prop_Set_Angle_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region fAngle_Offset
+                    case m_pstrProp_15:
+                        Prop_Set_Angle_Offset_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region Offset_Trans
+                    case m_pstrProp_16:
+                        Prop_Set_Offset_Trans_Selected((SVector3D_t)e.ChangedItem.Value);
+                        break;
+                    //case m_pstrProp_17:
+                    //    Prop_Set_Offset_Trans_Y_Selected((float)e.ChangedItem.Value);
+                    //    break;
+                    //case m_pstrProp_18:
+                    //    Prop_Set_Offset_Trans_Z_Selected((float)e.ChangedItem.Value);
+                    //    break;
+                    #endregion
+                    #region Offset_Rot
+                    case m_pstrProp_19:
+                        ;
+                        Prop_Set_Offset_Rot_Selected((SAngle3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region Trans/Rot 1st
+                    case m_pstrProp_22:
+                        Prop_Set_Trans_1_Selected((SVector3D_t)e.ChangedItem.Value);
+                        break;
+                    case m_pstrProp_25:
+                        Prop_Set_Rot_1_Selected((SAngle3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region Trans/Rot 2st
+                    case m_pstrProp_28:
+                        Prop_Set_Trans_2_Selected((SVector3D_t)e.ChangedItem.Value);
+                        break;
+                    case m_pstrProp_31:
+                        Prop_Set_Rot_2_Selected((SAngle3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region Trans/Rot 3st
+                    case m_pstrProp_34:
+                        Prop_Set_Trans_3_Selected((SVector3D_t)e.ChangedItem.Value);
+                        break;
+                    case m_pstrProp_37:
+                        Prop_Set_Rot_3_Selected((SAngle3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region region Trans/Rot 4st
+                    case m_pstrProp_40:
+                        Prop_Set_Trans_4_Selected((SVector3D_t)e.ChangedItem.Value);
+                        break;
+                    case m_pstrProp_43:
+                        Prop_Set_Rot_4_Selected((SAngle3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region region Trans/Rot 5st
+                    case m_pstrProp_46:
+                        Prop_Set_Trans_5_Selected((SVector3D_t)e.ChangedItem.Value);
+                        break;
+                    case m_pstrProp_49:
+                        Prop_Set_Rot_5_Selected((SAngle3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region nPickGroup
+                    case m_pstrProp_52:
+                        Prop_Set_PickGroup_Selected((SPoint3D_t)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region InverseKinematicsNumber
+                    case m_pstrProp_55:
+                        Prop_Set_InverseKinematicsNumber_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region Scale_Serve
+                    case m_pstrProp_56:
+                        Prop_Set_Scale_Serve0_Selected((float)e.ChangedItem.Value);
+                        break;
+                    case m_pstrProp_57:
+                        Prop_Set_Scale_Serve1_Selected((float)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region MotorType
+                    case m_pstrProp_58:
+                        Prop_Set_MotorType_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region MotorControl_MousePoint
+                    case m_pstrProp_59:
+                        Prop_Set_MotorControl_MousePoint_Selected((int)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    #region PickGroup_Comment
+                    case m_pstrProp_60:
+                        Prop_Set_PickGroup_Comment_Selected((string)e.ChangedItem.Value);
+                        break;
+                    #endregion
+                    //case m_pstrProp_:
+                    //    OjwVirtualDisp. = ()e.ChangedItem.Value;
+                    //    Prop_Set_(OjwVirtualDisp.);
+                    //    break;
+                    //case m_pstrProp_:
+                    //    OjwVirtualDisp. = ()e.ChangedItem.Value;
+                    //    Prop_Set_(OjwVirtualDisp.);
+                    //    break;
+                    #endregion Selected
+                }
+                Prop_Update_Selected();
+                //if (IsDrawText() == true)
+                //{
+                //    m_txtDraw.Text = GetHeader_strDrawModel();
+                //    StringListToGrid();
+                //}
+            }
+            public void Prop_Update_Selected() 
+            { 
+                m_CProperty_Selected.Update();
+                ////////////////////////////////////
+                String strDraw = String.Empty;
+                for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                {
+                    if (i == m_nSelectedItem)
+                    {
+                        strDraw += ClassToString(OjwDispAll.GetData(i));
+                    }
+                    else
+                    {
+                        strDraw += m_txtDraw.Lines[i];
+                    }
+                    if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                }
+                if (m_txtDraw != null)
+                {
+                    if (m_txtDraw.IsHandleCreated == true)
+                        m_txtDraw.Text = strDraw;
+
+                    m_txtDraw.Select(m_nSelectedItem, 0);
+                }
+                SetHeader_strDrawModel(strDraw);
+                CompileDesign();
+                StringListToGrid();
+            }
+            #region Set
+            public void Prop_Set_Name_Selected(int value) { m_CPropAll_Selected.nAxisName = OjwDispAll.GetData(m_nSelectedItem).nName = value; }
+            public void Prop_Set_Color_Selected(Color value) { m_CPropAll_Selected.cColor = OjwDispAll.GetData(m_nSelectedItem).cColor = value; }
+            public void Prop_Set_DispAlpha_Selected(float value) { m_CPropAll_Selected.fAlpha = OjwDispAll.GetData(m_nSelectedItem).fAlpha = value; }
+            public void Prop_Set_DispObject_Selected(string value) { m_CPropAll_Selected.strDispObject = OjwDispAll.GetData(m_nSelectedItem).strDispObject = value; CheckObjectModelFile(m_CPropAll_Selected.strDispObject); }
+            public void Prop_Set_Fill_Selected(bool value) { m_CPropAll_Selected.bFill = OjwDispAll.GetData(m_nSelectedItem).bFilled = value; }
+            public void Prop_Set_Texture_Selected(int value) { m_CPropAll_Selected.nTexture = OjwDispAll.GetData(m_nSelectedItem).nTexture = value; }
+            public void Prop_Set_Init_Selected(bool value) { m_CPropAll_Selected.bInit = OjwDispAll.GetData(m_nSelectedItem).bInit = value; }
+            public void Prop_Set_Width_Or_Radius_Selected(float value) { m_CPropAll_Selected.fWidth_Or_Radius = OjwDispAll.GetData(m_nSelectedItem).fWidth_Or_Radius = value; }
+            public void Prop_Set_Height_Or_Depth_Selected(float value) { m_CPropAll_Selected.fHeight_Or_Depth = OjwDispAll.GetData(m_nSelectedItem).fHeight_Or_Depth = value; }
+            public void Prop_Set_Depth_Or_Cnt_Selected(float value) { m_CPropAll_Selected.fDepth_Or_Cnt = OjwDispAll.GetData(m_nSelectedItem).fDepth_Or_Cnt = value; }
+            public void Prop_Set_Thickness_Selected(float value) { m_CPropAll_Selected.fThickness = OjwDispAll.GetData(m_nSelectedItem).fThickness = value; }
+            public void Prop_Set_Gap_Selected(float value) { m_CPropAll_Selected.fGap = OjwDispAll.GetData(m_nSelectedItem).fGap = value; }
+            public void Prop_Set_Caption_Selected(string value) { m_CPropAll_Selected.strCaption = OjwDispAll.GetData(m_nSelectedItem).strCaption = value; }
+
+            public void Prop_Set_AxisMoveType_Selected(int value) { m_CPropAll_Selected.nAxisMoveType = OjwDispAll.GetData(m_nSelectedItem).nAxisMoveType = value; }
+            public void Prop_Set_Dir_Selected(int value) { m_CPropAll_Selected.nDir = OjwDispAll.GetData(m_nSelectedItem).nDir = value; }
+            public void Prop_Set_Angle_Selected(float value) { m_CPropAll_Selected.fAngle = OjwDispAll.GetData(m_nSelectedItem).fAngle = value; }
+            public void Prop_Set_Angle_Offset_Selected(float value) { m_CPropAll_Selected.fAngle_Offset = OjwDispAll.GetData(m_nSelectedItem).fAngle_Offset = value; }
+            //public void Prop_Set_Offset_Trans_X_Selected(float value) { m_CPropAll_Selected.SOffset_Trans_X = OjwDispAll.GetData(m_nSelectedItem).SOffset_Trans.x = value; }
+            public void Prop_Set_Offset_Trans_Selected(SVector3D_t value) { m_CPropAll_Selected.SOffset_Trans = OjwDispAll.GetData(m_nSelectedItem).SOffset_Trans = value; }
+            public void Prop_Set_Offset_Rot_Selected(SAngle3D_t value) { m_CPropAll_Selected.SOffset_Rot = OjwDispAll.GetData(m_nSelectedItem).SOffset_Rot = value; }
+
+            public void Prop_Set_Trans_1_Selected(SVector3D_t value) { m_CPropAll_Selected.STrans_1 = OjwDispAll.GetData(m_nSelectedItem).afTrans[0] = value; }
+            public void Prop_Set_Rot_1_Selected(SAngle3D_t value) { m_CPropAll_Selected.SRot_1 = OjwDispAll.GetData(m_nSelectedItem).afRot[0] = value; }
+
+            public void Prop_Set_Trans_2_Selected(SVector3D_t value) { m_CPropAll_Selected.STrans_2 = OjwDispAll.GetData(m_nSelectedItem).afTrans[1] = value; }
+            public void Prop_Set_Rot_2_Selected(SAngle3D_t value) { m_CPropAll_Selected.SRot_2 = OjwDispAll.GetData(m_nSelectedItem).afRot[1] = value; }
+
+            public void Prop_Set_Trans_3_Selected(SVector3D_t value) { m_CPropAll_Selected.STrans_3 = OjwDispAll.GetData(m_nSelectedItem).afTrans[2] = value; }
+            public void Prop_Set_Rot_3_Selected(SAngle3D_t value) { m_CPropAll_Selected.SRot_3 = OjwDispAll.GetData(m_nSelectedItem).afRot[2] = value; }
+
+            public void Prop_Set_Trans_4_Selected(SVector3D_t value) { m_CPropAll_Selected.STrans_4 = OjwDispAll.GetData(m_nSelectedItem).afTrans[3] = value; }
+            public void Prop_Set_Rot_4_Selected(SAngle3D_t value) { m_CPropAll_Selected.SRot_4 = OjwDispAll.GetData(m_nSelectedItem).afRot[3] = value; }
+
+            public void Prop_Set_Trans_5_Selected(SVector3D_t value) { m_CPropAll_Selected.STrans_5 = OjwDispAll.GetData(m_nSelectedItem).afTrans[4] = value; }
+            public void Prop_Set_Rot_5_Selected(SAngle3D_t value) { m_CPropAll_Selected.SRot_5 = OjwDispAll.GetData(m_nSelectedItem).afRot[4] = value; }
+
+            public void Prop_Set_PickGroup_Selected(SPoint3D_t value) { m_CPropAll_Selected.SPickGroup = value; OjwDispAll.GetData(m_nSelectedItem).nPickGroup_A = value.x; OjwDispAll.GetData(m_nSelectedItem).nPickGroup_B = value.y; OjwDispAll.GetData(m_nSelectedItem).nPickGroup_C = value.z; }
+
+            public void Prop_Set_InverseKinematicsNumber_Selected(int value) { m_CPropAll_Selected.nInverseKinematicsNumber = OjwDispAll.GetData(m_nSelectedItem).nInverseKinematicsNumber = value; }
+            public void Prop_Set_Scale_Serve0_Selected(float value) { m_CPropAll_Selected.fScale_Serve0 = OjwDispAll.GetData(m_nSelectedItem).fScale_Serve0 = value; }
+            public void Prop_Set_Scale_Serve1_Selected(float value) { m_CPropAll_Selected.fScale_Serve1 = OjwDispAll.GetData(m_nSelectedItem).fScale_Serve1 = value; }
+            public void Prop_Set_MotorType_Selected(int value) { m_CPropAll_Selected.nMotorType = OjwDispAll.GetData(m_nSelectedItem).nMotorType = value; }
+            public void Prop_Set_MotorControl_MousePoint_Selected(int value) { m_CPropAll_Selected.nMotorControl_MousePoint = OjwDispAll.GetData(m_nSelectedItem).nMotorControl_MousePoint = value; }
+            public void Prop_Set_PickGroup_Comment_Selected(string value) { m_CPropAll_Selected.strPickGroup_Comment = OjwDispAll.GetData(m_nSelectedItem).strPickGroup_Comment = value; }
+
+            //// if you want to add , just do like below ////
+
+            //public void Prop_Set_( value) { m_CPropAll_Selected. = value; }            
+            #endregion Set
+
+            #region Get
+            public int Prop_Get_Name_Selected() { return m_CPropAll_Selected.nAxisName; }
+            public Color Prop_Get_Color_Selected() { return m_CPropAll_Selected.cColor; }
+            public float Prop_Get_DispAlpha_Selected() { return m_CPropAll_Selected.fAlpha; }
+            public string Prop_Get_DispObject_Selected() { return m_CPropAll_Selected.strDispObject; }
+            public bool Prop_Get_Fill_Selected() { return m_CPropAll_Selected.bFill; }
+            public int Prop_Get_Texture_Selected() { return m_CPropAll_Selected.nTexture; }
+            public bool Prop_Get_Init_Selected() { return m_CPropAll_Selected.bInit; }
+            public float Prop_Get_Width_Or_Radius_Selected() { return m_CPropAll_Selected.fWidth_Or_Radius; }
+            public float Prop_Get_Height_Or_Depth_Selected() { return m_CPropAll_Selected.fHeight_Or_Depth; }
+            public float Prop_Get_Depth_Or_Cnt_Selected() { return m_CPropAll_Selected.fDepth_Or_Cnt; }
+            public float Prop_Get_Thickness_Selected() { return m_CPropAll_Selected.fThickness; }
+            public float Prop_Get_Gap_Selected() { return m_CPropAll_Selected.fGap; }
+            public string Prop_Get_Caption_Selected() { return m_CPropAll_Selected.strCaption; }
+            public int Prop_Get_AxisMoveType_Selected() { return m_CPropAll_Selected.nAxisMoveType; }
+            public int Prop_Get_Dir_Selected() { return m_CPropAll_Selected.nDir; }
+            public float Prop_Get_Angle_Selected() { return m_CPropAll_Selected.fAngle; }
+            public float Prop_Get_Angle_Offset_Selected() { return m_CPropAll_Selected.fAngle_Offset; }
+            public SVector3D_t Prop_Get_Offset_Trans_X_Selected() { return m_CPropAll_Selected.SOffset_Trans; }
+            public SAngle3D_t Prop_Get_Offset_Rot_Pan_Selected() { return m_CPropAll_Selected.SOffset_Rot; }
+
+            public SVector3D_t Prop_Get_Trans_X1_Selected() { return m_CPropAll_Selected.STrans_1; }
+            public SAngle3D_t Prop_Get_Rot_Pan1_Selected() { return m_CPropAll_Selected.SRot_1; }
+
+            public SVector3D_t Prop_Get_Trans_X2_Selected() { return m_CPropAll_Selected.STrans_2; }
+            public SAngle3D_t Prop_Get_Rot_Pan2_Selected() { return m_CPropAll_Selected.SRot_2; }
+
+            public SVector3D_t Prop_Get_Trans_X3_Selected() { return m_CPropAll_Selected.STrans_3; }
+            public SAngle3D_t Prop_Get_Rot_Pan3_Selected() { return m_CPropAll_Selected.SRot_3; }
+
+            public SVector3D_t Prop_Get_Trans_X4_Selected() { return m_CPropAll_Selected.STrans_4; }
+            public SAngle3D_t Prop_Get_Rot_Pan4_Selected() { return m_CPropAll_Selected.SRot_4; }
+
+            public SVector3D_t Prop_Get_Trans_X5_Selected() { return m_CPropAll_Selected.STrans_5; }
+            public SAngle3D_t Prop_Get_Rot_Pan5_Selected() { return m_CPropAll_Selected.SRot_5; }
+            public SPoint3D_t Prop_Get_PickGroup_A_Selected() { return m_CPropAll_Selected.SPickGroup; }
+            public int Prop_Get_InverseKinematicsNumber_Selected() { return m_CPropAll_Selected.nInverseKinematicsNumber; }
+            public float Prop_Get_Scale_Serve0_Selected() { return m_CPropAll_Selected.fScale_Serve0; }
+            public float Prop_Get_Scale_Serve1_Selected() { return m_CPropAll_Selected.fScale_Serve1; }
+            public int Prop_Get_MotorType_Selected() { return m_CPropAll_Selected.nMotorType; }
+            public int Prop_Get_MotorControl_MousePoint_Selected() { return m_CPropAll_Selected.nMotorControl_MousePoint; }
+            public string Prop_Get_PickGroup_Comment_Selected() { return m_CPropAll_Selected.strPickGroup_Comment; }
+            #endregion Get
+            #endregion Prop_Selected
 
             public void VisibleProp(String strName, bool bVisible) { m_CPropAll.Visible(strName, bVisible); }
             public void CreateProb_VirtualObject(Panel pnProp)
@@ -1454,8 +2128,7 @@ namespace OpenJigWare
 #endif
 #endif
             #endregion PropertyGrid
-
-
+            
             public void SetAlpha_Display_Enalbe(bool bEn) { m_bAlpha = bEn; }
             public bool GetAlpha_Display_Enalbe() { return m_bAlpha; }
             private bool m_bAlpha = true;
@@ -1626,13 +2299,15 @@ namespace OpenJigWare
                 }
                 public void OjwMouseUp(object sender, MouseEventArgs e) { OjwMouseUp(e); }
                 ContextMenuStrip m_ctxmenuMouse = new ContextMenuStrip();
-                private int m_nMenu = -1;
+                //private int m_nMenu = -1;
                 private const int _MENU_FILE = 0;
                 private const int _MENU_ITEM = 1;
                 private const int _MENU_SUB_OPEN = 0;
                 private const int _MENU_SUB_SAVE = 1;
+                private const int _MENU_SUB_CLOSE = 2;
                 private const int _MENU_SUB_ITEM_ADD = 0;
 
+                public CUserEvent Event_FileOpen = new CUserEvent();
                 public CUserEvent Event_ItemAdd = new CUserEvent();
                 //private void EventAdd()
                 //{
@@ -1646,17 +2321,29 @@ namespace OpenJigWare
                 //        //throw;
                 //    }
                 //}
+                private bool m_bItemAdded = false;
                 private void ItemAdded(object sender, EventArgs e)
                 {
                     // 이벤트 발생시 동작 기능들...
-                    if (IsDrawTest() == true) 
+                    if (IsDrawText() == true)
+                    {
+                        m_bItemAdded = true;
                         m_txtDraw.Text = GetHeader_strDrawModel();
+                        m_txtDraw.Select(m_nSelectedItem, 0);
+                        StringListToGrid();
+                        m_bItemAdded = false;
+                    }
                 }
-                            
+                private void FileOpened(object sender, EventArgs e)
+                {
+                    //MessageBox.Show("FileOpened");
+                    StringListToGrid();
+                }
                 private void m_ctxmenuMouse_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
                     //if (e.ClickedItem != m_ctxmenuMouse.Items[_MENU_FILE])
                     //    MessageBox.Show(e.ClickedItem.Text);        
+#if false
                     if (e.ClickedItem == m_ctxmenuMouse.Items[_MENU_FILE])//"File")
                     {
                         m_nMenu = _MENU_FILE;
@@ -1666,12 +2353,24 @@ namespace OpenJigWare
                         m_nMenu = _MENU_ITEM;
                     }
                     else m_nMenu = -1;
+#endif
                 }
+                //private void m_ctxmenuMouse_Opened(object sender, EventArgs e)
+                //{
+                //    MessageBox.Show("Opened");
+
+                //}
+                //private void m_ctxmenuMouse_MouseMove(object sender, MouseEventArgs e)
+                //{
+                //    MessageBox.Show(e.ToString());
+                //}
                 private void m_ctxmenuMouse_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
                     //MessageBox.Show("[Sub]" + e.ClickedItem.Text);
-                    if (m_nMenu >= 0)
+                    //if (m_nMenu >= 0)
                     {
+                        m_ctxmenuMouse.Close();
+                        
                         //if (e.ClickedItem.Text == "Open")
                         if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_OPEN])
                         {
@@ -1694,10 +2393,11 @@ namespace OpenJigWare
                                 else
                                 {
                                     Ojw.CMessage.Write("Design File - " + fileName + "(v" + m_strVersion + ")");
-                                    if (IsDrawTest() == true)
+                                    if (IsDrawText() == true)
                                     {
                                         //Ojw.CMessage.Write2(m_txtDraw, m_CHeader.strDrawModel);
                                         m_txtDraw.Text = GetHeader_strDrawModel();
+                                        StringListToGrid();
                                     }
                                     #region DH
                                     //cmbDhRefresh(0);
@@ -1706,12 +2406,12 @@ namespace OpenJigWare
                                     //cmbVersion.SelectedIndex = m_C3d.m_strVersion - 11;
                                     float[] afData = new float[3];
                                     GetPos_Display(out afData[0], out afData[1], out afData[2]);
-                                    int i = 0;
+                                    //int i = 0;
                                     //txtDisplay_X.Text = Ojw.CConvert.FloatToStr(afData[i++]);
                                     //txtDisplay_Y.Text = Ojw.CConvert.FloatToStr(afData[i++]);
                                     //txtDisplay_Z.Text = Ojw.CConvert.FloatToStr(afData[i++]);
                                     GetAngle_Display(out afData[0], out afData[1], out afData[2]);
-                                    i = 0;                                    
+                                    //i = 0;                                    
                                 }
                             }
                             #endregion File Open
@@ -1741,15 +2441,44 @@ namespace OpenJigWare
                             }
                             #endregion File Save
                         }
+                        else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_CLOSE])
+                        {
+                            m_CHeader.strDrawModel = String.Empty;
+                            CompileDesign();
+                            //StringListToGrid();
+                            m_lstDraw.Clear();
+                            m_CGridDraw.Delete();
+                            
+                            m_CProperty_Selected.Destroy();
+                            m_CDisp_Selected = null;                
+                            m_panelSelected = null;
+                        }
                         else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItems[_MENU_SUB_ITEM_ADD])
                         {
                             AddVirtualClassToReal();
                         }
+
+
                     }
                 }
                 private TextBox m_txtDraw = null;
-                public void SetDrawText_ForDisplay(TextBox txtDraw) { m_txtDraw = txtDraw; }
-                private bool IsDrawTest() 
+                public void SetDrawText_ForDisplay(TextBox txtDraw) { m_txtDraw = txtDraw; }//m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged); }
+                private void m_txtDraw_TextChanged(object sender, EventArgs e)
+                {
+                    //if (m_bEditing == false)
+                    {
+                        //GridToStringList();
+                        SetHeader_strDrawModel(m_txtDraw.Text);
+                        CompileDesign();
+                        StringListToGrid();
+                    }
+                }
+                //public void SetDrawGrid_ForDisplay(DataGridView dgDraw) //{ //m_txtDraw = txtDraw; }
+                //{
+                //    //m_CGridDraw = dgDraw;
+
+                //}
+                private bool IsDrawText() 
                 {
                     bool bRet = false;
                     try
@@ -1761,7 +2490,7 @@ namespace OpenJigWare
                                 bRet = true;
                         }
                     }
-                    catch (Exception e)
+                    catch //(Exception e)
                     {
                         //Ojw.CMessage.Write_Error(e.ToString());
                     }
@@ -1775,6 +2504,7 @@ namespace OpenJigWare
                     m_ctxmenuMouse.Items.Add("File");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Open");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Save");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Close");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_DropDownItemClicked);
                     m_ctxmenuMouse.Items.Add("Item");
                     (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItems.Add("Add");
@@ -1829,7 +2559,7 @@ namespace OpenJigWare
                         {
                             for (int i = 0; i < m_CHeader.nMotorCnt; i++)
                             {
-                                GridView_SetMotor(GridView_GetCurrentLine(), i, GetData(i));
+                                GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
                             }
                         }
                     }
@@ -1957,7 +2687,7 @@ namespace OpenJigWare
                             {
                                 for (int i = 0; i < m_CHeader.nMotorCnt; i++)
                                 {
-                                    GridView_SetMotor(GridView_GetCurrentLine(), i, GetData(i));
+                                    GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
                                 }
                             }
 
@@ -2085,6 +2815,11 @@ namespace OpenJigWare
                 {
                     for (int i = 0; i < 3; i++) m_fColor[i] = 1.0f;
                     InitGLContext();
+                    m_txtDraw = new TextBox();
+                    m_txtDraw.CreateControl();
+                    m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
+                    m_lstDraw.Clear();
+
                     //this.MouseDown += (MouseEventHandler)OjwMouseDown;
                     //this.MouseMove += (MouseEventHandler)OjwMouseMove;
                     //this.MouseUp += (MouseEventHandler)OjwMouseUp;
@@ -2099,8 +2834,13 @@ namespace OpenJigWare
 
                     SelectObject_Clear();
 
+
                     m_ctxmenuMouse.ItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_ItemClicked);
+                    //m_ctxmenuMouse.Layout   +=new LayoutEventHandler(m_ctxmenuMouse_Layout);  // += new EventHandler(m_ctxmenuMouse_Opened);
+                    //m_ctxmenuMouse.MouseMove +=new MouseEventHandler(m_ctxmenuMouse_MouseMove);
+                    //m_ctxmenuMouse.Opened += new EventHandler(m_ctxmenuMouse_Opened); //new System.ComponentModel.EventHandlerList(m_ctxmenuMouse_Opened);
                     Event_ItemAdd.UserEvent += new EventHandler(ItemAdded);//+= new (ItemAdded);
+                    Event_FileOpen.UserEvent += new EventHandler(FileOpened);
                 }
                 public void AddMouseEvent(MouseEventHandler FDown, MouseEventHandler FMove, MouseEventHandler FUp, MouseEventHandler FWheel)
                 {
@@ -2293,11 +3033,126 @@ namespace OpenJigWare
                     }
                 }
                 #endregion glDraw_Ready()
+                #region Grid For Draw
+                private List<String> m_lstDraw = new List<string>();
+                private bool m_bEditing = false;
+                private void StringListToGrid()
+                {
+                    if (m_bGridDraw == true)
+                    {
+                        int nRow = m_CGridDraw.m_nCurrntCell;
+                        int nCol = m_CGridDraw.m_nCurrntColumn;
+
+                        m_bEditing = true;
+                        //String strData = CConvert.RemoveChar(CConvert.RemoveChar(m_CHeader.strDrawModel.Trim(), '['), ']');
+                        m_lstDraw.Clear();
+                        m_CGridDraw.Delete();
+                        //int i = 0;
+                        foreach (String strItem in m_txtDraw.Lines)
+                        {
+                            m_lstDraw.Add(strItem);
+                            int nIndex = strItem.IndexOf("//");
+                            int nLength = m_CGridDraw.GetLineCount();
+                            if (nIndex < 0)
+                            {
+                                m_CGridDraw.Insert(nLength, 1);
+                                //m_CGridDraw.SetData(nLength, 0, "//");
+                                //m_lstDraw.Add("//");
+                            }
+                            else
+                            {
+                                m_CGridDraw.Insert(nLength, 1);
+                                m_CGridDraw.SetData(nLength, 0, strItem.Substring(nIndex + 2));
+                            }
+                            //if (nLength - 1 == m_nSelectedItem)
+                            //    m_CGridDraw.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
+                        }
+                        if (m_bItemAdded == true)
+                            if (m_CGridDraw.GetHandle().Rows.Count > m_nSelectedItem) m_CGridDraw.GetHandle().CurrentCell = m_CGridDraw.GetHandle().Rows[m_nSelectedItem].Cells[1];
+                        for (int i = 0; i < OjwDispAll.GetCount(); i++)
+                        {
+                            if (OjwDispAll.GetData(i) != null)
+                            {
+                                string strData = OjwDispAll.GetData(i).GetData_DispObject();
+                                bool bData = false;
+                                //if (OjwDispAll.GetData(i).GetData_DispObject() != "#-1")
+                                if (strData.Length > 1)
+                                {
+                                    if (strData[0] == '#')
+                                    {
+                                        if (CConvert.IsDigit(strData.Substring(1)) == true)
+                                        {
+                                            if (CConvert.StrToInt(strData.Substring(1)) >= 0)
+                                            {
+                                                bData = true;
+                                            }
+                                        }
+                                    }
+                                }
+                                m_CGridDraw.SetEnable(i, bData);
+                                //if (bData == true)
+                                //    m_CGridDraw.SetEnable(i, true);
+                                //else m_CGridDraw.SetEnable(i, false);
+                            }
+                            else m_CGridDraw.SetEnable(i, false);
+
+                            if (m_bItemAdded == false)
+                            {
+                                //m_CGridDraw.ChangePos(m_CGridDraw.GetHandle(), nRow, nCol);
+                                if ((nRow >= 0) && (nCol >= 0))
+                                    m_CGridDraw.GetHandle().CurrentCell = m_CGridDraw.GetHandle().Rows[nRow].Cells[nCol];
+                            }
+                        }
+
+                        // Reset
+                        //m_CGridDraw.m_bGridAdded = false;
+
+                        //m_CGridDraw.SetChangeCurrentLine
+                        m_bEditing = false;
+                    }
+                }
+                private void GridToStringList()
+                {
+                    m_txtDraw.Text = String.Empty;
+                    foreach (String strItem in m_lstDraw)
+                    {
+                        m_txtDraw.Text += strItem + "\r\n";
+                    }
+                }
+                private CGridView m_CGridDraw = new CGridView();
+                private bool m_bGridDraw = false;
+                public void GridDraw_Init(DataGridView dgDraw, int nWidth)
+                {
+                    int nLines = 0;
+                    //m_lstDraw.Clear();
+                    m_CGridDraw.Create(dgDraw, nLines, new SGridTable_t("Caption", 250, 0, 0, Color.LightGray, ""));
+                    //m_CGridDraw.Create(dgDraw, nLines, 
+                    //    new SGridTable_t("Group", 30, 0, 0, Color.LightGray, ""),
+                    //    new SGridTable_t("Motor(-1:None)", 30, 0, 0, Color.LightGray, ""),
+                    //    new SGridTable_t("", 30, 0, 0, Color.LightGray, ""),
+                    //    );
+                    
+                    //m_CGridDraw.GetHandle().Columns[0].Visible = false; // Enable Column 숨김
+
+                    m_CGridDraw.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridDraw_Event_CellEnter);
+                    //m_CGridDraw.Ignore_CellEnter(true);
+
+                    m_CGridDraw.dgAngle_Block_GridChange(m_txtDraw, true); // Insert, Delete 블럭.
+
+                    m_CGridDraw.GetHandle().RowsAdded += new DataGridViewRowsAddedEventHandler(GridDraw_Event_RowsAdded);
+                    m_CGridDraw.GetHandle().RowsRemoved += new DataGridViewRowsRemovedEventHandler(GridDraw_Event_RowsRemoved);
+                    m_CGridDraw.GetHandle().CellValueChanged += new DataGridViewCellEventHandler(GridDraw_CellValueChanged);
+
+
+                    m_bGridDraw = true;
+                }
+                #endregion Grid For Draw
 
                 #region Grid For Motion
-                private Ojw.CGridView m_CGridView = new Ojw.CGridView();
+                private CGridView m_CGridMotionEditor = new CGridView();
                 private bool m_bGridInit = false;
-                public void Gridview_Init(DataGridView dgAngle, int nWidth, int nLines)
+
+                public void GridMotionEditor_Init(DataGridView dgAngle, int nWidth, int nLines)
                 {
                     // 모터의 갯수
                     int nCnt = m_CHeader.nMotorCnt;
@@ -2317,53 +3172,154 @@ namespace OpenJigWare
                     aSTable[nCnt] = new SGridTable_t("Time", nWidth, 0, -1, Color.OrangeRed, 1000);
                     // Delay
                     aSTable[nCnt + 1] = new SGridTable_t("Delay", nWidth, 0, -1, Color.Olive, 0);
-                    m_CGridView.Create(dgAngle, nLines, aSTable);
-                    m_CGridView.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridView_Event_CellEnter);
-                    
-                    m_CGridView.Ignore_CellEnter(true);
+                    m_CGridMotionEditor.Create(dgAngle, nLines, aSTable);
+                    m_CGridMotionEditor.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridMotionEditor_Event_CellEnter);
+
+                    m_CGridMotionEditor.Ignore_CellEnter(true);
 
                     m_bGridInit = true;
                 }
-                public void GridView_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
+                private int m_nSelectedItem = 0;
+                public void GridDraw_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
                 {
-                    if (m_CGridView.GetHandle().Focused == true)// || (m_bStart == true))
-                    {
+                    //if (m_CGridMotionEditor.GetHandle().Focused == true)// || (m_bStart == true))
+                    //{
+                        SelectObject_Clear();
+                        SelectObject_Add(e.RowIndex);
+                        m_nSelectedItem = e.RowIndex;
                         
-                        //m_bClick_dbAngle = true;
-                        if ((e.ColumnIndex == m_CGridView.OjwGrid_GetCurrentColumn()) && (e.RowIndex == m_CGridView.OjwGrid_GetCurrentLine())) return;
-                        m_CGridView.SetChangeCurrentCol(e.ColumnIndex);
-                        if (m_CGridView.GetHandle().Focused == true)
+                    //}
+                }
+                public void GridDraw_Event_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
+                {
+                    //if ((m_CGridDraw.GetHandle().Focused == true) && (m_bEditing == false))
+                    //{
+                    //    //CMessage.Write(e.RowIndex.ToString());
+                    //    SetHeader_strDrawModel(m_txtDraw.Text);
+                    //    CompileDesign();
+                    //    StringListToGrid();
+                    //}
+                }
+                public void GridDraw_Event_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e)
+                {
+                    //if ((m_CGridDraw.GetHandle().Focused == true) && (m_bEditing == false))
+                    //{
+                    //    SetHeader_strDrawModel(m_txtDraw.Text);
+                    //    //CMessage.Write(e.RowIndex.ToString());
+                    //    CompileDesign();
+                    //    StringListToGrid();
+                    //}
+                }
+                public void GridDraw_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+                {
+                    if (m_bEditing == false)
+                    {
+                        DataGridView dgAngle = m_CGridDraw.GetHandle();
+                        if (dgAngle.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected == true)
                         {
-                            m_CGridView.SetChangeCurrentLine(e.RowIndex);
-                            Gridview_Draw(e.RowIndex);
+                            if (e.ColumnIndex == 0)
+                            {
+                                //        if (m_CGridDraw.GetEnable() == false) 
+                                //            Prop_Set_DispObject_Selected("#-1");
+                                //        //Prop_Update_Selected();
+                                CMessage.Write((m_CGridDraw.GetEnable() == false) ? "false" : "true");//"e.ColumnIndex == 0:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
+                                Prop_Set_DispObject_Selected("#-1");
+                                Prop_Update_Selected();
+                            }
+                            if (e.ColumnIndex == 1)
+                            {
+
+                                //        string strTmp = (string)m_CGridDraw.GetData(e.RowIndex, e.ColumnIndex);
+                                //        m_CGridDraw.SetData(e.RowIndex, e.ColumnIndex, strTmp);
+
+                                //        //string strDraw = String.Empty;
+                                //        //for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                //        //{
+                                //        //    strDraw += m_txtDraw.Lines[i] + "\r\n";
+                                //        //    if (i == m_nCurrntCell)
+                                //        //        strDraw += "//\r\n";
+                                //        //}
+                                //        //Prop_Update_Selected();
+
+                                string strDraw = String.Empty;
+                                if (m_txtDraw.Lines.Length > 0)
+                                {
+                                    for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                    {
+                                        if (i == e.RowIndex)
+                                        {
+                                            int nFind = m_txtDraw.Lines[i].IndexOf("//");
+                                            if (nFind < 0) nFind = m_txtDraw.Lines[i].Length;
+                                            // 기존의 주석이 있는 경우 일단 제거해야 한다.                                                
+                                            strDraw += m_txtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
+                                            //if (nFind >= 0)
+                                            //{
+                                            //    // 기존의 주석이 있는 경우 일단 제거해야 한다.                                                
+                                            //    strDraw += m_txtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
+                                            //    //strDraw += "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
+                                            //}
+                                            //else
+                                            //{
+                                            //    strDraw += "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
+                                            //}
+                                        }
+                                        else strDraw += m_txtDraw.Lines[i];
+                                        if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                                    }
+                                    m_txtDraw.Text = strDraw;
+                                }
+
+                                CMessage.Write((string)m_CGridDraw.Get(e.RowIndex, 0));//"e.ColumnIndex == 1:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
+                            }
                         }
                     }
                 }
-                public int GridView_GetCurrentLine() { return m_CGridView.OjwGrid_GetCurrentLine(); }
-                public int GridView_GetCurrentColumn() { return m_CGridView.OjwGrid_GetCurrentColumn(); }
-                public void GridView_SetEnable(int nLine, bool bEn) { m_CGridView.SetEnable(nLine, bEn); }
-                public bool GridView_GetEnable(int nLine) { return m_CGridView.GetEnable(nLine); }
-                public void GridView_SetGroup(int nLine, int nGroup) { m_CGridView.SetGroup(nLine, nGroup); }
-                public int GridView_GetGroup(int nLine) { return m_CGridView.GetGroup(nLine); }
-                public void GridView_SetTime(int nLine, int nGroup) { m_CGridView.SetData(nLine, m_CGridView.GetTableCount() - 2, nGroup); }
-                public int GridView_GetTime(int nLine) { return Convert.ToInt32(m_CGridView.GetData(nLine, m_CGridView.GetTableCount() - 2)); }
-                public void GridView_SetDelay(int nLine, int nGroup) { m_CGridView.SetData(nLine, m_CGridView.GetTableCount() - 1, nGroup); }
-                public int GridView_GetDelay(int nLine) { return Convert.ToInt32(m_CGridView.GetData(nLine, m_CGridView.GetTableCount() - 1)); }
-                public int GridView_GetLines()
+            
+                public void GridMotionEditor_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
                 {
-                    return m_CGridView.GetLineCount();
+                    if (m_CGridMotionEditor.GetHandle().Focused == true)// || (m_bStart == true))
+                    {
+                        
+                        //m_bClick_dbAngle = true;
+                        if ((e.ColumnIndex == m_CGridMotionEditor.OjwGrid_GetCurrentColumn()) && (e.RowIndex == m_CGridMotionEditor.OjwGrid_GetCurrentLine())) return;
+                        m_CGridMotionEditor.SetChangeCurrentCol(e.ColumnIndex);
+                        if (m_CGridMotionEditor.GetHandle().Focused == true)
+                        {
+                            //m_CGridMotionEditor.SetChangeCurrentLine(e.RowIndex);
+                            GridMotionEditor_Draw(e.RowIndex);
+                        }
+                        if (m_panelSelected != null)
+                        {
+                            SelectObject_Clear();
+                            SelectObject_Add(e.RowIndex);
+                        }
+                    }
                 }
-                public int GridView_GetCols()
+                public int GridMotionEditor_GetCurrentLine() { return m_CGridMotionEditor.OjwGrid_GetCurrentLine(); }
+                public int GridMotionEditor_GetCurrentColumn() { return m_CGridMotionEditor.OjwGrid_GetCurrentColumn(); }
+                public void GridMotionEditor_SetEnable(int nLine, bool bEn) { m_CGridMotionEditor.SetEnable(nLine, bEn); }
+                public bool GridMotionEditor_GetEnable(int nLine) { return m_CGridMotionEditor.GetEnable(nLine); }
+                public void GridMotionEditor_SetGroup(int nLine, int nGroup) { m_CGridMotionEditor.SetGroup(nLine, nGroup); }
+                public int GridMotionEditor_GetGroup(int nLine) { return m_CGridMotionEditor.GetGroup(nLine); }
+                public void GridMotionEditor_SetTime(int nLine, int nGroup) { m_CGridMotionEditor.SetData(nLine, m_CGridMotionEditor.GetTableCount() - 2, nGroup); }
+                public int GridMotionEditor_GetTime(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData(nLine, m_CGridMotionEditor.GetTableCount() - 2)); }
+                public void GridMotionEditor_SetDelay(int nLine, int nGroup) { m_CGridMotionEditor.SetData(nLine, m_CGridMotionEditor.GetTableCount() - 1, nGroup); }
+                public int GridMotionEditor_GetDelay(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData(nLine, m_CGridMotionEditor.GetTableCount() - 1)); }
+                public int GridMotionEditor_GetLines()
                 {
-                    return m_CGridView.GetTableCount() - 2; // Time, Delay
+                    return m_CGridMotionEditor.GetLineCount();
                 }
-                public float GridView_GetMotor(int nLine, int nMotorID)
+                public int GridMotionEditor_GetCols()
+                {
+                    return m_CGridMotionEditor.GetTableCount() - 2; // Time, Delay
+                }
+                public float GridMotionEditor_GetMotor(int nLine, int nMotorID)
                 {
                     try
                     {
-                        float fValue = Convert.ToSingle(m_CGridView.GetData(nLine, nMotorID));
+                        float fValue = Convert.ToSingle(m_CGridMotionEditor.GetData(nLine, nMotorID));
                         return fValue;
-                        //return Convert.ToSingle(m_CGridView.GetData(nLine, nMotorID));
+                        //return Convert.ToSingle(m_CGridMotionEditor.GetData(nLine, nMotorID));
                     }
                     catch
                     {
@@ -2376,16 +3332,16 @@ namespace OpenJigWare
                 // 23 - Motor Enable() - LED 와 동일
                 // 24 - MotorType() - LED 와 동일
                 // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)       
-                public void GridView_Calc(ECalc_t ECalc, float fValue) { GridView_Calc(m_CGridView.GetHandle(), ECalc, fValue); }
-                public void GridView_Calc(DataGridView OjwDataGrid, ECalc_t ECalc, float fValue) { m_CGridView.Calc((int)ECalc, fValue); }
-                public void GridView_Clear() { m_CGridView.Clear(); }
-                public void GridView_SetMotor(int nLine, int nMotorID, float fValue)
+                public void GridMotionEditor_Calc(ECalc_t ECalc, float fValue) { GridMotionEditor_Calc(m_CGridMotionEditor.GetHandle(), ECalc, fValue); }
+                public void GridMotionEditor_Calc(DataGridView OjwDataGrid, ECalc_t ECalc, float fValue) { m_CGridMotionEditor.Calc((int)ECalc, fValue); }
+                public void GridMotionEditor_Clear() { m_CGridMotionEditor.Clear(); }
+                public void GridMotionEditor_SetMotor(int nLine, int nMotorID, float fValue)
                 {
-                    m_CGridView.SetData(nLine, nMotorID, fValue);
+                    m_CGridMotionEditor.SetData(nLine, nMotorID, fValue);
                 }
-                public void GridView_SetSelectedGroup(int nGroup) { m_CGridView.SetSelectedGroup(nGroup); }
-                
-                public void Gridview_Draw(int nLine)
+                public void GridMotionEditor_SetSelectedGroup(int nGroup) { m_CGridMotionEditor.SetSelectedGroup(nGroup); }
+
+                public void GridMotionEditor_Draw(int nLine)
                 {
                     if (m_bGridInit == true)
                     {
@@ -2394,7 +3350,7 @@ namespace OpenJigWare
                             float fValue = GetData(i);
                             try
                             {
-                                SetData(i, GridView_GetMotor(nLine, i));
+                                SetData(i, GridMotionEditor_GetMotor(nLine, i));
                             }
                             catch
                             {
@@ -2426,6 +3382,7 @@ namespace OpenJigWare
                 public void SelectObject_Add(int nLine)
                 {
                     m_lstSelect.Add(nLine);
+                    CreateProp_Selected(nLine);                    
                 }
                 private bool m_bSelectObjectEnabled = true;
                 public bool SelectObject_Enable() { return m_bSelectObjectEnabled; }
@@ -2448,11 +3405,11 @@ namespace OpenJigWare
                     return bRet;
                 }
 
-                private bool m_bJoystic = false;
+                //private bool m_bJoystic = false;
                 public void InitJoystic()
                 {
                     Glut.glutInit();
-                    m_bJoystic = true;
+                    //m_bJoystic = true;
                     int nRet = Glut.glutDeviceGet(Glut.GLUT_HAS_JOYSTICK);
                     if (nRet != 0)
                     {
@@ -2584,7 +3541,7 @@ namespace OpenJigWare
                             float fAlpha = m_fAlpha;
                             if ((IsVirtualClass() == true) && ((nCnt - 1) == i))
                             {
-                                //m_fAlpha /= 2.0f; // ojw5014(Set alpha for virtual object
+                                //m_fAlpha /= 2.0f; // (Set alpha for virtual object
                                 CDisp = OjwVirtualDisp;
                             }
                             else CDisp = OjwDispAll.GetData(i);
@@ -2728,6 +3685,10 @@ namespace OpenJigWare
                 {
                     OjwDraw(m_afMot, CHeader, out nGroupA, out nGroupB, out nGroupC, out nInverseKinematicsNumber, out bPick, out bLimit);
                 }
+                public void OjwDraw(float[] afData, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
+                {
+                    OjwDraw(afData, m_CHeader, out nGroupA, out nGroupB, out nGroupC, out nInverseKinematicsNumber, out bPick, out bLimit);
+                }
                 public void OjwDraw(out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
                     OjwDraw(m_afMot, m_CHeader, out nGroupA, out nGroupB, out nGroupC, out nInverseKinematicsNumber, out bPick, out bLimit);
@@ -2846,7 +3807,7 @@ namespace OpenJigWare
                         if ((nDrawNum == 3) || (nDrawNum == 4))
                         {
                             Gl.glLoadIdentity();
-                            SetLight(); // ojw5014
+                            SetLight();
                             OjwRotation(fInitAngle[0], fInitAngle[1], fInitAngle[2]);
                             OjwTranslate(fInitPos[0], fInitPos[1], fInitPos[2]);
                         }
@@ -3187,7 +4148,7 @@ namespace OpenJigWare
                         //Gl.glFrontFace(Gl.GL_CCW);       // 반시계 방향의 와인딩 적용
 
                         // 약간의 주변광을 넣어 물체가 보이도록 한다.
-                        //SetLight_diffuseLight(0.2f, 0.2f, 0.2f, 1.0f); // ojw5014
+                        //SetLight_diffuseLight(0.2f, 0.2f, 0.2f, 1.0f);
                         Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
 
                         // 조명 설정
@@ -3326,7 +4287,7 @@ namespace OpenJigWare
                     SetAngle_Display(fPan, fTilt, fSwing);
                     SetPos_Display(fX, fY, fZ);
                     Gl.glLoadIdentity();
-                    SetLight(); // ojw5014
+                    SetLight();
 
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
@@ -4800,7 +5761,7 @@ namespace OpenJigWare
                     String strResult = String.Empty;
 
                     Convert_CDisp_To_String(GetVirtualClass_Data(), ref strResult);
-
+                    strResult = Ojw.CConvert.RemoveString(strResult, "\r\n");
                     AddHeader_strDrawModel(strResult);
                     CompileDesign();
 
@@ -6522,7 +7483,7 @@ namespace OpenJigWare
 
 
 
-                        // ojw5014 stl(solid ascii)
+                        // stl(solid ascii)
                         FileInfo f = new FileInfo(strFileName);
                         FileStream fs_Ascii = f.OpenRead();
                         long lHeaderSize = fs_Ascii.Length;
@@ -7270,12 +8231,31 @@ namespace OpenJigWare
                 public void SetHeader_strDrawModel(String strValue) { m_CHeader.strDrawModel = strValue; }
                 public void AddHeader_strDrawModel(String strValue) 
                 {
+#if false
                     String str = CConvert.RemoveChar((String)m_CHeader.strDrawModel.Clone(), ' ');
                     //if (str.Length > 2)
                     if ((str.Length > 0) && ((str.Length - 1) == str.IndexOf('\n')))
                         m_CHeader.strDrawModel += "\r\n";
 
                     m_CHeader.strDrawModel += strValue;       
+#else
+                    String strDraw = String.Empty;
+                    foreach (String strItem in m_txtDraw.Lines) strDraw += strItem + "\r\n";
+                    strDraw += strValue; // 마지막 줄에 추가
+                    m_CHeader.strDrawModel = strDraw;
+#endif
+                }
+                public void InsertHeader_strDrawModel(int nLine, String strValue)
+                {
+                    String strDraw = String.Empty;
+                    int nPos = 0;
+                    foreach (String strItem in m_txtDraw.Lines)
+                    {
+                        if (nPos != 0) strDraw += "\r\n";
+                        if (nLine == nPos++) strDraw += strValue;
+                        else strDraw += strItem;
+                    }
+                    m_CHeader.strDrawModel = strDraw;
                 }
                 public void SetHeader_strModelName(String strValue) { m_CHeader.strModelName = strValue; }
                 public void SetHeader_strVersion(String strValue) { m_CHeader.strVersion = strValue; }
@@ -8506,7 +9486,7 @@ namespace OpenJigWare
                                         }
                                         if (nCnt != (nModelPosition + 1)) { sbAll.Append(CConvert.RemoveChar(strItem, ' ')); }
                                         else nCnt++;
-
+                                        // ojw5014 - ,(콤마) 붙는거 해결할 것.
                                         if (strItem.IndexOf('\r') < 0) sbAll.Append(',');
                                         else sbAll.Append("\n");
                                     }
@@ -8833,11 +9813,7 @@ namespace OpenJigWare
                             #region String - Actual design string
                             //CDesignHeder.strDrawModel = "";
                             CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);
-
-
-                            // ojw5014
-
-
+                                                        
                             nPos += nSize_0;
                             #endregion String - Actual design string
                             #endregion Actual design string
@@ -8877,6 +9853,10 @@ namespace OpenJigWare
                             CDesignHeder = null;
 
                             m_bFileOpening = false;
+
+                            // Event Running
+                            Event_FileOpen.RunEvent();
+
                             return true;
                         }
 

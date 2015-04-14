@@ -56,8 +56,15 @@ namespace OpenJigWare
     #endregion Cautions **********************************************************
     public struct SVersion_T
     {
-        public const string strVersion = "01.00.10";
+        public const string strVersion = "01.01.10";
         public const string strHistory = (String)(
+                "[V01.01.10]" + "\r\n" +
+                " - Message Param feature added" + "\r\n" +
+                "========================================\r\n" +
+                "[V01.01.00]" + "\r\n" +
+                " - Joystics features added" + "\r\n" +
+                " - COjw_xx_Users.cs file added" + "\r\n" +
+                "========================================\r\n" +
                 "[V01.00.10]" + "\r\n" +
                 " - Debugging and some features are added" + "\r\n" + 
                 "========================================\r\n" +

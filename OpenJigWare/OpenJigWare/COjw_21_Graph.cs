@@ -110,7 +110,19 @@ namespace OpenJigWare
                     }
                 }
             }
+            public int GetCount_Model() { return m_nModelCount; }
+            public int GetCount_History() { return m_nHistorySize; }
+            public int Pop(int nModelNum, int nIndex) 
+            {
+                int nPos = (m_nIndex - nIndex) % m_nHistorySize;
 
+                if (nModelNum < 0) nModelNum = 0;
+                if (nModelNum >= m_nModelCount) nModelNum = m_nModelCount - 1;
+                //if ((nIndex < 0) || (nIndex >= m_nHistorySize)) return 0;
+                if (nPos < 0) nPos = nPos + m_nHistorySize;
+                if (nPos >= m_nHistorySize) nPos = nPos - m_nHistorySize;
+                return m_anHistory[nModelNum, nPos]; 
+            }
             private int m_nBmpIndex = 0;
             private Bitmap[] m_abmpDisp = new Bitmap[2]; // 메모리 이미지 => 더블 버퍼링 기법
             private Graphics m_gDraw;

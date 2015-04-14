@@ -81,11 +81,21 @@ namespace OpenJigWare
             // write to text box which you refer to...
             // Write -> write all informations and enter
             // Write2 -> write only your letters(without enter, informations)
-            public static void Write(string msg)
+            public static void Write(string msg, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
+                    if (objects != null) 
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    }
                     OjwDebugMessage(m_bFile, m_bFunction, m_bLine, m_bTime, true, msg);
                 }
                 catch (Exception e)
@@ -93,11 +103,21 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write2(string msg)
+            public static void Write2(string msg, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(false, false, false, false, false, msg);
                 }
                 catch (Exception e)
@@ -105,11 +125,21 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write(TextBox txtOjwMessage, string msg)
+            public static void Write(TextBox txtOjwMessage, string msg, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(txtOjwMessage, true, true, true, true, true, msg);
                 }
                 catch (Exception e)
@@ -117,11 +147,21 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write2(TextBox txtOjwMessage, string msg)
+            public static void Write2(TextBox txtOjwMessage, string msg, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(txtOjwMessage, false, false, false, false, false, msg);
                 }
                 catch (Exception e)
@@ -130,13 +170,23 @@ namespace OpenJigWare
                 }
             }
             private static string m_strSecondFile = "";
-            public static void Write(TextBox txtOjwMessage, string msg, string strFileTitle)
+            public static void Write(TextBox txtOjwMessage, string msg, string strFileTitle, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(txtOjwMessage, true, true, true, true, true, msg);
                 }
                 catch (Exception e)
@@ -144,13 +194,23 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write2(TextBox txtOjwMessage, string msg, string strFileTitle)
+            public static void Write2(TextBox txtOjwMessage, string msg, string strFileTitle, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(txtOjwMessage, false, false, false, false, false, msg);
                 }
                 catch (Exception e)
@@ -158,13 +218,23 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write(string msg, string strFileTitle)
+            public static void Write_withFileName(string msg, string strFileTitle, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(true, true, true, true, true, msg);
                 }
                 catch (Exception e)
@@ -172,13 +242,23 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write2(string msg, string strFileTitle)
+            public static void Write2_withFileName(string msg, string strFileTitle, params object[] objects)
             {
                 try
                 {
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
+                    if (objects != null)
+                    {
+                        if (objects.Length > 0)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            sb.Clear();
+                            sb.AppendFormat(msg, objects);
+                            msg = sb.ToString();
+                        }
+                    } 
                     OjwDebugMessage(false, false, false, false, false, msg);
                 }
                 catch (Exception e)
@@ -188,7 +268,7 @@ namespace OpenJigWare
             }
 
             // Write -> write all informations and enter.(Error)
-            public static void Write_Error(string msg)
+            public static void Write_Error(string msg, params object[] objects)
             {
                 m_strErrorMessage += "\r\n------------------------\r\n" + (++m_nErrorCnt).ToString() + "\'st. " + msg + "\r\n------------------------\r\n";
                 m_lstError.Add(m_nErrorCnt.ToString() + "\'st. " + msg);  // Add Error list
@@ -196,10 +276,20 @@ namespace OpenJigWare
                 m_bErrorMessage = true;
 
                 m_nMessageStack++;
+                if (objects != null)
+                {
+                    if (objects.Length > 0)
+                    {
+                        StringBuilder sb = new StringBuilder();
+                        sb.Clear();
+                        sb.AppendFormat(msg, objects);
+                        msg = sb.ToString();
+                    }
+                } 
                 OjwDebugMessage(true, true, true, true, true, msg);
                 OjwDebugMessage(m_txtMessage_Error, false, false, false, true, true, m_strErrorMessage);
             }
-            public static void Write_Error(TextBox txtOjwMessage, string msg)
+            public static void Write_Error(TextBox txtOjwMessage, string msg, params object[] objects)
             {
                 m_strErrorMessage += "\r\n------------------------\r\n" + (++m_nErrorCnt).ToString() + "\'st. " + msg + "\r\n------------------------\r\n";
                 m_lstError.Add(m_nErrorCnt.ToString() + "\'st. " + msg); // Add Error list
@@ -207,6 +297,16 @@ namespace OpenJigWare
                 m_bErrorMessage = true;
 
                 m_nMessageStack++;// = 1;
+                if (objects != null)
+                {
+                    if (objects.Length > 0)
+                    {
+                        StringBuilder sb = new StringBuilder();
+                        sb.Clear();
+                        sb.AppendFormat(msg, objects);
+                        msg = sb.ToString();
+                    }
+                } 
                 OjwDebugMessage(txtOjwMessage, true, true, true, true, true, msg);
                 OjwDebugMessage(m_txtMessage_Error, false, false, false, true, true, m_strErrorMessage);
             }

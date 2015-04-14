@@ -622,7 +622,7 @@ namespace OpenJigWare
             private const int _CMD_WRITE = 0x03;
             private const int _CMD_RESET = 0x06;
             private int m_nReg_Get_Address = _REG_GET;
-            private int m_nReg_Get_Length = 8;
+            //private int m_nReg_Get_Length = 8;
             private int m_nReg_Get_Address_Reserve = _REG_GET;
             private int m_nReg_Get_Length_Reserve = 8;
             private void PacketDecoder(int nAxis, String strData)
@@ -669,13 +669,13 @@ namespace OpenJigWare
                 //byteData = null;
                 ///////////////////////////////////
             }
-            private byte m_byCheckSum = 0;
-            private int m_nRxIndex = 0xff;
-            private int m_nRxDataCount = 0;
+            //private byte m_byCheckSum = 0;
+            //private int m_nRxIndex = 0xff;
+            //private int m_nRxDataCount = 0;
             private int m_nRxId = 1;
-            private int m_nRxAddress = 0;
-            private int m_nRxAddressLen = 0;
-            private int m_nRxCheckSum = 0;
+            //private int m_nRxAddress = 0;
+            //private int m_nRxAddressLen = 0;
+            //private int m_nRxCheckSum = 0;
             private const int _CMD_ROM = 0x42;
             private const int _CMD_RAM = 0x44;
 
@@ -725,7 +725,7 @@ namespace OpenJigWare
                     }
                     catch (Exception e)
                     {
-                        m_nRxIndex = 0xFF;
+                        //m_nRxIndex = 0xFF;
                         Ojw.CMessage.Write_Error(e.ToString());
                     }
                     Thread.Sleep(10);
@@ -739,7 +739,8 @@ namespace OpenJigWare
             #endregion Event
 
             #region IsConnect() - Checking connection
-            public bool IsConnect() { return m_SerialPort.IsOpen; }
+            private bool m_bConnected = false;
+            public bool IsConnect() { return ((m_SerialPort.IsOpen == true) && (m_bConnected == true)) ? true : false;}
             #endregion IsConnect() - Checking connection
 
             #region Connect
@@ -766,23 +767,30 @@ namespace OpenJigWare
                     try
                     {
                         m_SerialPort.Open();
-                        if (IsConnect() == true)
+                        if (m_SerialPort.IsOpen == true)
                         {
                             Reader = new Thread(new ThreadStart(serialPort1_DataReceived));
                             Reader.Start();
-                            
-                            SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
+
+                            //SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
+                            //CTimer.Wait(100);                            
+                            //SendCommand("EsA55A;");
                             CTimer.Wait(100);
                             SendCommand("SM0202;");
                             CTimer.Wait(100); 
-                            SendCommand("Sa250,250,250,250;");
-                            CTimer.Wait(100); 
-                            SendCommand("SS0010,2000;");
-                            //CTimer.Wait(100);
-                            //SendCommand("Ss100,200;");
-                            //SendCommand("PE0001;");                
-                        }
+                            //SendCommand("Sa250,250,250,250;");
+                            //CTimer.Wait(100); 
+                            SendCommand("SS001000,2000;");
+                            CTimer.Wait(100);
+                            SendCommand("Ss100,200;");
+                            CTimer.Wait(100);
+                            SendCommand("PE0001;");
+                            CTimer.Wait(100);
 
+                            m_bConnected = true;
+                        }
+                        else
+                            m_bConnected = false;
                     }
                     catch
                     {
@@ -795,9 +803,10 @@ namespace OpenJigWare
             #region DisConnect() - Thread Stop
             public void DisConnect()
             {
-                if (IsConnect() == true)
+                if (m_SerialPort.IsOpen == true)
                 {
                     m_SerialPort.Close();
+                    m_bConnected = false;
                 }
             }
             #endregion DisConnect() - Thread Stop
@@ -896,7 +905,7 @@ namespace OpenJigWare
             {
                 if (((m_bStop == true) || (m_bEms == true)) && bEn == true) return; // Emergency Block
                 m_bBusy = true; // request answer
-                int nCheckSum = 0;
+                //int nCheckSum = 0;
 
                 int nID = GetID_By_Axis(nAxis);// 0;
 

@@ -3858,10 +3858,10 @@ namespace OpenJigWare
                 public int nCommand;
                 public int nData0;
                 public int nData1;
-                public int nData2;
+                //public int nData2;
                 //public int nData3;
-                public int nBuzz;
-                public int nLed;
+                //public int nBuzz;
+                //public int nLed;
                 public float fTranslation_X;
                 public float fTranslation_Y;
                 public float fTranslation_Z;
