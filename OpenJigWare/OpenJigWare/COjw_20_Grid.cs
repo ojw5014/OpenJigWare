@@ -908,12 +908,12 @@ namespace OpenJigWare
         {
             private PropertyGrid m_propGrid = null;//new PropertyGrid();
             //private object m_obj = null;     
-            private Panel m_pnProp_Selected = null;
+            private Control m_pnProp_Selected = null;
             public void Destroy()
             {
                 Destroy(m_pnProp_Selected);
             }
-            public void Destroy(Panel pnProp)
+            public void Destroy(Control pnProp)
             {
                 if (m_propGrid != null)
                 {
@@ -921,15 +921,15 @@ namespace OpenJigWare
                     m_propGrid.Dispose();
                 }
             }
-            public void Create(Panel pnProp, object objectClass)
+            public void Create(Control ctrlProp, object objectClass)
             {
                 m_propGrid = new PropertyGrid();
                 m_propGrid.Dock = DockStyle.Fill;
                 m_propGrid.Top = 0;
                 m_propGrid.Left = 0;
-                m_propGrid.Width = pnProp.Width;
-                m_propGrid.Height = pnProp.Height;
-                m_propGrid.Name = "pnOjwProp_" + Ojw.CConvert.IntToStr((int)pnProp.Handle);
+                m_propGrid.Width = ctrlProp.Width;
+                m_propGrid.Height = ctrlProp.Height;
+                m_propGrid.Name = "pnOjwProp_" + Ojw.CConvert.IntToStr((int)ctrlProp.Handle);
                 //m_propGrid.LineColor = Color.Black;
                 m_propGrid.ToolbarVisible = false;
                 m_propGrid.LargeButtons = false;
@@ -942,8 +942,8 @@ namespace OpenJigWare
                 //m_propGrid.PropertyValueChanged += new PropertyValueChangedEventHandler(propGrid_PropertyValueChanged);//SelectedGridItemChangedEventHandler(propertyGrid1_PropertyValueChanged);
                 //m_propGrid.Text = "";
                 //m_propGrid.TextChanged += new System.EventHandler(m_atxtPos_TextChanged);
-                pnProp.Controls.Add(m_propGrid);
-                m_pnProp_Selected = pnProp;
+                ctrlProp.Controls.Add(m_propGrid);
+                m_pnProp_Selected = ctrlProp;
             }
             public void SetEvent_Changed(PropertyValueChangedEventHandler FFunction)
             {                

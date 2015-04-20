@@ -1,4 +1,6 @@
-﻿//#define _STL_CW
+﻿//#define _USE_LOOKAT
+
+//#define _STL_CW
 #define _OLD_PROP
 #define _DHF_FILE
 //#define _GL_FLAT
@@ -2128,7 +2130,180 @@ namespace OpenJigWare
 #endif
 #endif
             #endregion PropertyGrid
-            
+
+            protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+            {
+                switch (keyData)
+                {
+                    #region Keys.Up
+                    case Keys.Up:
+                        {                            
+                            int nDir = 1;
+                            m_afLookat_Dir[nDir] += 0.1f;
+                            if (m_afLookat_Dir[nDir] > 1.0f) m_afLookat_Dir[nDir] = 1.0f;                         
+                        }
+                        break;
+                    #endregion Keys.Up
+                    #region Keys.Down
+                    case Keys.Down:
+                        {
+                            int nDir = 1;
+                            m_afLookat_Dir[nDir] -= 0.1f;
+                            if (m_afLookat_Dir[nDir] <= -1.0f) m_afLookat_Dir[nDir] = -1.0f;
+                        }
+                        break;
+                    #endregion Keys.Down
+
+                    #region Keys.Left
+                    case Keys.Left:
+                        {
+                            int nDir = 0;
+                            m_afLookat_Dir[nDir] += 0.1f;
+                            if (m_afLookat_Dir[nDir] > 1.0f) m_afLookat_Dir[nDir] = 1.0f;
+                        }
+                        break;
+                    #endregion Keys.Left
+                    #region Keys.Right
+                    case Keys.Right:
+                        {
+                            int nDir = 0;
+                            m_afLookat_Dir[nDir] -= 0.1f;
+                            if (m_afLookat_Dir[nDir] <= -1.0f) m_afLookat_Dir[nDir] = -1.0f;
+                        }
+                        break;
+                    #endregion Keys.Right
+                }
+                return base.ProcessCmdKey(ref msg, keyData);
+#if false
+                int nKey = e.KeyValue;
+
+                    //if (e.Control == true) m_bKey_Ctrl = true; else m_bKey_Ctrl = false;
+                    //if (e.Alt == true) m_bKey_Alt = true; else m_bKey_Alt = false;
+                    //if (e.Shift == true) m_bKey_Shift = true; else m_bKey_Shift = false;
+
+                    switch (e.KeyCode)
+                    {
+                #region Keys.Up
+                        case Keys.Up:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 1;
+                                    m_afLookat_Dir[nDir] += 0.1f;
+                                    if (m_afLookat_Dir[nDir] > 1.0f) m_afLookat_Dir[nDir] = 1.0f;
+                                }
+                            }
+                            break;
+                        #endregion Keys.Up
+                #region Keys.Down
+                        case Keys.Down:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 1;
+                                    m_afLookat_Dir[nDir] -= 0.1f;
+                                    if (m_afLookat_Dir[nDir] <= 0.0f) m_afLookat_Dir[nDir] = 0.0f;
+                                }
+                            }
+                            break;
+                #endregion Keys.Down
+                            
+                #region Keys.Left
+                        case Keys.Left:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 0;
+                                    m_afLookat_Dir[nDir] += 0.1f;
+                                    if (m_afLookat_Dir[nDir] > 1.0f) m_afLookat_Dir[nDir] = 1.0f;
+                                }
+                            }
+                            break;
+                        #endregion Keys.Left
+                #region Keys.Right
+                        case Keys.Right:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 0;
+                                    m_afLookat_Dir[nDir] -= 0.1f;
+                                    if (m_afLookat_Dir[nDir] <= 0.0f) m_afLookat_Dir[nDir] = 0.0f;
+                                }
+                            }
+                            break;
+                #endregion Keys.Right
+                #region Keys.Escape - ESC : 긴급정지
+                        //case Keys.Escape:
+                        //    {
+                        //        Stop();
+                        //        //Cmd_Stop(m_nCurrentRobot);
+                        //    }
+                        //    break;
+                #endregion Keys.Escape - ESC : 긴급정지
+                #region Keys.Delete: - 삭제하기
+                        case Keys.Delete:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                }
+                            }
+                            break;
+                #endregion Keys.Delete: - 삭제하기
+                    }
+#if false
+                    float fDelta2 = 0.1f;// 1.0f;
+                    //m_fMouse_W_Left -= (float)((e.Delta > 0) ? -fDelta2 : fDelta2);
+                    m_fMouse_W_Left = (float)((e.Delta > 0) ? -fDelta2 : fDelta2);
+
+                    //if (m_fMouse_W_Left < 0) m_fMouse_W_Left = 0.0f;
+
+                    double dPos_X = 0;// (e.X - m_nMouse_X_Left);
+                    double dPos_Y = 0;// (m_nMouse_Y_Left - e.Y);
+                    double dPos_Z = (double)m_fMouse_W_Left;// (m_fMouse_W_Left - e.Y);
+                    float fAngle_X, fAngle_Y, fAngle_Z;
+                    GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                    //GetAngle_(out m_afLookat[0], out m_afLookat[1], out m_afLookat[2]);
+
+                    CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                    CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                    CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+
+                    //if (
+                    //((m_afLookat[0] + dPos_X) > 0) &&
+                    //((m_afLookat[1] + dPos_Y) > 0) &&
+                    //((m_afLookat[2] + dPos_Z) > 0)
+                    //)
+                    {
+                        m_afLookat[0] += (float)dPos_X;
+                        m_afLookat[1] += (float)dPos_Y;
+                        m_afLookat[2] += (float)dPos_Z;
+                    }
+                    //    int nMotCnt = m_CHeader.nMotorCnt;
+                    //for (int i = 0; i < nMotCnt; i++)
+                    //{
+                    //    SetData(i, (float)CKinematics.CInverse.GetValue_Motor(i));
+                    //}
+                    //Glu.gluLookAt(m_afLookat[0], m_afLookat[1], m_afLookat[2], 0, 0, 0, 0, 1, 0);
+                    //Glu.
+#endif
+#endif
+            }
+
             public void SetAlpha_Display_Enalbe(bool bEn) { m_bAlpha = bEn; }
             public bool GetAlpha_Display_Enalbe() { return m_bAlpha; }
             private bool m_bAlpha = true;
@@ -2251,6 +2426,9 @@ namespace OpenJigWare
                 private int m_nMouse_Y_Left = 0;
                 private int m_nMouse_X_Right = 0;
                 private int m_nMouse_Y_Right = 0;
+                private int m_nMouse_W_Right = 0;
+
+                private float m_fMouse_W_Left = 0.0f;
 
                 private bool m_bPickMouseClick = false;
                 private bool m_bPickMouseClick_Reserve = false;
@@ -2298,6 +2476,8 @@ namespace OpenJigWare
                     }
                 }
                 public void OjwMouseUp(object sender, MouseEventArgs e) { OjwMouseUp(e); }
+                //public void OjwKeyDown(object sender, KeyEventArgs e) { OjwKeyDown(e); }
+                //public void OjwKeyUp(object sender, KeyEventArgs e) { OjwKeyUp(e); }
                 ContextMenuStrip m_ctxmenuMouse = new ContextMenuStrip();
                 //private int m_nMenu = -1;
                 private const int _MENU_FILE = 0;
@@ -2525,6 +2705,140 @@ namespace OpenJigWare
 
                     m_ctxmenuMouse.Show(Cursor.Position.X, Cursor.Position.Y);
                 }
+#if false
+                public void OjwKeyDown(KeyEventArgs e)
+                {
+                    int nKey = e.KeyValue;
+
+                    //if (e.Control == true) m_bKey_Ctrl = true; else m_bKey_Ctrl = false;
+                    //if (e.Alt == true) m_bKey_Alt = true; else m_bKey_Alt = false;
+                    //if (e.Shift == true) m_bKey_Shift = true; else m_bKey_Shift = false;
+
+                    switch (e.KeyCode)
+                    {
+                        #region Keys.Up
+                        case Keys.Up:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 1;
+                                    m_afLookat_Dir[nDir] += 0.1f;
+                                    if (m_afLookat_Dir[nDir] > 1.0f) m_afLookat_Dir[nDir] = 1.0f;
+                                }
+                            }
+                            break;
+                        #endregion Keys.Up
+                        #region Keys.Down
+                        case Keys.Down:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 1;
+                                    m_afLookat_Dir[nDir] -= 0.1f;
+                                    if (m_afLookat_Dir[nDir] <= 0.0f) m_afLookat_Dir[nDir] = 0.0f;
+                                }
+                            }
+                            break;
+                        #endregion Keys.Down
+                            
+                        #region Keys.Left
+                        case Keys.Left:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 0;
+                                    m_afLookat_Dir[nDir] += 0.1f;
+                                    if (m_afLookat_Dir[nDir] > 1.0f) m_afLookat_Dir[nDir] = 1.0f;
+                                }
+                            }
+                            break;
+                        #endregion Keys.Left
+                        #region Keys.Right
+                        case Keys.Right:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                    int nDir = 0;
+                                    m_afLookat_Dir[nDir] -= 0.1f;
+                                    if (m_afLookat_Dir[nDir] <= 0.0f) m_afLookat_Dir[nDir] = 0.0f;
+                                }
+                            }
+                            break;
+                        #endregion Keys.Right
+                        #region Keys.Escape - ESC : 긴급정지
+                        //case Keys.Escape:
+                        //    {
+                        //        Stop();
+                        //        //Cmd_Stop(m_nCurrentRobot);
+                        //    }
+                        //    break;
+                        #endregion Keys.Escape - ESC : 긴급정지
+                        #region Keys.Delete: - 삭제하기
+                        case Keys.Delete:
+                            {
+                                if (e.Control)
+                                {
+                                }
+                                else
+                                {
+                                }
+                            }
+                            break;
+                        #endregion Keys.Delete: - 삭제하기
+                    }
+#if false
+                    float fDelta2 = 0.1f;// 1.0f;
+                    //m_fMouse_W_Left -= (float)((e.Delta > 0) ? -fDelta2 : fDelta2);
+                    m_fMouse_W_Left = (float)((e.Delta > 0) ? -fDelta2 : fDelta2);
+
+                    //if (m_fMouse_W_Left < 0) m_fMouse_W_Left = 0.0f;
+
+                    double dPos_X = 0;// (e.X - m_nMouse_X_Left);
+                    double dPos_Y = 0;// (m_nMouse_Y_Left - e.Y);
+                    double dPos_Z = (double)m_fMouse_W_Left;// (m_fMouse_W_Left - e.Y);
+                    float fAngle_X, fAngle_Y, fAngle_Z;
+                    GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                    //GetAngle_(out m_afLookat[0], out m_afLookat[1], out m_afLookat[2]);
+
+                    CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                    CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                    CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+
+                    //if (
+                    //((m_afLookat[0] + dPos_X) > 0) &&
+                    //((m_afLookat[1] + dPos_Y) > 0) &&
+                    //((m_afLookat[2] + dPos_Z) > 0)
+                    //)
+                    {
+                        m_afLookat[0] += (float)dPos_X;
+                        m_afLookat[1] += (float)dPos_Y;
+                        m_afLookat[2] += (float)dPos_Z;
+                    }
+                    //    int nMotCnt = m_CHeader.nMotorCnt;
+                    //for (int i = 0; i < nMotCnt; i++)
+                    //{
+                    //    SetData(i, (float)CKinematics.CInverse.GetValue_Motor(i));
+                    //}
+                    //Glu.gluLookAt(m_afLookat[0], m_afLookat[1], m_afLookat[2], 0, 0, 0, 0, 1, 0);
+                    //Glu.
+#endif
+                }
+                public void OjwKeyUp(KeyEventArgs e)
+                {
+                }
+#endif
                 public void OjwMouseUp(MouseEventArgs e)
                 {
 
@@ -2762,6 +3076,9 @@ namespace OpenJigWare
                     }
                 }
 
+                //public float[] m_afLookat = new float[3] { -20.0f, -20.0f, _RATIO / 4.0f };//{0.0f, 0.0f, _RATIO / 2};//0.0f};
+                public float[] m_afLookat = new float[3] { 10.0f, 10.0f, _RATIO / 64.0f };//{0.0f, 0.0f, _RATIO / 2};//0.0f};
+                public float[] m_afLookat_Dir = new float[3] { 0.0f, 1.0f, 0.0f };
                 public void OjwMouseWheel(object sender, MouseEventArgs e) { OjwMouseWheel(false, e); }
                 public void OjwMouseWheel(bool bSmallValue, MouseEventArgs e)
                 {
@@ -2793,6 +3110,61 @@ namespace OpenJigWare
                                 m_fZ_Robot += fData * fMul;
                                 #endregion Robot Control(Translation)
                             }
+                            else if (GetMouseMode() == 4)
+                            {
+
+
+
+
+
+
+
+                                //float fDelta2 = 0.1f;// 1.0f;
+                                ////m_fMouse_W_Left -= (float)((e.Delta > 0) ? -fDelta2 : fDelta2);
+                                //m_fMouse_W_Left = (float)((e.Delta > 0) ? -fDelta2 : fDelta2);
+
+                                ////if (m_fMouse_W_Left < 0) m_fMouse_W_Left = 0.0f;
+
+                                //double dPos_X = 0;// (e.X - m_nMouse_X_Left);
+                                //double dPos_Y = 0;// (m_nMouse_Y_Left - e.Y);
+                                //double dPos_Z = (double)m_fMouse_W_Left;// (m_fMouse_W_Left - e.Y);
+                                //float fAngle_X, fAngle_Y, fAngle_Z;
+                                //GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                                ////GetAngle_(out m_afLookat[0], out m_afLookat[1], out m_afLookat[2]);
+                                
+                                //CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                //CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                //CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+
+                                ////if (
+                                //    //((m_afLookat[0] + dPos_X) > 0) &&
+                                //    //((m_afLookat[1] + dPos_Y) > 0) &&
+                                //    //((m_afLookat[2] + dPos_Z) > 0)
+                                //    //)
+                                //{
+                                //    m_afLookat[0] += (float)dPos_X;
+                                //    m_afLookat[1] += (float)dPos_Y;
+                                //    m_afLookat[2] += (float)dPos_Z;
+                                //}
+                                ////    int nMotCnt = m_CHeader.nMotorCnt;
+                                ////for (int i = 0; i < nMotCnt; i++)
+                                ////{
+                                ////    SetData(i, (float)CKinematics.CInverse.GetValue_Motor(i));
+                                ////}
+                                ////Glu.gluLookAt(m_afLookat[0], m_afLookat[1], m_afLookat[2], 0, 0, 0, 0, 1, 0);
+                                ////Glu.
+
+
+
+
+
+
+
+
+
+
+
+                            }
                         }
                         //OjwDraw();
                     }
@@ -2810,6 +3182,13 @@ namespace OpenJigWare
                 #region Initialize
                 private bool m_bClassEnd = false;
                 private bool m_bMouseEventEnable = false;
+                private bool m_bKeyboardEventEnable = false;
+                //protected override void OnNotifyMessage(Message m)
+                //{
+                //    // 0x14 = WM_ERASEBKGND
+                //    if (m.Msg != 0x14)
+                //        base.OnNotifyMessage(m);
+                //}
                 public C3d()//CCsgl()
                     : base()
                 {
@@ -2820,12 +3199,18 @@ namespace OpenJigWare
                     m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
                     m_lstDraw.Clear();
 
+                    //this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+                    //this.SetStyle(ControlStyles.EnableNotifyMessage, true);
+                    //this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+                    //this.SetStyle(ControlStyles.UserPaint, true);
+
                     //this.MouseDown += (MouseEventHandler)OjwMouseDown;
                     //this.MouseMove += (MouseEventHandler)OjwMouseMove;
                     //this.MouseUp += (MouseEventHandler)OjwMouseUp;
                     //this.MouseWheel += (MouseEventHandler)OjwMouseWheel;
                     //m_bMouseEventEnable = true;
                     SetMouseEventEnable(true);
+                    //SetKeyboardEventEnable(true);
 
                     //m_CTId_Pan.Set();
                     //m_CTId_Tilt.Set();
@@ -2887,7 +3272,28 @@ namespace OpenJigWare
                         }
                     }
                 }
-
+                
+                //public void SetKeyboardEventEnable(bool bEn)
+                //{
+                //    if (bEn != m_bKeyboardEventEnable)
+                //    {
+                //        m_bKeyboardEventEnable = bEn;
+                //        if (bEn == true)
+                //        {
+                            
+                //            //this.KeyPress +=new KeyPressEventHandler(C3d_KeyPress);
+                //            //this.KeyDown += (KeyEventHandler)OjwKeyDown;
+                //            this.KeyDown += new KeyEventHandler(OjwKeyDown);
+                //            this.KeyUp += (KeyEventHandler)OjwKeyUp;
+                //        }
+                //        else
+                //        {
+                //            this.KeyDown -= (KeyEventHandler)OjwKeyDown;
+                //            this.KeyUp -= (KeyEventHandler)OjwKeyUp;
+                //        }
+                //    }
+                //}
+                
                 ~C3d()//CCsgl()
                 {
                     //model.Destroy();
@@ -2918,13 +3324,23 @@ namespace OpenJigWare
                 }
                 #endregion Initialize
 
-                public void Init(PictureBox picMain)
+                //public void Init(PictureBox picMain)
+                //{
+                //    this.Parent = picMain;
+                //    this.Dock = DockStyle.Fill;
+                //    picMain.Controls.Add(this);
+                //    this.InitializeContexts();
+                //    //m_szDisplaySize = picMain.Size;
+                //    //SizeChange(m_szDisplaySize);
+                //    SizeChange(this.Size);
+                //}
+                public void Init(Control ctrlMain)
                 {
-                    this.Parent = picMain;
+                    this.Parent = ctrlMain;
                     this.Dock = DockStyle.Fill;
-                    picMain.Controls.Add(this);
+                    ctrlMain.Controls.Add(this);
                     this.InitializeContexts();
-                    //m_szDisplaySize = picMain.Size;
+                    //m_szDisplaySize = ctrlMain.Size;
                     //SizeChange(m_szDisplaySize);
                     SizeChange(this.Size);
                 }
@@ -3887,7 +4303,7 @@ namespace OpenJigWare
                         //////////////////////////////////
 
                         uint unName = Picking_Check();
-                        glFlush();
+                        //glFlush();
                         if (unName > 0)
                         {
                             return (long)unName;
@@ -3897,8 +4313,15 @@ namespace OpenJigWare
                     else
                     {
                         glFlush();
+                        //SwapBuffers();
+                        //this.SwapBuffers();
                     }
-                    this.SwapBuffers();
+                    //this.DrawGLScene();                // 장면을 그린다
+                    //SwapBuffers(hDC);            // 버퍼를 스와핑한다 (더블 버퍼링)
+                    //this.SwapBuffers();
+                    SwapBuffers();
+                    //this.Invalidate(false);
+                    //this.SwapBuffers(this.Handle);
                     //Refresh();
                     return -1;
                 }
@@ -3950,7 +4373,7 @@ namespace OpenJigWare
 
                 private int m_nWidth = 0;
                 private int m_nHeight = 0;
-                private const float _RATIO = 800.0f;
+                private const float _RATIO = 400.0f;//800.0f;
                 public void SizeChange(Size s)
                 {
                     m_nWidth = s.Width;
@@ -3964,11 +4387,14 @@ namespace OpenJigWare
                     Gl.glMatrixMode(Gl.GL_PROJECTION);
                     Gl.glLoadIdentity();
                     Ortho((float)s.Width, (float)s.Height, fRatio);
-                    Gl.glDepthRange(-fRatio, fRatio);
+#if _USE_LOOKAT
+                    Glu.gluLookAt(m_afLookat[0], m_afLookat[1], m_afLookat[2], 0, 0, 0, m_afLookat_Dir[0], m_afLookat_Dir[1], m_afLookat_Dir[2]);
+#endif
+                    Gl.glDepthRange(-_RATIO, _RATIO);//(-fRatio, fRatio);
                     Gl.glMatrixMode(Gl.GL_MODELVIEW);
                     Gl.glLoadIdentity();
 
-                    SetLight();
+                    //SetLight();
                 }
                 #endregion SizeChange
 

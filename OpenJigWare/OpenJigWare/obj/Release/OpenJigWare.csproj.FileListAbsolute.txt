@@ -67,3 +67,4 @@ D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\bin\
 D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
 D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
+D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache

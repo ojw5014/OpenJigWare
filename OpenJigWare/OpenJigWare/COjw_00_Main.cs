@@ -56,8 +56,11 @@ namespace OpenJigWare
     #endregion Cautions **********************************************************
     public struct SVersion_T
     {
-        public const string strVersion = "01.01.10";
+        public const string strVersion = "01.01.20";
         public const string strHistory = (String)(
+                "[V01.01.20]" + "\r\n" +
+                " - 12_3D.cs - Init(Panel -> Control), InitProperty...(Label -> Control)" + "\r\n" +
+                "========================================\r\n" +
                 "[V01.01.10]" + "\r\n" +
                 " - Message Param feature added" + "\r\n" +
                 "========================================\r\n" +
