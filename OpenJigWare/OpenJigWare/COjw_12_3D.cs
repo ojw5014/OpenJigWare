@@ -20,6 +20,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Reflection;
+using System.Threading;
 
 namespace OpenJigWare
 {
@@ -3301,7 +3302,7 @@ namespace OpenJigWare
                 }
             
                 public void InitGLContext()
-                {
+                {                    
 #if _GL_FLAT
                     Gl.glShadeModel(Gl.GL_FLAT);							    // Enable Flat Shading
 #else
@@ -3334,8 +3335,10 @@ namespace OpenJigWare
                 //    //SizeChange(m_szDisplaySize);
                 //    SizeChange(this.Size);
                 //}
+                private Control m_ctrlMain = new Control();
                 public void Init(Control ctrlMain)
                 {
+                    m_ctrlMain = ctrlMain;
                     this.Parent = ctrlMain;
                     this.Dock = DockStyle.Fill;
                     ctrlMain.Controls.Add(this);
@@ -3417,6 +3420,7 @@ namespace OpenJigWare
                 public void glFlush() { Gl.glFlush(); }
                 public void glDraw_Ready()
                 {
+                    //SwapBuffers();
                     //Glut.glutInit();
                     //m_szDisplaySize = this.Size;
                     //SizeChange(m_szDisplaySize);
@@ -3439,13 +3443,14 @@ namespace OpenJigWare
                         // Switch to normal rendering mode(Kor: 보통의 렌더링 모드로 전환)
                         //GL.glMatrixMode(GL.GL_MODELVIEW);
 
+                        SetLight();
+
+                        Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
                         m_fColor_Back[0] = ((float)(m_BackColor.R) / 255.0f);  // R
                         m_fColor_Back[1] = ((float)(m_BackColor.G) / 255.0f);  // G
                         m_fColor_Back[2] = ((float)(m_BackColor.B) / 255.0f);  // B
                         Gl.glClearColor(m_fColor_Back[0], m_fColor_Back[1], m_fColor_Back[2], 1.0f);
-                        Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
                         //Gl.glLoadIdentity();
-                        //SetLight();
                     }
                 }
                 #endregion glDraw_Ready()
@@ -3840,262 +3845,283 @@ namespace OpenJigWare
                 }
 
                 //private int m_nFunctionNumber = -1;
+                private Mutex m_mtxDraw = new Mutex();
+                delegate void Ctrl_Involk(float[] afData, COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit);
+
                 public void OjwDraw(float[] afData, COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
-                    //if (m_bJoystic == true)
-                    //{
-                    //    CMessage.Write2(
-                    //        " joystick " + Glut.glutDeviceGet(Glut.GLUT_HAS_JOYSTICK).ToString() +
-                    //        " - buttons " + Glut.glutDeviceGet(Glut.GLUT_JOYSTICK_BUTTONS).ToString() +
-                    //        " - axes " + Glut.glutDeviceGet(Glut.GLUT_JOYSTICK_AXES).ToString() + " \r\n"
-                    //        );
-                    //}
-                    bLimit = false;
-                    bPick = false;
-                    nGroupA = nGroupB = nGroupC = 0;
-                    nInverseKinematicsNumber = 255;
-
-                    if (m_bFileOpening == true) return;
-                    if (m_bDrawing == true) return;
-                    m_bDrawing = true;
-
-                    try
+                    if (m_ctrlMain.InvokeRequired)
                     {
-                        int i;
-                        #region Pre-Checking the function control
-                        //int nInverseNum = m_nFunctionNumber;
-                        if (GetFunctionNumber() >= 0)
+                        bLimit = false;
+                        bPick = false;
+                        nGroupA = nGroupB = nGroupC = 0;
+                        nInverseKinematicsNumber = 255;
+
+                        Ctrl_Involk CI = new Ctrl_Involk(OjwDraw);
+                        this.Invoke(CI, afData, CHeader, nGroupA, nGroupB, nGroupC, nInverseKinematicsNumber, bPick, bLimit);
+                    }
+                    else
+                    {
+                        // 뮤텍스 대기(다중스레드 공유 위반 방지)
+                        m_mtxDraw.WaitOne();
+
+                        //if (m_bJoystic == true)
+                        //{
+                        //    CMessage.Write2(
+                        //        " joystick " + Glut.glutDeviceGet(Glut.GLUT_HAS_JOYSTICK).ToString() +
+                        //        " - buttons " + Glut.glutDeviceGet(Glut.GLUT_JOYSTICK_BUTTONS).ToString() +
+                        //        " - axes " + Glut.glutDeviceGet(Glut.GLUT_JOYSTICK_AXES).ToString() + " \r\n"
+                        //        );
+                        //}
+                        bLimit = false;
+                        bPick = false;
+                        nGroupA = nGroupB = nGroupC = 0;
+                        nInverseKinematicsNumber = 255;
+
+                        if (m_bFileOpening == true) return;
+                        if (m_bDrawing == true) return;
+                        m_bDrawing = true;
+
+                        try
                         {
-                            if (m_CHeader.pSOjwCode.Length > GetFunctionNumber())
+                            int i;
+                            #region Pre-Checking the function control
+                            //int nInverseNum = m_nFunctionNumber;
+                            if (GetFunctionNumber() >= 0)
                             {
-                                if (m_CHeader.pSOjwCode[GetFunctionNumber()].nMotor_Max > 0)
+                                if (m_CHeader.pSOjwCode.Length > GetFunctionNumber())
                                 {
-                                    CKinematics.CInverse.SetValue_ClearAll(ref m_CHeader.pSOjwCode[GetFunctionNumber()]);
-                                    //CKinematics.CInverse.SetValue_X(m_dPos_X);
-                                    //CKinematics.CInverse.SetValue_Y(m_dPos_Y);
-                                    //CKinematics.CInverse.SetValue_Z(m_dPos_Z);
-
-                                    double[] adMot = new double[m_afMot.Length];
-                                    //Buffer.BlockCopy(GetData(), 0, adMot, 0, adMot.Length);
-                                    for (i = 0; i < m_afMot.Length; i++) adMot[i] = (double)m_afMot[i];
-                                    CKinematics.CInverse.SetValue_Motor(adMot);
-                                    adMot = null;
-
-                                    CKinematics.CInverse.CalcCode(ref m_CHeader.pSOjwCode[GetFunctionNumber()]);
-                                    int nMotCnt = m_CHeader.pSOjwCode[GetFunctionNumber()].nMotor_Max;
-                                    for (i = 0; i < nMotCnt; i++)
+                                    if (m_CHeader.pSOjwCode[GetFunctionNumber()].nMotor_Max > 0)
                                     {
-                                        int nMotNum = m_CHeader.pSOjwCode[GetFunctionNumber()].pnMotor_Number[i];
-                                        SetData(nMotNum, (float)CKinematics.CInverse.GetValue_Motor(nMotNum));
+                                        CKinematics.CInverse.SetValue_ClearAll(ref m_CHeader.pSOjwCode[GetFunctionNumber()]);
+                                        //CKinematics.CInverse.SetValue_X(m_dPos_X);
+                                        //CKinematics.CInverse.SetValue_Y(m_dPos_Y);
+                                        //CKinematics.CInverse.SetValue_Z(m_dPos_Z);
+
+                                        double[] adMot = new double[m_afMot.Length];
+                                        //Buffer.BlockCopy(GetData(), 0, adMot, 0, adMot.Length);
+                                        for (i = 0; i < m_afMot.Length; i++) adMot[i] = (double)m_afMot[i];
+                                        CKinematics.CInverse.SetValue_Motor(adMot);
+                                        adMot = null;
+
+                                        CKinematics.CInverse.CalcCode(ref m_CHeader.pSOjwCode[GetFunctionNumber()]);
+                                        int nMotCnt = m_CHeader.pSOjwCode[GetFunctionNumber()].nMotor_Max;
+                                        for (i = 0; i < nMotCnt; i++)
+                                        {
+                                            int nMotNum = m_CHeader.pSOjwCode[GetFunctionNumber()].pnMotor_Number[i];
+                                            SetData(nMotNum, (float)CKinematics.CInverse.GetValue_Motor(nMotNum));
+                                        }
                                     }
                                 }
                             }
-                        }
-                        #endregion Pre-Checking the function control
+                            #endregion Pre-Checking the function control
 
-                        glDraw_Ready();
+                            glDraw_Ready();
 
-                        #region Dh-notation ball Drawing
-                        if (IsTestDh() == true)
-                        {
-                            InitPosAngle();
-                            OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
-                            OjwBall_Outside(false, m_cDh, m_fDhAlpha, m_fDhSize, 20, 0, 0, 0, 0, 0, 0);
-
-                            float fSize = m_fDhSize;// 10.0f;
-                            float fMulti = fSize / 10.0f * 2.0f;
-                            InitPosAngle();
-                            OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
-
-                            OjwTranslate(m_afDhAngle_X[0] * fMulti, m_afDhAngle_X[1] * fMulti, m_afDhAngle_X[2] * fMulti);
-                            OjwBall(true, Color.Red, m_fDhAlpha, fSize, 50);
-
-                            InitPosAngle();
-                            OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
-
-                            OjwTranslate(m_afDhAngle_Y[0] * fMulti, m_afDhAngle_Y[1] * fMulti, m_afDhAngle_Y[2] * fMulti);
-                            OjwBall(true, Color.Green, m_fDhAlpha, fSize, 50);
-
-                            //Axis_Y(true, Color.Green, m_fDhAlpha, 5, 20);
-
-                            InitPosAngle();
-                            OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
-                            //OjwRotation(m_afDhAngle[0, 0], m_afDhAngle[0, 1], m_afDhAngle[0, 2]);
-
-                            OjwTranslate(m_afDhAngle_Z[0] * fMulti, m_afDhAngle_Z[1] * fMulti, m_afDhAngle_Z[2] * fMulti);
-                            OjwBall(true, Color.Blue, m_fDhAlpha, fSize, 50);
-
-                            // Display axis and ball
-                            //OjwBall_Outside(false, m_cDh, m_fDhAlpha, m_fDhSize, 20, 0, 0, 0, 0, 0, 0);
-
-                            //Axis_X(true, Color.Coral, 1.0f, 5, 20);
-                            //Axis_Y(true, Color.Green, 1.0f, 5, 20);
-                            //Axis_Z(true, Color.Blue, 1.0f, 5, 20);
-                            ////
-                            //////////////
-                        }
-                        /////////////////////////
-                        #endregion Dh-notation ball Drawing
-
-                        InitPosAngle_WithAxis();
-
-                        //// The actual part to be drawn(Kor: 실제 그려질 부분) ////
-                        COjwDisp CDisp = new COjwDisp();
-                        if (_CNT_FILEOPEN != m_nBackupCnt_HistoryFileOpen)
-                        {
-                            m_nBackupCnt_HistoryFileOpen = _CNT_FILEOPEN;
-                            Array.Clear(m_abMake, 0, 4096);
-                        }
-                        
-                        int nCnt = OjwDispAll.GetCount();
-                        if (IsVirtualClass() == true) nCnt++;
-
-                        #region Main Drawing
-                        //for (i = 0; i < OjwDispAll.GetCount(); i++)
-                        for (i = 0; i < nCnt; i++)
-                        {
-                            float fAlpha = m_fAlpha;
-                            if ((IsVirtualClass() == true) && ((nCnt - 1) == i))
+                            #region Dh-notation ball Drawing
+                            if (IsTestDh() == true)
                             {
-                                //m_fAlpha /= 2.0f; // (Set alpha for virtual object
-                                CDisp = OjwVirtualDisp;
+                                InitPosAngle();
+                                OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
+                                OjwBall_Outside(false, m_cDh, m_fDhAlpha, m_fDhSize, 20, 0, 0, 0, 0, 0, 0);
+
+                                float fSize = m_fDhSize;// 10.0f;
+                                float fMulti = fSize / 10.0f * 2.0f;
+                                InitPosAngle();
+                                OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
+
+                                OjwTranslate(m_afDhAngle_X[0] * fMulti, m_afDhAngle_X[1] * fMulti, m_afDhAngle_X[2] * fMulti);
+                                OjwBall(true, Color.Red, m_fDhAlpha, fSize, 50);
+
+                                InitPosAngle();
+                                OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
+
+                                OjwTranslate(m_afDhAngle_Y[0] * fMulti, m_afDhAngle_Y[1] * fMulti, m_afDhAngle_Y[2] * fMulti);
+                                OjwBall(true, Color.Green, m_fDhAlpha, fSize, 50);
+
+                                //Axis_Y(true, Color.Green, m_fDhAlpha, 5, 20);
+
+                                InitPosAngle();
+                                OjwTranslate(m_afDhPoint[0] + m_afDhInitPoint[0], m_afDhPoint[1] + m_afDhInitPoint[1], m_afDhPoint[2] + m_afDhInitPoint[2]);
+                                //OjwRotation(m_afDhAngle[0, 0], m_afDhAngle[0, 1], m_afDhAngle[0, 2]);
+
+                                OjwTranslate(m_afDhAngle_Z[0] * fMulti, m_afDhAngle_Z[1] * fMulti, m_afDhAngle_Z[2] * fMulti);
+                                OjwBall(true, Color.Blue, m_fDhAlpha, fSize, 50);
+
+                                // Display axis and ball
+                                //OjwBall_Outside(false, m_cDh, m_fDhAlpha, m_fDhSize, 20, 0, 0, 0, 0, 0, 0);
+
+                                //Axis_X(true, Color.Coral, 1.0f, 5, 20);
+                                //Axis_Y(true, Color.Green, 1.0f, 5, 20);
+                                //Axis_Z(true, Color.Blue, 1.0f, 5, 20);
+                                ////
+                                //////////////
                             }
-                            else CDisp = OjwDispAll.GetData(i);
-                            if (CDisp != null)
-                            {
-                                if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
-                                    CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+                            /////////////////////////
+                            #endregion Dh-notation ball Drawing
 
-                                // Limit Check(Kor: 각도의 Limit 체크) //
-                                if (CDisp.nName >= 0)
+                            InitPosAngle_WithAxis();
+
+                            //// The actual part to be drawn(Kor: 실제 그려질 부분) ////
+                            COjwDisp CDisp = new COjwDisp();
+                            if (_CNT_FILEOPEN != m_nBackupCnt_HistoryFileOpen)
+                            {
+                                m_nBackupCnt_HistoryFileOpen = _CNT_FILEOPEN;
+                                Array.Clear(m_abMake, 0, 4096);
+                            }
+
+                            int nCnt = OjwDispAll.GetCount();
+                            if (IsVirtualClass() == true) nCnt++;
+
+                            #region Main Drawing
+                            //for (i = 0; i < OjwDispAll.GetCount(); i++)
+                            for (i = 0; i < nCnt; i++)
+                            {
+                                float fAlpha = m_fAlpha;
+                                if ((IsVirtualClass() == true) && ((nCnt - 1) == i))
                                 {
-                                    if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
-                                    if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                    //m_fAlpha /= 2.0f; // (Set alpha for virtual object
+                                    CDisp = OjwVirtualDisp;
                                 }
-                                m_nDrawClass_Pos = i;
-                                OjwDraw_Class(CDisp);
-                            }
-                            if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
-                        }
-                        #endregion Main Drawing
-
-                        #region Test Drawing
-                        if (IsTestCircle() == true)
-                        {
-                            float fX, fY, fZ;
-                            float fSize = m_fTestSize;// 10.0f;
-                            float fAlpha = 1.0f;
-                            int nAxisLength = 20;
-                            InitPosAngle();
-                            GetPos_Test(out fX, out fY, out fZ);
-                            OjwTranslate(fX, fY, fZ);
-                            GetAngle_Test(out fX, out fY, out fZ);
-                            OjwRotation(fX, fY, fZ);
-                            OjwBall_Outside(true, GetColor_Test(), fAlpha, fSize, nAxisLength, 0, 0, 0, 0, 0, 0);
-                            if (IsTestAxis() == true)
-                            {
-                                Axis_X(true, Color.Coral, 1.0f, 5, 20);
-                                Axis_Y(true, Color.Green, 1.0f, 5, 20);
-                                Axis_Z(true, Color.Blue, 1.0f, 5, 20);
-                            }
-                        }
-                        #endregion Test Drawing
-                                                
-                        #region User
-                        int nCntUser = OjwDispAll_User.GetCount();
-                        for (i = 0; i < nCntUser; i++)
-                        {
-                            float fAlpha = m_fAlpha;
-                            CDisp = OjwDispAll_User.GetData(i);
-                            if (CDisp != null)
-                            {
-                                if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
-                                    CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
-
-                                // Limit Check(Kor: 각도의 Limit 체크) //
-                                if (CDisp.nName >= 0)
+                                else CDisp = OjwDispAll.GetData(i);
+                                if (CDisp != null)
                                 {
-                                    if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
-                                    if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+
+                                    // Limit Check(Kor: 각도의 Limit 체크) //
+                                    if (CDisp.nName >= 0)
+                                    {
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                    }
+                                    m_nDrawClass_Pos = i;
+                                    OjwDraw_Class(CDisp);
                                 }
-
-                                OjwDraw_Class(CDisp);
+                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
                             }
-                            if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
-                        }
-                        //#region Init Again
-                        //InitPosAngle();
-                        //m_afCalcPos[0] = 0;
-                        //m_afCalcPos[1] = 0;
-                        //m_afCalcPos[2] = 0;
-                        //m_afCalcAngle[0] = 0;
-                        //m_afCalcAngle[1] = 0;
-                        //m_afCalcAngle[2] = 0;
-                        //#endregion Init Again
-                        #endregion User
+                            #endregion Main Drawing
 
-                        
-
-                        long lRet = glDraw_End();
-                        //bPick = IsPicking();
-                        //if (bPick == true)
-                        bPick = (lRet > 0) ? true : false;
-                        if (IsPicking() == true)
-                        {
-                            if (lRet > 0)
+                            #region Test Drawing
+                            if (IsTestCircle() == true)
                             {
-                                int nX, nY;
-                                GetPickMousePoint(out nX, out nY);
-                                //int nGroupA, nGroupB, nGroupC;
-                                GetPickingData(out nGroupA, out nGroupB, out nGroupC, out nInverseKinematicsNumber);
-                                //                         if (strPick != null)
-                                //                         {
-                                //                             String strPickComment = OjwDispAll.GetString_PickingComment(nGroupA, nGroupB, nGroupC);
-                                //                             strPick = "Object Name = " + CConvert.IntToStr(nGroupA) + ", " + CConvert.IntToStr(nGroupB) + ", " + CConvert.IntToStr(nGroupC) + "," + strPickComment + "[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
-                                //                         }
-                                if (nGroupA > 0)
+                                float fX, fY, fZ;
+                                float fSize = m_fTestSize;// 10.0f;
+                                float fAlpha = 1.0f;
+                                int nAxisLength = 20;
+                                InitPosAngle();
+                                GetPos_Test(out fX, out fY, out fZ);
+                                OjwTranslate(fX, fY, fZ);
+                                GetAngle_Test(out fX, out fY, out fZ);
+                                OjwRotation(fX, fY, fZ);
+                                OjwBall_Outside(true, GetColor_Test(), fAlpha, fSize, nAxisLength, 0, 0, 0, 0, 0, 0);
+                                if (IsTestAxis() == true)
                                 {
-                                    m_anSelectedGroup[0] = nGroupA;
-                                    m_anSelectedGroup[1] = nGroupB;
-                                    m_anSelectedGroup[2] = nGroupC;
-                                    m_nSelected_InverseKinematicsNumber = nInverseKinematicsNumber;
+                                    Axis_X(true, Color.Coral, 1.0f, 5, 20);
+                                    Axis_Y(true, Color.Green, 1.0f, 5, 20);
+                                    Axis_Z(true, Color.Blue, 1.0f, 5, 20);
                                 }
-                                
                             }
-                            else if (lRet == 0)
-                            {
-                                int nX, nY;
-                                GetPickMousePoint(out nX, out nY);
-                                //if (strPick != null) strPick = "Object Name = Unknown Object[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
+                            #endregion Test Drawing
 
-                                nGroupA = nGroupB = nGroupC = 0;
-                            }
-                            else
+                            #region User
+                            int nCntUser = OjwDispAll_User.GetCount();
+                            for (i = 0; i < nCntUser; i++)
                             {
-                                int nX, nY;
-                                GetPickMousePoint(out nX, out nY);
-                                //if (strPick != null) strPick = "Object Name = No Found[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
-                            }                            
-                            Clear_IsPicking();
+                                float fAlpha = m_fAlpha;
+                                CDisp = OjwDispAll_User.GetData(i);
+                                if (CDisp != null)
+                                {
+                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+
+                                    // Limit Check(Kor: 각도의 Limit 체크) //
+                                    if (CDisp.nName >= 0)
+                                    {
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                    }
+
+                                    OjwDraw_Class(CDisp);
+                                }
+                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
+                            }
+                            //#region Init Again
+                            //InitPosAngle();
+                            //m_afCalcPos[0] = 0;
+                            //m_afCalcPos[1] = 0;
+                            //m_afCalcPos[2] = 0;
+                            //m_afCalcAngle[0] = 0;
+                            //m_afCalcAngle[1] = 0;
+                            //m_afCalcAngle[2] = 0;
+                            //#endregion Init Again
+                            #endregion User
+
+
+
+                            long lRet = glDraw_End();
+                            //bPick = IsPicking();
+                            //if (bPick == true)
+                            bPick = (lRet > 0) ? true : false;
+                            if (IsPicking() == true)
+                            {
+                                if (lRet > 0)
+                                {
+                                    int nX, nY;
+                                    GetPickMousePoint(out nX, out nY);
+                                    //int nGroupA, nGroupB, nGroupC;
+                                    GetPickingData(out nGroupA, out nGroupB, out nGroupC, out nInverseKinematicsNumber);
+                                    //                         if (strPick != null)
+                                    //                         {
+                                    //                             String strPickComment = OjwDispAll.GetString_PickingComment(nGroupA, nGroupB, nGroupC);
+                                    //                             strPick = "Object Name = " + CConvert.IntToStr(nGroupA) + ", " + CConvert.IntToStr(nGroupB) + ", " + CConvert.IntToStr(nGroupC) + "," + strPickComment + "[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
+                                    //                         }
+                                    if (nGroupA > 0)
+                                    {
+                                        m_anSelectedGroup[0] = nGroupA;
+                                        m_anSelectedGroup[1] = nGroupB;
+                                        m_anSelectedGroup[2] = nGroupC;
+                                        m_nSelected_InverseKinematicsNumber = nInverseKinematicsNumber;
+                                    }
+
+                                }
+                                else if (lRet == 0)
+                                {
+                                    int nX, nY;
+                                    GetPickMousePoint(out nX, out nY);
+                                    //if (strPick != null) strPick = "Object Name = Unknown Object[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
+
+                                    nGroupA = nGroupB = nGroupC = 0;
+                                }
+                                else
+                                {
+                                    int nX, nY;
+                                    GetPickMousePoint(out nX, out nY);
+                                    //if (strPick != null) strPick = "Object Name = No Found[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
+                                }
+                                Clear_IsPicking();
+                            }
+                            CDisp = null;
+
+                            m_nStatus_GroupA = nGroupA;
+                            m_nStatus_GroupB = nGroupB;
+                            m_nStatus_GroupC = nGroupC;
+                            m_nStatus_InverseKinematicsNumber = nInverseKinematicsNumber;
+
+                            m_bStatus_Pick = bPick;
+                            m_bStatus_Limit = bLimit;
+
+                            m_bDrawing = false;
                         }
-                        CDisp = null;
+                        catch (System.Exception e)
+                        {
+                            MessageBox.Show(e.ToString());
 
-                        m_nStatus_GroupA = nGroupA;
-                        m_nStatus_GroupB = nGroupB;
-                        m_nStatus_GroupC = nGroupC; 
-                        m_nStatus_InverseKinematicsNumber = nInverseKinematicsNumber;
-                        
-                        m_bStatus_Pick = bPick;
-                        m_bStatus_Limit = bLimit;
-                        
-                        m_bDrawing = false;
+                            m_bDrawing = false;
+                        }
+                        // 뮤텍스 해제
+                        m_mtxDraw.ReleaseMutex();
                     }
-                    catch (System.Exception e)
-                    {
-                        MessageBox.Show(e.ToString());
-                        
-                        m_bDrawing = false;
-                    }                    
                 }
                 public void OjwDraw(COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
@@ -4213,8 +4239,13 @@ namespace OpenJigWare
                         }
 
                         //Refresh();
-                        SetLight_Position(-50, 0, 10, -10);
-                        SetLight_Ambient(0.7f, 0.7f, 0.7f, 0.5f);
+#if false
+                        float fMulti = 1000.0f;
+                        SetLight_Position(-50 * fMulti, 0 * fMulti, 10 * fMulti, -10 * fMulti);
+#else
+                        //SetLight_Position(-50, 0, 10, -10);
+#endif
+                        //SetLight_Ambient(0.7f, 0.7f, 0.7f, 0.5f);
 
                         SetScale(fScale);
                         glDraw_Ready();
@@ -4223,7 +4254,7 @@ namespace OpenJigWare
                         if ((nDrawNum == 3) || (nDrawNum == 4))
                         {
                             Gl.glLoadIdentity();
-                            SetLight();
+                            //SetLight();
                             OjwRotation(fInitAngle[0], fInitAngle[1], fInitAngle[2]);
                             OjwTranslate(fInitPos[0], fInitPos[1], fInitPos[2]);
                         }
@@ -4312,14 +4343,16 @@ namespace OpenJigWare
                     }
                     else
                     {
-                        glFlush();
                         //SwapBuffers();
+                        glFlush();
+                        //Refresh();
+                        SwapBuffers();
                         //this.SwapBuffers();
                     }
                     //this.DrawGLScene();                // 장면을 그린다
                     //SwapBuffers(hDC);            // 버퍼를 스와핑한다 (더블 버퍼링)
                     //this.SwapBuffers();
-                    SwapBuffers();
+                    //SwapBuffers();
                     //this.Invalidate(false);
                     //this.SwapBuffers(this.Handle);
                     //Refresh();
@@ -4373,7 +4406,7 @@ namespace OpenJigWare
 
                 private int m_nWidth = 0;
                 private int m_nHeight = 0;
-                private const float _RATIO = 400.0f;//800.0f;
+                private const float _RATIO = 800.0f;
                 public void SizeChange(Size s)
                 {
                     m_nWidth = s.Width;
@@ -4383,7 +4416,7 @@ namespace OpenJigWare
 
                     float fRatio = _RATIO * m_fScale;
 
-                    Gl.glViewport(0, 0, s.Width, s.Height);
+                    Gl.glViewport(-s.Width / 2, -s.Height / 2, s.Width * 2, s.Height * 2);
                     Gl.glMatrixMode(Gl.GL_PROJECTION);
                     Gl.glLoadIdentity();
                     Ortho((float)s.Width, (float)s.Height, fRatio);
@@ -4403,8 +4436,10 @@ namespace OpenJigWare
                 private bool m_bEnable_Light = true;
                 public void Enable_Light(bool bEnable) { m_bEnable_Light = bEnable; }
 
-                private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -300.0f, 1.0f };
-                private float[] m_light1_position = new float[4] { 10.0f, 20.0f, 1.0f, 1.0f };
+                //private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -300.0f, 1.0f };
+                //private float[] m_light1_position = new float[4] { 10.0f, 20.0f, 1.0f, 1.0f };
+                private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -2000.0f, 1.0f };
+                private float[] m_light1_position = new float[4] { 2000.0f, 1000.0f, 1.0f, 1.0f };
 
                 private float[] m_light0_direction = new float[3] { -0.7f, 0.2f, 0.7f };
                 private float[] m_light1_direction = new float[3] { -0.5f, -0.5f, 1.0f };
@@ -4653,7 +4688,7 @@ namespace OpenJigWare
 
 #endif
 #endif
-                        //SetLight2();
+                        SetLight2();
                     }
                     else
                     {
@@ -4699,7 +4734,7 @@ namespace OpenJigWare
                     Gl.glLoadIdentity();
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
-                    SetLight();
+                    //SetLight();
                     OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                     OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
@@ -5067,7 +5102,10 @@ namespace OpenJigWare
                         OjwRotation(SRot.pan + SAngle_Offset.pan, SRot.tilt + SAngle_Offset.tilt, SRot.swing + SAngle_Offset.swing);
                     }
 
-                    if      (OjwDisp.strDispObject == "#0") 
+                    if (OjwDisp.strDispObject == "#-1")
+                    {
+                    }
+                    else if (OjwDisp.strDispObject == "#0")
                         OjwBox(bFilled, cColor, fAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, OjwDisp.fDepth_Or_Cnt);
                     else if (OjwDisp.strDispObject == "#1")
                         OjwCircle(bFilled, cColor, fAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt));
@@ -5100,7 +5138,7 @@ namespace OpenJigWare
                     // Added
 
                     else if (OjwDisp.strDispObject == "#15")
-                    {                        
+                    {
                         OjwPoint(cColor, fAlpha,
                             OjwDisp.Points[0].x, OjwDisp.Points[0].y, OjwDisp.Points[0].z,
                             OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing,

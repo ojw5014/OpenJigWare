@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Drawing.Drawing2D;
 
 namespace OpenJigWare
 {
@@ -283,6 +284,54 @@ namespace OpenJigWare
                 Rectangle _rectangle = new Rectangle(nLeft, nTop, nWidth, nHeight);
                 Color cSecond = Color.FromArgb(m_penDisp.Color.R, m_penDisp.Color.B, m_penDisp.Color.G);
                 Lbrush = new LinearGradientBrush(_rectangle, m_penDisp.Color, cSecond, LinearGradientMode.Vertical);
+                m_gr.FillPolygon(Lbrush, ppnt);
+#else
+                    SolidBrush br = new SolidBrush(cColor);
+                    m_gr.FillPolygon(br, ppnt);
+#endif
+                }
+                catch (Exception e)
+                {
+                    Ojw.CMessage.Write(e.ToString());
+                }
+            }
+            public void Polygon(Color cColor, Color cSecondColor, double[] pX, double[] pY, double[] pZ)
+            {
+                try
+                {
+                    int nCnt = pX.Length;
+                    Point[] ppnt = new Point[nCnt];
+                    int nX, nY;
+                    int i = 0;
+                    for (i = 0; i < nCnt; i++)
+                    {
+                        Rotation(m_dAngleX, m_dAngleY, m_dAngleZ, pX[i], pY[i], pZ[i], out nX, out nY); ppnt[i].X = nX; ppnt[i].Y = nY;
+                    }
+                    i = nCnt - 1;
+                    m_dX = pX[i];
+                    m_dY = pY[i];
+                    m_dZ = pZ[i];
+#if true
+                i = 0;
+                int nLeft = ppnt[i].X;
+                int nRight = ppnt[i].X;
+                int nTop = ppnt[i].Y;
+                int nBottom = ppnt[i].Y;
+                for (i = 0; i < nCnt; i++)
+                {
+                    if (ppnt[i].X < nLeft) nLeft = ppnt[i].X;
+                    if (ppnt[i].X > nRight) nRight = ppnt[i].X;
+                    if (ppnt[i].Y < nTop) nTop = ppnt[i].Y;
+                    if (ppnt[i].Y > nBottom) nBottom = ppnt[i].Y;
+                }
+                int nWidth = nRight - nLeft;
+                if (nWidth <= 0) nWidth = 1;
+                int nHeight = nBottom - nTop;
+                if (nHeight <= 0) nHeight = 1;
+                LinearGradientBrush Lbrush = null;
+                Rectangle _rectangle = new Rectangle(nLeft, nTop, nWidth, nHeight);
+                Color cSecond = Color.FromArgb(cSecondColor.R, cSecondColor.G, cSecondColor.B);
+                Lbrush = new LinearGradientBrush(_rectangle, cColor, cSecond, LinearGradientMode.Vertical);
                 m_gr.FillPolygon(Lbrush, ppnt);
 #else
                     SolidBrush br = new SolidBrush(m_penDisp.Color);

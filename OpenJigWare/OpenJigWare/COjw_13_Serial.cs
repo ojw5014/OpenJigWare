@@ -55,8 +55,9 @@ namespace OpenJigWare
                         
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
+                    CMessage.Write_Error("Port Open Error - " + ex.ToString());
                     //m_bConnect = false;
                 }
                 return IsConnect();

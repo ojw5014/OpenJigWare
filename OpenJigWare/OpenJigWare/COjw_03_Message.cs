@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OpenJigWare
 {
@@ -340,111 +341,131 @@ namespace OpenJigWare
                     m_nMessageStack = 0;
                 }
             }
+            private static Mutex m_mtxMessage = new Mutex();
+            delegate void Ctrl_Involk(TextBox txtOjwMessage, bool bFile, bool bFunction, bool bLine, bool bTime, bool bLinefeed, string msg);
+
             private static void OjwDebugMessage(TextBox txtOjwMessage, bool bFile, bool bFunction, bool bLine, bool bTime, bool bLinefeed, string msg)
             {
-                bool bValid = true;
-                try
+                if (txtOjwMessage.InvokeRequired)
                 {
-                    if (m_bProgEnd == true) return;
+                    Ctrl_Involk CI = new Ctrl_Involk(OjwDebugMessage);
+                    txtOjwMessage.Invoke(CI, txtOjwMessage, bFile, bFunction, bLine, bTime, bLinefeed, msg);
+                }
+                else
+                {
+                    // 뮤텍스 대기(다중스레드 공유 위반 방지)
+                    m_mtxMessage.WaitOne();
+
+                    bool bValid = true;
+                    try
+                    {
+                        #region Try
+
+                        if (m_bProgEnd == true) return;
 
 #if _NO_DISPLAY_WARNING // Warning message remover
-                if (msg.ToUpper().IndexOf("WARN") >= 0)
-                {
-                    m_nMessageStack = 0;
-                    return;
-                }
-#endif
-                    #region Line Limit
-                    int nLimit = m_nLimitLines;
-                    if (txtOjwMessage.IsDisposed == false)
+                    if (msg.ToUpper().IndexOf("WARN") >= 0)
                     {
-                        int nLength = 0;
-                        try
+                        m_nMessageStack = 0;
+                        return;
+                    }
+#endif
+                        #region Line Limit
+                        int nLimit = m_nLimitLines;
+                        if (txtOjwMessage.IsDisposed == false)
                         {
-                            nLength = txtOjwMessage.Lines.Length;
-                        }
-                        catch //(Exception e)
-                        {
-                            bValid = false;
-                            //MessageBox.Show(nLength.ToString() + ":[Message]" + e.ToString() + "\r\n");
-                        }
-                        if (bValid == true)//(txtOjwMessage.Text != "")
-                        {
-                            if (txtOjwMessage.Lines.Length > nLimit)
+                            int nLength = 0;
+                            try
                             {
-                                LinkedList<String> tmpLines = new LinkedList<string>(txtOjwMessage.Lines);
-                                while ((tmpLines.Count - nLimit) > 0) { tmpLines.RemoveFirst(); }
-                                txtOjwMessage.Lines = tmpLines.ToArray();
+                                nLength = txtOjwMessage.Lines.Length;
+                            }
+                            catch //(Exception e)
+                            {
+                                bValid = false;
+                                //MessageBox.Show(nLength.ToString() + ":[Message]" + e.ToString() + "\r\n");
+                            }
+                            if (bValid == true)//(txtOjwMessage.Text != "")
+                            {
+                                if (txtOjwMessage.Lines.Length > nLimit)
+                                {
+                                    LinkedList<String> tmpLines = new LinkedList<string>(txtOjwMessage.Lines);
+                                    while ((tmpLines.Count - nLimit) > 0) { tmpLines.RemoveFirst(); }
+                                    txtOjwMessage.Lines = tmpLines.ToArray();
+                                }
                             }
                         }
-                    }
-                    #endregion Line Limit
-                    m_nMessageStack++;
-                    String strMsg = String.Empty;
-                    int nDepth = 0;
-                    for (int i = 0; i < m_nCount_DisplayStack; i++)
-                    {
-                        nDepth = m_nMessageStack - i;
-                        // Write(2) / Debug...(1) Invisible functions
-                        if (nDepth <= 2) break;
-                        System.Diagnostics.StackFrame sf = new System.Diagnostics.StackTrace(true).GetFrame(nDepth);
-                        //System.Reflection.MethodBase method = sf.GetMethod();//new System.Diagnostics.StackTrace(true).GetFrame(nDepth).GetMethod();
-                        //String strTime = DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString();
-                        if (bFile && (sf.GetFileName() != null)) strMsg += "{" + Ojw.CFile.GetName(sf.GetFileName()) + "}";
-                        if (bFunction && (sf.GetMethod().Name != null)) strMsg += "{" + sf.GetMethod().Name + "}";//method.Name + "}";
-                        if (bLine) strMsg += "{" + sf.GetFileLineNumber().ToString() + "}";
-                    }
-                    if (bTime) strMsg += "{" + DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString() + "}";
-                    if (bLinefeed == true) msg += "\r\n";
-                    if (bValid == true)
-                    {
-                        SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, false, 0); // Block Redraw : Block Refresh
-                        //txtOjwMessage.AppendText(strMsg + msg + ((bLinefeed == true) ? "\r\n" : ""));       
-                        txtOjwMessage.AppendText(strMsg + msg);       // add your letters to chatting list window
-                        SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
-                        //txtOjwMessage.Select(txtOjwMessage.Text.Length, 0);
-                        txtOjwMessage.ScrollToCaret();                // 'scroll' -> move to current caret
-                    }
-                    m_nMessageStack = 0;
+                        #endregion Line Limit
+                        m_nMessageStack++;
+                        String strMsg = String.Empty;
+                        int nDepth = 0;
+                        for (int i = 0; i < m_nCount_DisplayStack; i++)
+                        {
+                            nDepth = m_nMessageStack - i;
+                            // Write(2) / Debug...(1) Invisible functions
+                            if (nDepth <= 2) break;
+                            System.Diagnostics.StackFrame sf = new System.Diagnostics.StackTrace(true).GetFrame(nDepth);
+                            //System.Reflection.MethodBase method = sf.GetMethod();//new System.Diagnostics.StackTrace(true).GetFrame(nDepth).GetMethod();
+                            //String strTime = DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString();
+                            if (bFile && (sf.GetFileName() != null)) strMsg += "{" + Ojw.CFile.GetName(sf.GetFileName()) + "}";
+                            if (bFunction && (sf.GetMethod().Name != null)) strMsg += "{" + sf.GetMethod().Name + "}";//method.Name + "}";
+                            if (bLine) strMsg += "{" + sf.GetFileLineNumber().ToString() + "}";
+                        }
+                        if (bTime) strMsg += "{" + DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString() + "}";
+                        if (bLinefeed == true) msg += "\r\n";
+                        if (bValid == true)
+                        {
+                            SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, false, 0); // Block Redraw : Block Refresh
+                            //txtOjwMessage.AppendText(strMsg + msg + ((bLinefeed == true) ? "\r\n" : ""));       
+                            txtOjwMessage.AppendText(strMsg + msg);       // add your letters to chatting list window
+                            SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
+                            //txtOjwMessage.Select(txtOjwMessage.Text.Length, 0);
+                            txtOjwMessage.ScrollToCaret();                // 'scroll' -> move to current caret
+                        }
+                        m_nMessageStack = 0;
 
-                    if (m_bMsgFile == true)
-                    {
-                        String strFile = ((m_bMsgFile_Second == true) ? m_strMsgFilePath2 : m_strMsgFilePath);
-                        String strTitle = ((m_bMsgFile_Second == true) ? m_strSecondFile : "history");
-                        //// File ////
-                        // get the folder name by time informations without tree
-                        string strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false); 
-                        string strName = "";
-                        if (m_bMsgFile_Second == false)
+                        if (m_bMsgFile == true)
                         {
-                            strName = strPath + "\\" + strTitle + ".log";
-                        }
-                        else
-                        {
-                            strName = strPath + "\\" + strTitle;
-                        }
-                        MsgFileSave(strName, strMsg + msg);
-                        if (txtOjwMessage == m_txtMessage_Error)
-                        {
+                            String strFile = ((m_bMsgFile_Second == true) ? m_strMsgFilePath2 : m_strMsgFilePath);
+                            String strTitle = ((m_bMsgFile_Second == true) ? m_strSecondFile : "history");
                             //// File ////
                             // get the folder name by time informations without tree
-                            strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
-                            strName = strPath + "\\" + strTitle + "_Error.log";
+                            string strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
+                            string strName = "";
+                            if (m_bMsgFile_Second == false)
+                            {
+                                strName = strPath + "\\" + strTitle + ".log";
+                            }
+                            else
+                            {
+                                strName = strPath + "\\" + strTitle;
+                            }
                             MsgFileSave(strName, strMsg + msg);
-                            if (IsError_Accumulation() == false) ClearErrorMessage();
+                            if (txtOjwMessage == m_txtMessage_Error)
+                            {
+                                //// File ////
+                                // get the folder name by time informations without tree
+                                strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
+                                strName = strPath + "\\" + strTitle + "_Error.log";
+                                MsgFileSave(strName, strMsg + msg);
+                                if (IsError_Accumulation() == false) ClearErrorMessage();
+                            }
+                            m_bMsgFile_Second = false;
                         }
-                        m_bMsgFile_Second = false;
+                        #endregion Try
                     }
-                }
-                catch(Exception e)
-                {
-                    MessageBox.Show("[Message]" + e.ToString() + "\r\n");
-                    if (bValid == true)
+                    catch (Exception e)
                     {
-                        SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
+                        MessageBox.Show("[Message]" + e.ToString() + "\r\n");
+                        if (bValid == true)
+                        {
+                            SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
+                        }
+                        m_nMessageStack = 0;
                     }
-                    m_nMessageStack = 0;
-                }
+
+                    // 뮤텍스 해제
+                    m_mtxMessage.ReleaseMutex();
+                }                
             }
             private static bool MsgFileSave(String strFileName, String strMsg)
             {

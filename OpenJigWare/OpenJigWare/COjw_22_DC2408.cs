@@ -705,6 +705,7 @@ namespace OpenJigWare
                                 strData += (char)RxData;
                                 if ((char)RxData == ';')
                                 {
+                                    //m_bBusy = false;
                                     PacketDecoder(GetAxis_By_ID(m_nRxId), strData);
                                     m_bError = false;
                                     // Tick Set after receiveing and processing
@@ -769,8 +770,6 @@ namespace OpenJigWare
                         m_SerialPort.Open();
                         if (m_SerialPort.IsOpen == true)
                         {
-                            Reader = new Thread(new ThreadStart(serialPort1_DataReceived));
-                            Reader.Start();
 
                             //SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
                             //CTimer.Wait(100);                            
@@ -788,6 +787,9 @@ namespace OpenJigWare
                             CTimer.Wait(100);
 
                             m_bConnected = true;
+
+                            Reader = new Thread(new ThreadStart(serialPort1_DataReceived));
+                            Reader.Start();
                         }
                         else
                             m_bConnected = false;
@@ -929,12 +931,15 @@ namespace OpenJigWare
                 #region Time - Set the time value to motor speed
                 sData = (short)(CalcTime(((float)Math.Abs(CalcEvd2Angle(nAxis, m_pSMot[nAxis].nPos_Prev) - fAngle) % 360.0f), (float)nTime));
 
+                int nWait = 1000;
                 // Set a Tick Count
                 //m_bBusy = true; // request answer
                 //Tick_Send(nAxis);       
                 //SS1000,2000;
-                SendCommand("PE0001;");
-                SendCommand("SS" + CConvert.IntToStr(sData, 4) + ",2000;");
+                //SendCommand("PE0001;");
+                //WaitReceive(nAxis, nWait);
+                //SendCommand("SS" + CConvert.IntToStr(sData, 4) + ",2000;");
+                //WaitReceive(nAxis, nWait);
                 #endregion Time - Set the time value to motor speed
                 sData = (short)GetCmd(nAxis);
                 //m_bBusy = true; // request answer

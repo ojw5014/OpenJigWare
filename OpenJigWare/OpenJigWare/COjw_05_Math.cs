@@ -547,6 +547,37 @@ namespace OpenJigWare
 #endif
             #endregion Math - matrix function, making a DH-T matrix function
 
+            #region Speed(RPM)
+            public static float CalcRps(float fDeltaAngle, float fMillisecond)
+            {
+                if (fDeltaAngle == 0) fDeltaAngle = (float)CMath._ZERO;
+                // _MAX_RPM * 360 : 60 seconds => 1024(_MAX_EV_RPM) 
+                // =>  rotate [6 * 117.185(_MAX_RPM)] degree during 1 second, 1ms => 117.185 * 360 degrees / 60000ms = 0.70311 degree
+                // => it needs 60000 / (117.185(_MAX_RPM) * 360) = 1.422252564 ms for 1 degree moving
+
+                // moving time for 1 degree => fTime / fDeltaAngle
+                // moving time per moving degree => moving time during 1 degree * fDeltaAngle
+
+                // rpm = 60000/([moving time for 1 degree]*360)
+                #region Kor
+                // _MAX_RPM * 360 : 60 seconds => 1024(_MAX_EV_RPM) 일때 
+                // => 1초간 6 * 117.185(_MAX_RPM) 도 회전, 1ms => 117.185 * 360도 / 60000ms = 0.70311 도 이동
+                // => 1도 움직이는데 60000 / (117.185(_MAX_RPM) * 360) = 1.422252564 ms 가 필요
+
+                // 1도 이동시간 => 60000 / (Rpm * 360)
+                // 이동각도 당 이동시간 계산 => 1도 이동시간 * fDeltaAngle
+
+                // 1도 이동시간 => fTime / fDeltaAngle
+                #endregion Kor
+                return Math.Abs(60000.0f / (fMillisecond / fDeltaAngle * 360.0f));
+            }
+            public static float CalcTime(float fDeltaAngle, float fRps)
+            {
+                //return 60000.0f * fDeltaAngle / (fRps * 360.0f);
+                return Math.Abs(6000.0f * fDeltaAngle / (fRps * 36.0f)) * 1000.0f;
+            }
+            #endregion Speed(RPM)
+
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             #endregion Math Function
 #if false
