@@ -9,4 +9,3 @@ D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\Ope
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\MyoSharp.dll
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
-D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache

@@ -5,6 +5,12 @@
  * supported by Mohssin (icons)
  */
 
+#region 나중에 참고
+#if false
+http://blog.daum.net/toyship/112
+마우스로 클릭한 위치의 3차원 계산
+#endif
+#endregion 나중에 참고
 
 using System;
 using System.Collections.Generic;
@@ -56,8 +62,12 @@ namespace OpenJigWare
     #endregion Cautions **********************************************************
     public struct SVersion_T
     {
-        public const string strVersion = "01.01.30";
+        public const string strVersion = "01.01.40";
         public const string strHistory = (String)(
+                "[V01.01.40]" + "\r\n" +
+                " - Fixed some picking bug" + "\r\n" +
+                " - Removed glViewPoint() fungtion" + "\r\n" +
+                "========================================\r\n" +
                 "[V01.01.30]" + "\r\n" +
                 " - Invoke feature added for threading" + "\r\n" +
                 "========================================\r\n" +

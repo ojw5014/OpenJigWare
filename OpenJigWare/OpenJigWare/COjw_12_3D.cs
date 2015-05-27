@@ -50,6 +50,423 @@ namespace OpenJigWare
         #endregion SetCursor
         public class C3d : SimpleOpenGlControl
         {
+            #region Etc Controls
+            #region Motor Controls
+            private const int _CNT_LABEL_TOOLMOTOR = 100;
+            private const int _CNT_LABEL_TOOLSTATUS = _CNT_LABEL_TOOLMOTOR;
+            private const int _CNT_LABEL_TOOLBACKGROUND = _CNT_LABEL_TOOLMOTOR;
+            private const int _CNT_LABEL_FORWARD = _CNT_LABEL_TOOLMOTOR;
+            private const int _CNT_LABEL_INVERSE = _CNT_LABEL_TOOLMOTOR;
+            private Panel m_pnMotor = new Panel();
+            private Panel m_pnStatus = new Panel();
+            private Panel m_pnBackground = new Panel();
+            private Panel m_pnForward = new Panel();
+            private Panel m_pnInverse = new Panel();
+            private Label[] m_albTools_Status = new Label[_CNT_LABEL_TOOLSTATUS];
+            private Label[] m_albTools_Background = new Label[_CNT_LABEL_TOOLBACKGROUND];
+            private Label[] m_albTools_Forward = new Label[_CNT_LABEL_FORWARD];
+            private Label[] m_albTools_Inverse = new Label[_CNT_LABEL_INVERSE];
+            private Label[] m_albTools_Motor = new Label[_CNT_LABEL_TOOLMOTOR];
+            private ComboBox m_cmbAngleLimit = new ComboBox();
+            private TextBox m_txtAxisLimit_Up = new TextBox();
+            private TextBox m_txtAxisLimit_Down = new TextBox();
+            private TextBox m_txtAxisLimit_Id = new TextBox();
+            private TextBox m_txtAxisLimit_CenterPos = new TextBox();
+            private TextBox m_txtMessage_AxisLimit = new TextBox();
+
+            private TextBox m_txtAxis_Mirror = new TextBox();
+            private TextBox m_txtAxis_InitAngle = new TextBox();
+            private TextBox m_txtAxis_InitAngle2 = new TextBox();
+            private TextBox m_txtAxis_MechMov = new TextBox();
+            private TextBox m_txtAxis_MechAngle = new TextBox();
+
+            private ComboBox m_cmbMotorDir = new ComboBox();
+            private ComboBox m_cmbMotorControlType = new ComboBox();
+
+            private TextBox m_txtGroupNumber = new TextBox();
+            private TextBox m_txtAxis_NickName = new TextBox();
+            private TextBox m_txtWheel_2 = new TextBox();
+            private TextBox m_txtWheel_3 = new TextBox();
+            private TextBox m_txtWheel_4 = new TextBox();
+            public void m_cmbAxisMotor_SelectedIndexChanged(object sender, EventArgs e)
+            {
+                if (((System.Windows.Forms.ComboBox)sender) == m_cmbAngleLimit)
+                {
+                    //MessageBox.Show("kkk");
+                    m_txtAxisLimit_Up.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Up, 3));
+                    m_txtAxisLimit_Down.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Down, 3));
+                    //m_txtAxisLimit_W.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fW, 3));
+                    //m_txtAxisLimit_Left.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fPos_Left, 3));
+                    //m_txtAxisLimit_Right.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fPos_Right, 3));
+                    //m_txtInterference_Axis.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nInterference_Axis);
+                    //m_txtInterference_W.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInterference_W, 3));
+                    //m_txtInterference_Front.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInterference_Pos_Front, 3));
+                    //m_txtInterference_Rear.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInterference_Pos_Rear, 3));
+                    m_txtAxisLimit_Id.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorID);
+                    m_txtAxisLimit_CenterPos.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nCenter_Evd);
+                    m_cmbMotorDir.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorDir;
+
+                    m_txtAxis_InitAngle.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle, 3));
+                    m_txtAxis_InitAngle2.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle2, 3));
+
+                    m_txtAxis_MechMov.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMechMove);
+                    m_txtAxis_MechAngle.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fMechAngle, 3));
+                    m_txtAxis_NickName.Text = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].strNickName;
+
+                    m_txtGroupNumber.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nGroupNumber);
+
+                    m_txtAxis_Mirror.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAxis_Mirror);
+
+                    m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType;
+                }
+                else if (((System.Windows.Forms.ComboBox)sender) == m_cmbMotorDir)
+                {
+                    if (m_cmbMotorDir.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorDir = m_cmbMotorDir.SelectedIndex;
+                }
+                else if (((System.Windows.Forms.ComboBox)sender) == m_cmbMotorControlType)
+                {
+                    if (m_cmbMotorControlType.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType = m_cmbMotorControlType.SelectedIndex;
+                }
+            }
+            public void m_txtAxisMotor_TextChanged(object sender, EventArgs e)
+            {
+                // number of the TextBox 
+
+                //int nIndex = (int)((System.Windows.Forms.TextBox)sender).Tag;
+                //txtArray[nIndex].Text;
+                if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Id)
+                {
+                    if (m_txtAxisLimit_Id.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorID = Ojw.CConvert.StrToInt(m_txtAxisLimit_Id.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Up)
+                {
+                    if (m_txtAxisLimit_Up.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Up = Ojw.CConvert.StrToFloat(m_txtAxisLimit_Up.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Down)
+                {
+                    if (m_txtAxisLimit_Down.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Down = Ojw.CConvert.StrToFloat(m_txtAxisLimit_Down.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_CenterPos)
+                {
+                    if (m_txtAxisLimit_CenterPos.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nCenter_Evd = Ojw.CConvert.StrToInt(m_txtAxisLimit_CenterPos.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtMessage_AxisLimit)
+                {
+
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_Mirror)
+                {
+                    if (m_txtAxis_Mirror.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAxis_Mirror = Ojw.CConvert.StrToInt(m_txtAxis_Mirror.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_InitAngle)
+                {
+                    if (m_txtAxis_InitAngle.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle = Ojw.CConvert.StrToFloat(m_txtAxis_InitAngle.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_InitAngle2)
+                {
+                    if (m_txtAxis_InitAngle2.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle2 = Ojw.CConvert.StrToFloat(m_txtAxis_InitAngle2.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_MechMov)
+                {
+                    if (m_txtAxis_MechMov.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMechMove = Ojw.CConvert.StrToInt(m_txtAxis_MechMov.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_MechAngle)
+                {
+                    if (m_txtAxis_MechAngle.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fMechAngle = Ojw.CConvert.StrToFloat(m_txtAxis_MechAngle.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtGroupNumber)
+                {
+                    if (m_txtGroupNumber.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nGroupNumber = Ojw.CConvert.StrToInt(m_txtGroupNumber.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_NickName)
+                {
+                    if (m_txtAxis_NickName.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].strNickName = m_txtAxis_NickName.Text;
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_2)
+                {
+                    try
+                    {
+                        m_CHeader.nWheelCounter_2 = Ojw.CConvert.StrToInt(m_txtWheel_2.Text);
+                    }
+                    catch// (System.Exception ex)
+                    {
+                    }
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_3)
+                {
+                    try
+                    {
+                        m_CHeader.nWheelCounter_3 = Ojw.CConvert.StrToInt(m_txtWheel_3.Text);
+                    }
+                    catch// (System.Exception ex)
+                    {
+                    }
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_4)
+                {
+                    try
+                    {
+                        m_CHeader.nWheelCounter_4 = Ojw.CConvert.StrToInt(m_txtWheel_4.Text);
+                    }
+                    catch// (System.Exception ex)
+                    {
+                    }
+                }
+                //for (int i = 0; i < 100; i++)
+                //{
+                //    if (sender == m_txtAxisLimit_Id) 
+                //    {
+                //        MessageBox.Show("m_txtAxisLimit_Id");
+                //        break;
+                //    }
+                //}
+            }
+            //private TextBox 
+            private TextBox m_txtObjectName = new TextBox();
+            private TextBox m_txtMotorCnt = new TextBox();
+            private TextBox m_txtMotorCnt_Message = new TextBox();
+            private TextBox m_txtMotorCnt2 = new TextBox();
+            public void InitTools_Status(Panel pnStatus)
+            {
+                int nTop = 10;
+                int nLeft = 220;
+                int nSeparation = 10;
+                int nWidth = pnStatus.Width - nLeft - 20;
+                int nLeftLabel = 10;
+                int nGap_H = 26;
+
+                int i = 0;
+                for (i = 0; i < _CNT_LABEL_TOOLSTATUS; i++)
+                {
+                    m_albTools_Status[i] = new Label();
+                }
+                m_pnStatus = pnStatus;
+
+                i = 0;
+                Control[] aCtrl = new Control[_CNT_LABEL_TOOLSTATUS]; // 여유롭게 100
+                int[] anSeparation = new int[aCtrl.Length];
+
+                aCtrl[i] = m_txtObjectName;
+                m_albTools_Status[i].Text = "Object Name";
+                anSeparation[i] = nSeparation;
+                i++;
+                aCtrl[i] = m_txtMotorCnt;
+                m_albTools_Status[i].Text = "Motor0 Count";
+                i++;
+                aCtrl[i] = m_txtMotorCnt_Message;
+                m_albTools_Status[i].Text = "Motor1 Count Message";
+                i++;
+                aCtrl[i] = m_txtMotorCnt2;
+                m_albTools_Status[i].Text = "Motor2 Count(Header)";
+                i++;
+
+                int nCnt = i;
+                //Array.Resize<Control>(ref aCtrl, i);
+                //Array.Resize<Label>(ref m_albTools_Status, i);
+
+                int nGap_Separation = 0;
+                for (i = 0; i < nCnt; i++)
+                {
+                    nGap_Separation += anSeparation[i];
+                    aCtrl[i].Left = nLeft;
+                    aCtrl[i].Top = nTop + nGap_H * i + nGap_Separation;
+                    aCtrl[i].Width = nWidth;
+                    m_albTools_Status[i].Top = aCtrl[i].Top;
+                    m_albTools_Status[i].Left = nLeftLabel;
+                    
+                    ((TextBox)aCtrl[i]).ReadOnly = true;
+                    m_albTools_Status[i].AutoSize = true;
+
+                    //if (aCtrl[i] is TextBox)//(aCtrl[i].Name.IndexOf("m_txt") >= 0)
+                    //{
+                    //    ((TextBox)aCtrl[i]).TextChanged += new System.EventHandler(m_txtAxisMotor_TextChanged);
+                    //}
+                    //else if (aCtrl[i] is ComboBox)//(aCtrl[i].Name.IndexOf("m_cmb") >= 0)
+                    //{
+                    //    ((ComboBox)aCtrl[i]).SelectedIndexChanged += new System.EventHandler(m_cmbAxisMotor_SelectedIndexChanged);
+                    //}
+
+                    m_pnStatus.Controls.Add(aCtrl[i]);
+                    m_pnStatus.Controls.Add(m_albTools_Status[i]);
+                }
+                //m_txtObjectName.Text = "Test0";
+                //m_txtMotorCnt.Text = "Test1";
+                //m_txtMotorCnt_Message.Text = "Test2";
+                //m_txtMotorCnt2.Text = "Test3";
+                //m_albTools_Status[0].Text = "0";
+                //m_albTools_Status[1].Text = "1";
+                //m_albTools_Status[2].Text = "2";
+                //m_albTools_Status[3].Text = "3";
+                //m_bTools_Status = true;
+                //InitToolsStatusVar();
+            }
+            private ComboBox m_cmbModelNum = new ComboBox();
+            private TextBox m_txtTitle = new TextBox();
+            private Button m_btnBackColor = new Button();
+            private TextBox m_txtBackColor = new TextBox();
+            public void InitTools_Background(Panel pnBackground)
+            {
+                m_pnBackground = pnBackground;
+            }
+            public void InitTools_ForwardKinematics(Panel pnForward)
+            {
+                m_pnForward = pnForward;
+            }
+            public void InitTools_InverseKinematics(Panel pnInverse)
+            {
+                m_pnInverse = pnInverse;
+            }
+            private bool m_bTools_Motor = false;
+            public void InitTools_Motor(Panel pnMotor)
+            {
+                int nTop = 10;
+                int nLeft = 120;
+                int nSeparation = 10;
+                int nWidth = pnMotor.Width - nLeft - 20;
+                int nLeftLabel = 10;
+                int nGap_H = 26;
+
+                int i = 0;
+                for (i = 0; i < _CNT_LABEL_TOOLMOTOR; i++)
+                {
+                    m_albTools_Motor[i] = new Label();
+                }
+                m_pnMotor = pnMotor;
+
+                i = 0;
+                Control[] aCtrl = new Control[_CNT_LABEL_TOOLMOTOR]; // 여유롭게 100
+                int[] anSeparation = new int[aCtrl.Length];
+                //Array.Resize<Control>(ref aCtrl, i + 1);
+                //Array.Resize<Label>(ref m_albTools_Motor, i + 1);
+                aCtrl[i] = m_cmbAngleLimit;
+                m_albTools_Motor[i].Text = "AxisLimit";
+                i++;
+                aCtrl[i] = m_txtAxisLimit_Up;
+                m_albTools_Motor[i].Text = "Limit(+)";
+                i++;
+                aCtrl[i] = m_txtAxisLimit_Down;
+                m_albTools_Motor[i].Text = "Limit(-)";
+                i++;
+                aCtrl[i] = m_txtAxisLimit_Id;
+                m_albTools_Motor[i].Text = "ID";
+                i++;
+                aCtrl[i] = m_txtAxisLimit_CenterPos;
+                m_albTools_Motor[i].Text = "Center Pos";
+                i++;
+                m_txtMessage_AxisLimit.ReadOnly = true;
+                //m_txtMessage_AxisLimit.BackColor = Color.LightGray;
+                aCtrl[i] = m_txtMessage_AxisLimit;
+                m_albTools_Motor[i].Text = "Event Message";
+                anSeparation[i] = nSeparation; //
+                i++;
+
+                aCtrl[i] = m_txtAxis_Mirror;
+                m_albTools_Motor[i].Text = "Mirror Axis";
+                i++;
+                aCtrl[i] = m_txtAxis_InitAngle;
+                m_albTools_Motor[i].Text = "Init Angle";
+                i++;
+                aCtrl[i] = m_txtAxis_InitAngle2;
+                m_albTools_Motor[i].Text = "Init Angle2";
+                i++;
+                aCtrl[i] = m_txtAxis_MechMov;
+                m_albTools_Motor[i].Text = "Mech Move";
+                i++;
+                aCtrl[i] = m_txtAxis_MechAngle;
+                m_albTools_Motor[i].Text = "Mech Angle";
+                i++;
+                aCtrl[i] = m_cmbMotorDir;
+                m_albTools_Motor[i].Text = "Motor Dir";
+                i++;
+                aCtrl[i] = m_cmbMotorControlType;
+                m_albTools_Motor[i].Text = "Control Type";
+                i++;
+                aCtrl[i] = m_txtGroupNumber;
+                m_albTools_Motor[i].Text = "Group Name";
+                i++;
+                aCtrl[i] = m_txtAxis_NickName;
+                m_albTools_Motor[i].Text = "Nick Name";
+                i++;
+                
+                int nCnt = i;
+                //Array.Resize<Control>(ref aCtrl, i);
+                //Array.Resize<Label>(ref m_albTools_Motor, i);
+
+                int nGap_Separation = 0;
+                for (i = 0; i < nCnt; i++)
+                {
+                    nGap_Separation += anSeparation[i];
+                    aCtrl[i].Left = nLeft;
+                    aCtrl[i].Top = nTop + nGap_H * i + nGap_Separation;
+                    aCtrl[i].Width = nWidth;
+                    m_albTools_Motor[i].Top = aCtrl[i].Top;
+                    m_albTools_Motor[i].Left = nLeftLabel;
+                                        
+                    if (aCtrl[i] is TextBox)//(aCtrl[i].Name.IndexOf("m_txt") >= 0)
+                    {
+                        ((TextBox)aCtrl[i]).TextChanged += new System.EventHandler(m_txtAxisMotor_TextChanged);
+                    }
+                    else if (aCtrl[i] is ComboBox)//(aCtrl[i].Name.IndexOf("m_cmb") >= 0)
+                    {
+                        ((ComboBox)aCtrl[i]).SelectedIndexChanged += new System.EventHandler(m_cmbAxisMotor_SelectedIndexChanged);
+                    }
+
+                    m_pnMotor.Controls.Add(aCtrl[i]);
+                    m_pnMotor.Controls.Add(m_albTools_Motor[i]);
+                }
+                
+                m_bTools_Motor = true;
+                InitToolsMotorVar();
+            }
+            private void InitToolsMotorVar()
+            {
+                if (m_bTools_Motor == true)
+                {
+                    int i = 0;
+
+
+                    m_cmbMotorDir.Items.Clear();
+                    m_cmbMotorDir.Items.Add("0 - Forward");
+                    m_cmbMotorDir.Items.Add("1 - Backward");
+                    m_cmbMotorDir.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+
+                    m_cmbMotorControlType.Items.Clear();
+                    m_cmbMotorControlType.Items.Add("0 - Position");
+                    m_cmbMotorControlType.Items.Add("1 - Speed");
+                    m_cmbMotorControlType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+
+
+                    m_cmbAngleLimit.Items.Clear();
+                    for (i = 0; i < 256; i++) m_cmbAngleLimit.Items.Add(Ojw.CConvert.IntToStr(i));
+                    m_cmbAngleLimit.SelectedIndex = 0;
+
+                    i = 0;
+                    m_txtAxisLimit_Up.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fLimit_Up, 3));
+                    m_txtAxisLimit_Down.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fLimit_Down, 3));
+                    //m_txtAxisLimit_W.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fW, 3));
+                    //m_txtAxisLimit_Left.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fPos_Left, 3));
+                    //m_txtAxisLimit_Right.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fPos_Right, 3));
+                    //m_txtInterference_Axis.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nInterference_Axis);
+                    //m_txtInterference_W.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInterference_W, 3));
+                    //m_txtInterference_Front.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInterference_Pos_Front, 3));
+                    //m_txtInterference_Rear.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInterference_Pos_Rear, 3));
+                    m_txtAxisLimit_Id.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nMotorID);
+                    m_txtAxisLimit_CenterPos.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nCenter_Evd);
+                    m_cmbMotorDir.SelectedIndex = m_CHeader.pSMotorInfo[i].nMotorDir;
+                    m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[i].nMotorControlType;
+
+                    m_txtAxis_InitAngle.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInitAngle, 3));
+                    m_txtAxis_InitAngle2.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInitAngle2, 3));
+                    m_txtAxis_MechMov.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nMechMove);
+                    m_txtAxis_MechAngle.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fMechAngle, 3));
+                    m_txtAxis_NickName.Text = m_CHeader.pSMotorInfo[i].strNickName;
+                    m_txtGroupNumber.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nGroupNumber);
+                    m_txtAxis_Mirror.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nAxis_Mirror);                    
+                }
+            }
+            #endregion Motor Controls
+            #endregion Etc Controls
+
             #region PropertyGrid(Main)
             private CDynamicProperty m_CDynamicProp = new CDynamicProperty();
             #endregion PropertyGrid(Main)
@@ -324,7 +741,9 @@ namespace OpenJigWare
                     public int nMotorType { get { return CDisp.nMotorType; } set { CDisp.nMotorType = value; } }
                     [DisplayName(m_pstrProp_59), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                     public int nMotorControl_MousePoint { get { return CDisp.nMotorControl_MousePoint; } set { CDisp.nMotorControl_MousePoint = value; } }
-                    [DisplayName(m_pstrProp_60), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+
+                    private const string strGroupComment = "[0]Comment";
+                    [DisplayName(m_pstrProp_60), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
                     public String strPickGroup_Comment { get { return CDisp.strPickGroup_Comment; } set { CDisp.strPickGroup_Comment = value; } }
 
                     //// if you want to add , just do like below ////
@@ -680,7 +1099,9 @@ namespace OpenJigWare
                 public int nMotorType { get { return (CDisp == null) ? 0 : CDisp.nMotorType; } set { CDisp.nMotorType = value; } }
                 [DisplayName(m_pstrProp_59), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public int nMotorControl_MousePoint { get { return (CDisp == null) ? 0 : CDisp.nMotorControl_MousePoint; } set { CDisp.nMotorControl_MousePoint = value; } }
-                [DisplayName(m_pstrProp_60), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+
+                private const string strGroupComment = "[0]Comment";
+                [DisplayName(m_pstrProp_60), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
                 public String strPickGroup_Comment { get { return (CDisp == null) ? "" : CDisp.strPickGroup_Comment; } set { CDisp.strPickGroup_Comment = value; } }
 
                 //// if you want to add , just do like below ////
@@ -878,7 +1299,9 @@ namespace OpenJigWare
                     //    break;
                     #endregion Selected
                 }
+                
                 Prop_Update_Selected();
+                //m_CProperty_Selected.
                 //if (IsDrawText() == true)
                 //{
                 //    m_txtDraw.Text = GetHeader_strDrawModel();
@@ -1456,7 +1879,7 @@ namespace OpenJigWare
             private const string m_pstrProp_57 = "fScale_Serve1";
             private const string m_pstrProp_58 = "nMotorType";
             private const string m_pstrProp_59 = "nMotorControl_MousePoint";
-            private const string m_pstrProp_60 = "strPickGroup_Comment";
+            private const string m_pstrProp_60 = "Comment";//"strPickGroup_Comment";
             #endregion Item add : Step 1/4
             #endregion Prop Name
 
@@ -1776,7 +2199,6 @@ namespace OpenJigWare
                 #endregion Set
 #endif
             }
-
 
             private const String m_strProp_Main0 = "Version";
             private const String m_strProp_Main1 = "Mouse Mode";
@@ -2358,7 +2780,7 @@ namespace OpenJigWare
                 private float m_fTilt_Robot = 0.0f;
                 private float m_fSwing_Robot = 0.0f;
 
-                private float m_fScale = 0.35f;    // 1.0 = 100%
+                private float m_fScale = 0.2f;//0.35f;    // 1.0 = 100%
 
                 private Color m_Color = Color.Red;
                 private Color m_BackColor = Color.DarkGray;
@@ -2643,7 +3065,22 @@ namespace OpenJigWare
                     }
                 }
                 private TextBox m_txtDraw = null;
-                public void SetDrawText_ForDisplay(TextBox txtDraw) { m_txtDraw = txtDraw; }//m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged); }
+                public void SetDrawText_ForDisplay(TextBox txtDraw)
+                {
+                    txtDraw.Multiline = true;
+                    txtDraw.WordWrap = false;
+
+                    m_txtDraw.TextChanged -= new System.EventHandler(m_txtDraw_TextChanged);
+                    m_txtDraw.KeyDown -= new KeyEventHandler(m_txtDraw_KeyDown);
+                    m_txtDraw.MouseDown -= new MouseEventHandler(m_txtDraw_MouseDown);
+
+                    m_txtDraw = txtDraw;
+                    
+                    m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
+                    m_txtDraw.KeyDown += new KeyEventHandler(m_txtDraw_KeyDown);
+                    m_txtDraw.MouseDown += new MouseEventHandler(m_txtDraw_MouseDown);
+
+                }//m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged); }
                 private void m_txtDraw_TextChanged(object sender, EventArgs e)
                 {
                     //if (m_bEditing == false)
@@ -2651,7 +3088,7 @@ namespace OpenJigWare
                         //GridToStringList();
                         SetHeader_strDrawModel(m_txtDraw.Text);
                         CompileDesign();
-                        StringListToGrid();
+                        StringListToGrid(); // for Gridview only
                     }
                 }
                 //public void SetDrawGrid_ForDisplay(DataGridView dgDraw) //{ //m_txtDraw = txtDraw; }
@@ -3078,7 +3515,7 @@ namespace OpenJigWare
                 }
 
                 //public float[] m_afLookat = new float[3] { -20.0f, -20.0f, _RATIO / 4.0f };//{0.0f, 0.0f, _RATIO / 2};//0.0f};
-                public float[] m_afLookat = new float[3] { 10.0f, 10.0f, _RATIO / 64.0f };//{0.0f, 0.0f, _RATIO / 2};//0.0f};
+                public float[] m_afLookat = new float[3] { 10.0f, 10.0f, -_RATIO / 64.0f };//{0.0f, 0.0f, _RATIO / 2};//0.0f};
                 public float[] m_afLookat_Dir = new float[3] { 0.0f, 1.0f, 0.0f };
                 public void OjwMouseWheel(object sender, MouseEventArgs e) { OjwMouseWheel(false, e); }
                 public void OjwMouseWheel(bool bSmallValue, MouseEventArgs e)
@@ -3198,6 +3635,8 @@ namespace OpenJigWare
                     m_txtDraw = new TextBox();
                     m_txtDraw.CreateControl();
                     m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
+                    m_txtDraw.KeyDown += new KeyEventHandler(m_txtDraw_KeyDown);
+                    m_txtDraw.MouseDown += new MouseEventHandler(m_txtDraw_MouseDown);
                     m_lstDraw.Clear();
 
                     //this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
@@ -3227,6 +3666,65 @@ namespace OpenJigWare
                     //m_ctxmenuMouse.Opened += new EventHandler(m_ctxmenuMouse_Opened); //new System.ComponentModel.EventHandlerList(m_ctxmenuMouse_Opened);
                     Event_ItemAdd.UserEvent += new EventHandler(ItemAdded);//+= new (ItemAdded);
                     Event_FileOpen.UserEvent += new EventHandler(FileOpened);
+                }
+
+                void m_txtDraw_MouseDown(object sender, MouseEventArgs e)
+                {
+                    //throw new NotImplementedException();
+                    try
+                    {
+                        // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => 참고
+                        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
+
+                        SelectLine(nLine);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                private void m_txtDraw_KeyDown(object sender, KeyEventArgs e)
+                {
+                    //throw new NotImplementedException();
+                    try
+                    {
+                        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
+                        if (e.KeyValue == 38) // Up
+                        {
+                            nLine--;
+                            if (nLine < 0) nLine = 0;
+                        }
+                        else if (e.KeyValue == 40) // Down
+                        {
+                            nLine++;
+                            if (nLine >= m_txtDraw.Lines.Length)
+                            {
+                                nLine = m_txtDraw.Lines.Length - 1;
+                            }
+                        }
+                        SelectLine(nLine);
+                    }
+                    catch
+                    {
+                    }
+                }
+                private void SelectLine(int nLine)
+                {
+                    try
+                    {
+                        //if ((treeInfo.Nodes[0].IsExpanded == false) || (treeInfo.Nodes[0].Nodes[nLine].IsExpanded == false))
+                        //    treeInfo.Nodes[0].Collapse();
+                        //if (treeInfo.Nodes[0].IsExpanded == false)
+                        //    treeInfo.Nodes[0].Expand();
+                        //if (treeInfo.Nodes[0].Nodes[nLine].IsExpanded == false)
+                        //    treeInfo.Nodes[0].Nodes[nLine].Expand();
+                        //treeInfo.SelectedNode = treeInfo.Nodes[0].Nodes[nLine]; // 선택 효과
+                        SelectObject_Clear();
+                        SelectObject_Add(nLine);
+                    }
+                    catch
+                    {
+                    }
                 }
                 public void AddMouseEvent(MouseEventHandler FDown, MouseEventHandler FMove, MouseEventHandler FUp, MouseEventHandler FWheel)
                 {
@@ -4092,14 +4590,16 @@ namespace OpenJigWare
                                     //if (strPick != null) strPick = "Object Name = Unknown Object[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
 
                                     nGroupA = nGroupB = nGroupC = 0;
+                                    Clear_IsPicking();
                                 }
                                 else
                                 {
                                     int nX, nY;
                                     GetPickMousePoint(out nX, out nY);
                                     //if (strPick != null) strPick = "Object Name = No Found[" + CConvert.IntToStr(nX) + ", " + CConvert.IntToStr(nY) + "]";
+                                    Clear_IsPicking();                                    
                                 }
-                                Clear_IsPicking();
+                                //Clear_IsPicking();
                             }
                             CDisp = null;
 
@@ -4123,6 +4623,7 @@ namespace OpenJigWare
                         m_mtxDraw.ReleaseMutex();
                     }
                 }
+
                 public void OjwDraw(COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
                     OjwDraw(m_afMot, CHeader, out nGroupA, out nGroupB, out nGroupC, out nInverseKinematicsNumber, out bPick, out bLimit);
@@ -4376,10 +4877,29 @@ namespace OpenJigWare
                     m_fW = w;
                     m_fH = h;
                     float fRatio = (h / ((w == 0) ? 1 : w));
+
                     if (w <= h)
-                        Gl.glOrtho(-fRange, fRange, -fRange * fRatio, fRange * fRatio, -fRange, fRange);
+                    {
+#if true
+                        Gl.glOrtho(-fRange, fRange, -fRange * fRatio, fRange * fRatio, -fRange * 10, fRange * 10);
+                        //Glu.gluLookAt(0, 0, 1000 * (m_afMot[0] / 10.0 + 1), 0, 0, 0, 0, 1, 0);
+#else
+                        Glu.gluPerspective(65, (double)h / (double)w, 0.1, 1000);
+                        Glu.gluLookAt(0, 0, 1500, 0, 0, 0, 0, 1, 0);
+#endif
+                    }
                     else
-                        Gl.glOrtho(-fRange / fRatio, fRange / fRatio, -fRange, fRange, -fRange, fRange);
+                    {
+#if true
+                        Gl.glOrtho(-fRange / fRatio, fRange / fRatio, -fRange, fRange, -fRange * 10, fRange * 10);
+                        //Glu.gluLookAt(0, 0, 1000 * (m_afMot[0] / 10.0 + 1), 0, 0, 0, 0, 1, 0);
+#else
+                        //Glu.gluPerspective(65, (double)w / (double)h, 0.1, 1000);
+                        Glu.gluPerspective(100 * ((m_fScale > 1.5f) ? 1.5 : ((m_fScale < 0.0001f) ? 0.0001 : m_fScale)), (double)w / (double)h, 0.1, 8000);
+                        //Gl.glScalef(m_fScale, m_fScale, m_fScale);
+                        Glu.gluLookAt(0, 0, 3000, 0, 0, 0, 0, 1, 0);
+#endif
+                    }
                     //glOrtho (-fRange, fRange*w/h, -fRange, fRange, -fRange, 1.00);
 #endif
                 }
@@ -4416,14 +4936,17 @@ namespace OpenJigWare
 
                     float fRatio = _RATIO * m_fScale;
 
-                    Gl.glViewport(-s.Width / 2, -s.Height / 2, s.Width * 2, s.Height * 2);
+                    //Gl.glViewport(-s.Width / 2, -s.Height / 2, s.Width * 2, s.Height * 2); // 이걸 살리면 피킹이 안된다.
+                    Gl.glViewport(0, 0, s.Width, s.Height);
+                    //Glu.gluLookAt(0, 0, -100, 0, 0, 0, 0, 1, 0);
                     Gl.glMatrixMode(Gl.GL_PROJECTION);
                     Gl.glLoadIdentity();
                     Ortho((float)s.Width, (float)s.Height, fRatio);
 #if _USE_LOOKAT
                     Glu.gluLookAt(m_afLookat[0], m_afLookat[1], m_afLookat[2], 0, 0, 0, m_afLookat_Dir[0], m_afLookat_Dir[1], m_afLookat_Dir[2]);
 #endif
-                    Gl.glDepthRange(-_RATIO, _RATIO);//(-fRatio, fRatio);
+                    Gl.glDepthRange(-fRatio, fRatio);
+                    //Gl.glDepthRange(-_RATIO, _RATIO);//(-fRatio, fRatio);
                     Gl.glMatrixMode(Gl.GL_MODELVIEW);
                     Gl.glLoadIdentity();
 
@@ -4561,6 +5084,7 @@ namespace OpenJigWare
                         Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
                         //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA);
 
+                        // 20150527
                         //Gl.glEnable(Gl.GL_CULL_FACE);   
                         //Gl.glCullFace(Gl.GL_BACK);   
 
@@ -5866,14 +6390,20 @@ namespace OpenJigWare
                     m_bPickMode = true;
 
                     m_unObjectName = 0; // Init variables for picking group(Kor: 픽킹 그룹핑 변수 초기화)
-
                     int[] viewport = new int[4];
-
-                    // get the view port(Kor: 뷰포트 얻기)
-                    Gl.glGetIntegerv(Gl.GL_VIEWPORT, viewport);
 
                     // select buffer(Kor: 선택 버퍼 설정)
                     Gl.glSelectBuffer(_PICK_BUFFER_SIZE, m_puiPick);
+#if false
+                    viewport[0] = 0;// (int)(-m_nWidth / 2 * m_fScale);
+                    viewport[1] = 0;// (int)(-m_nHeight / 2 * m_fScale);
+                    viewport[2] = (int)(m_nWidth * 2);
+                    viewport[3] = (int)(m_nHeight * 2);
+#else
+                    // get the view port(Kor: 뷰포트 얻기)
+                    Gl.glGetIntegerv(Gl.GL_VIEWPORT, viewport);
+#endif
+
 
                     // Init Names(Kor: 이름 초기화)
                     InitNames();
@@ -5889,6 +6419,7 @@ namespace OpenJigWare
                     // Kor: 마우스 포인터가 있는 x,y 에 단위 크기의 육면체 클리핑 영역을 만들고, 수평 수직 방향으로 두 픽셀씩 확장한다.
                     Gl.glLoadIdentity();
                     //Gl.gluPickMatrix(nX, viewport[3] - nY, 2, 2, viewport);
+                    //Glu.gluPickMatrix((double)nX, (double)(viewport[3] - nY), 1.0, 1.0, viewport);
                     Glu.gluPickMatrix((double)nX, (double)(viewport[3] - nY), 1.0, 1.0, viewport);
 
                     // Application of projection matrices(Kor: 투영 행렬의 적용)
@@ -5899,9 +6430,9 @@ namespace OpenJigWare
             Ortho(nRatio);
             Gl.glDepthRange(-nRatio, nRatio);
 #else
-                    int nRatio = (int)Math.Round(_RATIO * m_fScale);
-                    Ortho((float)m_nWidth, (float)m_nHeight, nRatio);
-                    Gl.glDepthRange(-nRatio, nRatio);
+                    float fRatio = (float)(_RATIO * m_fScale);// Math.Round(_RATIO * m_fScale);
+                    Ortho((float)m_nWidth, (float)m_nHeight, fRatio);
+                    Gl.glDepthRange(-fRatio, fRatio);
 #endif
                     // In the case of Perspective projection(Kor: 원근투영의 경우)
                     /*
@@ -6025,7 +6556,17 @@ namespace OpenJigWare
                 {
                     m_bPickingData = false;
                 }
-
+                private int m_nSeq_Pick = 0;
+                private int m_nSeq_Pick_Back = 0;
+                public bool GetPickingEvent()
+                {
+                    if (m_nSeq_Pick != m_nSeq_Pick_Back)
+                    {
+                        m_nSeq_Pick = m_nSeq_Pick_Back;
+                        return true;
+                    }
+                    return false;
+                }
                 uint m_unObjectName = 0;
                 public bool GetPickingData(out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber)
                 {
@@ -10317,6 +10858,8 @@ namespace OpenJigWare
                             CDesignHeder = null;
 
                             m_bFileOpening = false;
+
+                            InitToolsMotorVar();
 
                             // Event Running
                             Event_FileOpen.RunEvent();

@@ -73,6 +73,7 @@ C:\Bin\OpenJigWare\for Me(public)\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\
 C:\Bin\OpenJigWare\for Me(public)\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Platform.Windows.dll
 C:\Bin\OpenJigWare\for Me(public)\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 C:\Bin\OpenJigWare\for Me(public)\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
+D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
 D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
 D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
 D:\Bin\C#\GitHub\OpenJigWare\DLL\Source\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
