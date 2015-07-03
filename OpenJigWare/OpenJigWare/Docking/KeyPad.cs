@@ -313,35 +313,35 @@ namespace OpenJigWare.Docking
             #region MouseClick
             switch(((Label)sender).Name)
             {
-                case "lbAlpha_l_Click": AppendText("l"); break;
-                case "lbAlpha_h_Click": AppendText("h"); break;
-                case "lbAlpha_n_Click": AppendText("n"); break;
-                case "lbAlpha_b_Click": AppendText("b"); break;
-                case "lbAlpha_d_Click": AppendText("d"); break;
-                case "lbAlpha_m_Click": AppendText("m"); break;
-                case "lbAlpha_Space_Click": AppendText(" "); break;
-                case "lbAlpha_c_Click": AppendText("c"); break;
-                case "lbAlpha_Shift_Click": { m_bShift = !m_bShift; SetKeyPadImage(m_bShift); } break;
-                case "lbAlpha_Hyphen_Click": AppendText("-"); break;
-                case "lbAlpha_z_Click": AppendText("z"); break;
-                case "lbAlpha_y_Click": AppendText("y"); break;
-                case "lbAlpha_x_Click": AppendText("x"); break;
-                case "lbAlpha_w_Click": AppendText("w"); break;
-                case "lbAlpha_v_Click": AppendText("v"); break;
-                case "lbAlpha_q_Click": AppendText("q"); break;
-                case "lbAlpha_u_Click": AppendText("u"); break;
-                case "lbAlpha_f_Click": AppendText("f"); break;
-                case "lbAlpha_t_Click": AppendText("t"); break;
-                case "lbAlpha_g_Click": AppendText("g"); break;
-                case "lbAlpha_s_Click": AppendText("s"); break;
-                case "lbAlpha_e_Click": AppendText("e"); break;
-                case "lbAlpha_r_Click": AppendText("r"); break;
-                case "lbAlpha_i_Click": AppendText("i"); break;
-                case "lbAlpha_k_Click": AppendText("k"); break;
-                case "lbAlpha_p_Click": AppendText("p"); break;
-                case "lbAlpha_j_Click": AppendText("j"); break;
-                case "lbAlpha_o_Click": AppendText("o"); break;
-                case "lbAlpha_a_Click": AppendText("a"); break;
+                case "lbAlpha_l": AppendText("l"); break;
+                case "lbAlpha_h": AppendText("h"); break;
+                case "lbAlpha_n": AppendText("n"); break;
+                case "lbAlpha_b": AppendText("b"); break;
+                case "lbAlpha_d": AppendText("d"); break;
+                case "lbAlpha_m": AppendText("m"); break;
+                case "lbAlpha_Space": AppendText(" "); break;
+                case "lbAlpha_c": AppendText("c"); break;
+                case "lbAlpha_Shift": { m_bShift = !m_bShift; SetKeyPadImage(m_bShift); } break;
+                case "lbAlpha_Hyphen": AppendText("-"); break;
+                case "lbAlpha_z": AppendText("z"); break;
+                case "lbAlpha_y": AppendText("y"); break;
+                case "lbAlpha_x": AppendText("x"); break;
+                case "lbAlpha_w": AppendText("w"); break;
+                case "lbAlpha_v": AppendText("v"); break;
+                case "lbAlpha_q": AppendText("q"); break;
+                case "lbAlpha_u": AppendText("u"); break;
+                case "lbAlpha_f": AppendText("f"); break;
+                case "lbAlpha_t": AppendText("t"); break;
+                case "lbAlpha_g": AppendText("g"); break;
+                case "lbAlpha_s": AppendText("s"); break;
+                case "lbAlpha_e": AppendText("e"); break;
+                case "lbAlpha_r": AppendText("r"); break;
+                case "lbAlpha_i": AppendText("i"); break;
+                case "lbAlpha_k": AppendText("k"); break;
+                case "lbAlpha_p": AppendText("p"); break;
+                case "lbAlpha_j": AppendText("j"); break;
+                case "lbAlpha_o": AppendText("o"); break;
+                case "lbAlpha_a": AppendText("a"); break;
             }
             #endregion MouseClick
         }

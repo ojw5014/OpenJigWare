@@ -63,15 +63,17 @@ namespace OpenJigWare
     #endregion Cautions **********************************************************
     public struct SVersion_T
     {        
-        public const string strVersion = "01.01.53";
+        public const string strVersion = "01.01.54";
         public const string strHistory = (String)(
+                "[V01.01.54]" + "\r\n" +
+                " - 가상키보드 기능 추가" + "\r\n" +
+                "========================================\r\n" +
                 "[V01.01.53]" + "\r\n" +
                 " - 궤도(가변 track) 기능 추가" + "\r\n" +
                 " - CTools 에서 편집 기능 강화" + "\r\n" +
                 " - Ojw.CMessage.Init() 시 version 기록" + "\r\n" +
                 " - XBox Joystick 해석 추가" + "\r\n" +
                 "========================================\r\n" +
-
                 "[V01.01.52]" + "\r\n" +
                 " - 궤도 집어넣는 중" + "\r\n" +
                 " - CTools 클래스 추가 : ShowTools_Modeling() 기능 추가(3D 모델링 화면 만들어 줌)" + "\r\n" +
