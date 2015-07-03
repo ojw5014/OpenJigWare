@@ -1,9 +1,12 @@
-﻿//#define _USE_LOOKAT
+﻿//#define _SET_DEFAULT_PERSPECTIVE // 이걸 살리면 Perspective 모드가 기본 모드로 설정
+//#define _ENABLE_PERSPECTIVE => IsPerspectiveMode() 로 바뀜
+
+//#define _USE_LOOKAT
 
 //#define _STL_CW
 #define _OLD_PROP
 #define _DHF_FILE
-//#define _GL_FLAT
+#define _GL_FLAT
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,17 +58,14 @@ namespace OpenJigWare
             private const int _CNT_LABEL_TOOLMOTOR = 100;
             private const int _CNT_LABEL_TOOLSTATUS = _CNT_LABEL_TOOLMOTOR;
             private const int _CNT_LABEL_TOOLBACKGROUND = _CNT_LABEL_TOOLMOTOR;
-            private const int _CNT_LABEL_FORWARD = _CNT_LABEL_TOOLMOTOR;
-            private const int _CNT_LABEL_INVERSE = _CNT_LABEL_TOOLMOTOR;
+            private const int _CNT_LABEL_KINEMATICS = _CNT_LABEL_TOOLMOTOR;
             private Panel m_pnMotor = new Panel();
             private Panel m_pnStatus = new Panel();
             private Panel m_pnBackground = new Panel();
-            private Panel m_pnForward = new Panel();
-            private Panel m_pnInverse = new Panel();
+            private Panel m_pnKinematics = new Panel();
             private Label[] m_albTools_Status = new Label[_CNT_LABEL_TOOLSTATUS];
             private Label[] m_albTools_Background = new Label[_CNT_LABEL_TOOLBACKGROUND];
-            private Label[] m_albTools_Forward = new Label[_CNT_LABEL_FORWARD];
-            private Label[] m_albTools_Inverse = new Label[_CNT_LABEL_INVERSE];
+            private Label[] m_albTools_Kinematics = new Label[_CNT_LABEL_KINEMATICS];
             private Label[] m_albTools_Motor = new Label[_CNT_LABEL_TOOLMOTOR];
             private ComboBox m_cmbAngleLimit = new ComboBox();
             private TextBox m_txtAxisLimit_Up = new TextBox();
@@ -73,6 +73,52 @@ namespace OpenJigWare
             private TextBox m_txtAxisLimit_Id = new TextBox();
             private TextBox m_txtAxisLimit_CenterPos = new TextBox();
             private TextBox m_txtMessage_AxisLimit = new TextBox();
+
+            // Kinematics
+            #region Kinematics
+            private TextBox m_txtGroupName = new TextBox();
+            private ComboBox m_cmbDh = new ComboBox();
+            private ComboBox m_cmbSecret = new ComboBox();
+            private ComboBox m_cmbKinematicsType = new ComboBox();
+            private CheckBox m_chkDh = new CheckBox();
+            private CheckBox m_chkSkeletonView = new CheckBox();
+            private Button m_btnKinematicsCompile = new Button();
+
+            private TabControl m_tabKinematics = new TabControl();
+            private TabPage m_tabpgForward = new TabPage("tabpgForward");
+            private TabPage m_tabpgInverse = new TabPage("tabpgInverse");
+            private TabPage m_tabpgString = new TabPage("tabpgString");
+            //
+            private TextBox m_txtForwardKinematics = new TextBox();
+            private TextBox m_txtDH_Draw_Size = new TextBox();
+            private ComboBox m_cmbDH_AxisDir = new ComboBox();
+            private TextBox m_txtDH_Draw_Alpha = new TextBox();
+            private TextBox m_txtDH_Draw_Color = new TextBox();
+            private Button m_btnDhColor = new Button();
+            private Button m_btnCheckDH = new Button();
+            private TextBox m_txtDH_Caption = new TextBox();
+
+            private TextBox m_txtDH_A = new TextBox();
+            private TextBox m_txtDH_D = new TextBox();
+            private TextBox m_txtDH_Theta = new TextBox();
+            private TextBox m_txtDH_Alpha = new TextBox();
+            private TextBox m_txtDH_AxisNum = new TextBox();
+            private Button m_btnDHCompile = new Button();
+            private TextBox m_txtDhParam = new TextBox();
+            ////
+            private TextBox m_txtInverseKinematics = new TextBox();
+            private ComboBox m_cmbInverseKinematics = new ComboBox();
+            private CheckBox m_chkTestObject = new CheckBox();
+            private TextBox m_txtTestObjectSize = new TextBox();
+            private TextBox m_txtPos_X = new TextBox();
+            private TextBox m_txtPos_Y = new TextBox();
+            private TextBox m_txtPos_Z = new TextBox();
+            private Button m_btnChangePos = new Button();
+            private Button m_btnGetForward = new Button();
+
+            private TextBox m_txtKinematicsString = new TextBox();
+            #endregion Kinematics
+
 
             private TextBox m_txtAxis_Mirror = new TextBox();
             private TextBox m_txtAxis_InitAngle = new TextBox();
@@ -126,6 +172,83 @@ namespace OpenJigWare
                 else if (((System.Windows.Forms.ComboBox)sender) == m_cmbMotorControlType)
                 {
                     if (m_cmbMotorControlType.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType = m_cmbMotorControlType.SelectedIndex;
+                }
+            }
+
+            public void m_txtKinematics_TextChanged(object sender, EventArgs e)
+            {
+                if ((((System.Windows.Forms.TextBox)sender) == m_txtGroupName) && (m_cmbDh.SelectedIndex >= 0))
+                {
+                    if ((m_txtGroupName.Focused == true) && (m_cmbDh.SelectedIndex >= 0))
+                    {
+                        GetHeader_pstrGroupName()[m_cmbDh.SelectedIndex] = m_txtGroupName.Text;
+                    }
+                }
+                else if ((((System.Windows.Forms.TextBox)sender) == m_txtForwardKinematics) && (m_cmbDh.SelectedIndex >= 0))
+                {
+                    if (m_txtForwardKinematics.Focused == true)
+                    {
+                        GetHeader_pstrKinematics()[m_cmbDh.SelectedIndex] = m_txtForwardKinematics.Text;
+
+                        byte[] byteData = Encoding.Default.GetBytes(m_txtForwardKinematics.Text);
+                        GetHeader_pSEncryptKinematics_encryption()[m_cmbDh.SelectedIndex].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
+                        byteData = null;
+                    }
+                }
+                else if ((((System.Windows.Forms.TextBox)sender) == m_txtInverseKinematics) && (m_cmbDh.SelectedIndex >= 0))
+                {
+                    if (m_txtInverseKinematics.Focused == true)
+                    {
+                        GetHeader_pstrInverseKinematics()[m_cmbDh.SelectedIndex] = m_txtInverseKinematics.Text;
+
+                        byte[] byteData = Encoding.Default.GetBytes(m_txtInverseKinematics.Text);
+                        GetHeader_pSEncryptInverseKinematics_encryption()[m_cmbDh.SelectedIndex].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
+                        byteData = null;
+                    }
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Draw_Size)
+                {
+                    SetTestDh_Size(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text)); 
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Draw_Color)
+                {
+                    SetTestDh_Color(Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)));    
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtTestObjectSize)
+                {
+                    // 테스트 값 입력
+                    SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Caption)
+                {
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Draw_Alpha)
+                {
+                    SetTestDh_Alpha(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Alpha.Text));
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_A)
+                {
+                    m_COjwDhParam.dA = Ojw.CConvert.StrToDouble(m_txtDH_A.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_D)
+                {
+                    m_COjwDhParam.dD = Ojw.CConvert.StrToDouble(m_txtDH_D.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Theta)
+                {
+                    m_COjwDhParam.dTheta = Ojw.CConvert.StrToDouble(m_txtDH_Theta.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Alpha)
+                {
+                    m_COjwDhParam.dAlpha = Ojw.CConvert.StrToDouble(m_txtDH_Alpha.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_AxisNum)
+                {
+                    m_COjwDhParam.nAxisNum = Ojw.CConvert.StrToInt(m_txtDH_AxisNum.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDhParam)
+                {
+
                 }
             }
             public void m_txtAxisMotor_TextChanged(object sender, EventArgs e)
@@ -308,19 +431,1205 @@ namespace OpenJigWare
             {
                 m_pnBackground = pnBackground;
             }
-            public void InitTools_ForwardKinematics(Panel pnForward)
+            public void InitTools_Kinematics(Panel pnKinematics)
             {
-                m_pnForward = pnForward;
+                int i = 0;
+                int nItems = 0;
+                for (i = 0; i < _CNT_LABEL_TOOLMOTOR; i++)
+                {
+                    m_albTools_Kinematics[i] = new Label();
+                    m_albTools_Kinematics[i].AutoSize = true;
+                }
+                m_pnKinematics = pnKinematics;
+                i = 0;
+                //Control[] aCtrl = new Control[_CNT_LABEL_TOOLMOTOR]; // 여유롭게 100
+                //int[] anSeparation = new int[aCtrl.Length];
+                //Array.Resize<Control>(ref aCtrl, i + 1);
+                //Array.Resize<Label>(ref m_albTools_Motor, i + 1);
+                int nDefaultTop = 10;
+                int nGapH = 30;
+                m_txtGroupName.Left = 175;
+                m_txtGroupName.Top = nDefaultTop + i * nGapH;
+                m_txtGroupName.Width = 300;
+                m_albTools_Kinematics[nItems].Top = m_txtGroupName.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Function Name(Caption)";
+                m_pnKinematics.Controls.Add(m_txtGroupName);
+                m_pnKinematics.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtGroupName.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                m_cmbDh.Items.Clear();
+                for (int j = 0; j < 512; j++)
+                {
+                    m_cmbDh.Items.Add(j.ToString());
+                }
+                m_cmbDh.SelectedIndex = 0;
+                m_cmbDh.Left = 175 + 200;
+                m_cmbDh.Top = nDefaultTop + i * nGapH;
+                m_cmbDh.Width = 100;
+                m_albTools_Kinematics[nItems].Top = m_cmbDh.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].AutoSize = true;
+                m_albTools_Kinematics[nItems].Text = "DH(0~255-Manual(For mapping), 256~511:Etc)";
+                m_pnKinematics.Controls.Add(m_cmbDh);
+                m_pnKinematics.Controls.Add(m_albTools_Kinematics[nItems]);
+                //Event
+                m_cmbDh.SelectedIndexChanged += new EventHandler(m_cmbKinematics_SelectedIndexChanged);
+                //
+                i++; nItems++;
+                m_cmbSecret.Items.Clear();
+                m_cmbSecret.Items.Add("0 - No Encryption");
+                m_cmbSecret.Items.Add("1 - Run Encryption");
+                m_cmbSecret.SelectedIndex = 0;
+                m_cmbSecret.Left = 175 + 100;
+                m_cmbSecret.Top = nDefaultTop + i * nGapH;
+                m_cmbSecret.Width = 200;
+                m_albTools_Kinematics[nItems].Top = m_cmbSecret.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].AutoSize = true;
+                m_albTools_Kinematics[nItems].Text = "Encryption";
+                m_pnKinematics.Controls.Add(m_cmbSecret);
+                m_pnKinematics.Controls.Add(m_albTools_Kinematics[nItems]);
+                m_cmbSecret.SelectedIndexChanged += new EventHandler(m_cmbKinematics_SelectedIndexChanged);
+                //Event
+                //
+                i++; nItems++;
+                m_cmbKinematicsType.Items.Clear();
+                m_cmbKinematicsType.Items.Add("0 - Normal");
+                m_cmbKinematicsType.Items.Add("1 - Wheel");
+                m_cmbKinematicsType.SelectedIndex = 0;
+                m_cmbKinematicsType.Left = 175 + 100;
+                m_cmbKinematicsType.Top = nDefaultTop + i * nGapH;
+                m_cmbKinematicsType.Width = 200;
+                m_albTools_Kinematics[nItems].Top = m_cmbKinematicsType.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].AutoSize = true;
+                m_albTools_Kinematics[nItems].Text = "Function Type";
+                m_pnKinematics.Controls.Add(m_cmbKinematicsType);
+                m_pnKinematics.Controls.Add(m_albTools_Kinematics[nItems]);
+                //Event
+                m_cmbKinematicsType.SelectedIndexChanged += new EventHandler(m_cmbKinematics_SelectedIndexChanged);
+                //
+                i++; nItems++;
+
+                m_chkSkeletonView.Text = "View DH-Skeleton";
+                m_chkSkeletonView.Checked = false;
+                m_chkSkeletonView.Left = 10;
+                m_chkSkeletonView.Top = nDefaultTop + i * nGapH;
+                m_chkSkeletonView.Width = 200;
+                m_pnKinematics.Controls.Add(m_chkSkeletonView);
+                //Event
+                m_chkSkeletonView.CheckedChanged += new EventHandler(m_chkKinematics_CheckedChanged);
+                //m_chkSkeletonView SetSkeletonView
+
+                m_chkDh.Text = "DH Object";
+                m_chkDh.Checked = false;
+                m_chkDh.Left = 175 + 100;
+                m_chkDh.Top = nDefaultTop + i * nGapH;
+                m_chkDh.Width = 200;
+                m_pnKinematics.Controls.Add(m_chkDh);
+                //Event
+                m_chkDh.CheckedChanged += new EventHandler(m_chkKinematics_CheckedChanged);
+                i++; nItems++;
+                //
+
+                m_btnKinematicsCompile.Text = "Kinematics Compile";
+                m_btnKinematicsCompile.Left = 175 + 100;
+                m_btnKinematicsCompile.Top = nDefaultTop + i * nGapH;
+                m_btnKinematicsCompile.Width = 200;
+                m_btnKinematicsCompile.Height = 30;
+                m_albTools_Kinematics[nItems].Visible = false;//
+                m_pnKinematics.Controls.Add(m_btnKinematicsCompile);
+                //Event
+                m_btnKinematicsCompile.Click += new EventHandler(m_btnKinematics_Click);
+                //
+                i++; nItems++;
+
+                //m_tabKinematics.Text = "Tab";
+                m_tabKinematics.Left = 10;
+                m_tabKinematics.Width = m_txtGroupName.Right - m_tabKinematics.Left;//m_pnKinematics.Width - 20;                
+                m_tabKinematics.Top = nDefaultTop + i * nGapH;
+                m_tabKinematics.Height = m_pnKinematics.Height - m_tabKinematics.Top;
+                m_pnKinematics.Controls.Add(m_tabKinematics);
+                //Event
+                //
+                i++; nItems++;
+
+                m_tabKinematics.TabPages.Clear();
+                //m_tabpgForward.Left = 10;
+                //m_tabKinematics.Width = m_pnKinematics.Width - 20;
+                //m_tabKinematics.Top = nDefaultTop + i * nGapH;
+                #region Forward
+                m_tabpgForward.Text = "Forward";
+                m_tabKinematics.TabPages.Add(m_tabpgForward);
+                i++; nItems++;
+
+                m_txtForwardKinematics.Left = 10;
+                m_txtForwardKinematics.Top = 10;
+                m_txtForwardKinematics.Multiline = true;
+                m_txtForwardKinematics.WordWrap = false;
+                m_txtForwardKinematics.ScrollBars = ScrollBars.Both;
+                m_txtForwardKinematics.Width = m_tabKinematics.Width - m_txtForwardKinematics.Left * 2 - 10;
+                m_txtForwardKinematics.Height = m_tabKinematics.Height - m_txtForwardKinematics.Top * 2 - 30;
+                m_tabpgForward.Controls.Add(m_txtForwardKinematics);
+                // Event
+                m_txtForwardKinematics.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+                #endregion Forward
+
+                #region Inverse
+                m_tabpgInverse.Text = "Inverse";
+                m_tabKinematics.TabPages.Add(m_tabpgInverse);
+                i++; nItems++;
+                //return;
+
+                m_txtInverseKinematics.Left = 10;
+                m_txtInverseKinematics.Top = 10;
+                m_txtInverseKinematics.Multiline = true;
+                m_txtInverseKinematics.WordWrap = false;
+                m_txtInverseKinematics.ScrollBars = ScrollBars.Both;
+                m_txtInverseKinematics.Width = m_tabKinematics.Width - m_txtInverseKinematics.Left * 2 - 10;
+                m_txtInverseKinematics.Height = m_tabKinematics.Height - m_txtInverseKinematics.Top * 2 - 30;
+                m_tabpgInverse.Controls.Add(m_txtInverseKinematics);
+                // Event
+                m_txtInverseKinematics.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                #endregion Inverse
+
+                #region String
+                m_tabpgString.Text = "String";                
+                m_tabKinematics.TabPages.Add(m_tabpgString);
+                i++; nItems++;
+
+                m_txtKinematicsString.Left = 10;
+                m_txtKinematicsString.Top = 10;
+                m_txtKinematicsString.Multiline = true;
+                m_txtKinematicsString.WordWrap = false;
+                m_txtKinematicsString.ScrollBars = ScrollBars.Both;
+                m_txtKinematicsString.Width = m_tabKinematics.Width - m_txtKinematicsString.Left * 2 - 10;
+                m_txtKinematicsString.Height = m_tabKinematics.Height - m_txtKinematicsString.Top * 2 - 30;
+                m_tabpgString.Controls.Add(m_txtKinematicsString);
+                // Event
+                //m_txtKinematicsString.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+                #endregion String
+
+                i = 0;
+                GroupBox gbDh = new GroupBox();
+                gbDh.Text = "Kinematics Test";
+                gbDh.Left = m_tabKinematics.Right + 10;
+                gbDh.Top = 10;
+                gbDh.Width = m_pnKinematics.Width - gbDh.Left - 10;
+                gbDh.Height = m_pnKinematics.Height - gbDh.Top;
+                m_pnKinematics.Controls.Add(gbDh);
+
+                nDefaultTop += 15;
+
+                m_txtDH_Draw_Size.Left = gbDh.Width / 2;
+                m_txtDH_Draw_Size.Top = nDefaultTop + i * nGapH;
+                m_txtDH_Draw_Size.Width = gbDh.Width / 2 - 20;
+                //m_txtDH_Draw_Size.Height = 300;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_Draw_Size.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Size";
+                gbDh.Controls.Add(m_txtDH_Draw_Size);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_Draw_Size.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+                m_txtDH_Draw_Color.Left = gbDh.Width / 2;
+                m_txtDH_Draw_Color.Top = nDefaultTop + i * nGapH;
+                m_txtDH_Draw_Color.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_Draw_Color.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Color";
+                gbDh.Controls.Add(m_txtDH_Draw_Color);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_Draw_Color.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+                m_btnDhColor.Text = "Color";
+                m_btnDhColor.Left = gbDh.Width / 2;
+                m_btnDhColor.Top = nDefaultTop + i * nGapH;
+                m_btnDhColor.Width = gbDh.Width / 2 - 20;
+                m_btnDhColor.Height = 30;
+                gbDh.Controls.Add(m_btnDhColor);
+                // Event
+                m_btnDhColor.Click += new EventHandler(m_btnKinematics_Click);
+                //
+                i++; nItems++;
+
+
+                m_cmbDH_AxisDir.Items.Clear();
+                m_cmbDH_AxisDir.Items.Add("0 - Forward");
+                m_cmbDH_AxisDir.Items.Add("1 - Inverse");
+                m_cmbDH_AxisDir.SelectedIndex = 0;
+                
+                m_cmbDH_AxisDir.Left = gbDh.Width / 2;
+                m_cmbDH_AxisDir.Top = nDefaultTop + i * nGapH;
+                m_cmbDH_AxisDir.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_cmbDH_AxisDir.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Direction";
+                gbDh.Controls.Add(m_cmbDH_AxisDir);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_cmbDH_AxisDir.SelectedIndexChanged += new EventHandler(m_cmbKinematics_SelectedIndexChanged);
+                //
+                i++; nItems++;
+
+                m_txtDH_Caption.Left = gbDh.Width / 2;
+                m_txtDH_Caption.Top = nDefaultTop + i * nGapH;
+                m_txtDH_Caption.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_Caption.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Comment";
+                gbDh.Controls.Add(m_txtDH_Caption);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_Caption.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+                m_txtDH_Draw_Alpha.Text = "0";
+                m_txtDH_Draw_Alpha.Left = gbDh.Width / 2;
+                m_txtDH_Draw_Alpha.Top = nDefaultTop + i * nGapH;
+                m_txtDH_Draw_Alpha.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_Draw_Alpha.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Alpha(transparency)";
+                gbDh.Controls.Add(m_txtDH_Draw_Alpha);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_Draw_Alpha.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                // 구분선
+                m_albTools_Kinematics[nItems].Top = nDefaultTop + i * nGapH;
+                m_albTools_Kinematics[nItems].Text = "< D-H Param >";
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                i++; nItems++;
+
+                m_txtDH_A.Left = gbDh.Width / 2;
+                m_txtDH_A.Top = nDefaultTop + i * nGapH;
+                m_txtDH_A.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_A.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "A";
+                gbDh.Controls.Add(m_txtDH_A);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_A.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                m_txtDH_D.Left = gbDh.Width / 2;
+                m_txtDH_D.Top = nDefaultTop + i * nGapH;
+                m_txtDH_D.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_D.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "D";
+                gbDh.Controls.Add(m_txtDH_D);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_D.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                m_txtDH_Theta.Left = gbDh.Width / 2;
+                m_txtDH_Theta.Top = nDefaultTop + i * nGapH;
+                m_txtDH_Theta.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_Theta.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Theta";
+                gbDh.Controls.Add(m_txtDH_Theta);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_Theta.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                m_txtDH_Alpha.Left = gbDh.Width / 2;
+                m_txtDH_Alpha.Top = nDefaultTop + i * nGapH;
+                m_txtDH_Alpha.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_Alpha.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Alpha";
+                gbDh.Controls.Add(m_txtDH_Alpha);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_Alpha.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                m_txtDH_AxisNum.Left = gbDh.Width / 2;
+                m_txtDH_AxisNum.Top = nDefaultTop + i * nGapH;
+                m_txtDH_AxisNum.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtDH_AxisNum.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Axis";
+                gbDh.Controls.Add(m_txtDH_AxisNum);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtDH_AxisNum.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+                m_btnDHCompile.Text = "Add Current D-H Parameter";
+                m_btnDHCompile.Left = 10;
+                m_btnDHCompile.Top = nDefaultTop + i * nGapH;
+                m_btnDHCompile.Width = gbDh.Width - 20;
+                m_btnDHCompile.Height = 30;
+                gbDh.Controls.Add(m_btnDHCompile);
+                // Event
+                m_btnDHCompile.Click += new EventHandler(m_btnKinematics_Click);
+                i++; nItems++;
+
+                m_txtDhParam.Left = 10;
+                m_txtDhParam.Top = nDefaultTop + i * nGapH;
+                m_txtDhParam.Multiline = true;
+                m_txtDhParam.ScrollBars = ScrollBars.Both;
+                m_txtDhParam.Width = gbDh.Width - 20;
+                m_txtDhParam.Height = gbDh.Height - m_txtDhParam.Top - 20 - 160 - 60;// 60;
+                gbDh.Controls.Add(m_txtDhParam);
+                // Event
+                m_txtDhParam.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+
+
+                i = 0;
+                nDefaultTop = m_txtDhParam.Bottom;// +10;
+
+                m_btnCheckDH.Text = "Move to point";
+                m_btnCheckDH.Left = 10;
+                m_btnCheckDH.Top = nDefaultTop + i * nGapH;
+                m_btnCheckDH.Width = gbDh.Width - 20;
+                m_btnCheckDH.Height = 30;
+                gbDh.Controls.Add(m_btnCheckDH);
+                // Event
+                m_btnCheckDH.Click += new EventHandler(m_btnKinematics_Click);
+                i++; nItems++;
+                
+                // 구분선
+                m_albTools_Kinematics[nItems].Top = nDefaultTop + i * nGapH;
+                m_albTools_Kinematics[nItems].Text = "< Inverse >";
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                i++; nItems++;
+
+                m_cmbInverseKinematics.Items.Clear();
+                for (int j = 0; j < 512; j++)
+                {
+                    m_cmbInverseKinematics.Items.Add(j.ToString());
+                }
+                m_cmbInverseKinematics.SelectedIndex = 0;
+
+                m_cmbInverseKinematics.Left = gbDh.Width / 2;
+                m_cmbInverseKinematics.Top = nDefaultTop + i * nGapH;
+                m_cmbInverseKinematics.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_cmbInverseKinematics.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Function Number(Inverse)";
+                gbDh.Controls.Add(m_cmbInverseKinematics);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                //m_cmbInverseKinematics.SelectedIndexChanged += new EventHandler(m_cmbKinematics_SelectedIndexChanged);
+                //
+                i++; nItems++;
+                
+                m_chkTestObject.Text = "Test Object";
+                m_chkTestObject.Checked = false;
+                m_chkTestObject.Left = m_cmbInverseKinematics.Left;// 175 + 100;
+                m_chkTestObject.Top = nDefaultTop + i * nGapH;
+                m_chkTestObject.Width = 200;
+                gbDh.Controls.Add(m_chkTestObject);
+                //Event
+                m_chkTestObject.CheckedChanged += new EventHandler(m_chkKinematics_CheckedChanged);
+                i++; nItems++;
+                //
+                
+                m_txtTestObjectSize.Left = gbDh.Width / 2;
+                m_txtTestObjectSize.Top = nDefaultTop + i * nGapH;
+                m_txtTestObjectSize.Width = gbDh.Width / 2 - 20;
+                m_albTools_Kinematics[nItems].Top = m_txtTestObjectSize.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "Ball Size";
+                gbDh.Controls.Add(m_txtTestObjectSize);
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                m_txtTestObjectSize.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+                int nW = m_txtTestObjectSize.Width / 3;// (gbDh.Width / 2) / 3;// - 20 - 2;
+                m_txtPos_X.Left = gbDh.Width / 2;
+                m_txtPos_X.Top = nDefaultTop + i * nGapH;
+                m_txtPos_X.Width = nW;// (gbDh.Width / 2) / 3 - 20;
+                gbDh.Controls.Add(m_txtPos_X);
+
+                m_txtPos_Y.Left = gbDh.Width / 2 + nW;
+                m_txtPos_Y.Top = nDefaultTop + i * nGapH;
+                m_txtPos_Y.Width = nW;// (gbDh.Width / 2) / 3 - 20;
+                gbDh.Controls.Add(m_txtPos_Y);
+
+                m_txtPos_Z.Left = gbDh.Width / 2 + nW * 2;
+                m_txtPos_Z.Top = nDefaultTop + i * nGapH;
+                m_txtPos_Z.Width = nW;// (gbDh.Width / 2) / 3 - 20;
+                gbDh.Controls.Add(m_txtPos_Z);
+                i++; nItems++;
+
+
+                m_btnChangePos.Text = "Go";
+                m_btnChangePos.Top = nDefaultTop + i * nGapH;
+                m_btnChangePos.Width = m_txtTestObjectSize.Width / 2 - 10; //m_txtTestObjectSize.Right - m_btnChangePos.Left;// nW * 2;
+                m_btnChangePos.Left = m_txtTestObjectSize.Right - m_btnChangePos.Width;//gbDh.Width / 2 + nW * 3;
+                m_btnChangePos.Height = 30;
+                gbDh.Controls.Add(m_btnChangePos);
+                // Event
+                m_btnChangePos.Click += new EventHandler(m_btnKinematics_Click);
+                //i++; nItems++;
+
+
+                m_btnGetForward.Text = "Get";
+                m_btnGetForward.Top = nDefaultTop + i * nGapH;
+                m_btnGetForward.Width = m_txtTestObjectSize.Width / 2 - 10;// nW * 2;
+                m_btnGetForward.Left = m_txtTestObjectSize.Left;//gbDh.Width / 2 + (gbDh.Width / 2 - 20) - m_btnGetForward.Width; //nW * 3;
+                m_btnGetForward.Height = 30;
+                gbDh.Controls.Add(m_btnGetForward);
+                // Event
+                m_btnGetForward.Click += new EventHandler(m_btnKinematics_Click);
+                i++; nItems++;
+                                
+                m_albTools_Kinematics[nItems].Top = m_txtPos_X.Top;
+                m_albTools_Kinematics[nItems].Left = 10;
+                m_albTools_Kinematics[nItems].Text = "X,Y,Z";
+                gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                // Event
+                //m_txtTestObjectSize.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                //
+                i++; nItems++;
+
+
+                // Init
+                m_txtDH_A.Text = "0";
+                m_txtDH_D.Text = "0";
+                m_txtDH_Theta.Text = "0";
+                m_txtDH_Alpha.Text = "0";
+                m_txtDH_AxisNum.Text = "-1";
+                m_txtTestObjectSize.Text = "10";
+                m_txtDH_Draw_Size.Text = "10";
+                m_txtPos_X.Text = "0";
+                m_txtPos_Y.Text = "0";
+                m_txtPos_Z.Text = "0";
+                m_txtDH_Draw_Color.Text = Ojw.CConvert.IntToStr(Color.Red.ToArgb());
+
+                //m_bTools_Motor_ = true;
+                //InitToolsMotorVar_();
             }
-            public void InitTools_InverseKinematics(Panel pnInverse)
+
+            void m_btnKinematics_Click(object sender, EventArgs e)
             {
-                m_pnInverse = pnInverse;
+                //throw new NotImplementedException();
+                if (((System.Windows.Forms.Button)sender) == m_btnKinematicsCompile)
+                {
+                    if (m_btnKinematicsCompile.Focused == true)
+                    {
+                        CheckForward();
+                        CheckInverse();
+                    }
+                }
+                else if (((System.Windows.Forms.Button)sender) == m_btnDhColor)
+                {
+                    if (m_btnDhColor.Focused == true)
+                    {
+                        ColorDialog cdDlg = new ColorDialog();
+                        cdDlg.AllowFullOpen = true;
+                        cdDlg.ShowHelp = true;
+
+                        int nColor = Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text);
+                        Color cColor = Color.FromArgb(nColor);
+
+                        cdDlg.Color = cColor;
+                        if (cdDlg.ShowDialog() == DialogResult.OK)
+                            cColor = cdDlg.Color;
+                        m_txtDH_Draw_Color.Text = Ojw.CConvert.IntToStr(cColor.ToArgb());
+                        cdDlg.Dispose();
+                    }
+                }
+                else if (((System.Windows.Forms.Button)sender) == m_btnDHCompile)
+                {
+                    int nAxisNum = Ojw.CConvert.StrToInt(m_txtDH_AxisNum.Text);
+                    m_COjwDhParam.strCaption = m_txtDH_Caption.Text;
+                    if (nAxisNum >= 0) m_COjwDhParam.strCaption += " - Axis" + Ojw.CConvert.IntToStr(nAxisNum);
+                    String strData = Ojw.CKinematics.CForward.ClassToString_DHParam(m_COjwDhParam);
+
+                    m_txtDhParam.Text += strData + m_COjwDhParam.strCaption + "\r\n";
+
+                    Ojw.CKinematics.CForward.MakeDhParam(m_txtDhParam.Text, out m_COjwDhParamAll);
+                    double dX, dY, dZ;
+                    double[] colX;
+                    double[] colY;
+                    double[] colZ;
+                    double[] adAngle = Array.ConvertAll(GetData(), element => (double)element);
+                    Ojw.CKinematics.CForward.CalcKinematics(m_COjwDhParamAll, adAngle, out colX, out colY, out colZ, out dX, out dY, out dZ);
+
+                    m_COjwDhParam.InitData();
+                    // 초기화
+                    m_txtDH_A.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dA);
+                    m_txtDH_D.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dD);
+                    m_txtDH_Theta.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dTheta);
+                    m_txtDH_Alpha.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dAlpha);
+                    m_txtDH_AxisNum.Text = Ojw.CConvert.IntToStr(m_COjwDhParam.nAxisNum);
+                    m_txtDH_Caption.Text = m_COjwDhParam.strCaption;
+                    m_cmbDH_AxisDir.SelectedIndex = m_COjwDhParam.nAxisDir;
+
+                    MoveToDhPosition(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), 1.0f, Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)));
+
+                    if (m_chkSkeletonView.Checked == true)
+                        MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
+                }
+                else if (((System.Windows.Forms.Button)sender) == m_btnChangePos) // "Go" 버튼
+                {
+                    int nNum = Ojw.CConvert.StrToInt(m_cmbInverseKinematics.Text);
+                    float fX = Ojw.CConvert.StrToFloat(m_txtPos_X.Text);
+                    float fY = Ojw.CConvert.StrToFloat(m_txtPos_Y.Text);
+                    float fZ = Ojw.CConvert.StrToFloat(m_txtPos_Z.Text);
+
+                    // 집어넣기 전에 내부 메모리를 클리어 한다.
+                    Ojw.CKinematics.CInverse.SetValue_ClearAll(ref GetHeader_pSOjwCode()[nNum]);
+                    Ojw.CKinematics.CInverse.SetValue_X(fX);
+                    Ojw.CKinematics.CInverse.SetValue_Y(fY);
+                    Ojw.CKinematics.CInverse.SetValue_Z(fZ);
+
+
+                    // 테스트 시작
+                    SetTestCircle(m_chkTestObject.Checked);
+                    //Settes
+                    SetColor_Test(Color.Red);
+                    // 테스트 값 입력
+                    SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
+                    SetPos_Test(fX, fY, fZ);
+
+                    // 현재의 모터각을 전부 집어 넣도록 한다.
+                    //UpdateMotorCommand();
+                    for (int i = 0; i < 256; i++)
+                    {
+                        // 모터값을 3D에 넣어주고
+                        //SetData(i, Ojw.CConvert.StrToFloat(m_txtAngle[i].Text));
+                        // 그 값을 꺼내 수식 계산에 넣어준다.
+                        Ojw.CKinematics.CInverse.SetValue_Motor(i, GetData(i));
+                    }
+
+                    // 실제 수식계산
+                    Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]);
+
+                    //m_lbV.Text = String.Empty;
+                    for (int i = 0; i < 10; i++)
+                    {
+                        Ojw.CMessage.Write("V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)));
+                        //m_lbV.Text += "V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)) + ",";
+                    }
+                    // 나온 결과값을 옮긴다.
+                    int nMotCnt = GetHeader_pSOjwCode()[nNum].nMotor_Max;
+                    for (int i = 0; i < nMotCnt; i++)
+                    {
+                        int nMotNum = GetHeader_pSOjwCode()[nNum].pnMotor_Number[i];
+                        SetData(nMotNum, (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum));
+                        //m_txtAngle[nMotNum].Text = Ojw.CConvert.FloatToStr((float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum));
+                    }
+                    //BlockUpdate(true);
+                    //for (int i = 0; i < 256; i++)
+                    //{
+                    //    m_txtAngle[i].Text = Ojw.CConvert.FloatToStr(GetData(i));
+                    //}
+                    //BlockUpdate(false);
+                }
+                else if (((System.Windows.Forms.Button)sender) == m_btnGetForward) // GetButton
+                {
+                    int nNum = Ojw.CConvert.StrToInt(m_cmbInverseKinematics.Text);
+                    
+                    int i;
+                    //CDhParamAll COjwDhParamAll = new CDhParamAll();
+                    //Ojw.CKinematics.CForward.MakeDhParam(m_CHeader.pstrKinematics[nNum], out COjwDhParamAll);
+
+                    double dX, dY, dZ;
+                    double[] dcolX;
+                    double[] dcolY;
+                    double[] dcolZ;
+
+                    double[] adMot = new double[256];
+                    Array.Clear(adMot, 0, adMot.Length);
+                    for (i = 0; i < GetHeader_nMotorCnt(); i++) adMot[i] = (double)GetData(i);
+                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], adMot, out dcolX, out dcolY, out dcolZ, out dX, out dY, out dZ);
+                    
+                    m_txtPos_X.Text = Ojw.CConvert.DoubleToStr(dX);
+                    m_txtPos_Y.Text = Ojw.CConvert.DoubleToStr(dY);
+                    m_txtPos_Z.Text = Ojw.CConvert.DoubleToStr(dZ);
+
+                    // 테스트 시작
+                    SetTestCircle(m_chkTestObject.Checked);
+                    //Settes
+                    SetColor_Test(Color.Red);
+                    // 테스트 값 입력
+                    SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
+                    SetPos_Test((float)dX, (float)dY, (float)dZ);
+
+                    SetTestCircle(m_chkTestObject.Checked);
+                }
+                else if (((System.Windows.Forms.Button)sender) == m_btnCheckDH)
+                {
+                    MoveToDhPosition(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), 1.0f, Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)));
+
+                    if (m_chkSkeletonView.Checked == true)
+                        MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
+                }
             }
-            private bool m_bTools_Motor = false;
+
+            public bool GetData_Forward(int nNum, out double dX, out double dY, out double dZ)
+            {                    
+                int i;
+                double[] dcolX;
+                double[] dcolY;
+                double[] dcolZ;
+
+                double[] adMot = new double[256];
+                Array.Clear(adMot, 0, adMot.Length);
+                for (i = 0; i < GetHeader_nMotorCnt(); i++) adMot[i] = (double)GetData(i);
+                return Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], adMot, out dcolX, out dcolY, out dcolZ, out dX, out dY, out dZ);                  
+            }
+
+            // return MotorCount, and ...
+            public int GetData_Inverse(int nNum, double dX, double dY, double dZ, out int [] anMotorID, double [] adValue)
+            {
+                // 집어넣기 전에 내부 메모리를 클리어 한다.
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref GetHeader_pSOjwCode()[nNum]);
+                Ojw.CKinematics.CInverse.SetValue_X(dX);
+                Ojw.CKinematics.CInverse.SetValue_Y(dY);
+                Ojw.CKinematics.CInverse.SetValue_Z(dZ);
+                                
+                // 현재의 모터각을 전부 집어 넣도록 한다.
+                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                {
+                    // 모터값을 3D에 넣어주고
+                    //SetData(i, Ojw.CConvert.StrToFloat(m_txtAngle[i].Text));
+                    // 그 값을 꺼내 수식 계산에 넣어준다.
+                    Ojw.CKinematics.CInverse.SetValue_Motor(i, GetData(i));
+                }
+
+                // 실제 수식계산
+                Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]);
+
+
+                // 나온 결과값을 옮긴다.
+                int nMotCnt = GetHeader_pSOjwCode()[nNum].nMotor_Max;
+                if (nMotCnt <= 0)
+                {
+                    anMotorID = null;
+                    adValue = null;
+                    return 0;
+                }
+                anMotorID = new int[nMotCnt];
+                adValue = new double[nMotCnt];
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    anMotorID[i] = GetHeader_pSOjwCode()[nNum].pnMotor_Number[i];
+                    adValue[i] = Ojw.CKinematics.CInverse.GetValue_Motor(anMotorID[i]);
+                }
+                return nMotCnt;
+            }
+
+            private String MakeDHSkeleton(float fSize, Color cColor, string strString)
+            {
+                String strData = String.Empty;
+                String strDisp = String.Empty;
+                //SetHeader_strDrawModel(String.Empty);
+                String strConvert0 = CConvert.RemoveCaption(strString, true, true);
+                String strConvert1 = CConvert.RemoveChar(strConvert0, '[');
+                String strConvert2 = CConvert.RemoveChar(strConvert1, ']');
+                String strConvert3 = CConvert.RemoveChar(strConvert2, '\r');
+                String[] pstrLines = strConvert3.Split('\n');
+
+                User_Clear();
+                //
+                //m_C3d.User_Set_Width_Or_Radius(300.0f);
+                //m_C3d.User_Add();
+                //m_C3d.User_Set_Color(Color.Red);
+                //m_C3d.User_Set_Width_Or_Radius(300.0f);
+                //m_C3d.User_Set_Height_Or_Depth(400.0f);
+                //m_C3d.User_Set_Translation(0, 0, 100.0f, 0);
+                //m_C3d.User_Add();
+
+                //InitVirtualClass();
+                //Prop_Set_Init(true);
+                //int nCnt = 0;
+                foreach (string strLine in pstrLines)
+                {
+                    float fA = 0.0f;
+                    float fD = 0.0f;
+                    float fTheta = 0.0f;
+                    float fAlpha = 0.0f;
+                    int nAxis = -1;
+                    int nDir = 0;
+
+                    #region Items
+                    String [] pstrItems = strLine.Split(',');
+                    int i = 0;
+                    foreach (string strItem in pstrItems)
+                    {
+                        try
+                        {
+                            switch (i)
+                            {
+                                case 0: fA = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 1: fD = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 2: fTheta = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 3: fAlpha = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 4: nAxis = Ojw.CConvert.StrToInt(strItem); break;
+                                case 5: nDir = Ojw.CConvert.StrToInt(strItem); break;
+                            }
+                        }
+                        catch
+                        {
+                            switch (i)
+                            {
+                                case 0: fA = 0.0f; break;
+                                case 1: fD = 0.0f; break;
+                                case 2: fTheta = 0.0f; break;
+                                case 3: fAlpha = 0.0f; break;
+                                case 4: nAxis = 0; break;
+                                case 5: nDir = 0; break;
+                            }
+                        }
+                        i++;
+                    }
+                    //if (i != 6) return null; // 해석 에러
+                    if (i != 6) continue; // 해석 에러
+                    #endregion Items
+
+                    //Prop_Set_DispObject("#20");
+                    //Prop_Set_Width_Or_Radius(fSize);
+                    //AddVirtualClassToReal();
+                    User_Set_Model("#20");
+                    User_Set_Color(cColor);
+                    User_Set_Width_Or_Radius(fSize);
+                    User_Add();
+
+
+                    //Prop_Set_DispObject("#19");
+                    User_Set_Model("#19");
+                    User_Set_Color(cColor);
+                    User_Set_Width_Or_Radius(fSize);
+                    if (fD < 0)
+                    {
+                        ////Prop_Set_Offset_Trans(new Ojw.SVector3D_t(fA, 0, 0));
+                        //Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(180, 0, 0));
+                        //Prop_Set_Width_Or_Radius(fSize);
+                        //Prop_Set_Height_Or_Depth(-fD);
+                        User_Set_Offset_Rotation(180, 0, 0);
+                        User_Set_Height_Or_Depth(-fD);
+                    }
+                    else User_Set_Height_Or_Depth(fD);
+                    User_Add();
+
+
+                    //Prop_Set_DispObject("#20");
+                    //Prop_Set_Width_Or_Radius(fSize);
+                    //Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
+                    User_Set_Model("#20");
+                    User_Set_Color(cColor);
+                    User_Set_Width_Or_Radius(fSize);
+                    User_Set_Offset_Translation(0, 0, fD);
+                    
+                    User_Set_AxisName(nAxis);
+
+                    if ((nDir == 0) || (nDir == 1)) User_Set_AxisMoveType(2);
+                    else if ((nDir == 2) || (nDir == 3)) User_Set_AxisMoveType(3);
+                    if ((nDir == 0) || (nDir == 2)) User_Set_Dir(0);
+                    else if ((nDir == 1) || (nDir == 3)) User_Set_Dir(1);
+
+                    User_Add();
+
+                    User_Set_Model("#19");
+                    User_Set_Color(cColor);
+                    if (fA < 0)
+                    {
+                        User_Set_Offset_Translation(0, 0, fD);
+                        User_Set_Offset_Rotation(-90, fTheta, 0);
+                        User_Set_Width_Or_Radius(fSize);
+                        User_Set_Height_Or_Depth(-fA);
+                    }
+                    else
+                    {
+                        User_Set_Offset_Translation(0, 0, fD);
+                        User_Set_Offset_Rotation(90, -fTheta, 0);
+                        User_Set_Width_Or_Radius(fSize);
+                        User_Set_Height_Or_Depth(fA);
+                    }
+                    User_Add();
+
+                    User_Set_Model("#20");
+                    User_Set_Color(cColor);
+
+                    User_Set_Width_Or_Radius(fSize);
+                    int nIndex = 0;
+                    User_Set_Translation(nIndex, 0, 0, fD);
+                    User_Set_Rotation(nIndex, 0, 0, fTheta);
+                    nIndex++;
+                    User_Set_Translation(nIndex, fA, 0, 0);
+                    User_Set_Rotation(nIndex, 0, fAlpha, 0);
+
+                    User_Add();
+
+
+
+
+                    
+                    //strDisp = GetHeader_strDrawModel();
+
+                }
+                //////////////// Direction
+                float fMulti = fSize / 10.0f * 2.0f;
+                float fLength = 30 * fMulti;
+
+                User_Set_Model("#20");
+                User_Set_Color(Color.Red);
+                User_Set_Width_Or_Radius(fSize);
+                User_Set_Offset_Translation(fLength, 0, 0);
+                User_Add();
+
+                User_Set_Model("#20");
+                User_Set_Color(Color.Green);
+                User_Set_Width_Or_Radius(fSize);
+                User_Set_Offset_Translation(0, fLength, 0);
+                User_Add();
+
+                User_Set_Model("#20");
+                User_Set_Color(Color.Blue);
+                User_Set_Width_Or_Radius(fSize);
+                User_Set_Offset_Translation(0, 0, fLength);
+                User_Add();
+                //////////////////////////
+
+                return null;// strDisp;
+#if false
+                for (int i = 0; i < m_CGridView.GetLineCount(); i++)
+                {
+                    if (m_CGridView.GetEnable(i) == true)
+                    {
+                        float fA = 0.0f;
+                        float fD = 0.0f;
+                        float fTheta = 0.0f;
+                        float fAlpha = 0.0f;
+                        int nAxis = -1;
+                        int nDir = 0;
+                        //Prop_Set_Height_Or_Depth(
+                        for (int j = 0; j < m_CGridView.GetTableCount(); j++)
+                        {
+                            try
+                            {
+                                switch (j)
+                                {
+                                    case 0: fA = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
+                                    case 1: fD = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
+                                    case 2: fTheta = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
+                                    case 3: fAlpha = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
+                                    case 4: nAxis = Ojw.CConvert.StrToInt(m_CGridView.GetData(i, j).ToString()); break;
+                                    case 5: nDir = Ojw.CConvert.StrToInt(m_CGridView.GetData(i, j).ToString()); break;
+                                }
+                            }
+                            catch
+                            {
+                                switch (j)
+                                {
+                                    case 0: fA = 0.0f; break;
+                                    case 1: fD = 0.0f; break;
+                                    case 2: fTheta = 0.0f; break;
+                                    case 3: fAlpha = 0.0f; break;
+                                    case 4: nAxis = 0; break;
+                                    case 5: nDir = 0; break;
+                                }
+                            }
+                            strData += Convert.ToString(m_CGridView.GetData(i, j)) + ((j < m_CGridView.GetTableCount() - 1) ? "," : String.Empty);
+                        }
+                        if (i < m_CGridView.GetLineCount() - 1) strData += "\r\n";
+
+
+                        //Prop_Set_DispObject("#2");
+
+
+                        Prop_Set_DispObject("#9");
+                        Prop_Set_Width_Or_Radius(m_fStickSize);
+                        AddVirtualClassToReal();
+
+                        Prop_Set_DispObject("#8");
+                        if (fD < 0)
+                        {
+                            //Prop_Set_Offset_Trans(new Ojw.SVector3D_t(fA, 0, 0));
+                            Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(180, 0, 0));
+                            Prop_Set_Width_Or_Radius(m_fStickSize);
+                            Prop_Set_Height_Or_Depth(-fD);
+                        }
+                        else Prop_Set_Height_Or_Depth(fD);
+                        AddVirtualClassToReal();
+
+
+                        Prop_Set_DispObject("#9");
+                        Prop_Set_Width_Or_Radius(m_fStickSize);
+                        Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
+
+
+                        Prop_Set_Name(nAxis);
+                        if ((nDir == 0) || (nDir == 1)) Prop_Set_AxisMoveType(2);
+                        else if ((nDir == 2) || (nDir == 3)) Prop_Set_AxisMoveType(3);
+                        if ((nDir == 0) || (nDir == 2)) Prop_Set_Dir(0);
+                        else if ((nDir == 1) || (nDir == 3)) Prop_Set_Dir(1);
+
+                        AddVirtualClassToReal();
+
+                        Prop_Set_DispObject("#8");
+                        if (fA < 0)
+                        {
+                            Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
+                            Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(-90, fTheta, 0));
+                            Prop_Set_Width_Or_Radius(m_fStickSize);
+                            Prop_Set_Height_Or_Depth(-fA);
+                        }
+                        else
+                        {
+                            Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
+                            Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(90, -fTheta, 0));
+                            Prop_Set_Width_Or_Radius(m_fStickSize);
+                            Prop_Set_Height_Or_Depth(fA);
+                        }
+                        AddVirtualClassToReal();
+
+                        //float fAngle = ((nAxis >= 0) ? m_afAngle[i] : 0.0f) * (float)Math.Pow(-1, nDir);
+                        //float fDist = fAngle;
+                        //if (nDir < 2) fDist = 0.0f;
+                        //else fAngle = 0.0f;
+
+
+
+                        Prop_Set_DispObject("#9");
+                        //Prop_Set_Name(nAxis);
+                        //if ((nDir == 0) || (nDir == 1)) Prop_Set_AxisMoveType(1);
+                        //else if ((nDir == 2) || (nDir == 3)) Prop_Set_AxisMoveType(3);
+                        //if ((nDir == 0) || (nDir == 2)) Prop_Set_Dir(1); // 반대각으로 돈다. 실제와 다르게... -_-;;;
+                        //else if ((nDir == 1) || (nDir == 3)) Prop_Set_Dir(0);
+
+                        Prop_Set_Width_Or_Radius(m_fStickSize);
+                        //Prop_Set_Height_Or_Depth(fA);
+                        Prop_Set_Trans_1(new Ojw.SVector3D_t(0, 0, fD));
+                        Prop_Set_Rot_1(new Ojw.SAngle3D_t(0, 0, fTheta));
+                        Prop_Set_Trans_2(new Ojw.SVector3D_t(fA, 0, 0));
+                        Prop_Set_Rot_2(new Ojw.SAngle3D_t(0, fAlpha, 0));
+
+                        AddVirtualClassToReal();
+                        strDisp = GetHeader_strDrawModel();
+                    }
+                }
+                //SetHeader_strDrawModel(txtDraw.Text);
+
+                SetHeader_strDrawModel(strDisp);
+                CompileDesign();
+                return strData;
+#endif
+            }
+
+            private void MoveToDhPosition(float fSize, float fAlpha, Color cColor)
+            {
+                int i;
+                CDhParamAll COjwDhParamAll = new CDhParamAll();
+                Ojw.CKinematics.CForward.MakeDhParam(m_txtDhParam.Text, out COjwDhParamAll);
+                double dX, dY, dZ;
+                double[] dcolX;
+                double[] dcolY;
+                double[] dcolZ;
+
+                double[] adMot = new double[256];
+                Array.Clear(adMot, 0, adMot.Length);
+                for (i = 0; i < GetHeader_nMotorCnt(); i++) adMot[i] = (double)GetData(i);// Ojw.CConvert.StrToDouble(m_txtAngle[i].Text);
+
+                Ojw.CKinematics.CForward.CalcKinematics(COjwDhParamAll, adMot, out dcolX, out dcolY, out dcolZ, out dX, out dY, out dZ);
+                String strResult;
+                Ojw.CKinematics.CForward.CalcKinematics_ToString(COjwDhParamAll, adMot, out strResult);
+
+                //txtError.Text = strResult;
+                m_txtKinematicsString.Text = strResult;
+
+                //Ojw.CMessage.Write_Error(strResult);
+
+                //m_afTestPoint[0] = dX;
+                //m_afTestPoint[1] = dY;
+                //m_afTestPoint[2] = dZ;
+                //m_C3d.SetTestDh(true);
+                SetTestDh_Size(fSize);
+                SetTestDh_Color(cColor);
+                SetTestDh_Alpha(fAlpha);
+                SetTestDh_Pos((float)dX, (float)dY, (float)dZ);
+                
+                //m_lbTestDh.Text = "[x=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dX, 3)) + ", y=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dY, 3)) + ", z=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dZ, 3)) + "]";
+
+                #region Checking Direction
+                // 방향 확인
+                float[] afX = new float[3];
+                float[] afY = new float[3];
+                float[] afZ = new float[3];
+
+#if true
+                // X     dcolX[0] dcolY[0] dcolZ[0]   a
+                // Y     dcolX[1] dcolY[1] dcolZ[1]   b
+                // Z     dcolX[2] dcolY[2] dcolZ[2]   c
+
+                //i = 0;
+                //afX[0] = (float)Ojw.CMath.ACos(dcolX[0]);
+                //afX[1] = (float)Ojw.CMath.ACos(dcolX[1]);
+                //afX[2] = (float)Ojw.CMath.ACos(dcolX[2]);
+                ////i++;
+                //afY[0] = (float)Ojw.CMath.ACos(dcolY[0]);
+                //afY[1] = (float)Ojw.CMath.ACos(dcolY[1]);
+                //afY[2] = (float)Ojw.CMath.ACos(dcolY[2]);
+                ////i++;
+                //afZ[0] = (float)Ojw.CMath.ACos(dcolZ[0]);
+                //afZ[1] = (float)Ojw.CMath.ACos(dcolZ[1]);
+                //afZ[2] = (float)Ojw.CMath.ACos(dcolZ[2]);
+                double dLength = 30.0;
+                dX = dLength;
+                dY = 0.0f;
+                dZ = 0.0f;
+                for (i = 0; i < 3; i++) afX[i] = (float)(dcolX[i] * dX + dcolY[i] * dY + dcolZ[i] * dZ);
+                dX = 0.0f;
+                dY = dLength;
+                dZ = 0.0f;
+                for (i = 0; i < 3; i++) afY[i] = (float)(dcolX[i] * dX + dcolY[i] * dY + dcolZ[i] * dZ);
+                dX = 0.0f;
+                dY = 0.0f;
+                dZ = dLength;
+                for (i = 0; i < 3; i++) afZ[i] = (float)(dcolX[i] * dX + dcolY[i] * dY + dcolZ[i] * dZ);
+
+#else
+            afX[0] = (float)Ojw.CMath.ACos(dcolX[0]);
+            afX[1] = (float)Ojw.CMath.ACos(dcolY[0]);
+            afX[2] = (float)Ojw.CMath.ACos(dcolZ[0]);
+
+            afY[0] = (float)Ojw.CMath.ACos(dcolX[1]);
+            afY[1] = (float)Ojw.CMath.ACos(dcolY[1]);
+            afY[2] = (float)Ojw.CMath.ACos(dcolZ[1]);
+
+            afZ[0] = (float)Ojw.CMath.ACos(dcolX[2]);
+            afZ[1] = (float)Ojw.CMath.ACos(dcolY[2]);
+            afZ[2] = (float)Ojw.CMath.ACos(dcolZ[2]);
+#endif
+                SetTestDh_Angle(afX, afY, afZ);
+
+                #endregion Checking Direction
+            }
+
+            void m_chkKinematics_CheckedChanged(object sender, EventArgs e)
+            {
+                //throw new NotImplementedException();
+                if (((System.Windows.Forms.CheckBox)sender) == m_chkDh)
+                {
+                    if (m_chkDh.Focused == true)
+                    {
+                        SetTestDh(m_chkDh.Checked);
+                    }
+                }
+                if (((System.Windows.Forms.CheckBox)sender) == m_chkSkeletonView)
+                {
+                    if (m_chkSkeletonView.Focused == true)
+                    {
+                        SetSkeletonView(m_chkSkeletonView.Checked);
+                        if (m_chkSkeletonView.Checked == true)
+                            MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
+                    }
+                }
+                if (((System.Windows.Forms.CheckBox)sender) == m_chkTestObject)
+                {
+                    int nNum = Ojw.CConvert.StrToInt(m_cmbInverseKinematics.Text);
+                    float fX = Ojw.CConvert.StrToFloat(m_txtPos_X.Text);
+                    float fY = Ojw.CConvert.StrToFloat(m_txtPos_Y.Text);
+                    float fZ = Ojw.CConvert.StrToFloat(m_txtPos_Z.Text);
+
+                    // 테스트 시작
+                    SetTestCircle(m_chkTestObject.Checked);
+                    //Settes
+                    SetColor_Test(Color.Red);
+                    // 테스트 값 입력
+                    SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
+                    SetPos_Test(fX, fY, fZ);
+
+                    SetTestCircle(m_chkTestObject.Checked);
+                }
+            }
+            private void cmbDhRefresh(int nNum)
+            {
+                if ((nNum >= 0) && (nNum < m_cmbDh.Items.Count))
+                {
+                    Ojw.CEncryption.SetEncrypt("OJW5014"); // 암호화 해제는 보안이 필요
+                    m_txtForwardKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptKinematics_encryption()[nNum].byteEncryption));
+
+                    Ojw.CEncryption.SetEncrypt("OJW5014"); // 암호화 해제는 보안이 필요
+                    m_txtInverseKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption));
+
+                    m_txtGroupName.Text = GetHeader_pstrGroupName()[nNum];
+                    m_cmbDh.SelectedIndex = nNum;
+
+                    m_cmbSecret.SelectedIndex = GetHeader_pnSecret()[nNum];
+                    m_cmbKinematicsType.SelectedIndex = GetHeader_pnType()[nNum];
+                }
+            }
+            private CDhParam m_COjwDhParam = new CDhParam(); // for DH Checking
+            private CDhParamAll m_COjwDhParamAll = new CDhParamAll(); // for DH Checking
+            void m_cmbKinematics_SelectedIndexChanged(object sender, EventArgs e)
+            {
+                if (((System.Windows.Forms.ComboBox)sender) == m_cmbDh)
+                {
+                    if ((m_cmbDh.Focused == true) && (m_cmbDh.SelectedIndex >= 0))
+                    {
+                        cmbDhRefresh(m_cmbDh.SelectedIndex);
+                    }
+                }
+                else if (((System.Windows.Forms.ComboBox)sender) == m_cmbSecret)
+                {
+                    if ((m_cmbSecret.Focused == true) && (m_cmbDh.SelectedIndex >= 0))
+                    {
+                        GetHeader_pnSecret()[m_cmbDh.SelectedIndex] = m_cmbSecret.SelectedIndex;
+                    }
+                }
+                else if (((System.Windows.Forms.ComboBox)sender) == m_cmbKinematicsType)
+                {
+                    if ((m_cmbKinematicsType.Focused == true) && (m_cmbDh.SelectedIndex >= 0))
+                    {
+                        GetHeader_pnType()[m_cmbDh.SelectedIndex] = m_cmbKinematicsType.SelectedIndex;
+                    }
+                }
+                else if (((System.Windows.Forms.ComboBox)sender) == m_cmbDH_AxisDir)
+                {
+                    if ((m_cmbKinematicsType.Focused == true) && (m_cmbDh.SelectedIndex >= 0))
+                        m_COjwDhParam.nAxisDir = m_cmbDH_AxisDir.SelectedIndex;
+                }
+                //throw new NotImplementedException();
+            }
+            //public void InitTools_InverseKinematics(Panel pnInverse)
+            //{
+            //    m_pnInverse = pnInverse;
+            //}
+            private bool m_bTools_Motor = false;           
+            
             public void InitTools_Motor(Panel pnMotor)
             {
                 int nTop = 10;
-                int nLeft = 120;
+                int nLeft = pnMotor.Width / 2;// 120;
                 int nSeparation = 10;
                 int nWidth = pnMotor.Width - nLeft - 20;
                 int nLeftLabel = 10;
@@ -330,6 +1639,10 @@ namespace OpenJigWare
                 for (i = 0; i < _CNT_LABEL_TOOLMOTOR; i++)
                 {
                     m_albTools_Motor[i] = new Label();
+                    m_albTools_Motor[i].AutoSize = false;
+                    m_albTools_Motor[i].Width = nWidth;
+                    m_albTools_Motor[i].Height = 27;
+                    m_albTools_Motor[i].BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
                 }
                 m_pnMotor = pnMotor;
 
@@ -728,11 +2041,12 @@ namespace OpenJigWare
                     [DisplayName(m_pstrProp_49), Browsable(true), CategoryAttribute(strGroup12), DescriptionAttribute("5\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
                     public SAngle3D_t SRot_5 { get { return CDisp.afRot[4]; } set { CDisp.afRot[4] = value; } }
 
-                    [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
+                    [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
                     public SPoint3D_t SPickGroup { get { return new SPoint3D_t(CDisp.nPickGroup_A, CDisp.nPickGroup_B, CDisp.nPickGroup_C); } set { CDisp.nPickGroup_A = value.x; CDisp.nPickGroup_B = value.y; CDisp.nPickGroup_C = value.z; } }
 
-                    [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                    [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
                     public int nInverseKinematicsNumber { get { return CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+
                     [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                     public float fScale_Serve0 { get { return CDisp.fScale_Serve0; } set { CDisp.fScale_Serve0 = value; } }
                     [DisplayName(m_pstrProp_57), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
@@ -798,6 +2112,7 @@ namespace OpenJigWare
                 m_panelSelected = pnProp;
 #else
                 m_CProperty_Selected.Destroy(pnProp);
+                if (m_CProperty_Selected == null) m_CProperty_Selected = new CProperty();
                 m_CDisp_Selected = null;
                 if (CDisp != null)
                 {
@@ -1086,11 +2401,14 @@ namespace OpenJigWare
                 [DisplayName(m_pstrProp_49), Browsable(true), CategoryAttribute(strGroup12), DescriptionAttribute("5\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
                 public SAngle3D_t SRot_5 { get { return (CDisp == null) ? new SAngle3D_t(0.0f, 0.0f, 0.0f) : CDisp.afRot[4]; } set { CDisp.afRot[4] = value; } }
 
-                [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
+
+                [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
                 public SPoint3D_t SPickGroup { get { return (CDisp == null) ? new SPoint3D_t(0, 0, 0) : new SPoint3D_t(CDisp.nPickGroup_A, CDisp.nPickGroup_B, CDisp.nPickGroup_C); } set { CDisp.nPickGroup_A = value.x; CDisp.nPickGroup_B = value.y; CDisp.nPickGroup_C = value.z; } }
 
-                [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
                 public int nInverseKinematicsNumber { get { return (CDisp == null) ? 0 : CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+                
+                
                 [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public float fScale_Serve0 { get { return (CDisp == null) ? 0 : CDisp.fScale_Serve0; } set { CDisp.fScale_Serve0 = value; } }
                 [DisplayName(m_pstrProp_57), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
@@ -1304,16 +2622,24 @@ namespace OpenJigWare
                 //m_CProperty_Selected.
                 //if (IsDrawText() == true)
                 //{
-                //    m_txtDraw.Text = GetHeader_strDrawModel();
+                //    m_rtxtDraw.Text = GetHeader_strDrawModel();
                 //    StringListToGrid();
                 //}
+                if (IsDrawRText() == true)
+                {
+                    //m_bItemAdded = true;
+                    m_rtxtDraw.Text = GetHeader_strDrawModel();
+                    m_rtxtDraw.Select(m_nSelectedItem, 0);
+                    StringListToGrid();
+                    //m_bItemAdded = false;
+                }
             }
             public void Prop_Update_Selected() 
             { 
                 m_CProperty_Selected.Update();
                 ////////////////////////////////////
                 String strDraw = String.Empty;
-                for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
                 {
                     if (i == m_nSelectedItem)
                     {
@@ -1321,16 +2647,16 @@ namespace OpenJigWare
                     }
                     else
                     {
-                        strDraw += m_txtDraw.Lines[i];
+                        strDraw += m_rtxtDraw.Lines[i];
                     }
-                    if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                    if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";
                 }
-                if (m_txtDraw != null)
+                if (m_rtxtDraw != null)
                 {
-                    if (m_txtDraw.IsHandleCreated == true)
-                        m_txtDraw.Text = strDraw;
+                    if (m_rtxtDraw.IsHandleCreated == true)
+                        m_rtxtDraw.Text = strDraw;
 
-                    m_txtDraw.Select(m_nSelectedItem, 0);
+                    m_rtxtDraw.Select(m_nSelectedItem, 0);
                 }
                 SetHeader_strDrawModel(strDraw);
                 CompileDesign();
@@ -1406,23 +2732,23 @@ namespace OpenJigWare
             public int Prop_Get_Dir_Selected() { return m_CPropAll_Selected.nDir; }
             public float Prop_Get_Angle_Selected() { return m_CPropAll_Selected.fAngle; }
             public float Prop_Get_Angle_Offset_Selected() { return m_CPropAll_Selected.fAngle_Offset; }
-            public SVector3D_t Prop_Get_Offset_Trans_X_Selected() { return m_CPropAll_Selected.SOffset_Trans; }
-            public SAngle3D_t Prop_Get_Offset_Rot_Pan_Selected() { return m_CPropAll_Selected.SOffset_Rot; }
+            public SVector3D_t Prop_Get_Offset_Trans_Selected() { return m_CPropAll_Selected.SOffset_Trans; }
+            public SAngle3D_t Prop_Get_Offset_Rot_Selected() { return m_CPropAll_Selected.SOffset_Rot; }
 
-            public SVector3D_t Prop_Get_Trans_X1_Selected() { return m_CPropAll_Selected.STrans_1; }
-            public SAngle3D_t Prop_Get_Rot_Pan1_Selected() { return m_CPropAll_Selected.SRot_1; }
+            public SVector3D_t Prop_Get_Trans_1_Selected() { return m_CPropAll_Selected.STrans_1; }
+            public SAngle3D_t Prop_Get_Rot_1_Selected() { return m_CPropAll_Selected.SRot_1; }
 
-            public SVector3D_t Prop_Get_Trans_X2_Selected() { return m_CPropAll_Selected.STrans_2; }
-            public SAngle3D_t Prop_Get_Rot_Pan2_Selected() { return m_CPropAll_Selected.SRot_2; }
+            public SVector3D_t Prop_Get_Trans_2_Selected() { return m_CPropAll_Selected.STrans_2; }
+            public SAngle3D_t Prop_Get_Rot_2_Selected() { return m_CPropAll_Selected.SRot_2; }
 
-            public SVector3D_t Prop_Get_Trans_X3_Selected() { return m_CPropAll_Selected.STrans_3; }
-            public SAngle3D_t Prop_Get_Rot_Pan3_Selected() { return m_CPropAll_Selected.SRot_3; }
+            public SVector3D_t Prop_Get_Trans_3_Selected() { return m_CPropAll_Selected.STrans_3; }
+            public SAngle3D_t Prop_Get_Rot_3_Selected() { return m_CPropAll_Selected.SRot_3; }
 
-            public SVector3D_t Prop_Get_Trans_X4_Selected() { return m_CPropAll_Selected.STrans_4; }
-            public SAngle3D_t Prop_Get_Rot_Pan4_Selected() { return m_CPropAll_Selected.SRot_4; }
+            public SVector3D_t Prop_Get_Trans_4_Selected() { return m_CPropAll_Selected.STrans_4; }
+            public SAngle3D_t Prop_Get_Rot_4_Selected() { return m_CPropAll_Selected.SRot_4; }
 
-            public SVector3D_t Prop_Get_Trans_X5_Selected() { return m_CPropAll_Selected.STrans_5; }
-            public SAngle3D_t Prop_Get_Rot_Pan5_Selected() { return m_CPropAll_Selected.SRot_5; }
+            public SVector3D_t Prop_Get_Trans_5_Selected() { return m_CPropAll_Selected.STrans_5; }
+            public SAngle3D_t Prop_Get_Rot_5_Selected() { return m_CPropAll_Selected.SRot_5; }
             public SPoint3D_t Prop_Get_PickGroup_A_Selected() { return m_CPropAll_Selected.SPickGroup; }
             public int Prop_Get_InverseKinematicsNumber_Selected() { return m_CPropAll_Selected.nInverseKinematicsNumber; }
             public float Prop_Get_Scale_Serve0_Selected() { return m_CPropAll_Selected.fScale_Serve0; }
@@ -1432,13 +2758,30 @@ namespace OpenJigWare
             public string Prop_Get_PickGroup_Comment_Selected() { return m_CPropAll_Selected.strPickGroup_Comment; }
             #endregion Get
             #endregion Prop_Selected
+            //void m_pnProperty_MouseClick(object sender, MouseEventArgs e)
+            //{
+            //    MessageBox.Show("Clicked");
+            //    ShowKeyPad_Number(sender);
 
+            //    //throw new NotImplementedException();
+            //    //ShowKeyPad_Number(
+            //}
             public void VisibleProp(String strName, bool bVisible) { m_CPropAll.Visible(strName, bVisible); }
             public void CreateProb_VirtualObject(Panel pnProp)
             {
+                m_CPropAll = new CProp_User();
                 m_CPropAll.Create(OjwVirtualDisp);//m_CDisp);
+                
+                if (m_CProperty == null) m_CProperty = new CProperty();
+
                 m_CProperty.Create(pnProp, m_CPropAll);//m_CProp_Main);
                 m_CProperty.SetEvent_Changed(Prop_PropertyValueChanged);
+
+                //pnProp.MouseClick += new MouseEventHandler(m_pnProperty_MouseClick);
+                //foreach (Control c in pnProp.Controls)
+                //{
+                //    c.MouseClick += new MouseEventHandler(m_pnProperty_MouseClick);
+                //}
             }
             private void CheckObjectModelFile(String strName)
             {
@@ -1464,7 +2807,13 @@ namespace OpenJigWare
                         {
                             //this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
 #if true
-                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + CDisp.strDispObject + ((CDisp.strDispObject.IndexOf('.') < 0) ? ".ase" : "");
+                            String strFile = CDisp.strDispObject;
+                            if ((strFile.IndexOf('?') >= 0) || (strFile.IndexOf('/') >= 0))
+                            {
+                                strFile = strFile.Substring(1);
+                            }
+                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+                            
                             FileInfo f = new FileInfo(strFileName);
                             if (f.Exists == true)
                             {
@@ -1514,6 +2863,15 @@ namespace OpenJigWare
                         break;
                     case m_strProp_Main7:
                         Prop_Set_Main_DefaultFunctionNum((int)e.ChangedItem.Value);
+                        break;
+                    case m_strProp_Main8:
+                        Prop_Set_Main_3DView((int)e.ChangedItem.Value);
+                        break;
+                    case m_strProp_Main9:
+                        Prop_Set_Main_Show_Territory((int)e.ChangedItem.Value);
+                        break;
+                    case m_strProp_Main10:
+                        Prop_Set_Main_BackColor((Color)e.ChangedItem.Value);
                         break;
                 //        case strProp_Main0 = "Version";
                 //private const String strProp_Main1 = "Mouse Mode";
@@ -1719,6 +3077,15 @@ namespace OpenJigWare
             public void Prop_Set_Main_MouseControlMode(int value) { m_CPropAll.nMain_MouseMode = m_nMouseControlMode = value; }
             public int Prop_Get_Main_MouseControlMode() { return m_CPropAll.nMain_MouseMode; }
 
+            public void Prop_Set_Main_3DView(int value) { m_CPropAll.nMain_3DView = m_nPerspectiveMode = value; }
+            public int Prop_Get_Main_3DView() { return m_CPropAll.nMain_3DView; }
+            
+            public void Prop_Set_Main_Show_Territory(int value) { m_CPropAll.nMain_Show_Territory = m_nTerritory = value; }
+            public int Prop_Get_Main_Show_Territory() { return m_CPropAll.nMain_Show_Territory; }
+
+            public void Prop_Set_Main_BackColor(Color value) { m_CPropAll.cMain_BackColor = value; SetBackColor(value); }
+            public Color Prop_Get_Main_BackColor() { return m_CPropAll.cMain_BackColor; }
+                        
             public void Prop_Set_Main_Empty(bool value) { m_CPropAll.bMain_Empty = m_bEmptyBody = value; }
             public bool Prop_Get_Main_Empty() { return m_CPropAll.bMain_Empty; }
 
@@ -1811,23 +3178,23 @@ namespace OpenJigWare
             public int Prop_Get_Dir() { return m_CPropAll.nDir; }
             public float Prop_Get_Angle() { return m_CPropAll.fAngle; }
             public float Prop_Get_Angle_Offset() { return m_CPropAll.fAngle_Offset; }
-            public SVector3D_t Prop_Get_Offset_Trans_X() { return m_CPropAll.SOffset_Trans; }
-            public SAngle3D_t Prop_Get_Offset_Rot_Pan() { return m_CPropAll.SOffset_Rot; }
+            public SVector3D_t Prop_Get_Offset_Trans() { return m_CPropAll.SOffset_Trans; }
+            public SAngle3D_t Prop_Get_Offset_Rot() { return m_CPropAll.SOffset_Rot; }
 
-            public SVector3D_t Prop_Get_Trans_X1() { return m_CPropAll.STrans_1; }
-            public SAngle3D_t Prop_Get_Rot_Pan1() { return m_CPropAll.SRot_1; }
+            public SVector3D_t Prop_Get_Trans_1() { return m_CPropAll.STrans_1; }
+            public SAngle3D_t Prop_Get_Rot_1() { return m_CPropAll.SRot_1; }
 
-            public SVector3D_t Prop_Get_Trans_X2() { return m_CPropAll.STrans_2; }
-            public SAngle3D_t Prop_Get_Rot_Pan2() { return m_CPropAll.SRot_2; }
+            public SVector3D_t Prop_Get_Trans_2() { return m_CPropAll.STrans_2; }
+            public SAngle3D_t Prop_Get_Rot_2() { return m_CPropAll.SRot_2; }
 
-            public SVector3D_t Prop_Get_Trans_X3() { return m_CPropAll.STrans_3; }
-            public SAngle3D_t Prop_Get_Rot_Pan3() { return m_CPropAll.SRot_3; }
+            public SVector3D_t Prop_Get_Trans_3() { return m_CPropAll.STrans_3; }
+            public SAngle3D_t Prop_Get_Rot_3() { return m_CPropAll.SRot_3; }
 
-            public SVector3D_t Prop_Get_Trans_X4() { return m_CPropAll.STrans_4; }
-            public SAngle3D_t Prop_Get_Rot_Pan4() { return m_CPropAll.SRot_4; }
+            public SVector3D_t Prop_Get_Trans_4() { return m_CPropAll.STrans_4; }
+            public SAngle3D_t Prop_Get_Rot_4() { return m_CPropAll.SRot_4; }
 
-            public SVector3D_t Prop_Get_Trans_X5() { return m_CPropAll.STrans_5; }
-            public SAngle3D_t Prop_Get_Rot_Pan5() { return m_CPropAll.SRot_5; }
+            public SVector3D_t Prop_Get_Trans_5() { return m_CPropAll.STrans_5; }
+            public SAngle3D_t Prop_Get_Rot_5() { return m_CPropAll.SRot_5; }
             public SPoint3D_t Prop_Get_PickGroup_A() { return m_CPropAll.SPickGroup; }
             public int Prop_Get_InverseKinematicsNumber() { return m_CPropAll.nInverseKinematicsNumber; }
             public float Prop_Get_Scale_Serve0() { return m_CPropAll.fScale_Serve0; }
@@ -1873,8 +3240,8 @@ namespace OpenJigWare
             private const string m_pstrProp_43 = "4st Rot(Pan,Tilt,Swing)";
             private const string m_pstrProp_46 = "5st Trans(X,Y,Z)";
             private const string m_pstrProp_49 = "5st Rot(Pan,Tilt,Swing)";
-            private const string m_pstrProp_52 = "nPickGroup(A,B,C)";
-            private const string m_pstrProp_55 = "nInverseKinematicsNumber";
+            private const string m_pstrProp_52 = "PickGroup(A,B,C)";
+            private const string m_pstrProp_55 = "InverseKinematicsNumber";
             private const string m_pstrProp_56 = "fScale_Serve0";
             private const string m_pstrProp_57 = "fScale_Serve1";
             private const string m_pstrProp_58 = "nMotorType";
@@ -1941,6 +3308,15 @@ namespace OpenJigWare
                 CategoryAttribute(strGroup), 
                 DescriptionAttribute("Axis Number(-1:None, 0~253)")]
                 public int nAxisName { get { return CDisp.nName; } set { CDisp.nName = value; } }
+
+
+
+                [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
+                public SPoint3D_t SPickGroup { get { return new SPoint3D_t(CDisp.nPickGroup_A, CDisp.nPickGroup_B, CDisp.nPickGroup_C); } set { CDisp.nPickGroup_A = value.x; CDisp.nPickGroup_B = value.y; CDisp.nPickGroup_C = value.z; } }
+
+                [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                public int nInverseKinematicsNumber { get { return CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+                
 
                 [DisplayName(m_pstrProp_1), 
                 Browsable(true), 
@@ -2025,7 +3401,7 @@ namespace OpenJigWare
                 public string strCaption{ get { return CDisp.strCaption; } set { CDisp.strCaption = value; } }
                 [DisplayName(m_pstrProp_12), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public int nAxisMoveType { get { return CDisp.nAxisMoveType; } set { CDisp.nAxisMoveType = value; } }
-                [DisplayName(m_pstrProp_13), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                [DisplayName(m_pstrProp_13), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("Direction : 0 = Forward, 1 = Backward")]
                 public int nDir{ get { return CDisp.nDir; } set { CDisp.nDir = value; } }
                 [DisplayName(m_pstrProp_14), Browsable(true), ReadOnlyAttribute(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public float fAngle{ get { return CDisp.fAngle; } set { CDisp.fAngle = value; } }
@@ -2169,13 +3545,7 @@ namespace OpenJigWare
                 private const string strGroup12 = strGroup3;//"[7]5\'st Rotation";
                 [DisplayName(m_pstrProp_49), Browsable(true), CategoryAttribute(strGroup12), DescriptionAttribute("5\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
                 public SAngle3D_t SRot_5{ get { return CDisp.afRot[4]; } set { CDisp.afRot[4] = value; } }
-
-                [DisplayName(m_pstrProp_52), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute(""), TypeConverter(typeof(CPoint3DConvert))]
-                public SPoint3D_t SPickGroup { get { return new SPoint3D_t(CDisp.nPickGroup_A, CDisp.nPickGroup_B, CDisp.nPickGroup_C); } set { CDisp.nPickGroup_A = value.x; CDisp.nPickGroup_B = value.y; CDisp.nPickGroup_C = value.z; } }
-                
-                [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
-                public int nInverseKinematicsNumber { get { return CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
-                [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+[DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public float fScale_Serve0 { get { return CDisp.fScale_Serve0; } set { CDisp.fScale_Serve0 = value; } }
                 [DisplayName(m_pstrProp_57), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public float fScale_Serve1 { get { return CDisp.fScale_Serve1; } set { CDisp.fScale_Serve1 = value; } }
@@ -2201,6 +3571,7 @@ namespace OpenJigWare
             }
 
             private const String m_strProp_Main0 = "Version";
+            private const string m_strProp_Main8 = "3D View";
             private const String m_strProp_Main1 = "Mouse Mode";
             private const String m_strProp_Main2 = "Empty";
             private const String m_strProp_Main3 = "Alpha(Main)";
@@ -2208,7 +3579,8 @@ namespace OpenJigWare
             private const String m_strProp_Main5 = "Show StandardAxis";
             private const String m_strProp_Main6 = "Show VirtualAxis";
             private const string m_strProp_Main7 = "DefaultFunction";
-
+            private const string m_strProp_Main9 = "Territory";
+            private const string m_strProp_Main10 = "BackColor";
             [DefaultPropertyAttribute("OpenJigWare")]
             private class CProp_Main
             {
@@ -2223,12 +3595,15 @@ namespace OpenJigWare
                 #region #### Var(Group0) ####
                 private string _strVersion = "1.0.0";
                 private int _nMouseMode = 1; // m_nMouseControlMode 변수의 셋팅값을 따라갈 것
+                private int _n3DView = 0; // 0 - Default, 1 - Perpective
+                private int _nTerritoryView = 0; // 0 - Default, 1 - Show
                 private bool _bEmpty = false;
                 private bool _bLight = true;
                 private bool _bShowStandardAxis = false; // m_bStandardAxis 변수의 셋팅값을 따라갈 것
                 private bool _bShowVirtualAxis = false; // m_bVirtualClass 변수의 셋팅값을 따라갈 것
                 private int _nDefaultFunctionNum = -1;
                 private float _fAlpha_All = 1.0f;
+                private Color _cBackColor = Color.DarkGray;
                 // Robot Rot, Mov
                 // Display Rot, Mov
                 // Display Scale
@@ -2302,8 +3677,24 @@ namespace OpenJigWare
                 [DisplayName(m_strProp_Main7), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("Default Function(-1: None, 0 ~ 511)")]
                 public int nMain_DefaultFunctionNum { get { return _nDefaultFunctionNum; } set { _nDefaultFunctionNum = value; } }
                 #endregion ShowStandardAxis(false)
-
+                #region 3DView(0)
+                [DisplayName(m_strProp_Main8), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("3D View\r\n -> Default : 0(Normal View), 1(Perspective View)")]
+                public int nMain_3DView { get { return _n3DView; } set { _n3DView = value; } }
+                #endregion 3DView
+                #region Territory
+                [DisplayName(m_strProp_Main9), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("Territory\r\n -> Default : 0, 1(Show)")]
+                public int nMain_Show_Territory { get { return _nTerritoryView; } set { _nTerritoryView = value; } }
+                #endregion Territory
                 
+                #region BackColor
+                [DisplayName(m_strProp_Main10),
+                Browsable(true),
+                CategoryAttribute(strGroup),
+                DescriptionAttribute("BackGround Color")]
+                public Color cMain_BackColor { get { return _cBackColor; } set { _cBackColor = value; } }
+
+                private CSlider<float> m_fSliderAlpha = new CSlider<float>(1.0f, 0.0f, 1.0f, 0.1f);
+                #endregion BackColor
 
                 #endregion #### Group0 ####
             }
@@ -2860,8 +4251,35 @@ namespace OpenJigWare
                 public double m_dPos_X = 0.0f;
                 public double m_dPos_Y = 0.0f;
                 public double m_dPos_Z = 0.0f;
+                private int m_nSeq_MouseDown_Back = 0;
+                private int m_nSeq_MouseDown = 0;
+                private int m_nSeq_MouseUp_Back = 0;
+                private int m_nSeq_MouseUp = 0;
+                public bool IsMouseDown()
+                {
+                    if (m_nSeq_MouseDown != m_nSeq_MouseDown_Back)
+                    {
+                        m_nSeq_MouseDown = m_nSeq_MouseDown_Back;
+                        // Etc
+                        //m_nSeq_MouseUp = m_nSeq_MouseUp_Back;
+                        return true;
+                    }
+                    return false;
+                }
+                public bool IsMouseUp()
+                {
+                    if (m_nSeq_MouseUp != m_nSeq_MouseUp_Back)
+                    {
+                        m_nSeq_MouseUp = m_nSeq_MouseUp_Back;
+                        // Etc
+                        //m_nSeq_MouseDown = m_nSeq_MouseDown_Back;
+                        return true;
+                    }
+                    return false;
+                }
                 public void OjwMouseDown(MouseEventArgs e)
                 {
+                    m_nSeq_MouseDown++;
                     if (m_bMouseClick == false)
                     {
                         SelectObject_Clear();
@@ -2928,11 +4346,19 @@ namespace OpenJigWare
                 private void ItemAdded(object sender, EventArgs e)
                 {
                     // 이벤트 발생시 동작 기능들...
-                    if (IsDrawText() == true)
+                    //if (IsDrawText() == true)
+                    //{
+                    //    m_bItemAdded = true;
+                    //    m_rtxtDraw.Text = GetHeader_strDrawModel();
+                    //    m_rtxtDraw.Select(m_nSelectedItem, 0);
+                    //    StringListToGrid();
+                    //    m_bItemAdded = false;
+                    //}
+                    if (IsDrawRText() == true)
                     {
                         m_bItemAdded = true;
-                        m_txtDraw.Text = GetHeader_strDrawModel();
-                        m_txtDraw.Select(m_nSelectedItem, 0);
+                        m_rtxtDraw.Text = GetHeader_strDrawModel();
+                        m_rtxtDraw.Select(m_nSelectedItem, 0);
                         StringListToGrid();
                         m_bItemAdded = false;
                     }
@@ -2996,10 +4422,10 @@ namespace OpenJigWare
                                 else
                                 {
                                     Ojw.CMessage.Write("Design File - " + fileName + "(v" + m_strVersion + ")");
-                                    if (IsDrawText() == true)
+                                    if (IsDrawRText() == true)
                                     {
-                                        //Ojw.CMessage.Write2(m_txtDraw, m_CHeader.strDrawModel);
-                                        m_txtDraw.Text = GetHeader_strDrawModel();
+                                        //Ojw.CMessage.Write2(m_rtxtDraw, m_CHeader.strDrawModel);
+                                        m_rtxtDraw.Text = GetHeader_strDrawModel();
                                         StringListToGrid();
                                     }
                                     #region DH
@@ -3064,29 +4490,56 @@ namespace OpenJigWare
 
                     }
                 }
-                private TextBox m_txtDraw = null;
-                public void SetDrawText_ForDisplay(TextBox txtDraw)
+                //private TextBox m_txtDraw = null;
+                private RichTextBox m_rtxtDraw = null;
+
+                public void SetDrawText_ForDisplay(RichTextBox rtxtDraw)
                 {
-                    txtDraw.Multiline = true;
-                    txtDraw.WordWrap = false;
+                    rtxtDraw.Multiline = true;
+                    rtxtDraw.WordWrap = false;
 
-                    m_txtDraw.TextChanged -= new System.EventHandler(m_txtDraw_TextChanged);
-                    m_txtDraw.KeyDown -= new KeyEventHandler(m_txtDraw_KeyDown);
-                    m_txtDraw.MouseDown -= new MouseEventHandler(m_txtDraw_MouseDown);
+                    m_rtxtDraw.TextChanged -= new System.EventHandler(m_rtxtDraw_TextChanged);
+                    m_rtxtDraw.KeyDown -= new KeyEventHandler(m_rtxtDraw_KeyDown);
+                    m_rtxtDraw.MouseDown -= new MouseEventHandler(m_rtxtDraw_MouseDown);
 
-                    m_txtDraw = txtDraw;
+                    m_rtxtDraw = rtxtDraw;
+
+                    m_rtxtDraw.TextChanged += new System.EventHandler(m_rtxtDraw_TextChanged);
+                    m_rtxtDraw.KeyDown += new KeyEventHandler(m_rtxtDraw_KeyDown);
+                    m_rtxtDraw.MouseDown += new MouseEventHandler(m_rtxtDraw_MouseDown);
+                }
+                //public void SetDrawText_ForDisplay(TextBox txtDraw)
+                //{
+                //    txtDraw.Multiline = true;
+                //    txtDraw.WordWrap = false;
+
+                //    m_txtDraw.TextChanged -= new System.EventHandler(m_txtDraw_TextChanged);
+                //    m_txtDraw.KeyDown -= new KeyEventHandler(m_txtDraw_KeyDown);
+                //    m_txtDraw.MouseDown -= new MouseEventHandler(m_txtDraw_MouseDown);
+
+                //    m_txtDraw = txtDraw;
                     
-                    m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
-                    m_txtDraw.KeyDown += new KeyEventHandler(m_txtDraw_KeyDown);
-                    m_txtDraw.MouseDown += new MouseEventHandler(m_txtDraw_MouseDown);
+                //    m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
+                //    m_txtDraw.KeyDown += new KeyEventHandler(m_txtDraw_KeyDown);
+                //    m_txtDraw.MouseDown += new MouseEventHandler(m_txtDraw_MouseDown);
 
-                }//m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged); }
-                private void m_txtDraw_TextChanged(object sender, EventArgs e)
+                //}//m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged); }
+                //private void m_txtDraw_TextChanged(object sender, EventArgs e)
+                //{
+                //    //if (m_bEditing == false)
+                //    {
+                //        //GridToStringList();
+                //        SetHeader_strDrawModel(m_txtDraw.Text);
+                //        CompileDesign();
+                //        StringListToGrid(); // for Gridview only
+                //    }
+                //}
+                private void m_rtxtDraw_TextChanged(object sender, EventArgs e)
                 {
                     //if (m_bEditing == false)
                     {
                         //GridToStringList();
-                        SetHeader_strDrawModel(m_txtDraw.Text);
+                        SetHeader_strDrawModel(m_rtxtDraw.Text);
                         CompileDesign();
                         StringListToGrid(); // for Gridview only
                     }
@@ -3096,15 +4549,33 @@ namespace OpenJigWare
                 //    //m_CGridDraw = dgDraw;
 
                 //}
-                private bool IsDrawText() 
+                //private bool IsDrawText() 
+                //{
+                //    bool bRet = false;
+                //    try
+                //    {
+                //        //bRet = ((m_txtDraw == null) ? false : true);
+                //        if (m_txtDraw != null)
+                //        {
+                //            if (m_txtDraw.IsHandleCreated == true) 
+                //                bRet = true;
+                //        }
+                //    }
+                //    catch //(Exception e)
+                //    {
+                //        //Ojw.CMessage.Write_Error(e.ToString());
+                //    }
+                //    return bRet;
+                //}
+                private bool IsDrawRText()
                 {
                     bool bRet = false;
                     try
                     {
-                        //bRet = ((m_txtDraw == null) ? false : true);
-                        if (m_txtDraw != null)
+                        //bRet = ((m_rtxtDraw == null) ? false : true);
+                        if (m_rtxtDraw != null)
                         {
-                            if (m_txtDraw.IsHandleCreated == true) 
+                            if (m_rtxtDraw.IsHandleCreated == true)
                                 bRet = true;
                         }
                     }
@@ -3277,8 +4748,10 @@ namespace OpenJigWare
                 {
                 }
 #endif
+                
                 public void OjwMouseUp(MouseEventArgs e)
                 {
+                    m_nSeq_MouseUp++;
 
                     //OjwDraw();
                     //m_nMouse_X_Left = e.X;
@@ -3632,11 +5105,18 @@ namespace OpenJigWare
                 {
                     for (int i = 0; i < 3; i++) m_fColor[i] = 1.0f;
                     InitGLContext();
-                    m_txtDraw = new TextBox();
-                    m_txtDraw.CreateControl();
-                    m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
-                    m_txtDraw.KeyDown += new KeyEventHandler(m_txtDraw_KeyDown);
-                    m_txtDraw.MouseDown += new MouseEventHandler(m_txtDraw_MouseDown);
+                    //m_txtDraw = new TextBox();
+                    //m_txtDraw.CreateControl();
+                    //m_txtDraw.TextChanged += new System.EventHandler(m_txtDraw_TextChanged);
+                    //m_txtDraw.KeyDown += new KeyEventHandler(m_txtDraw_KeyDown);
+                    //m_txtDraw.MouseDown += new MouseEventHandler(m_txtDraw_MouseDown);
+                    
+                    m_rtxtDraw = new RichTextBox();
+                    m_rtxtDraw.CreateControl();
+                    m_rtxtDraw.TextChanged += new System.EventHandler(m_rtxtDraw_TextChanged);
+                    m_rtxtDraw.KeyDown += new KeyEventHandler(m_rtxtDraw_KeyDown);
+                    m_rtxtDraw.MouseDown += new MouseEventHandler(m_rtxtDraw_MouseDown);
+
                     m_lstDraw.Clear();
 
                     //this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
@@ -3659,6 +5139,7 @@ namespace OpenJigWare
 
                     SelectObject_Clear();
 
+                    InitTools_Kinematics(m_pnKinematics); // 다른 것도 필요하다면 하는게 좋지만 이게 Combobox 들 초기화 때문에 하는게 좋다.
 
                     m_ctxmenuMouse.ItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_ItemClicked);
                     //m_ctxmenuMouse.Layout   +=new LayoutEventHandler(m_ctxmenuMouse_Layout);  // += new EventHandler(m_ctxmenuMouse_Opened);
@@ -3668,13 +5149,27 @@ namespace OpenJigWare
                     Event_FileOpen.UserEvent += new EventHandler(FileOpened);
                 }
 
-                void m_txtDraw_MouseDown(object sender, MouseEventArgs e)
+                //void m_txtDraw_MouseDown(object sender, MouseEventArgs e)
+                //{
+                //    //throw new NotImplementedException();
+                //    try
+                //    {
+                //        // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => 참고
+                //        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
+
+                //        SelectLine(nLine);
+                //    }
+                //    catch
+                //    {
+                //    }
+                //}
+                void m_rtxtDraw_MouseDown(object sender, MouseEventArgs e)
                 {
                     //throw new NotImplementedException();
                     try
                     {
                         // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => 참고
-                        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
+                        int nLine = m_rtxtDraw.GetLineFromCharIndex(m_rtxtDraw.GetFirstCharIndexOfCurrentLine());
 
                         SelectLine(nLine);
                     }
@@ -3683,12 +5178,37 @@ namespace OpenJigWare
                     }
                 }
 
-                private void m_txtDraw_KeyDown(object sender, KeyEventArgs e)
+                //private void m_txtDraw_KeyDown(object sender, KeyEventArgs e)
+                //{
+                //    //throw new NotImplementedException();
+                //    try
+                //    {
+                //        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
+                //        if (e.KeyValue == 38) // Up
+                //        {
+                //            nLine--;
+                //            if (nLine < 0) nLine = 0;
+                //        }
+                //        else if (e.KeyValue == 40) // Down
+                //        {
+                //            nLine++;
+                //            if (nLine >= m_txtDraw.Lines.Length)
+                //            {
+                //                nLine = m_txtDraw.Lines.Length - 1;
+                //            }
+                //        }
+                //        SelectLine(nLine);
+                //    }
+                //    catch
+                //    {
+                //    }
+                //}
+                private void m_rtxtDraw_KeyDown(object sender, KeyEventArgs e)
                 {
                     //throw new NotImplementedException();
                     try
                     {
-                        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
+                        int nLine = m_rtxtDraw.GetLineFromCharIndex(m_rtxtDraw.GetFirstCharIndexOfCurrentLine());
                         if (e.KeyValue == 38) // Up
                         {
                             nLine--;
@@ -3697,9 +5217,9 @@ namespace OpenJigWare
                         else if (e.KeyValue == 40) // Down
                         {
                             nLine++;
-                            if (nLine >= m_txtDraw.Lines.Length)
+                            if (nLine >= m_rtxtDraw.Lines.Length)
                             {
-                                nLine = m_txtDraw.Lines.Length - 1;
+                                nLine = m_rtxtDraw.Lines.Length - 1;
                             }
                         }
                         SelectLine(nLine);
@@ -3750,6 +5270,7 @@ namespace OpenJigWare
                 public void RemoveMouseEvent_Up(MouseEventHandler FFunc) { this.MouseUp -= (MouseEventHandler)FFunc; }
                 public void RemoveMouseEvent_Wheel(MouseEventHandler FFunc) { this.MouseWheel -= (MouseEventHandler)FFunc; }
 
+                public C3d GetHandle() { return this; }
                 public void SetMouseEventEnable(bool bEn)
                 {
                     if (bEn != m_bMouseEventEnable)
@@ -3798,7 +5319,13 @@ namespace OpenJigWare
                     //model.Destroy();
                     if (m_bClassEnd == true) m_bClassEnd = true;
                 }
-            
+#if _SET_DEFAULT_PERSPECTIVE
+                private int m_nPerspectiveMode = 1;
+#else
+                private int m_nPerspectiveMode = 0;
+#endif
+                public void SetPerspectiveMode(bool bOn) { m_nPerspectiveMode = ((bOn  == true) ? 1 : 0); } // 보이는 뷰를 원근 뷰로 전환
+                public bool IsPerspectiveMode() { return ((m_nPerspectiveMode == 1) ? true : false); }
                 public void InitGLContext()
                 {                    
 #if _GL_FLAT
@@ -3807,15 +5334,20 @@ namespace OpenJigWare
                     Gl.glShadeModel(Gl.GL_SMOOTH);							    // Enable Smooth Shading                    
 #endif
                     //glShadeModel(GL_FLAT);							        // Enable Smooth Shading
-                    Gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				    // Black Background
+                    Gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				    // Black Background
+                    //Gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				    // Black Background
 
                     Gl.glClearDepth(1.0f);									    // Depth Buffer Setup
-#if true
-                    Gl.glEnable(Gl.GL_DEPTH_TEST);							    // Enables Depth Testing
-                    Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
-#else
-                    Gl.glDisable(Gl.GL_DEPTH_TEST);
-#endif
+                    if (IsPerspectiveMode() == false)
+                    {
+                        //Gl.glEnable(Gl.GL_DEPTH_TEST);							    // Enables Depth Testing
+                        //Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
+                    }
+                    else
+                    {
+                        //Gl.glEnable(Gl.GL_DEPTH_TEST);
+                        //Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
+                    }
                     Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);	// Really Nice Perspective Calculations
 
                     // Texture
@@ -3844,6 +5376,19 @@ namespace OpenJigWare
                     //m_szDisplaySize = ctrlMain.Size;
                     //SizeChange(m_szDisplaySize);
                     SizeChange(this.Size);
+
+                    for (int i = 0; i < _CNT_TRACK_BALL; i++) m_aSTrack[i] = new STrackD_t();
+                }
+                public void DInit()
+                {
+                    if (m_CProperty != null) m_CProperty.Destroy();
+                    if (m_CProperty_Selected != null) m_CProperty_Selected.Destroy();
+                    m_CProperty = null;
+                    m_CProperty_Selected = null;
+                    //this.Dispose();
+                    try { ((IDisposable)this).Dispose(); }
+                    catch { }
+                    GC.SuppressFinalize(this);
                 }
 
                 #region LoadTextures()
@@ -3918,6 +5463,8 @@ namespace OpenJigWare
                 public void glFlush() { Gl.glFlush(); }
                 public void glDraw_Ready()
                 {
+                    m_nTrackBall = 0;
+
                     //SwapBuffers();
                     //Glut.glutInit();
                     //m_szDisplaySize = this.Size;
@@ -3941,7 +5488,7 @@ namespace OpenJigWare
                         // Switch to normal rendering mode(Kor: 보통의 렌더링 모드로 전환)
                         //GL.glMatrixMode(GL.GL_MODELVIEW);
 
-                        SetLight();
+                        SetLight(); // 이거 없애면 큰일난다. -_-;;;
 
                         Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
                         m_fColor_Back[0] = ((float)(m_BackColor.R) / 255.0f);  // R
@@ -3967,6 +5514,27 @@ namespace OpenJigWare
                         m_lstDraw.Clear();
                         m_CGridDraw.Delete();
                         //int i = 0;
+#if true
+                        foreach (String strItem in m_rtxtDraw.Lines)
+                        {
+                            m_lstDraw.Add(strItem);
+                            int nIndex = strItem.IndexOf("//");
+                            int nLength = m_CGridDraw.GetLineCount();
+                            if (nIndex < 0)
+                            {
+                                m_CGridDraw.Insert(nLength, 1);
+                                //m_CGridDraw.SetData(nLength, 0, "//");
+                                //m_lstDraw.Add("//");
+                            }
+                            else
+                            {
+                                m_CGridDraw.Insert(nLength, 1);
+                                m_CGridDraw.SetData(nLength, 0, strItem.Substring(nIndex + 2));
+                            }
+                            //if (nLength - 1 == m_nSelectedItem)
+                            //    m_CGridDraw.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
+                        }
+#else
                         foreach (String strItem in m_txtDraw.Lines)
                         {
                             m_lstDraw.Add(strItem);
@@ -3986,6 +5554,7 @@ namespace OpenJigWare
                             //if (nLength - 1 == m_nSelectedItem)
                             //    m_CGridDraw.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
                         }
+#endif
                         if (m_bItemAdded == true)
                             if (m_CGridDraw.GetHandle().Rows.Count > m_nSelectedItem) m_CGridDraw.GetHandle().CurrentCell = m_CGridDraw.GetHandle().Rows[m_nSelectedItem].Cells[1];
                         for (int i = 0; i < OjwDispAll.GetCount(); i++)
@@ -4032,10 +5601,16 @@ namespace OpenJigWare
                 }
                 private void GridToStringList()
                 {
-                    m_txtDraw.Text = String.Empty;
+                    //m_txtDraw.Text = String.Empty;
+                    //foreach (String strItem in m_lstDraw)
+                    //{
+                    //    m_txtDraw.Text += strItem + "\r\n";
+                    //}
+                    /////////////
+                    m_rtxtDraw.Text = String.Empty;
                     foreach (String strItem in m_lstDraw)
                     {
-                        m_txtDraw.Text += strItem + "\r\n";
+                        m_rtxtDraw.Text += strItem + "\r\n";
                     }
                 }
                 private CGridView m_CGridDraw = new CGridView();
@@ -4056,7 +5631,7 @@ namespace OpenJigWare
                     m_CGridDraw.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridDraw_Event_CellEnter);
                     //m_CGridDraw.Ignore_CellEnter(true);
 
-                    m_CGridDraw.dgAngle_Block_GridChange(m_txtDraw, true); // Insert, Delete 블럭.
+                    m_CGridDraw.dgAngle_Block_GridChange(m_rtxtDraw, true); // Insert, Delete 블럭.
 
                     m_CGridDraw.GetHandle().RowsAdded += new DataGridViewRowsAddedEventHandler(GridDraw_Event_RowsAdded);
                     m_CGridDraw.GetHandle().RowsRemoved += new DataGridViewRowsRemovedEventHandler(GridDraw_Event_RowsRemoved);
@@ -4070,9 +5645,16 @@ namespace OpenJigWare
                 #region Grid For Motion
                 private CGridView m_CGridMotionEditor = new CGridView();
                 private bool m_bGridInit = false;
+                private DataGridView m_dgAngle = new DataGridView();
+                private void GridMotionEditor_Init(int nWidth, int nLines)
+                {
+                    if (m_bGridInit == true) GridMotionEditor_Init(m_dgAngle, nWidth, nLines);
+                    else CMessage.Write_Error("Grid Init Error");
+                }
 
                 public void GridMotionEditor_Init(DataGridView dgAngle, int nWidth, int nLines)
                 {
+                    m_dgAngle = dgAngle;
                     // 모터의 갯수
                     int nCnt = m_CHeader.nMotorCnt;
                     // GridView
@@ -4161,20 +5743,20 @@ namespace OpenJigWare
                                 //        //Prop_Update_Selected();
 
                                 string strDraw = String.Empty;
-                                if (m_txtDraw.Lines.Length > 0)
+                                if (m_rtxtDraw.Lines.Length > 0)
                                 {
-                                    for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                    for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
                                     {
                                         if (i == e.RowIndex)
                                         {
-                                            int nFind = m_txtDraw.Lines[i].IndexOf("//");
-                                            if (nFind < 0) nFind = m_txtDraw.Lines[i].Length;
+                                            int nFind = m_rtxtDraw.Lines[i].IndexOf("//");
+                                            if (nFind < 0) nFind = m_rtxtDraw.Lines[i].Length;
                                             // 기존의 주석이 있는 경우 일단 제거해야 한다.                                                
-                                            strDraw += m_txtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
+                                            strDraw += m_rtxtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
                                             //if (nFind >= 0)
                                             //{
                                             //    // 기존의 주석이 있는 경우 일단 제거해야 한다.                                                
-                                            //    strDraw += m_txtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
+                                            //    strDraw += m_rtxtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
                                             //    //strDraw += "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
                                             //}
                                             //else
@@ -4182,10 +5764,10 @@ namespace OpenJigWare
                                             //    strDraw += "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
                                             //}
                                         }
-                                        else strDraw += m_txtDraw.Lines[i];
-                                        if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                                        else strDraw += m_rtxtDraw.Lines[i];
+                                        if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";
                                     }
-                                    m_txtDraw.Text = strDraw;
+                                    m_rtxtDraw.Text = strDraw;
                                 }
 
                                 CMessage.Write((string)m_CGridDraw.Get(e.RowIndex, 0));//"e.ColumnIndex == 1:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
@@ -4207,11 +5789,11 @@ namespace OpenJigWare
                             //m_CGridMotionEditor.SetChangeCurrentLine(e.RowIndex);
                             GridMotionEditor_Draw(e.RowIndex);
                         }
-                        if (m_panelSelected != null)
-                        {
-                            SelectObject_Clear();
-                            SelectObject_Add(e.RowIndex);
-                        }
+                        //if (m_panelSelected != null)
+                        //{
+                        //    SelectObject_Clear();
+                        //    SelectObject_Add(e.RowIndex);
+                        //}
                     }
                 }
                 public int GridMotionEditor_GetCurrentLine() { return m_CGridMotionEditor.OjwGrid_GetCurrentLine(); }
@@ -4416,6 +5998,15 @@ namespace OpenJigWare
 
                             glDraw_Ready();
 
+
+                            //float fSize_ = 1.0f;// 2.0f;
+                            //float fSize_2 = 1.0f;// 5.0f;
+                            //Gl.glLoadIdentity();
+                            //OjwTranslate(100, 100, 0);
+                            //Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize_, 40000);
+                            //Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize_2, 200);
+
+
                             #region Dh-notation ball Drawing
                             if (IsTestDh() == true)
                             {
@@ -4460,8 +6051,110 @@ namespace OpenJigWare
 
                             InitPosAngle_WithAxis();
 
-                            //// The actual part to be drawn(Kor: 실제 그려질 부분) ////
+#if false
+                            float fTmpX = -160;
+                            float fTmpY = 90;
+                            float fTmpZ = 412;
+                            //OjwTranslate(fTmpX, fTmpY, fTmpZ);
+                            //OjwTrack_Circle(true, Color.Red, 1.0f,
+                            //                "Track.stl",
+                            //    0.0f, 0.0f, 180.0f,//180.0f,
+                            //    17, // Distance
+                            //    90.0f, // Radius
+                            //    5, // Width
+                            //    1, // Height
+                            //    10, // Depth
+                            //    90, 0, 0, // Track_Offset(Pan, Tilt, Swing)
+                            //    0, 0, 0 // Track_Offset(X, Y, Z)
+                            //);
+                            //OjwTranslate(-fTmpX, -fTmpY, -fTmpZ);
+                            OjwTrack2(0.0f, true, Color.Red, 1.0f,
+                                "Track.stl",
+                                5, // Width
+                                1, // Height
+                                10, // Depth
+                                17, // Distance
+                                0, 180, 0, // Track_Offset(Pan, Tilt, Swing)
+                                0.8f, -2.0f, 0, // Track_Offset(X, Y, Z)
+                                0, 0, 0, // Offset(Pan, Tilt, Swing)
+                                0, 0, 0, // Offset(X, Y, Z)
+                                -100, 0, 30,
+                                  0, 80, 60,
+                                  100, 0, 30,
+                                  0, -80, 60);
+#endif
                             COjwDisp CDisp = new COjwDisp();
+                            #region User
+                            int nCntUser = OjwDispAll_User.GetCount();
+                            for (i = 0; i < nCntUser; i++)
+                            {
+                                float fAlpha = m_fAlpha;
+                                CDisp = OjwDispAll_User.GetData(i);
+                                if (CDisp != null)
+                                {
+                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+
+                                    // Limit Check(Kor: 각도의 Limit 체크) //
+                                    if (CDisp.nName >= 0)
+                                    {
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                    }
+
+                                    OjwDraw_Class(CDisp);
+                                }
+                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
+                            }
+
+                            #region Territory
+#if true
+                            if (IsTerritory() == true)
+                            {
+                                OjwTerritory(m_bTerritory_Fill, m_clrTerritory_Color, m_fTerritory_Alpha,
+                                    m_fTerritory_Block_Width, m_fTerritory_Block_Depth,
+                                    m_nTerritory_Count_Width, m_nTerritory_Count_Depth);
+                                //int nW = m_nTerritory_Count_Width / 2;
+                                //int nH = m_nTerritory_Count_Depth / 2;
+                                //float fBlock_Width = m_fTerritory_Block_Width;
+                                //float fBlock_Depth = m_fTerritory_Block_Depth;
+                                //float fBlock_Height = m_fTerritory_Block_Height;
+                                //InitPosAngle();
+
+                                //// 로봇의 움직임 구현
+                                //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                                //OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
+
+                                ////OjwTranslate(OjwDisp.afTrans[j].x, OjwDisp.afTrans[j].y, OjwDisp.afTrans[j].z);
+                                ////OjwRotation(OjwDisp.afRot[j].pan, OjwDisp.afRot[j].tilt, OjwDisp.afRot[j].swing);
+
+                                ////int nPos = 0;
+                                //for (int nTerritory_W = -nW; nTerritory_W < nW; nTerritory_W++)
+                                //{
+                                //    for (int nTerritory_H = -nH; nTerritory_H < nH; nTerritory_H++)
+                                //    {
+                                //        //OjwTranslate(fBlock_Width, 0, 0);
+                                //        //nPos++;                
+                                //        OjwBox_Simple(m_bTerritory_Fill, m_clrTerritory_Color, m_fTerritory_Alpha, fBlock_Width, fBlock_Height, fBlock_Depth, 0, 0, 0, fBlock_Width * (float)nTerritory_W, 0, fBlock_Depth * (float)nTerritory_H);
+                                //    }
+                                //    //OjwTranslate(fBlock_Depth, 0, 0);
+                                //}
+                            }
+#endif
+                            #endregion Territory
+
+                            //#region Init Again
+                            //InitPosAngle();
+                            //m_afCalcPos[0] = 0;
+                            //m_afCalcPos[1] = 0;
+                            //m_afCalcPos[2] = 0;
+                            //m_afCalcAngle[0] = 0;
+                            //m_afCalcAngle[1] = 0;
+                            //m_afCalcAngle[2] = 0;
+                            //#endregion Init Again
+                            #endregion User
+
+                            //// The actual part to be drawn(Kor: 실제 그려질 부분) ////
                             if (_CNT_FILEOPEN != m_nBackupCnt_HistoryFileOpen)
                             {
                                 m_nBackupCnt_HistoryFileOpen = _CNT_FILEOPEN;
@@ -4470,6 +6163,8 @@ namespace OpenJigWare
 
                             int nCnt = OjwDispAll.GetCount();
                             if (IsVirtualClass() == true) nCnt++;
+
+                            InitPosAngle();
 
                             #region Main Drawing
                             //for (i = 0; i < OjwDispAll.GetCount(); i++)
@@ -4493,6 +6188,7 @@ namespace OpenJigWare
                                         if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
                                         if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
                                     }
+                                    
                                     m_nDrawClass_Pos = i;
                                     OjwDraw_Class(CDisp);
                                 }
@@ -4521,42 +6217,7 @@ namespace OpenJigWare
                                 }
                             }
                             #endregion Test Drawing
-
-                            #region User
-                            int nCntUser = OjwDispAll_User.GetCount();
-                            for (i = 0; i < nCntUser; i++)
-                            {
-                                float fAlpha = m_fAlpha;
-                                CDisp = OjwDispAll_User.GetData(i);
-                                if (CDisp != null)
-                                {
-                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
-                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
-
-                                    // Limit Check(Kor: 각도의 Limit 체크) //
-                                    if (CDisp.nName >= 0)
-                                    {
-                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
-                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
-                                    }
-
-                                    OjwDraw_Class(CDisp);
-                                }
-                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
-                            }
-                            //#region Init Again
-                            //InitPosAngle();
-                            //m_afCalcPos[0] = 0;
-                            //m_afCalcPos[1] = 0;
-                            //m_afCalcPos[2] = 0;
-                            //m_afCalcAngle[0] = 0;
-                            //m_afCalcAngle[1] = 0;
-                            //m_afCalcAngle[2] = 0;
-                            //#endregion Init Again
-                            #endregion User
-
-
-
+                            
                             long lRet = glDraw_End();
                             //bPick = IsPicking();
                             //if (bPick == true)
@@ -4622,6 +6283,36 @@ namespace OpenJigWare
                         // 뮤텍스 해제
                         m_mtxDraw.ReleaseMutex();
                     }
+                }
+                private int m_nTerritory = 0;
+                private float[] m_afTerritory_Pos = new float[3];
+                private float[] m_afTerritory_Rot = new float[3];
+
+                private float m_fTerritory_Block_Width = 100.0f;
+                //private float m_fTerritory_Block_Height = 0.1f;
+                private float m_fTerritory_Block_Depth = 100.0f;
+
+                private int m_nTerritory_Count_Width = 100;
+                private int m_nTerritory_Count_Depth = 100;
+                private bool m_bTerritory_Fill = true;
+                private Color m_clrTerritory_Color = Color.SandyBrown;
+                private float m_fTerritory_Alpha = 1.0f;
+                public void SetTerritory_Alpha(float fAlpha) { m_fTerritory_Alpha = fAlpha; }
+                public void SetTerritory_Fill(bool bFill) { m_bTerritory_Fill = bFill; }
+                public void SetTerritory_Color(Color cColor) { m_clrTerritory_Color = cColor; }
+                public void SetTerritory_Show(bool bShow) { m_nTerritory = (bShow == true ? 1 : 0); }
+                public bool IsTerritory() { return (m_nTerritory == 0) ? false : true; }
+                
+                public void SetTerritory_Block_Size(float fWidth, float fDepth)
+                {
+                    m_fTerritory_Block_Width = fWidth;
+                    //m_fTerritory_Block_Height = fHeight;
+                    m_fTerritory_Block_Depth = fDepth;
+                }
+                public void SetTerritory_Block_Count(int nWidth, int nDepth)
+                {
+                    m_nTerritory_Count_Width = nWidth;
+                    m_nTerritory_Count_Depth = nDepth;
                 }
 
                 public void OjwDraw(COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
@@ -4880,25 +6571,45 @@ namespace OpenJigWare
 
                     if (w <= h)
                     {
-#if true
-                        Gl.glOrtho(-fRange, fRange, -fRange * fRatio, fRange * fRatio, -fRange * 10, fRange * 10);
-                        //Glu.gluLookAt(0, 0, 1000 * (m_afMot[0] / 10.0 + 1), 0, 0, 0, 0, 1, 0);
-#else
-                        Glu.gluPerspective(65, (double)h / (double)w, 0.1, 1000);
-                        Glu.gluLookAt(0, 0, 1500, 0, 0, 0, 0, 1, 0);
-#endif
+                        if (IsPerspectiveMode() == false)
+                        {
+                            Gl.glOrtho(-fRange, fRange, -fRange * fRatio, fRange * fRatio, -fRange * 10, fRange * 10);
+                            //Glu.gluLookAt(0, 0, 1000 * (m_afMot[0] / 10.0 + 1), 0, 0, 0, 0, 1, 0);
+                        }
+                        else
+                        {
+                            //Glu.gluPerspective(65, (double)w / (double)h, 0.1, 1000);
+                            Glu.gluPerspective(45,//100 * ((m_fScale > 1.6f) ? 1.6 : ((m_fScale < 0.0001f) ? 0.0001 : m_fScale)),
+                                (double)h / (double)w, 0.1, 10000);
+                            //float fScale = 100;
+                            //Gl.glScalef(fScale * m_fScale, fScale * m_fScale, 300);
+                        
+                            //Gl.glLoadIdentity();
+                            //Glu.gluLookAt(0, 0, 1500 * m_fScale, 0, 0, 0, 0, 1, 0);
+                            //Glu.gluLookAt(0, 0, 400, 0, 0, 0, 0, 1, 0);
+                            //Gl.glFrustum(-fRange / fRatio, fRange / fRatio, -fRange, fRange, -fRange * 10, fRange * 10);
+                        }
                     }
                     else
                     {
-#if true
-                        Gl.glOrtho(-fRange / fRatio, fRange / fRatio, -fRange, fRange, -fRange * 10, fRange * 10);
-                        //Glu.gluLookAt(0, 0, 1000 * (m_afMot[0] / 10.0 + 1), 0, 0, 0, 0, 1, 0);
-#else
-                        //Glu.gluPerspective(65, (double)w / (double)h, 0.1, 1000);
-                        Glu.gluPerspective(100 * ((m_fScale > 1.5f) ? 1.5 : ((m_fScale < 0.0001f) ? 0.0001 : m_fScale)), (double)w / (double)h, 0.1, 8000);
-                        //Gl.glScalef(m_fScale, m_fScale, m_fScale);
-                        Glu.gluLookAt(0, 0, 3000, 0, 0, 0, 0, 1, 0);
-#endif
+                        if (IsPerspectiveMode() == false)
+                        {
+                            Gl.glOrtho(-fRange / fRatio, fRange / fRatio, -fRange, fRange, -fRange * 10, fRange * 10);
+                            //Glu.gluLookAt(0, 0, 1000 * (m_afMot[0] / 10.0 + 1), 0, 0, 0, 0, 1, 0);
+                        }
+                        else
+                        {
+                            //Glu.gluPerspective(65, (double)w / (double)h, 0.1, 1000);
+                            Glu.gluPerspective(45,//100 * ((m_fScale > 1.6f) ? 1.6 : ((m_fScale < 0.0001f) ? 0.0001 : m_fScale)),
+                                (double)w / (double)h, 0.1, 10000);
+                            //float fScale = 100;
+                            //Gl.glScalef(fScale * m_fScale, fScale * m_fScale, 300);
+                            //Gl.glLoadIdentity();
+                            //Glu.gluLookAt(0, 0, 1500 * m_fScale, 0, 0, 0, 0, 1, 0);
+
+                            //Glu.gluLookAt(0, 0, 400, 0, 0, 0, 0, 1, 0);
+                            //Gl.glFrustum(-fRange / fRatio, fRange / fRatio, -fRange, fRange, -fRange * 10, fRange * 10);
+                        }
                     }
                     //glOrtho (-fRange, fRange*w/h, -fRange, fRange, -fRange, 1.00);
 #endif
@@ -4967,18 +6678,26 @@ namespace OpenJigWare
                 private float[] m_light0_direction = new float[3] { -0.7f, 0.2f, 0.7f };
                 private float[] m_light1_direction = new float[3] { -0.5f, -0.5f, 1.0f };
 
-                private float[] m_ambient = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
+#if false
+            // bronze
+            GL_AMBIENT {0.2125f,0.1275f,0.054f,1.0f};
+            GL_DIFFUSE {0.714f,0.4284f,0.18144f,1.0f};
+            GL_SPECULAR {0.3935f,0.2719f,0.1667f,1.0f};
+            GL_SHININESS {25.6f};
+
+#endif
+                private float[] m_ambient = new float[4] { 0.2f, 0.2f, 0.2f, 1.0f };
                 private float[] m_diffuseLight = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f };
                 private float[] m_specular = new float[4] { 0.8f, 0.8f, 0.8f, 1.0f };
 
                 private float[] m_mat_diffuse = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
                 private float[] m_mat_specular = new float[4] { 0.35f, 0.35f, 0.35f, 1.0f };
-                private float[] m_mat_ambient = new float[4] { 0.7f, 0.7f, 0.7f, 0.7f };
+                private float[] m_mat_ambient = new float[4] { 0.5f, 0.5f, 0.5f, 0.5f };
                 private float[] m_mat_shiness = new float[1] { 80.0f };
 
                 //private int m_nShiness = 128;
                 private float m_fSpot = 85.0f;
-                private float m_fExponent = 2.0f;//1.0f;
+                private float m_fExponent = 3.0f;//2.0f;//1.0f;
                 public void SetLight_Position(float fA, float fB, float fC, float fD) { m_light0_position[0] = fA; m_light0_position[1] = fB; m_light0_position[2] = fC; m_light0_position[3] = fD; }
                 public void SetLight_Ambient(float fA, float fB, float fC, float fD) { m_ambient[0] = fA; m_ambient[1] = fB; m_ambient[2] = fC; m_ambient[3] = fD; }
                 public void SetLight_diffuseLight(float fA, float fB, float fC, float fD) { m_diffuseLight[0] = fA; m_diffuseLight[1] = fB; m_diffuseLight[2] = fC; m_diffuseLight[3] = fD; }
@@ -5022,7 +6741,7 @@ namespace OpenJigWare
                 private bool m_bDetail = true;
                 public void SetDisplay_Edge(bool bEn) { m_bDisplay_Edge = bEn; }
                 public void SetDisplay_Detail(bool bEn) { m_bDetail = bEn; }
-                private int m_nCWMode = Gl.GL_CW;
+                private int m_nCWMode = Gl.GL_CCW;//Gl.GL_CW;
                 private void SetLight()
                 {
                     if (m_bEnable_Light == true)
@@ -5042,62 +6761,156 @@ namespace OpenJigWare
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
 
+#if false
                         // The light weakens with distance.(Kor: 거리에 따른 빛의 약화)
-                        //float fValue = 1.0f;
-                        //Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_CONSTANT_ATTENUATION, ref fValue);
-                        //fValue = 2.0f; Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_LINEAR_ATTENUATION, ref fValue);
-                        //fValue = 3.0f; Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_QUADRATIC_ATTENUATION, ref fValue);
-
+                        float fValue = 1.0f;
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_CONSTANT_ATTENUATION, ref fValue);
+                        fValue = 2.0f; Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_LINEAR_ATTENUATION, ref fValue);
+                        fValue = 3.0f; Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_QUADRATIC_ATTENUATION, ref fValue);
+#endif
                         // Material properties are set to follow glColor value(Kor: 재질 속성이 glColor 값을 따르게끔 설정)
-                        Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
-                        //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
-                        // Enable color tracking(Kor: 색상 트래킹을 사용하게끔 설정)
-                        Gl.glEnable(Gl.GL_COLOR_MATERIAL);
+                        if (IsPerspectiveMode() == true)
+                        {
+                            Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
 
-                        //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: 겹치는 뒷면을 그리지 않음)
-                        Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: 깊이 버퍼 활성화 - 숨겨진 면 지우기)
-                        Gl.glLightModeli(Gl.GL_LIGHT_MODEL_TWO_SIDE, Gl.GL_TRUE);
+                            Gl.glEnable(Gl.GL_COLOR_MATERIAL);   // Enable Material color tracking
+
+                                // Front material ambient and diffuse colors track glColor
+                            //Gl.glColorMaterial(Gl.GL_FRONT, Gl.GL_AMBIENT_AND_DIFFUSE);
+                            //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
+                            // Enable color tracking(Kor: 색상 트래킹을 사용하게끔 설정)
+                            //Gl.glEnable(Gl.GL_COLOR_MATERIAL);
+
+                            //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: 겹치는 뒷면을 그리지 않음)
+                            Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: 깊이 버퍼 활성화 - 숨겨진 면 지우기)
+
+
+                            //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
+                            //Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
+                            Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);	// Really Nice Perspective Calculations
+
+                            //Gl.glLightModeli(Gl.GL_LIGHT_MODEL_LOCAL_VIEWER, Gl.GL_FALSE);
+                            Gl.glLightModeli(Gl.GL_LIGHT_MODEL_TWO_SIDE, Gl.GL_TRUE);
+
+//#if _GL_FLAT
+//                            Gl.glShadeModel(Gl.GL_FLAT);							    // Enable Flat Shading
+//#else
+                            Gl.glShadeModel(Gl.GL_SMOOTH);							    // Enable Smooth Shading                                                     
+//#endif
+
+
+                            //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
+                        }
+                        else
+                        {
+                            Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
+                            //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
+                            // Enable color tracking(Kor: 색상 트래킹을 사용하게끔 설정)
+                            Gl.glEnable(Gl.GL_COLOR_MATERIAL);
+
+                            //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: 겹치는 뒷면을 그리지 않음)
+                            Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: 깊이 버퍼 활성화 - 숨겨진 면 지우기)
+
+
+                            //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
+                            //Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
+                            Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);	// Really Nice Perspective Calculations
+
+                            Gl.glLightModeli(Gl.GL_LIGHT_MODEL_TWO_SIDE, Gl.GL_TRUE);
 
 #if _GL_FLAT
-                        Gl.glShadeModel(Gl.GL_FLAT);							    // Enable Flat Shading
+                            Gl.glShadeModel(Gl.GL_FLAT);							    // Enable Flat Shading
 #else
-                        Gl.glShadeModel(Gl.GL_SMOOTH);							    // Enable Smooth Shading                                                     
+                            Gl.glShadeModel(Gl.GL_SMOOTH);							    // Enable Smooth Shading                                                     
 #endif
-                        //Gl.glEnable(Gl.GL_POINT_SMOOTH);
-                        //Gl.glHint(Gl.GL_POINT_SMOOTH_HINT, Gl.GL_FASTEST);
-                        //Gl.glEnable(Gl.GL_LINE_SMOOTH);
-                        //Gl.glHint(Gl.GL_LINE_SMOOTH_HINT, Gl.GL_FASTEST);
-                        //Gl.glEnable(Gl.GL_POLYGON_SMOOTH);
-                        //Gl.glHint(Gl.GL_POLYGON_SMOOTH_HINT, Gl.GL_FASTEST);
+                        }
+
+                        
+//#if true//!_ENABLE_PERSPECTIVE
+                        Gl.glEnable(Gl.GL_POINT_SMOOTH);
+                        Gl.glHint(Gl.GL_POINT_SMOOTH_HINT, Gl.GL_FASTEST);
+                        Gl.glEnable(Gl.GL_LINE_SMOOTH);
+                        Gl.glHint(Gl.GL_LINE_SMOOTH_HINT, Gl.GL_FASTEST);
+                        Gl.glEnable(Gl.GL_POLYGON_SMOOTH);
+                        Gl.glHint(Gl.GL_POLYGON_SMOOTH_HINT, Gl.GL_FASTEST);
 
                         //Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST); // Really Nice Perspective Calculations
-
-
+//#endif                        
                         Gl.glEnable(Gl.GL_NORMALIZE);
 
                         Gl.glFrontFace(m_nCWMode);//Gl.GL_CW);       // CCW 
                         
-                        // Set Alpha Environment
-                        Gl.glEnable(Gl.GL_BLEND);
-                        Gl.glEnable(Gl.GL_ALPHA_TEST);
-                        //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA);
-                        Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
-                        //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA);
+                         
+                        if (IsPerspectiveMode() == true)
+                        {
+#if false
+                            // Set Alpha Environment
+                            //Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO); 
+                            Gl.glEnable(Gl.GL_BLEND);
+                            Gl.glEnable(Gl.GL_ALPHA_TEST);
+                            //Gl.glAlphaFunc(Gl.GL_LESS, 1.0f);
+                            Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> 이걸하면 겉의 윤곽이 검어진다.
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> 이건 별로...
 
-                        // 20150527
-                        //Gl.glEnable(Gl.GL_CULL_FACE);   
-                        //Gl.glCullFace(Gl.GL_BACK);   
+                            // 20150527
+                            //Gl.glEnable(Gl.GL_CULL_FACE);   
+                            //Gl.glCullFace(Gl.GL_BACK);  
 
-                        //Gl.glEdgeFlag(Gl.GL_FALSE );
-                        Gl.glEdgeFlag((m_bDisplay_Edge == true) ? Gl.GL_TRUE : Gl.GL_FALSE);//Gl.GL_TRUE); // 1
-#if false //20150116
-                Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
-                Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, m_mat_specular);
-                //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, m_mat_ambient);
-                Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, m_mat_shiness);
-                //Gl.glMateriali(Gl.GL_FRONT, Gl.GL_SHININESS, m_nShiness);//128); // 1 - 128  
-                Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);
+                            //Gl.glEdgeFlag(Gl.GL_FALSE );
+                            Gl.glEdgeFlag((m_bDisplay_Edge == true) ? Gl.GL_TRUE : Gl.GL_FALSE);//Gl.GL_TRUE); // 1
+#else
+                            Gl.glEnable(Gl.GL_BLEND);
+                            Gl.glEnable(Gl.GL_ALPHA_TEST);
+                            //Gl.glDepthMask(Gl.GL_TRUE);
+                            //Gl.glAlphaFunc(Gl.GL_LESS, 1.0f);
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
+                            Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> 이걸하면 겉의 윤곽이 검어진다.
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> 이건 별로...
+
+                            // 20150527
+                            //Gl.glEnable(Gl.GL_CULL_FACE);   
+                            //Gl.glCullFace(Gl.GL_BACK);  
+
+                            //Gl.glEdgeFlag(Gl.GL_FALSE );
+                            Gl.glEdgeFlag((m_bDisplay_Edge == true) ? Gl.GL_TRUE : Gl.GL_FALSE);//Gl.GL_TRUE); // 1
 #endif
+
+#if true //20150116
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, m_mat_specular);
+                            //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, m_mat_ambient);
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, m_mat_shiness);
+                            //Gl.glMateriali(Gl.GL_FRONT, Gl.GL_SHININESS, m_nShiness);//128); // 1 - 128  
+                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);
+#else
+                            GL_FRONT_AND_BACK
+                        //Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
+                        //Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
+                        //Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
+#endif
+                        }
+                        else
+                        {
+                            // Set Alpha Environment
+                            Gl.glEnable(Gl.GL_BLEND);
+                            Gl.glEnable(Gl.GL_ALPHA_TEST);
+                        
+                            Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> 이걸하면 겉의 윤곽이 검어진다.
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> 이건 별로...
+
+                            // 20150527
+                            //Gl.glEnable(Gl.GL_CULL_FACE);   
+                            //Gl.glCullFace(Gl.GL_BACK);  
+
+                            //Gl.glEdgeFlag(Gl.GL_FALSE );
+                            Gl.glEdgeFlag((m_bDisplay_Edge == true) ? Gl.GL_TRUE : Gl.GL_FALSE);//Gl.GL_TRUE); // 1
+                        }
+
 
 #else
 #if true
@@ -5237,30 +7050,34 @@ namespace OpenJigWare
                 private void InitPosAngle_WithAxis()
                 {
                     Gl.glLoadIdentity();
+                    Glu.gluLookAt(0, 0, 2000 * m_fScale, 0, 0, 0, 0, 1, 0);
+
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
-                    SetLight();
+                    //SetLight();
                     
                     // display axis
                     if (IsStandardAxis() == true)
                     {
-                        float fSize = 2.0f;
-                        float fSize2 = 5.0f;
+                        float fSize = 1.0f;// 2.0f;
+                        float fSize2 = 1.0f;// 5.0f;
                         Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize, 40000);
                         Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize2, 200);
                     }
 
-                    OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
-                    OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
+                    //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                    //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
                 public void InitPosAngle()
                 {
                     Gl.glLoadIdentity();
+                    Glu.gluLookAt(0, 0, 2000 * m_fScale, 0, 0, 0, 0, 1, 0);
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
                     //SetLight();
-                    OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
-                    OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
+                    // 로봇의 움직임 구현 -> 이걸 지면 움직임으로 이동
+                    //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                    //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
 
                 public void InitPosAngle(float fPan, float fTilt, float fSwing, float fX, float fY, float fZ)
@@ -5272,10 +7089,15 @@ namespace OpenJigWare
                     SetAngle_Display(fPan, fTilt, fSwing);
                     SetPos_Display(fX, fY, fZ);
                     Gl.glLoadIdentity();
-                    SetLight();
+                    Glu.gluLookAt(0, 0, 1500 * m_fScale, 0, 0, 0, 0, 1, 0);
+                    //SetLight();
 
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
+
+                    // 로봇의 움직임 구현 -> 이걸 지면 움직임으로 이동
+                    //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                    //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
                 #endregion InitPosAngle
 
@@ -5469,6 +7291,15 @@ namespace OpenJigWare
                 private float m_fSwingDisplay_Rot_Limit = 360.0f;
                 private int m_nBackupCnt_HistoryFileOpen = 0;
                 private int m_nDrawClass_Pos = 0;
+                private const int _CNT_TRACK_BALL = 256;
+                private int m_nTrackBall = 0;
+                //private SVector3D_t[] m_aSVec_Track = new SVector3D_t[_CNT_TRACK_BALL];
+                private STrackD_t[] m_aSTrack = new STrackD_t[_CNT_TRACK_BALL];
+                private float m_fTrackValue = 0.0f;
+                private int m_nSelectedMotor = -1;
+                private int m_nSelectedInverseKinematics = -1;
+                public void SelectMotor(int nAxis) { m_nSelectedMotor = nAxis; m_nSelectedInverseKinematics = -1; } // -1을 넣으면 선택 안함
+                public void SelectInverseKinematics(int nNum) { m_nSelectedInverseKinematics = nNum; m_nSelectedMotor = -1; } // -1을 넣으면 선택 안함
                 public void OjwDraw_Class(COjwDisp OjwDisp)
                 {                    
                     // 0x 1111 1111(Formular group)   1111 1111(group A) 1 1111 1111(group B(0~255:motor, 256~511:etc group))  111 1111(group C(0~127))
@@ -5496,11 +7327,20 @@ namespace OpenJigWare
                         ) 
                             ||
                             ((SelectObject_Check(m_nDrawClass_Pos) == true) && (SelectObject_Enable() == true))
+                            ||
+                            ((m_nSelectedInverseKinematics < 0) && ((m_nSelectedMotor >= 0) && (OjwDisp.nPickGroup_B == m_nSelectedMotor)))
+                            ||
+                            ((m_nSelectedInverseKinematics >= 0) && (OjwDisp.nInverseKinematicsNumber == m_nSelectedInverseKinematics))                            
                         )
                         {
                             if (m_bPickColor) cColor = m_cPickColor;// Color.FromArgb(50, 50, 255);// Color.FromArgb(100, 0, 0);
                             if (m_bPickAlpha) fAlpha = m_fPickAlpha;
                             bPicked = true;
+
+
+
+                            // ojw5014
+                            m_nSelectedItem = m_nDrawClass_Pos; // 이거 한번 추가해 보자. 클릭해도 선택 되게...
                         }                        
                     //}
 
@@ -5565,11 +7405,14 @@ namespace OpenJigWare
 
                     bool bFilled = ((m_bEmptyBody == true) ? false : OjwDisp.bFilled);
 
+                    //int nTrackBall = m_nTrackBall;
                     //
                     SAngle3D_t SAngle = new SAngle3D_t();
                     SAngle3D_t SAngle_Offset = new SAngle3D_t();
                     SVector3D_t SVector = new SVector3D_t();
                     SAngle3D_t SRot = new SAngle3D_t();
+                    float fTrackValue = 0.0f;
+                    int nTrackMode = 0;
                     SAngle.pan = ((OjwDisp.nAxisMoveType == 0) ? OjwDisp.fAngle : 0) * (int)Math.Pow(-1, OjwDisp.nDir);
                     SAngle.tilt = ((OjwDisp.nAxisMoveType == 1) ? OjwDisp.fAngle : 0) * (int)Math.Pow(-1, OjwDisp.nDir);
                     SAngle.swing = ((OjwDisp.nAxisMoveType == 2) ? OjwDisp.fAngle : 0) * (int)Math.Pow(-1, OjwDisp.nDir);
@@ -5612,6 +7455,37 @@ namespace OpenJigWare
                             Axis_Y(true, Color.Green, 1.0f, fThick, fLength);
                             Axis_Z(true, Color.Blue, 1.0f, fThick, fLength);
                         }
+                    }
+                    else if (OjwDisp.nAxisMoveType == 10) // 트랙 전용 ( 각도 회전 )
+                    {
+                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
+                    }
+                    else if (OjwDisp.nAxisMoveType == 11) // 트랙 전용 ( RPM 회전 )
+                    {
+                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
+                        fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+                    }
+                    else if (OjwDisp.nAxisMoveType == 12) // 트랙 stack('?') 전용 ( 각도 회전 위 )
+                    {
+                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
+                        nTrackMode = 1; // 회전
+                    }
+                    else if (OjwDisp.nAxisMoveType == 13) // 트랙 stack('?') 전용 ( 각도 회전 아래 )
+                    {
+                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
+                        nTrackMode = 2; // 회전
+                    }
+                    else if (OjwDisp.nAxisMoveType == 14) // 트랙 stack('?') 전용 ( RPM 회전 위 )
+                    {
+                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
+                        fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+                        nTrackMode = 1; // 회전
+                    }
+                    else if (OjwDisp.nAxisMoveType == 15) // 트랙 stack('?') 전용 ( RPM 회전 아래 )
+                    {
+                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
+                        fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+                        nTrackMode = 2; // 회전
                     }
                     else // CW & CCW
                     {
@@ -5705,14 +7579,165 @@ namespace OpenJigWare
                                 OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z
                                         );
                     }
+                    else if (OjwDisp.strDispObject == "#19") // Skeleton Bar
+                    {
+                        if (m_bSkeleton == true)
+                        {
+                            float fSkeletonAlpha = 1.0f;
+                            OjwCircle_Outside(bFilled, cColor, fSkeletonAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                        }
+                    }
+                    else if (OjwDisp.strDispObject == "#20") // Skeleton Axis
+                    {
+                        if (m_bSkeleton == true)
+                        {
+                            float fSkeletonAlpha = 1.0f;
+                            OjwBall_Outside(bFilled, cColor, fSkeletonAlpha, OjwDisp.fWidth_Or_Radius, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                        }
+                    }
                     else
                     {
                         //if (GetDrawFastMode() == 0)
                         //{
-                        if (OjwDisp.strDispObject.IndexOf('#') < 0)
+                        if (
+                            (OjwDisp.strDispObject.IndexOf('?') == 0) || // start
+                            (OjwDisp.strDispObject.IndexOf("!?") == 0) // Track Axis
+                            )
+                        {
+                            if (OjwDisp.strDispObject.IndexOf('!') == 1) // Track Axis
+                            {
+                                m_fTrackValue = fTrackValue;
+                            }
+                            m_aSTrack[m_nTrackBall].fX = OjwDisp.fWidth_Or_Radius;
+                            m_aSTrack[m_nTrackBall].fY = OjwDisp.fHeight_Or_Depth;
+                            m_aSTrack[m_nTrackBall].fR = OjwDisp.fDepth_Or_Cnt;
+                            m_aSTrack[m_nTrackBall].nConnectedAxis = OjwDisp.nName; // 실제 모터를 연결하는 거라 반드시 OjwDisp.nAxisMoveType = -1 이어야 한다.
+                            m_aSTrack[m_nTrackBall].fCenter_X = OjwDisp.afTrans[3].x;
+                            m_aSTrack[m_nTrackBall].fCenter_Y = OjwDisp.afTrans[3].y;
+                            m_aSTrack[m_nTrackBall].nMode = nTrackMode;
+                            m_aSTrack[m_nTrackBall].nDir = OjwDisp.nDir;
+                            m_nTrackBall++;
+                            //if (OjwDisp.fGap < 0)
+                            //{
+                            //    for (int i = 0; i < m_nTrackBall; i++)
+                            //    {
+                            //        OjwTranslate(m_aSTrack[i].fX, m_aSTrack[i].fY, 0.0f);
+                            //        OjwCircle_Outside(bFilled, cColor, fAlpha, m_aSTrack[i].fR, (float)Math.Abs(OjwDisp.fGap), 50, 0, 0, 0, 0, 0, 0);
+                            //        //OjwBall_Outside(bFilled, cColor, fAlpha, m_aSTrack[i].fR, 50, OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                            //        OjwTranslate(-m_aSTrack[i].fX, -m_aSTrack[i].fY, 0.0f);
+                            //        OjwTranslate(m_aSTrack[i].fCenter_X, m_aSTrack[i].fCenter_Y, 0.0f);
+                            //        OjwCircle_Outside(bFilled, Color.Red, fAlpha, 10, (float)Math.Abs(OjwDisp.fGap), 50, 0, 0, 0, 0, 0, 0);
+                            //        //OjwBall_Outside(bFilled, Color.Red, fAlpha, 10, 50, OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                            //        OjwTranslate(-m_aSTrack[i].fCenter_X, -m_aSTrack[i].fCenter_Y, 0.0f);
+                            //    }
+                            //}
+                        }
+                        else if (
+                            (OjwDisp.strDispObject.IndexOf('/') == 0) ||// end
+                            (OjwDisp.strDispObject.IndexOf("/!") == 0) // Track Axis
+                            )
+                        {
+                            int nPos = 1;
+                            if (OjwDisp.strDispObject.IndexOf('!') == 1) // Track Axis
+                            {
+                                m_fTrackValue = fTrackValue;
+                                nPos++;
+                            }
+                            m_aSTrack[m_nTrackBall].fX = OjwDisp.fWidth_Or_Radius;
+                            m_aSTrack[m_nTrackBall].fY = OjwDisp.fHeight_Or_Depth;
+                            m_aSTrack[m_nTrackBall].fR = OjwDisp.fDepth_Or_Cnt;
+
+                            m_aSTrack[m_nTrackBall].nConnectedAxis = OjwDisp.nName; // 실제 모터를 연결하는 거라 반드시 OjwDisp.nAxisMoveType = -1 이어야 한다.
+                            m_aSTrack[m_nTrackBall].fCenter_X = OjwDisp.afTrans[3].x;
+                            m_aSTrack[m_nTrackBall].fCenter_Y = OjwDisp.afTrans[3].y;
+                            m_aSTrack[m_nTrackBall].nMode = nTrackMode;
+                            m_aSTrack[m_nTrackBall].nDir = OjwDisp.nDir;
+
+                            m_nTrackBall++;
+
+#if false
+                            if (OjwDisp.fGap != 0)
+                            {
+                                for (int i = 0; i < m_nTrackBall; i++)
+                                {
+                                    OjwTranslate(m_aSTrack[i].fX, m_aSTrack[i].fY, 0.0f);
+                                    OjwCircle_Outside(bFilled, cColor, fAlpha, m_aSTrack[i].fR, (float)Math.Abs(OjwDisp.fGap), 50, 0, 0, 0, 0, 0, 0);
+                                    //OjwBall_Outside(bFilled, cColor, fAlpha, m_aSTrack[i].fR, 50, OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                                    OjwTranslate(-m_aSTrack[i].fX, -m_aSTrack[i].fY, 0.0f);
+                                    OjwTranslate(m_aSTrack[i].fCenter_X, m_aSTrack[i].fCenter_Y, 0.0f);
+                                    OjwCircle_Outside(bFilled, Color.Red, fAlpha, 10, (float)Math.Abs(OjwDisp.fGap), 50, 0, 0, 0, 0, 0, 0);
+                                    //OjwBall_Outside(bFilled, Color.Red, fAlpha, 10, 50, OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                                    OjwTranslate(-m_aSTrack[i].fCenter_X, -m_aSTrack[i].fCenter_Y, 0.0f);
+                                }
+                            }
+#endif
+                            // Rotation 적용
+                            //float fX, fY, fR;
+                            //int nConnectedAxis; // 연결된 모터 번호
+                            //float fAxis_X;      // 회전 해야 할 좌표 기준 점(X)
+                            //float fAxis_Y;      // 회전 해야 할 좌표 기준 점(Y)
+                            //int nMode;          // Mode(0 : 변화없음, 1 : 회전, 2 : 축 이동(fAxis_X 각도 연관 - 나중에 구현하자. 지금 바빠)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                            //float fDir = 0;           // 방향(0 : 정, 1 : 반대)
+#if false
+                            float [] afValue = new float[m_nTrackBall * 3];
+                            int j = 0;
+                            for (int i = 0; i < m_nTrackBall; i++)
+                            {
+                                afValue[j++] = m_aSTrack[i].fX;
+                                afValue[j++] = m_aSTrack[i].fY;
+                                afValue[j++] = m_aSTrack[i].fR; 
+                                //afValue[j++] = OjwDisp.afRot[3].pan; // test용 2번 모터 연결
+                                //afValue[j++] = OjwDisp.afTrans[3].x;
+                                //afValue[j++] = OjwDisp.afTrans[3].y;
+                                //afValue[j++] = OjwDisp.afTrans[3].x;
+                                //afValue[j++] = ;
+                            }
+                            float fDiv = (OjwDisp.fThickness == 0) ? 1.0f : OjwDisp.fThickness;
+                            OjwTrack2(fTrackValue, bFilled, cColor, fAlpha, OjwDisp.strDispObject.Substring(1),
+                                Math.Abs(OjwDisp.fGap), OjwDisp.fHeight_Or_Depth, OjwDisp.fDepth_Or_Cnt, OjwDisp.fThickness,
+                                OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing,
+                                OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z,
+                                //0, 0, 0, 0, 0, 0,
+                                afValue);
+#else
+                            STrackD_t[] aSValue = new STrackD_t[m_nTrackBall];
+                            //int j = 0;
+                            for (int i = 0; i < m_nTrackBall; i++)
+                            {
+                                aSValue[i] = new STrackD_t();
+                                aSValue[i].fX = m_aSTrack[i].fX;
+                                aSValue[i].fY = m_aSTrack[i].fY;
+                                aSValue[i].fR = m_aSTrack[i].fR;
+
+                                aSValue[i].nConnectedAxis = m_aSTrack[i].nConnectedAxis; // 실제 모터를 연결하는 거라 반드시 OjwDisp.nAxisMoveType = -1 이어야 한다.
+                                aSValue[i].fCenter_X = m_aSTrack[i].fCenter_X;
+                                aSValue[i].fCenter_Y = m_aSTrack[i].fCenter_Y;
+                                aSValue[i].nMode = m_aSTrack[i].nMode;
+                                aSValue[i].nDir = m_aSTrack[i].nDir;
+                            }
+
+
+
+
+
+                            float fDiv = (OjwDisp.fThickness == 0) ? 1.0f : OjwDisp.fThickness;
+                            OjwTrack(m_fTrackValue, bFilled, cColor, fAlpha, OjwDisp.strDispObject.Substring(nPos),
+                                OjwDisp.fGap, OjwDisp.fHeight_Or_Depth, OjwDisp.fDepth_Or_Cnt, OjwDisp.fThickness,
+                                OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing,
+                                OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z,
+                                aSValue);
+#endif
+                            m_nTrackBall = 0;
+                        }
+                        else if (OjwDisp.strDispObject.IndexOf('#') < 0)
                             OjwAse_Outside(bFilled, cColor, fAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z, OjwDisp.strDispObject);
                         //}
                     }
+                    //if (nTrackBall == m_nTrackBall) // 연속된 트랙이 아니라면...
+                    //{
+                    //    m_nTrackBall = 0;
+                    //}
+
                     //else if ((OjwDisp.nDispModel >= 0x1000) && (OjwDisp.nDispModel < 0x2000))
                     //{
                     //    if (GetDrawFastMode() == 0)
@@ -5757,6 +7782,8 @@ namespace OpenJigWare
                         //Gl.glPopMatrix();
                     }
                 }
+                public void SetSkeletonView(bool bOn) { m_bSkeleton = bOn; }
+                private bool m_bSkeleton = false;
                 //unsafe public float* pM = malloc(sizeof(float) * 16);
                 // nDispModel(0-Box, 1-Circle), nInit(0 - none, 1 - Init), nEmpty(1 - Empty, 0 - Fill), nTexture(-1 - None, 0~ - Texture Number),  
                 public bool StringLine_To_Class(String strData, out COjwDisp CDisp)
@@ -6992,6 +9019,7 @@ namespace OpenJigWare
                         int uiType = ((bFill == true) ? ((nLoop == 0) ? Gl.GL_POLYGON : Gl.GL_LINE_LOOP) : Gl.GL_LINE_LOOP);
                         int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
                         //int uiType = Gl.GL_TRIANGLE_FAN;// (bFill == true) ? Gl.GL_TRIANGLE_FAN : Gl.GL_LINE_LOOP;
+                        Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
                         Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
                         //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_POINT));
                         //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_LINE : Gl.GL_LINE));
@@ -7152,6 +9180,7 @@ namespace OpenJigWare
                         int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
                         //int uiType = Gl.GL_TRIANGLE_FAN;// (bFill == true) ? Gl.GL_TRIANGLE_FAN : Gl.GL_LINE_LOOP;
                         Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
+                        Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
                         //Gl.glBegin(uiType);
 
                         SVector3D_t[] aSPos = new SVector3D_t[24];
@@ -7310,6 +9339,1079 @@ namespace OpenJigWare
                         Gl.glPopMatrix();
                     }
                 }
+                public void OjwTerritory(bool bFill, Color color, float fAlpha, float fW, float fD, int nCount_Width, int nCount_Depth)
+                {
+                    int nLoopCount = ((bFill == true) ? 2 : 1);
+                    for (int nLoop = 0; nLoop < nLoopCount; nLoop++)
+                    {
+                        int nSub = _COLOR_GAP;
+                        Color cColor = color;// ((nLoop == 0) ? color : Color.DarkGray);
+                        m_fColor[0] = ((float)((nLoop == 0) ? cColor.R : cColor.R - nSub) / 255.0f);  // R
+                        m_fColor[1] = ((float)((nLoop == 0) ? cColor.G : cColor.G - nSub) / 255.0f);  // G
+                        m_fColor[2] = ((float)((nLoop == 0) ? cColor.B : cColor.B - nSub) / 255.0f);  // B
+                        m_fColor[3] = fAlpha;// m_fAlpha;//
+                        for (int j = 0; j < 3; j++)
+                        {
+                            if (m_fColor[j] < 0) m_fColor[j] = ((float)(((j == 0) ? cColor.R : ((j == 1) ? cColor.G : cColor.B)) + nSub) / 255.0f);//0.0f;
+                        }
+                        Gl.glColor4fv(m_fColor);
+
+                        Gl.glPushMatrix();
+                        float fX1 = -fW / 2.0f;
+                        float fX2 = fW / 2.0f;
+                        float fY1 = 0;
+                        float fZ1 = -fD / 2.0f;
+                        float fZ2 = fD / 2.0f;
+                        int uiType = ((bFill == true) ? ((nLoop == 0) ? Gl.GL_POLYGON : Gl.GL_LINE_LOOP) : Gl.GL_LINE_LOOP);
+                        int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
+                        //int uiType = Gl.GL_TRIANGLE_FAN;// (bFill == true) ? Gl.GL_TRIANGLE_FAN : Gl.GL_LINE_LOOP;
+                        Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
+                        Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
+
+                        SVector3D_t[] aSPos = new SVector3D_t[24];
+                        int i = 0;
+                        // Top Face		
+                        aSPos[i].x = fX1; aSPos[i].y = fY1; aSPos[i].z = fZ1; i++;// Top Left Of The Texture and Quad
+                        aSPos[i].x = fX1; aSPos[i].y = fY1; aSPos[i].z = fZ2; i++;// Bottom Left Of The Texture and Quad
+                        aSPos[i].x = fX2; aSPos[i].y = fY1; aSPos[i].z = fZ2; i++;// Bottom Right Of The Texture and Quad
+                        aSPos[i].x = fX2; aSPos[i].y = fY1; aSPos[i].z = fZ1; i++;// Top Right Of The Texture and Quad
+
+                        int nCnt = i;
+
+#if false
+                        for (i = 0; i < nCnt; i++)
+                        {
+                            // Rotation
+                            Rotation(fOffsetTilt, fOffsetPan, fOffsetSwing, ref aSPos[i].x, ref aSPos[i].y, ref aSPos[i].z);
+
+                            // Translation
+                            aSPos[i].x += fOffsetX;
+                            aSPos[i].y += fOffsetY;
+                            aSPos[i].z += fOffsetZ;
+                        }
+                        i = 0;
+
+                        float[] afObject = new float[4] { (float)(color.R), (float)(color.G), (float)(color.B), 1.0f };
+
+                        Gl.glBegin(uiType);
+
+                        // Top Face
+                        Gl.glTexCoord2f(0.0f, 1.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Top Left Of The Texture and Quad
+                        Gl.glTexCoord2f(0.0f, 0.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Bottom Left Of The Texture and Quad
+                        Gl.glTexCoord2f(1.0f, 0.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Bottom Right Of The Texture and Quad
+                        Gl.glTexCoord2f(1.0f, 1.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Top Right Of The Texture and Quad
+                        Gl.glTexCoord2f(0.0f, 1.0f); Gl.glVertex3f(aSPos[i - 4].x, aSPos[i - 4].y, aSPos[i - 4].z); 				// Top Left Of The Texture and Quad
+
+                        Gl.glEnd();// end drawing the Territory	
+#else
+                        int nW = nCount_Width / 2;
+                        int nH = nCount_Depth / 2;
+                        float fBlock_Width = fW;
+                        float fBlock_Depth = fD;
+                        InitPosAngle();
+
+                        // 로봇의 움직임 구현
+                        OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                        OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
+                        float fGap = -20.0f;
+                        for (int nTerritory_W = -nW; nTerritory_W < nW; nTerritory_W++)
+                        {
+                            for (int nTerritory_H = -nH; nTerritory_H < nH; nTerritory_H++)
+                            {
+                                Gl.glBegin(uiType);
+                                i = 0;
+                                // Top Face
+                                Gl.glTexCoord2f(0.0f, 1.0f); Gl.glVertex3f(aSPos[i].x - fGap + fBlock_Width * (float)nTerritory_W, aSPos[i].y, aSPos[i].z + fGap + fBlock_Depth * (float)nTerritory_H); i++;				// Top Left Of The Texture and Quad
+                                Gl.glTexCoord2f(0.0f, 0.0f); Gl.glVertex3f(aSPos[i].x + fGap + fBlock_Width * (float)nTerritory_W, aSPos[i].y, aSPos[i].z + fGap + fBlock_Depth * (float)nTerritory_H); i++;				// Bottom Left Of The Texture and Quad
+                                Gl.glTexCoord2f(1.0f, 0.0f); Gl.glVertex3f(aSPos[i].x + fGap + fBlock_Width * (float)nTerritory_W, aSPos[i].y, aSPos[i].z - fGap + fBlock_Depth * (float)nTerritory_H); i++;				// Bottom Right Of The Texture and Quad
+                                Gl.glTexCoord2f(1.0f, 1.0f); Gl.glVertex3f(aSPos[i].x - fGap + fBlock_Width * (float)nTerritory_W, aSPos[i].y, aSPos[i].z - fGap + fBlock_Depth * (float)nTerritory_H); i++;				// Top Right Of The Texture and Quad
+                                //Gl.glTexCoord2f(0.0f, 1.0f); Gl.glVertex3f(aSPos[i - 4].x, aSPos[i - 4].y, aSPos[i - 4].z); 				// Top Left Of The Texture and Quad
+
+                                Gl.glEnd();// end drawing the Territory	
+                                //OjwBox_Simple(m_bTerritory_Fill, m_clrTerritory_Color, m_fTerritory_Alpha, fBlock_Width, fBlock_Height, fBlock_Depth, 0, 0, 0, fBlock_Width * (float)nTerritory_W, 0, fBlock_Depth * (float)nTerritory_H);
+                            }
+                        }
+#endif
+                        Gl.glPopMatrix();
+                    }
+                }
+#if false
+                public void OjwTrack_Circle(bool bFill, Color color, float fAlpha,
+                    string strTrackFile, 
+                    float fAngle, float fAngle_Start, float fAngle_End,
+                    float fDistance, float fRadius,
+                    float fTrack_W, float fTrack_H, float fTrack_D, 
+                    float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
+                    float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ              // Translation(Offset)
+                    )
+                {
+                    if (strTrackFile != null)
+                    {
+                        #region File Check & Load
+                        if (OjwAse_GetIndex(strTrackFile) < 0)
+                        {
+                            //string strObject = "Track.stl";
+                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
+                            FileInfo f = new FileInfo(strFileName);
+                            if (f.Exists == true)
+                            {
+                                if (CFile.GetExe(strFileName).ToUpper() == "ASE")
+                                    OjwFileOpen_3D_ASE(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                    OjwFileOpen_3D_STL(strFileName);
+                            }
+                        }
+                        #endregion File Check & Load
+
+                        //fAngle_Start = (fAngle_Start + 360) % 360;
+                        //fAngle_End = (fAngle_End + 360) % 360;
+                        //float fMax = Math.Abs(fAngle_End - fAngle_Start);
+
+                        // 원호의 길이 = 2 * pi * r * (각도 / 360)
+                        // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
+                        float fDegree = (fDistance * 360.0f) / (2.0f * (float)Math.PI * fRadius);
+                        int nCnt = (int)Math.Round(Math.Abs((fAngle_End - fAngle_Start) / fDegree));//(360.0f - fAngle);
+                        float fTmp;
+                        for (int i = 0; i <= nCnt; i++)
+                        {
+                            fTmp = (fAngle_Start + fDegree * i) % 360.0f;
+                            if ((fTmp >= fAngle_Start) && (fTmp <= fAngle_End))
+                            {
+                                OjwRotation(0.0f, fTmp, 0.0f);
+                                OjwTranslate(0.0f, fRadius, 0.0f);
+
+                                OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                    fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+
+                                OjwTranslate(0.0f, -fRadius, 0.0f);
+                                OjwRotation(0.0f, -fTmp, 0.0f);
+                            }
+                            //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 0, 0);
+                            //OjwBox_Outside(bFill, Color.Blue, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 10, 0);
+                        }
+                    }
+                    else
+                    {
+                    }
+
+
+                    
+                }
+                //public void OjwTrack_Line(bool bFill, Color color, float fAlpha,
+                //        string strTrackFile,
+                //        float fDistance, float fLength,
+                //        float fTrack_W, float fTrack_H, float fTrack_D,
+                //        float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
+                //        float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ              // Translation(Offset)
+                //        )
+                //{
+                //    if (strTrackFile != null)
+                //    {
+                //        #region File Check & Load
+                //        if (OjwAse_GetIndex(strTrackFile) < 0)
+                //        {
+                //            //string strObject = strTrackFile;
+                //            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
+                //            FileInfo f = new FileInfo(strFileName);
+                //            if (f.Exists == true)
+                //            {
+                //                if (CFile.GetExe(strFileName).ToUpper() == "ASE")
+                //                    OjwFileOpen_3D_ASE(strFileName);
+                //                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                //                    OjwFileOpen_3D_STL(strFileName);
+                //            }
+                //        }
+                //        #endregion File Check & Load
+
+                //        int nCnt = (int)Math.Round(fLength / fDistance);
+                //        float fTmp;
+                //        for (int i = 0; i <= nCnt; i++)
+                //        {
+                //            fTmp = fDistance * i;
+                //                OjwRotation(0.0f, fTmp, 0.0f);
+                //                OjwTranslate(0.0f, fRadius, 0.0f);
+
+                //                OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                //                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                //                    fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+
+                //                OjwTranslate(0.0f, -fRadius, 0.0f);
+                //                OjwRotation(0.0f, -fTmp, 0.0f);
+                //            //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 0, 0);
+                //            //OjwBox_Outside(bFill, Color.Blue, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 10, 0);
+                //        }
+                //    }
+                //    else
+                //    {
+                //    }
+
+
+
+                //}
+
+                public void OjwTrack2(float fAngleMove, bool bFill, Color color, float fAlpha,
+                    string strTrackFile,
+                    float fTrack_W, float fTrack_H, float fTrack_D, float fTrack_Distance,
+                    //int nConnectedAxis, float fAxis_X, float fAxis_Y, int nMode,// 연결된 모터, 회전 해야 할 좌표 기준 점, Mode(0 : 회전, 1 : 축 이동(fAxis_X 각도 연관)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    
+                    float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
+                    float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ,              // Translation(Offset)    
+                    //float fOffsetX, float fOffsetY, float fOffsetZ,              // Translation(Offset)
+                    params float[] afValue // x, y, radius
+                    )
+                {
+                    int nArg = 3;// +5;
+                    if ((afValue.Length) % nArg != 0) return;
+                    if (fTrack_Distance == 0) fTrack_Distance = 0.001f;
+                    int nCnt = afValue.Length / nArg;
+                    float fX, fY, fR;
+                    
+                    // Rotation 적용
+                    //int nConnectedAxis; // 연결된 모터 번호
+                    //float fAxis_X;      // 회전 해야 할 좌표 기준 점(X)
+                    //float fAxis_Y;      // 회전 해야 할 좌표 기준 점(Y)
+                    //int nMode;          // Mode(0 : 변화없음, 1 : 회전, 2 : 축 이동(fAxis_X 각도 연관 - 나중에 구현하자. 지금 바빠)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    //float fDir = 0;           // 방향(0 : 정, 1 : 반대)
+                    //for (int nNum = 0; nNum < nCnt; nNum++)
+                    //{
+                    //    fX = afValue[nArg * nNum + 0];
+                    //    fY = afValue[nArg * nNum + 1];
+                    //    fR = afValue[nArg * nNum + 2];
+                    //}
+
+                    if (strTrackFile != null)
+                    {
+                        if (OjwAse_GetIndex(strTrackFile) < 0)
+                        {
+                            //string strObject = strTrackFile;
+                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
+                            FileInfo f = new FileInfo(strFileName);
+                            if (f.Exists == true)
+                            {
+                                if (CFile.GetExe(strFileName).ToUpper() == "ASE")
+                                    OjwFileOpen_3D_ASE(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                    OjwFileOpen_3D_STL(strFileName);
+                            }
+                        }
+                    }
+
+                    // 기준 원 그려보자
+                    ////////////////////////////
+                    float fX1, fY1, fR1;
+                    float fX2, fY2, fR2;
+#if true
+                    //if (nCnt == 1)
+                    //{
+                    //    for (int nNum = 0; nNum < nCnt; nNum++)
+                    //    {
+                    //        fX = afValue[nArg * nNum + 0];
+                    //        fY = afValue[nArg * nNum + 1];
+                    //        fR = afValue[nArg * nNum + 2];
+                    //        //OjwBall_Outside(bFill, color, fAlpha, fR, 50, 0, 0, 0, fX, fY, 0);
+                    //        OjwBall_Outside(bFill, color, 0.5f, fR, 50, 0, 0, 0, fX, fY, 0);
+
+                    //        fAxis_X = afValue[nArg * nNum + 4];
+                    //        fAxis_Y = afValue[nArg * nNum + 5];
+                    //        OjwBall_Outside(bFill, Color.Red, 0.5f, 10, 50, 0, 0, 0, fAxis_X, fAxis_Y, 0);
+                    //    }
+                    //}
+#endif
+                    float fAngle, fAngle2, fLength, fLength_Out;
+                    //Color[] aclrTestColor = new Color[4] {Color.White, Color.Blue, Color.Violet, Color.Gold};
+                    // First
+                    int nNum_Next, nNum_Next2;
+                    for (int nNum = 0; nNum < nCnt; nNum++)
+                    {
+                        fX = afValue[3 * nNum + 0];
+                        fY = afValue[3 * nNum + 1];
+                        fR = afValue[3 * nNum + 2];
+                        nNum_Next = (nNum < nCnt - 1) ? (nNum + 1) : (nNum - nCnt + 1);
+                        fX1 = afValue[3 * nNum_Next + 0];
+                        fY1 = afValue[3 * nNum_Next + 1];
+                        fR1 = afValue[3 * nNum_Next + 2];
+
+                        nNum_Next2 = ((nNum < nCnt - 2) ? (nNum + 2) : (nNum - nCnt + 2)) % nCnt;
+                        fX2 = afValue[3 * nNum_Next2 + 0];
+                        fY2 = afValue[3 * nNum_Next2 + 1];
+                        fR2 = afValue[3 * nNum_Next2 + 2];
+
+                        fAngle = (float)Ojw.CMath.ATan2((fX1 - fX), (fY1 - fY));
+                        fAngle2 = (float)Ojw.CMath.ATan2((fX2 - fX1), (fY2 - fY1));
+                        fLength = (float)Math.Sqrt((fX1 - fX) * (fX1 - fX) + (fY1 - fY) * (fY1 - fY));
+                        fLength_Out = (float)Math.Sqrt(fLength * fLength - (fR1 - fR) * (fR1 - fR));
+
+                        OjwTranslate(fX, fY, 0);
+                        OjwRotation(0, 0, fAngle);
+                        OjwTranslate(0, fR, 0);
+
+                        float fAngleGap = (float)Ojw.CMath.ATan2(fLength, (fR1 - fR)); //(float)Ojw.CMath.ATan2(fLength_Out, (fR1 - fR));
+                        OjwRotation(0, 0, fAngleGap);
+
+
+
+                        // 시작 위치 각도를 거리로 환산해서 구하기
+                        float fAngleTest = fAngleMove % fTrack_Distance; // 모터 회전 5도
+                        float fStartPos = -fAngleTest * (2.0f * (float)Math.PI * fR1) / 360.0f;
+
+                        // 기준위치 표시 - 나중에 삭제
+                        //OjwBall_Outside(bFill, aclrTestColor[nNum], fAlpha, fR / 10, 50, 0, 0, 0, 0, 0, 0);
+                        float fPos = fStartPos;// -fTrack_Distance; // 시작위치 조정이 가능
+                        if (nCnt > 1)
+                        {
+                            while (fPos <= fLength_Out)
+                            {
+                                if (strTrackFile.Length > 0)
+                                {
+                                    //OjwBall_Outside(bFill, Color.Green, fAlpha, fR / 10, 50, 0, 0, 0, fPos, 0, 0);
+                                    OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                            fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                            fTrack_OffsetX + fPos, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                }
+                                else
+                                {                                    
+                                    //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, 10, fTrack_Distance,
+                                    //        0, 0, 0, fPos, 0, -fTrack_W / 2.0f);
+                                    OjwCircle_Outside(bFill, color, fAlpha, fTrack_Distance / 3, fTrack_W, 10,
+                                               0, 0, 0, fPos, 0, -fTrack_W / 2.0f);
+                                    OjwBox_Outside(bFill, color, fAlpha, fTrack_Distance, 10, fTrack_W,
+                                            0, 0, 0, fPos, 0, 0);//-fTrack_W / 2.0f);
+                                }
+                                fPos += fTrack_Distance;
+                            }
+                        }
+                        OjwRotation(0, 0, -fAngleGap);
+                        OjwTranslate(0, -fR, 0);
+                        OjwRotation(0, 0, -fAngle);
+                        OjwTranslate(-fX, -fY, 0);
+
+                        // 거리오차
+                        float fDiff = fLength_Out - (fPos - fTrack_Distance);
+
+                        // Rotation
+                        OjwTranslate(fX1, fY1, 0);
+                        //OjwTranslate(0, fR, 0);
+                        //float fPos_X, fPos_Y;
+                        float fAngleDiff = (-fDiff * 360.0f) / (2.0f * (float)Math.PI * fR1);
+                        // 원호의 길이 = 2 * pi * r * (각도 / 360)
+                        // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
+                        float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * fR1);
+                        float fTmp = (fAngle - fAngle2 + 360.0f) % 360.0f;
+                        int j = 0;
+                        if (nCnt == 1)
+                        {
+                            float fR_Height = fR1 - fR1 * (float)Ojw.CMath.Cos(fDegree / 2.0f);
+                            float fR_Bottom = fR1 * (float)Ojw.CMath.Sin(fDegree / 2.0f);
+                            float fDeg = (float)Ojw.CMath.ATan2(fR_Bottom, fR_Height);
+
+                            for (j = 0; j < (int)(360 / fDegree); j++)
+                            {
+                                OjwRotation(0, 0, -fAngleDiff + (fAngle + 90.0f));
+                                //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+
+                                OjwTranslate(fR1, 0, 0);
+                                OjwRotation(0, 0, fDeg);
+
+                                //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+                                //OjwBall_Outside(bFill, Color.Cyan, fAlpha, fR / 10, 50, 0, 0, 0, fR1, 0, 0);
+
+
+                                if (strTrackFile.Length > 0)
+                                {
+                                    OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                        fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing - 90.0f - fDegree,// / 2,//fDegree,// / 2,
+                                        fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                }
+                                else
+                                {                                    
+                                    OjwCircle_Outside(bFill, color, fAlpha, fTrack_Distance / 3, fTrack_W, 10,
+                                               0, 0, -90.0f - fDegree, 0, 0, -fTrack_W / 2.0f);
+                                    OjwBox_Outside(bFill, color, fAlpha, fTrack_Distance, 10, fTrack_W,
+                                            0, 0, -90.0f - fDegree, 0, 0, 0);//-fTrack_W / 2.0f);
+                                }
+                                //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                
+                                OjwRotation(0, 0, -fDeg);
+                                OjwTranslate(-fR1, 0, 0);
+                                //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                OjwRotation(0, 0, fAngleDiff - (fAngle + 90.0f));
+
+
+                                fAngleDiff += fDegree;
+                                //j++;
+                            }
+                        }
+                        else
+                        {
+                            // 각도를 반으로 나눈 부분에 수직 수선이 내려진다.
+                            // 
+                            float fR_Height = fR1 - fR1 * (float)Ojw.CMath.Cos(fDegree / 2.0f);
+                            float fR_Bottom = fR1 * (float)Ojw.CMath.Sin(fDegree / 2.0f);
+                            float fDeg = (float)Ojw.CMath.ATan2(fR_Bottom, fR_Height);
+                            //while ((fAngleDiff + fDegree / 2) < fTmp)
+                            //while ((fAngleDiff + fDegree) <= fTmp)
+                            while (fAngleDiff < fTmp)
+                            {
+                                //if (j != 0)
+                                {
+                                    OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+                                    OjwTranslate(fR1, 0, 0);
+
+                                    OjwRotation(0, 0, fDeg);
+
+                                    if (strTrackFile.Length > 0)
+                                    {
+                                        //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+                                        //OjwBall_Outside(bFill, Color.Cyan, fAlpha, fR / 10, 50, 0, 0, 0, fR1, 0, 0);
+                                        OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                            fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing - 90.0f - fDegree,// / 2,
+                                            fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                        //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                    }
+                                    else
+                                    {
+
+                                        OjwCircle_Outside(bFill, color, fAlpha, fTrack_Distance / 3, fTrack_W, 10,
+                                                   0, 0, -90.0f - fDegree, 0, 0, -fTrack_W / 2.0f);
+                                        OjwBox_Outside(bFill, color, fAlpha, fTrack_Distance, 10, fTrack_W,
+                                                0, 0, -90.0f - fDegree, 0, 0, 0);//-fTrack_W / 2.0f);
+                                    }
+                                    OjwRotation(0, 0, -fDeg);
+                                    OjwTranslate(-fR1, 0, 0);
+                                    OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                }
+                                fAngleDiff += fDegree;
+                                j++;
+                            }
+                        }
+                        OjwTranslate(-fX1, -fY1, 0);
+                    }
+                }
+                public void OjwTrack_Line(bool bFill, Color color, float fAlpha,
+                    string strTrackFile,
+                    float fTrack_W, float fTrack_H, float fTrack_D, float fTrack_Distance,
+                    float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
+                    float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ,              // Translation(Offset)    
+                    float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    float fOffsetX, float fOffsetY, float fOffsetZ,              // Translation(Offset)
+                    params float[] afValue // x, y, radius
+                    )
+                {
+                    int nDiv = 3;
+                    int nCnt_Wheel = afValue.Length / nDiv;
+                    if (afValue.Length % nDiv != 0) return;
+
+                    float fAngle, fAngle2, fAngle_Dif, fLength, fLength_Out, nCnt;
+                    int nX2, nY2, nR2, nX1, nY1, nR1, nX0, nY0, nR0, nNext2, nNext, nCurr;
+                    for (int i = 0; i < nCnt_Wheel; i++)
+                    {
+                        if (i == nCnt_Wheel - 1)
+                        {
+                            nNext2 = 1;
+                            nNext = 0;
+                            nCurr = i;
+                        }
+                        else if (i == nCnt_Wheel - 2)
+                        {
+                            nNext2 = 0;
+                            nNext = i + 1;
+                            nCurr = i;
+                        }
+                        else
+                        {
+                            nNext2 = i + 2;
+                            nNext = i + 1;
+                            nCurr = i;
+                        }
+                        nX2 = nNext2 * nDiv;
+                        nY2 = nNext2 * nDiv + 1;
+                        nR2 = nNext2 * nDiv + 2;
+                        nX1 = nNext * nDiv;
+                        nY1 = nNext * nDiv + 1;
+                        nR1 = nNext * nDiv + 2;
+                        nX0 = nCurr * nDiv;
+                        nY0 = nCurr * nDiv + 1;
+                        nR0 = nCurr * nDiv + 2;
+                        fAngle = (float)Ojw.CMath.ATan2((afValue[nX1] - afValue[nX0]), (afValue[nY1] - afValue[nY0]));
+                        fAngle2 = (float)Ojw.CMath.ATan2((afValue[nX2] - afValue[nX1]), (afValue[nY2] - afValue[nY1]));
+                        fLength = (float)Math.Sqrt((afValue[nX1] - afValue[nX0]) * (afValue[nX1] - afValue[nX0]) + (afValue[nY1] - afValue[nY0]) * (afValue[nY1] - afValue[nY0]));
+                        fLength_Out = (float)Math.Sqrt(fLength * fLength - (afValue[nR1] - afValue[nR0]) * (afValue[nR1] - afValue[nR0]));
+                        //nCnt = (int)Math.Round(fLength / fTrack_Distance);
+
+                        //fAngle += (float)Ojw.CMath.ATan2(fLength, (afValue[nR1] - afValue[nR0]));
+#if true
+                        #region Line
+                        nCnt = (int)Math.Round(fLength_Out / (fTrack_Distance));
+                        // Offset
+                        OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                        OjwRotation(fOffsetPan, fOffsetTilt, fOffsetSwing);
+
+
+                        OjwTranslate(afValue[nX0], afValue[nY0], 0);
+                        // For Test
+                        //OjwBall_Outside(bFill, color, fAlpha, afValue[nR0], 50, 0, 0, 0, 0, 0, 0);
+                        OjwRotation(0, 0, fAngle);
+                        OjwTranslate(0, afValue[nR0], 0);
+                        fAngle_Dif = (float)Ojw.CMath.ATan2(fLength, (afValue[nR1] - afValue[nR0]));
+                        OjwRotation(0, 0, fAngle_Dif);
+
+                        if (strTrackFile != null)
+                        {
+
+                            #region Test
+                            if (OjwAse_GetIndex(strTrackFile) < 0)
+                            {
+                                //string strObject = strTrackFile;
+                                String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
+                                FileInfo f = new FileInfo(strFileName);
+                                if (f.Exists == true)
+                                {
+                                    if (CFile.GetExe(strFileName).ToUpper() == "ASE")
+                                        OjwFileOpen_3D_ASE(strFileName);
+                                    else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                        OjwFileOpen_3D_STL(strFileName);
+                                }
+                            }
+                            #endregion Test
+
+                            for (int j = 0; j < nCnt; j++)
+                            {
+                                OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                    j * fTrack_Distance + fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+
+                                //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 0, 0);
+                                //OjwBox_Outside(bFill, Color.Blue, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 10, 0);
+                            }
+                            //fLength_Out = 2.0f * (float)Math.PI * afValue[nR1];
+                            //nCnt = (int)Math.Round(fLength_Out / (fTrack_Distance));
+
+                            for (int j = 0; j < nCnt; j++)
+                            {
+                                OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                    j * fTrack_Distance + fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+
+                                //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 0, 0);
+                                //OjwBox_Outside(bFill, Color.Blue, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 10, 0);
+                            }
+                        }
+                        else
+                        {
+                            for (int j = 0; j < nCnt; j++)
+                            {
+                                OjwBox_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                    j * fTrack_Distance + fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ);
+                                //OjwBox_Outside(bFill, Color.Blue, fAlpha, fTrack_W, fTrack_H, fTrack_D, fOffsetPan, fOffsetTilt, fOffsetSwing, j * fTrack_Distance + fOffsetX, fOffsetY + 10, fOffsetZ);
+                            }
+                        }
+                        OjwRotation(0, 0, -fAngle_Dif);
+                        OjwTranslate(0, -afValue[nR0], 0);
+                        OjwRotation(0, 0, -fAngle);
+                        OjwTranslate(-afValue[nX0], -afValue[nY0], 0);
+
+                        // Offset
+                        OjwRotation(-fOffsetPan, -fOffsetTilt, -fOffsetSwing);
+                        OjwTranslate(-fOffsetX, -fOffsetY, -fOffsetZ);
+                        #endregion Line
+#endif
+#if false
+                        #region Circle
+                        // 원호의 길이 = 2 * pi * r * (각도 / 360)
+                        // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
+                        float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * afValue[nR1]);
+                        if (fAngle >= 180.0f)
+                            fAngle -= 360.0f;
+                        if (fAngle2 >= 180.0f)
+                            fAngle2 -= 360.0f;
+                        nCnt = (int)Math.Round((Math.Abs(fAngle) + Math.Abs(fAngle2)) / fDegree);
+
+
+
+                        // Offset
+                        OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                        OjwRotation(fOffsetPan, fOffsetTilt, fOffsetSwing); 
+                        
+                        OjwTranslate(afValue[nX1], afValue[nY1], 0);
+                        OjwRotation(0, 0, fAngle);
+                        //OjwTranslate(0, afValue[nR1], 0);                        
+
+                        float fTmp;
+                        for (int j = 0; j <= nCnt; j++)
+                        {
+                            fTmp = ((fAngle + 90.0f) + fDegree * j) % 360.0f;
+                            //if ((fTmp >= (fAngle + 90.0f)) && (fTmp <= (90.0f - fAngle2)))
+                            {
+
+
+
+                                //OjwRotation(fTmp, 0.0f, 0.0f);
+                                OjwTranslate(afValue[nR1], 0.0f, 0.0f);
+
+                                OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                    fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+
+                                OjwTranslate(-afValue[nR1], 0.0f, 0.0f);
+                                //OjwRotation(-fTmp, 0.0f, 0.0f);
+                            }
+                        }
+
+                        //OjwTranslate(0, -afValue[nR1], 0);
+                        OjwRotation(0, 0, -fAngle);
+                        OjwTranslate(-afValue[nX1], -afValue[nY1], 0);
+
+                        // Offset
+                        OjwRotation(-fOffsetPan, -fOffsetTilt, -fOffsetSwing);
+                        OjwTranslate(-fOffsetX, -fOffsetY, -fOffsetZ);
+
+                        #endregion Circle
+#else
+                        #region Circle
+                        // 원호의 길이 = 2 * pi * r * (각도 / 360)
+                        // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
+                        float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * afValue[nR1]);
+                        if (fAngle >= 180.0f)
+                            fAngle -= 360.0f;
+                        if (fAngle2 >= 180.0f)
+                            fAngle2 -= 360.0f;
+                        if (-fAngle >= 180.0f)
+                            fAngle += 360.0f;
+                        if (-fAngle2 >= 180.0f)
+                            fAngle2 += 360.0f;
+                        //if (i != 0) continue;
+                        nCnt = (int)Math.Round((Math.Abs(fAngle) + Math.Abs(fAngle2)) / fDegree);
+                        float fTmp;
+
+                        OjwTranslate(0, afValue[nR1], 0);
+                        OjwRotation(fAngle2, 0, 0);
+
+                        for (int j = 0; j <= nCnt; j++)
+                        {
+                            fTmp = (fAngle + fDegree * j) % 360.0f;
+                            //if ((fTmp >= fAngle) && (fTmp <= fAngle2))
+                            {
+                                //OjwRotation(0.0f, 0.0f, fTmp);
+                                //OjwTranslate(0.0f, afValue[nR1], 0.0f);
+
+                                OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                    fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+
+                                //OjwTranslate(0.0f, -afValue[nR1], 0.0f);
+                                //OjwRotation(0.0f, 0.0f, -fTmp);
+                            }
+                            //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 0, 0);
+                            //OjwBox_Outside(bFill, Color.Blue, fAlpha, fTrack_W, fTrack_H, fTrack_D, 0, 0, 0, j * fTrack_Distance, 10, 0);
+                        }
+
+
+                        OjwRotation(-fAngle2, 0, 0);
+                        OjwTranslate(0, -afValue[nR1], 0);
+                        #endregion Circle
+#endif
+                    }
+                }
+#endif
+                public void OjwTrack(float fAngleMove, bool bFill, Color color, float fAlpha,
+                    string strTrackFile,
+                    float fTrack_W, float fTrack_H, float fTrack_D, float fTrack_Distance,
+                    //int nConnectedAxis, float fAxis_X, float fAxis_Y, int nMode,// 연결된 모터, 회전 해야 할 좌표 기준 점, Mode(0 : 회전, 1 : 축 이동(fAxis_X 각도 연관)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+
+                    float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
+                    float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ,              // Translation(Offset)    
+                    //float fOffsetX, float fOffsetY, float fOffsetZ,              // Translation(Offset)
+                    params STrackD_t[] aSValue // x, y, radius
+                    )
+                {
+                    float fX, fY, fR;
+                    float fX1, fY1, fR1;
+                    float fX2, fY2, fR2;
+                    int nNum_Next, nNum_Next2;
+                    float fAngle, fAngle2, fLength, fLength_Out;
+
+                    //int nArg = 3 + 5;
+                    if (fTrack_Distance == 0) fTrack_Distance = 0.001f;
+                    int nCnt = aSValue.Length;
+#if true
+                    // Rotation 적용
+                    int nConnectedAxis; // 연결된 모터 번호
+                    float fAxis_X;      // 회전 해야 할 좌표 기준 점(X)
+                    float fAxis_Y;      // 회전 해야 할 좌표 기준 점(Y)
+                    int nMode;          // Mode(0 : 변화없음, 1 : 회전, 2 : 축 이동(fAxis_X 각도 연관 - 나중에 구현하자. 지금 바빠)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    float fDir = 0;           // 방향(0 : 정, 1 : 반대)
+                    for (int nNum = 0; nNum < nCnt; nNum++)
+                    {
+                        //fR = aSValue[nNum].fR;
+#if true
+                        nConnectedAxis = aSValue[nNum].nConnectedAxis;
+                        fAxis_X = aSValue[nNum].fCenter_X;
+                        fAxis_Y = aSValue[nNum].fCenter_Y;
+                        nMode = aSValue[nNum].nMode;
+                        fDir = ((aSValue[nNum].nDir == 0) ? 1.0f : -1.0f);
+                        if (nMode == 1) // 위로 굴곡 허용
+                        {
+                            //float fCurv = -GetData(nConnectedAxis) * fDir;
+                            //if (fCurv > 0)
+                            //{
+                                //double dX = (double)aSValue[nNum].fX;
+                                //double dY = (double)aSValue[nNum].fY;
+                                //double dZ = 0.0;
+                                
+                                ////fX = fAxis_X + (aSValue[nNum].fX - fAxis_X) * (float)CMath.Cos(GetData(nConnectedAxis) * fDir);
+                                ////fY = fAxis_Y + (aSValue[nNum].fY - fAxis_Y) * (float)CMath.Sin(GetData(nConnectedAxis) * fDir);
+                                //CMath.CalcRot(0.0, 0.0, (double)GetData(nConnectedAxis), ref dX, ref dY, ref dZ);
+                                //aSValue[nNum].fX = (float)dX;
+                                //aSValue[nNum].fY = (float)dY;
+                                ////aSValue[nNum].fX = fAxis_X + (aSValue[nNum].fX - fAxis_X) * (float)CMath.Cos(fCurv) + (aSValue[nNum].fY - fAxis_Y) * (float)CMath.Sin(fCurv);
+                                ////aSValue[nNum].fY = fAxis_Y - (aSValue[nNum].fX - fAxis_X) * (float)CMath.Sin(fCurv) + (aSValue[nNum].fY - fAxis_Y) * (float)CMath.Cos(fCurv);
+
+                                float x = aSValue[nNum].fX;
+                                float y = aSValue[nNum].fY;
+                                float t = GetData(nConnectedAxis) * fDir;
+
+                                aSValue[nNum].fX = ((x - fAxis_X) * (float)CMath.Cos(t) - (y - fAxis_Y) * (float)CMath.Sin(t)) + fAxis_X;
+                                aSValue[nNum].fY = ((x - fAxis_X) * (float)CMath.Sin(t) + (y - fAxis_Y) * (float)CMath.Cos(t)) + fAxis_Y;
+            
+                            //}
+                        }
+                        else if (nMode == 2) // 아래로 굴곡 허용
+                        {
+                            float x = aSValue[nNum].fX;
+                            float y = aSValue[nNum].fY;
+                            float t = GetData(nConnectedAxis) * fDir;
+
+                            aSValue[nNum].fX = ((x - fAxis_X) * (float)CMath.Cos(t) - (y - fAxis_Y) * (float)CMath.Sin(t)) + fAxis_X;
+                            aSValue[nNum].fY = ((x - fAxis_X) * (float)CMath.Sin(t) + (y - fAxis_Y) * (float)CMath.Cos(t)) + fAxis_Y;
+                        }
+                        //else if (nMode == 2)
+                        //{
+
+                        //}
+                        else
+                        {
+                            //fX = aSValue[nNum].fX;
+                            //fY = aSValue[nNum].fY;
+                        }
+
+                        if (fTrack_W < 0)
+                        {
+                            //fTrack_W = -fTrack_W;
+                            OjwTranslate(aSValue[nNum].fX, aSValue[nNum].fY, 0.0f);
+                            OjwCircle_Outside(bFill, color, fAlpha, aSValue[nNum].fR, -fTrack_W, 50, 0, 0, 0, 0, 0, 0);
+                            //OjwBall_Outside(bFilled, cColor, fAlpha, aSValue[nNum].fR, 50, OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                            OjwTranslate(-aSValue[nNum].fX, -aSValue[nNum].fY, 0.0f);
+                            OjwTranslate(aSValue[nNum].fCenter_X, aSValue[nNum].fCenter_Y, 0.0f);
+                            OjwCircle_Outside(bFill, Color.Red, fAlpha, 10, -fTrack_W, 50, 0, 0, 0, 0, 0, 0);
+                            //OjwBall_Outside(bFilled, Color.Red, fAlpha, 10, 50, OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
+                            OjwTranslate(-aSValue[nNum].fCenter_X, -aSValue[nNum].fCenter_Y, 0.0f);                          
+                        }
+#else
+                        fX = aSValue[nNum].fX;
+                        fY = aSValue[nNum].fY;
+#endif
+
+                    }
+                    if (fTrack_W < 0) fTrack_W = -fTrack_W;
+#if true
+                    // 궤적검사
+                    //int nNum_Prev;
+                    int nCnt2 = 0;
+                    bool[] abChanged = new bool[nCnt];
+                    abChanged.Initialize();
+                    //float fTest = 0.0f;
+                    for (int nNum = 0; nNum < nCnt; nNum++)
+                    {
+                        fX = aSValue[nNum].fX;
+                        fY = aSValue[nNum].fY;
+                        fR = aSValue[nNum].fR;
+                        nNum_Next = (nNum < nCnt - 1) ? (nNum + 1) : (nNum - nCnt + 1);
+                        fX1 = aSValue[nNum_Next].fX;
+                        fY1 = aSValue[nNum_Next].fY;
+                        fR1 = aSValue[nNum_Next].fR;
+
+                        nNum_Next2 = ((nNum < nCnt - 2) ? (nNum + 2) : (nNum - nCnt + 2)) % nCnt;
+                        //nNum_Prev = (((nNum - 1) < 0) ? (nCnt - 1) : (nNum - 1)) % nCnt;
+                        fX2 = aSValue[nNum_Next2].fX;
+                        fY2 = aSValue[nNum_Next2].fY;
+                        fR2 = aSValue[nNum_Next2].fR;
+
+                        fAngle = (float)Ojw.CMath.ATan2((fX1 - fX), (fY1 - fY));
+                        fAngle2 = (float)Ojw.CMath.ATan2((fX2 - fX1), (fY2 - fY1));
+                        fLength = (float)Math.Sqrt((fX1 - fX) * (fX1 - fX) + (fY1 - fY) * (fY1 - fY));
+                        fLength_Out = (float)Math.Sqrt(fLength * fLength - (fR1 - fR) * (fR1 - fR));
+                        float fAngleGap = (float)Ojw.CMath.ATan2(fLength, (fR1 - fR));
+                        float fTmp = (fAngle - fAngle2 + 360.0f) % 360.0f;
+                        //float fMax_X = ((fX1 + fR1) >= (fX2 + fR2)) ? (fX1 + fR) : (fX2 + fR2);
+                        //float fMin_X = ((fX1 + fR1) >= (fX2 + fR2)) ? (fX2 + fR2) : (fX1 + fR);
+                        //float fMax_Y = ((fY1 + fR1) >= (fY2 + fR2)) ? (fY1 + fR) : (fY2 + fR2);
+                        //float fMin_Y = ((fY1 + fR1) >= (fY2 + fR2)) ? (fY2 + fR2) : (fY1 + fR);
+                        //if (
+                        //    ((fX + fR) > fMax_X) ||
+                        //    ((fY + fR) > fMax_Y) ||
+                        //    ((fX + fR) < fMin_X) ||
+                        //    ((fY + fR) < fMin_Y)
+                        //    )
+                        //if ((aSValue[nNum_Next2].fX == aSValue[nNum].fX) && (aSValue[nNum_Next2].fY == aSValue[nNum].fY))
+                        //{
+                        //    abChanged[nNum_Next] = true;
+                        //}
+                        //else 
+                        //fTest += fTmp;
+                        if (Math.Round(fTmp) > 180)// || (Math.Round(fTmp) == 0))//181)
+                        {
+                            //for (int j = nNum; j < nCnt; j++)
+                            //{
+                            //    nNum_Next = (j < nCnt - 1) ? (j + 1) : (j - nCnt + 1);
+                            //    nNum_Next2 = ((j < nCnt - 2) ? (j + 2) : (j - nCnt + 2)) % nCnt;
+                            //    aSValue[nNum_Next].fX = aSValue[nNum_Next2].fX;
+                            //    aSValue[nNum_Next].fY = aSValue[nNum_Next2].fY;
+                            //    aSValue[nNum_Next].fR = aSValue[nNum_Next2].fR;
+                            //}
+                            //nCnt2++;
+                            aSValue[nNum_Next].fX = (aSValue[nNum].fX + aSValue[nNum_Next2].fX) / 2.0f;
+                            aSValue[nNum_Next].fY = (aSValue[nNum].fY + aSValue[nNum_Next2].fY) / 2.0f;
+                            aSValue[nNum_Next].fR = (aSValue[nNum].fR + aSValue[nNum_Next2].fR) / 2.0f;
+                            nCnt2++;
+                            abChanged[nNum_Next] = true;
+                        }
+                        //if fX1 
+                    }
+                    //if (nNum == 4) Ojw.CMessage.Write("{0}", fTest);
+                    //nCnt -= nCnt2;
+#endif
+#endif
+                    if (strTrackFile != null)
+                    {
+                        if (OjwAse_GetIndex(strTrackFile) < 0)
+                        {
+                            //string strObject = strTrackFile;
+                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
+                            FileInfo f = new FileInfo(strFileName);
+                            if (f.Exists == true)
+                            {
+                                if (CFile.GetExe(strFileName).ToUpper() == "ASE")
+                                    OjwFileOpen_3D_ASE(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                    OjwFileOpen_3D_STL(strFileName);
+                            }
+                        }
+                    }
+
+                    // 기준 원 그려보자
+                    ////////////////////////////
+#if false
+                    //if (nCnt == 1)
+                    //{
+                    //    for (int nNum = 0; nNum < nCnt; nNum++)
+                    //    {
+                    //        fX = afValue[nArg * nNum + 0];
+                    //        fY = afValue[nArg * nNum + 1];
+                    //        fR = afValue[nArg * nNum + 2];
+                    //        //OjwBall_Outside(bFill, color, fAlpha, fR, 50, 0, 0, 0, fX, fY, 0);
+                    //        OjwBall_Outside(bFill, color, 0.5f, fR, 50, 0, 0, 0, fX, fY, 0);
+
+                    //        fAxis_X = afValue[nArg * nNum + 4];
+                    //        fAxis_Y = afValue[nArg * nNum + 5];
+                    //        OjwBall_Outside(bFill, Color.Red, 0.5f, 10, 50, 0, 0, 0, fAxis_X, fAxis_Y, 0);
+                    //    }
+                    //}
+#endif
+                    //Color[] aclrTestColor = new Color[4] {Color.White, Color.Blue, Color.Violet, Color.Gold};
+                    // First
+                    float fSum = 0.0f;
+                    for (int nNum = 0; nNum < nCnt; nNum++)
+                    {
+                        fX = aSValue[nNum].fX;
+                        fY = aSValue[nNum].fY;
+                        fR = aSValue[nNum].fR;
+                        nNum_Next = (nNum < nCnt - 1) ? (nNum + 1) : (nNum - nCnt + 1);
+                        fX1 = aSValue[nNum_Next].fX;
+                        fY1 = aSValue[nNum_Next].fY;
+                        fR1 = aSValue[nNum_Next].fR;
+
+                        nNum_Next2 = ((nNum < nCnt - 2) ? (nNum + 2) : (nNum - nCnt + 2)) % nCnt;
+                        fX2 = aSValue[nNum_Next2].fX;
+                        fY2 = aSValue[nNum_Next2].fY;
+                        fR2 = aSValue[nNum_Next2].fR;
+
+                        fAngle = (float)Ojw.CMath.ATan2((fX1 - fX), (fY1 - fY));
+                        fAngle2 = (float)Ojw.CMath.ATan2((fX2 - fX1), (fY2 - fY1));
+                        fLength = (float)Math.Sqrt((fX1 - fX) * (fX1 - fX) + (fY1 - fY) * (fY1 - fY));
+                        fLength_Out = (float)Math.Sqrt(fLength * fLength - (fR1 - fR) * (fR1 - fR));
+
+                        OjwTranslate(fX, fY, 0);
+                        OjwRotation(0, 0, fAngle);
+                        OjwTranslate(0, fR, 0);
+
+                        float fAngleGap = (float)Ojw.CMath.ATan2(fLength, (fR1 - fR)); //(float)Ojw.CMath.ATan2(fLength_Out, (fR1 - fR));
+                        OjwRotation(0, 0, fAngleGap);
+                        
+                        // 시작 위치 각도를 거리로 환산해서 구하기
+                        //float fAngleTest = fAngleMove % fTrack_Distance; // 모터 회전 ?도
+                        //float fStartPos = -fAngleTest * (2.0f * (float)Math.PI * fR1) / 360.0f;
+                        float fAngleTest = fAngleMove * (2.0f * (float)Math.PI * fR1) / 360.0f; // 모터 회전 ?도
+                        float fStartPos = (fAngleTest % fTrack_Distance) * -1;// ((fAngleMove >= 0) ? -1 : 1);
+                        //Ojw.CMessage.Write("Pos={0} -> {1} -> {2}", fAngleMove, fAngleTest, fStartPos);
+                        // 기준위치 표시 - 나중에 삭제
+                        //OjwBall_Outside(bFill, aclrTestColor[nNum], fAlpha, fR / 10, 50, 0, 0, 0, 0, 0, 0);
+                        float fPos = fStartPos;// -fTrack_Distance; // 시작위치 조정이 가능
+                        if (nCnt > 1)
+                        {
+                            while (fPos <= fLength_Out)
+                            {
+                                if (strTrackFile.Length > 0)
+                                {
+                                    //OjwBall_Outside(bFill, Color.Green, fAlpha, fR / 10, 50, 0, 0, 0, fPos, 0, 0);
+                                    OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                            fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                            fTrack_OffsetX + fPos, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                }
+                                else
+                                {
+                                    //OjwBox_Outside(bFill, color, fAlpha, fTrack_W, 10, fTrack_Distance,
+                                    //        0, 0, 0, fPos, 0, -fTrack_W / 2.0f);
+                                    OjwCircle_Outside(bFill, color, fAlpha, fTrack_Distance / 3, fTrack_W, 10,
+                                               0, 0, 0, fPos, 0, -fTrack_W / 2.0f);
+                                    OjwBox_Outside(bFill, color, fAlpha, fTrack_Distance, 10, fTrack_W,
+                                            0, 0, 0, fPos, 0, 0);//-fTrack_W / 2.0f);
+                                }
+                                fPos += fTrack_Distance;
+                            }
+                        }
+                        OjwRotation(0, 0, -fAngleGap);
+                        OjwTranslate(0, -fR, 0);
+                        OjwRotation(0, 0, -fAngle);
+                        OjwTranslate(-fX, -fY, 0);
+
+                        // 거리오차
+                        float fDiff = fLength_Out - (fPos - fTrack_Distance);
+
+                        // Rotation
+                        OjwTranslate(fX1, fY1, 0);
+                        //OjwTranslate(0, fR, 0);
+                        //float fPos_X, fPos_Y;
+                        float fAngleDiff = (-fDiff * 360.0f) / (2.0f * (float)Math.PI * fR1);
+                        // 원호의 길이 = 2 * pi * r * (각도 / 360)
+                        // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
+                        float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * fR1);
+                        float fTmp = (fAngle - fAngle2 + 360.0f) % 360.0f;
+                        
+                        //Color colorTmp = (abChanged[nNum_Next] == true) ? Color.Red : color;
+                        //Color colorTmp = (nNum == 4) ? Color.Red : color;
+                        Color colorTmp = color;
+                        int j = 0;
+#if false
+                        if (nCnt == 1)
+                        {
+                            #region 1 Circle
+                            float fR_Height = fR1 - fR1 * (float)Ojw.CMath.Cos(fDegree / 2.0f);
+                            float fR_Bottom = fR1 * (float)Ojw.CMath.Sin(fDegree / 2.0f);
+                            float fDeg = (float)Ojw.CMath.ATan2(fR_Bottom, fR_Height);
+
+                            for (j = 0; j < (int)(360 / fDegree); j++)
+                            {
+                                OjwRotation(0, 0, -fAngleDiff + (fAngle + 90.0f));
+                                //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+
+                                OjwTranslate(fR1, 0, 0);
+                                OjwRotation(0, 0, fDeg);
+
+                                //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+                                //OjwBall_Outside(bFill, Color.Cyan, fAlpha, fR / 10, 50, 0, 0, 0, fR1, 0, 0);
+                                
+                                if (strTrackFile.Length > 0)
+                                {
+                                    OjwAse_Outside(bFill, colorTmp, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                        fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing - 90.0f - fDegree / 2,//fDegree,// / 2,
+                                        fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                }
+                                else
+                                {
+                                    //OjwBox_Outside(bFill, colorTmp, fAlpha, fTrack_W, 10, fTrack_Distance,
+                                    //        0, 0, -90.0f - fDegree, 0, 0, -fTrack_W / 2.0f);
+                                    OjwCircle_Outside(bFill, colorTmp, fAlpha, fTrack_Distance / 3, fTrack_W, 10,
+                                                0, 0, -90.0f - fDegree, 0, 0, -fTrack_W / 2.0f);
+                                    OjwBox_Outside(bFill, colorTmp, fAlpha, fTrack_Distance, 10, fTrack_W,
+                                            0, 0, -90.0f - fDegree, 0, 0, 0);//-fTrack_W / 2.0f);
+                                }
+
+                                //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+
+
+                                OjwRotation(0, 0, -fDeg);
+                                OjwTranslate(-fR1, 0, 0);
+                                //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                OjwRotation(0, 0, fAngleDiff - (fAngle + 90.0f));
+
+
+                                fAngleDiff += fDegree;
+                                //j++;
+                            }
+                            #endregion 1 Circle
+                        }
+                        else
+#endif
+                        {
+                            // 각도를 반으로 나눈 부분에 수직 수선이 내려진다.
+                            // 
+                            float fR_Height = fR1 - fR1 * (float)Ojw.CMath.Cos(fDegree / 2.0f);
+                            float fR_Bottom = fR1 * (float)Ojw.CMath.Sin(fDegree / 2.0f);
+                            float fDeg = (float)Ojw.CMath.ATan2(fR_Bottom, fR_Height);
+                            //while ((fAngleDiff + fDegree / 2) < fTmp)
+                            //while ((fAngleDiff + fDegree) <= fTmp)
+                            //if (fTmp > 180)
+                            //{
+                            //    fTmp = 360.0f - fTmp;
+                            //    fDegree = -fDegree;
+                            //}
+                            fSum += fTmp;
+                            if ((abChanged[nNum_Next] == false) && (fSum != 720.0f))
+                            {
+                                //fTmp = 360.0f - fTmp;
+                                //fDegree = -fDegree;
+                                while (Math.Abs(fAngleDiff) < Math.Abs(fTmp))
+                                {
+                                    //if (j != 0)
+                                    {
+                                        OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+                                        OjwTranslate(fR1, 0, 0);
+
+                                        OjwRotation(0, 0, fDeg);
+
+
+                                        if (strTrackFile.Length > 0)
+                                        {
+                                            //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
+                                            //OjwBall_Outside(bFill, Color.Cyan, fAlpha, fR / 10, 50, 0, 0, 0, fR1, 0, 0);
+                                            OjwAse_Outside(bFill, colorTmp, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                                fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing - 90.0f - fDegree,// / 2,
+                                                fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                            //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                        }
+                                        else
+                                        {
+                                            OjwCircle_Outside(bFill, colorTmp, fAlpha, fTrack_Distance / 3, fTrack_W, 10,
+                                                    0, 0, -90.0f - fDegree, 0, 0, -fTrack_W / 2.0f);
+                                            OjwBox_Outside(bFill, colorTmp, fAlpha, fTrack_Distance, 10, fTrack_W,
+                                                    0, 0, -90.0f - fDegree, 0, 0, 0);//-fTrack_W / 2.0f);
+                                        }
+                                    
+                                        OjwRotation(0, 0, -fDeg);
+                                        OjwTranslate(-fR1, 0, 0);
+                                        OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
+                                    }
+                                    fAngleDiff += fDegree;
+                                    j++;
+                                }
+                            }
+                        }
+                        OjwTranslate(-fX1, -fY1, 0);
+
+                    }
+                }
                 #endregion OjwBox_Outside
 
                 // Case which rotates around the center of the upper surface
@@ -7370,6 +10472,7 @@ namespace OpenJigWare
                         int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
                         //int uiType = Gl.GL_TRIANGLE_FAN;// (bFill == true) ? Gl.GL_TRIANGLE_FAN : Gl.GL_LINE_LOOP;
                         Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
+                        Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
                         //Gl.glBegin(uiType);
 
 
@@ -7595,6 +10698,7 @@ namespace OpenJigWare
                     int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
                     //int uiType = Gl.GL_TRIANGLE_FAN;// (bFill == true) ? Gl.GL_TRIANGLE_FAN : Gl.GL_LINE_LOOP;
                     Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
+                    Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
                     //Gl.glBegin(uiType);
 
 
@@ -7722,7 +10826,7 @@ namespace OpenJigWare
 
                     Glu.GLUquadric quadObj;
                     // Create quadric object
-                    int nLoopCount = ((bFill == true) ? 2 : 1);
+                    int nLoopCount = 1;// ((bFill == true) ? 2 : 1);
                     for (int nLoop = 0; nLoop < nLoopCount; nLoop++)
                     {
                         int nSub = _COLOR_GAP;
@@ -7741,7 +10845,7 @@ namespace OpenJigWare
                         quadObj = Glu.gluNewQuadric();
 
                         Gl.glPushMatrix();
-
+#if false
                         //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA);
                         //Gl.glEnable(Gl.GL_BLEND);
                         //Gl.glEnable(Gl.GL_LINE_SMOOTH);
@@ -7778,7 +10882,35 @@ namespace OpenJigWare
                         //{
                         //    PopName();
                         //}
+#else
+                        // GLU_LINE -> Wire Frame
+                        // GLU_FILL -> Solid
+                        // GLU_POINT -> Point
+                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: 선으로 외부모서리만을 그림)
+                        Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? ((nLoop == 0) ? Glu.GLU_FILL : Glu.GLU_SILHOUETTE) : Glu.GLU_LINE);
 
+                        // GLU_NONE -> Do not generate normal vector(Kor: 법선벡터 생성 안함)
+                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: 면이 깎인 것처럼 보이도록 법선벡터 생성)
+                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: 물체의 모서리가 부드럽게 보이도록 법선벡터 생성)
+                        Glu.gluQuadricNormals(quadObj, Glu.GLU_SMOOTH);
+
+                        // Specifies the direction of the normal vector(Kor: 법선벡터의 방향을 지정)
+                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: 법선벡터의 방향을 안쪽으로)
+                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: 법선벡터의 방향을 바깥쪽으로)
+                        //Glu.gluQuadricOrientation(quadObj, Glu.GLU_INSIDE);
+
+                        OjwRotation(180.0f, 0.0f, 0.0f);
+                        Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
+                        OjwRotation(-180.0f, 0.0f, 0.0f);
+
+                        //Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
+                        Glu.gluCylinder(quadObj, fR, fR, fD, nSolidCnt, 2);
+
+                        Gl.glTranslated(0, 0, fD);
+
+                        //Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
+                        Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
+#endif
                         Gl.glPopMatrix();
 
                         Glu.gluDeleteQuadric(quadObj); // remove object
@@ -7795,7 +10927,7 @@ namespace OpenJigWare
                                     float fOffsetX, float fOffsetY, float fOffsetZ              // Translate(Offset)
                                     )
                 {
-                    int nLoopCount = ((bFill == true) ? 2 : 1);
+                    int nLoopCount = 1;// ((bFill == true) ? 2 : 1);
                     for (int nLoop = 0; nLoop < nLoopCount; nLoop++)
                     {
                         int nSub = _COLOR_GAP;
@@ -7825,7 +10957,7 @@ namespace OpenJigWare
 
                         OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
                         OjwRotation(fOffsetPan, fOffsetTilt, fOffsetSwing);
-
+#if false
                         //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA);
                         //Gl.glEnable(Gl.GL_BLEND);
                         //Gl.glEnable(Gl.GL_LINE_SMOOTH);
@@ -7859,7 +10991,47 @@ namespace OpenJigWare
 
                         //OjwTranslate(-fOffsetX, -fOffsetY, -fOffsetZ);
                         //OjwRotation(-fOffsetPan, -fOffsetTilt, -fOffsetSwing);
+#else
+                        int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
+                        //int uiType = Gl.GL_TRIANGLE_FAN;// (bFill == true) ? Gl.GL_TRIANGLE_FAN : Gl.GL_LINE_LOOP;
+                        Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
+                        Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
 
+                        // GLU_LINE -> Wire Frame
+                        // GLU_FILL -> Solid
+                        // GLU_POINT -> Point
+                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: 선으로 외부모서리만을 그림)
+                        //Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? Glu.GLU_FILL : Glu.GLU_LINE);
+                        Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? ((nLoop == 0) ? Glu.GLU_FILL : Glu.GLU_SILHOUETTE) : Glu.GLU_LINE);
+
+                        // GLU_NONE -> Do not generate normal vector(Kor: 법선벡터 생성 안함)
+                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: 면이 깎인 것처럼 보이도록 법선벡터 생성)
+                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: 물체의 모서리가 부드럽게 보이도록 법선벡터 생성)
+                        Glu.gluQuadricNormals(quadObj, Glu.GLU_SMOOTH);
+
+
+                        // Specifies the direction of the normal vector(Kor: 법선벡터의 방향을 지정)
+                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: 법선벡터의 방향을 안쪽으로)
+                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: 법선벡터의 방향을 바깥쪽으로)
+                        //Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
+                        
+
+                        // The radius of the circle(The higher the number, the hole is widened)(Kor: 시작원의 반지름(도우넛 모양이 가능 - 이 값이 클수록 구멍이 넓어짐), 외곽원의 반지름, 원을 이루는 선의 갯수)
+
+                        OjwRotation(180.0f, 0.0f, 0.0f);
+                        Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
+                        OjwRotation(-180.0f, 0.0f, 0.0f);
+
+
+
+
+                        Glu.gluCylinder(quadObj, fR, fR, fD, nSolidCnt, 1);
+
+                        Gl.glTranslated(0, 0, fD);
+
+                        //Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
+                        Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
+#endif
                         Gl.glPopMatrix();
 
                         Glu.gluDeleteQuadric(quadObj);
@@ -7893,7 +11065,7 @@ namespace OpenJigWare
                     //#endif
                 }
                 #endregion OjwBall
-
+           
                 // Ball to the middle of the center(Kor: 가운데를 중심으로 하는 공)
                 #region OjwBall_Outside
                 public void OjwBall_Outside(bool bFill, Color color, float fAlpha, float fR, int nSolidCnt,
@@ -7946,6 +11118,7 @@ namespace OpenJigWare
                     int uiTypeTop = (bFill == true) ? Gl.GL_FILL : Gl.GL_LINE;
                     //    glPolygonMode(GL_BACK, GL_LINE);
                     Gl.glPolygonMode(Gl.GL_BACK, uiTypeTop);
+                    Gl.glPolygonMode(Gl.GL_FRONT, uiTypeTop);
                     
                     OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
                     OjwRotation(fOffsetPan, fOffsetTilt, fOffsetSwing);
@@ -8168,7 +11341,8 @@ namespace OpenJigWare
 #if _STL_CW
                     Gl.glFrontFace((bStl == true) ? Gl.GL_CW : Gl.GL_CCW);
 #else
-                    Gl.glFrontFace((bStl == true) ? Gl.GL_CCW : Gl.GL_CW);
+                    Gl.glFrontFace(Gl.GL_CCW); // 20150528 수정 - 이게 맞다.
+                    //Gl.glFrontFace((bStl == true) ? Gl.GL_CCW : Gl.GL_CCW);
 #endif
 #if true // 1
 #if _STL_CW
@@ -8179,15 +11353,52 @@ namespace OpenJigWare
                             )
                         );
                     Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
-#else       // original                    
-                    Gl.glPolygonMode(Gl.GL_FRONT,
-                            (int)(
-                                (bFill == true) ?
-                                    ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
-                            )
-                        );
-                    //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
-                    Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
+#else       // original    
+                    if (IsPerspectiveMode() == true)
+                    {
+                        Gl.glPolygonMode(Gl.GL_FRONT,
+                                (int)(
+                                    (bFill == true) ?
+                                        Gl.GL_FILL : Gl.GL_LINE//((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                                )
+                            );
+                        //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
+
+                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+
+                        //Gl.glPolygonMode(Gl.GL_FRONT,
+                        //        (int)(
+                        //            (bFill == true) ?
+                        //                ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                        //        )
+                        //    );
+                    }
+                    else
+                    {
+                        Gl.glPolygonMode(Gl.GL_FRONT,
+                                (int)(
+                                    (bFill == true) ?
+                                        Gl.GL_FILL : Gl.GL_LINE//((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                                )
+                            );
+                        //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
+
+                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+
+                        //Gl.glPolygonMode(Gl.GL_FRONT,
+                        //        (int)(
+                        //            (bFill == true) ?
+                        //                ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                        //        )
+                        //    );
+#if false
+                        Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
+                        //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
+                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_LINE : Gl.GL_LINE));
+#endif
+
+                    }
+
 #endif
 #else
                     //Gl.glEdgeFlag(Gl.GL_TRUE);
@@ -8260,7 +11471,11 @@ namespace OpenJigWare
                         //Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).z);
                     }
 #else
-                    //Gl.glEdgeFlag(Gl.GL_FALSE);
+                    if (IsPerspectiveMode() == true)
+                    {
+                        //Gl.glEdgeFlag(Gl.GL_TRUE); -> 상관없음
+                        //Gl.glFrontFace(Gl.GL_CW); -> 관계없음
+                    }
                     if (bStl == true)
                     {
 #if false
@@ -8272,8 +11487,9 @@ namespace OpenJigWare
                         //for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Data_GetCnt(); i++)
                         //    Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(i).x, m_lstOjwAse[nIndex_Ase].Data_Get(i).y, m_lstOjwAse[nIndex_Ase].Data_Get(i).z);
 #else
-                        SVector3D_t[] pSVec = m_lstOjwAse[nIndex_Ase].Data_Get();
-                        foreach (SVector3D_t SVec in pSVec) Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
+                        //SVector3D_t[] pSVec = m_lstOjwAse[nIndex_Ase].Data_Get();
+                        //foreach (SVector3D_t SVec in pSVec) Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
+                        foreach (SVector3D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get()) Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
 #endif
                         
                         //for (int i = 0; i < pSVec.Length; i += 3)
@@ -9038,10 +12254,49 @@ namespace OpenJigWare
                     Gl.glPopMatrix();
                 }
                 #endregion OjwLine / OjwLines
+            
+                public int CalcAngle2Evd(int nAxis, float fValue)
+                {
+                    try
+                    {
+                        fValue *= ((m_CHeader.pSMotorInfo[nAxis].nMotorDir == 0) ? 1.0f : -1.0f);
+                        int nData = 0;
+                        //if (GetCmd_Flag_Mode(nAxis) != 0)   // Speed Control
+                        //{
+                        //    nData = (int)Math.Round(fValue);
+                        //}
+                        //else
+                        //{
+                        // Position Control
+                        nData = (int)Math.Round(((float)m_CHeader.pSMotorInfo[nAxis].nMechMove * fValue) / m_CHeader.pSMotorInfo[nAxis].fMechAngle);
+                        nData = nData + m_CHeader.pSMotorInfo[nAxis].nCenter_Evd;
+                        //}
 
-
-
-
+                        return nData;
+                    }
+                    catch
+                    {
+                        return 0;
+                    }
+                }
+                public float CalcEvd2Angle(int nAxis, int nValue)
+                {
+                    try
+                    {
+                        float fValue = ((m_CHeader.pSMotorInfo[nAxis].nMotorDir == 0) ? 1.0f : -1.0f);
+                        // 1024:333.3 = pulse:angle
+                        float fValue2 = 0.0f;
+                        //if (GetCmd_Flag_Mode(nAxis) != 0)   // Speed Control
+                        //    fValue2 = (float)nValue * fValue;
+                        //else                                // Position Control
+                        fValue2 = (float)(((m_CHeader.pSMotorInfo[nAxis].fMechAngle * ((float)(nValue - (int)m_CHeader.pSMotorInfo[nAxis].nCenter_Evd))) / (float)m_CHeader.pSMotorInfo[nAxis].nMechMove) * fValue);
+                        return fValue2;// At the end, be multiplied by the sign variable.(Kor: 마지막에 부호변수를 곱함)
+                    }
+                    catch
+                    {
+                        return 0.0f;
+                    }
+                }
 
 
 
@@ -9245,7 +12500,7 @@ namespace OpenJigWare
                     m_CHeader.strDrawModel += strValue;       
 #else
                     String strDraw = String.Empty;
-                    foreach (String strItem in m_txtDraw.Lines) strDraw += strItem + "\r\n";
+                    foreach (String strItem in m_rtxtDraw.Lines) strDraw += strItem + "\r\n";
                     strDraw += strValue; // 마지막 줄에 추가
                     m_CHeader.strDrawModel = strDraw;
 #endif
@@ -9254,7 +12509,7 @@ namespace OpenJigWare
                 {
                     String strDraw = String.Empty;
                     int nPos = 0;
-                    foreach (String strItem in m_txtDraw.Lines)
+                    foreach (String strItem in m_rtxtDraw.Lines)
                     {
                         if (nPos != 0) strDraw += "\r\n";
                         if (nLine == nPos++) strDraw += strValue;
@@ -9339,7 +12594,12 @@ namespace OpenJigWare
                                     if (OjwAse_GetIndex(pCDisp[i].strDispObject) < 0)
                                     {
                                         //this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
-                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + pCDisp[i].strDispObject + ((pCDisp[i].strDispObject.IndexOf('.') < 0) ? ".ase" : "");
+                                        String strFile = pCDisp[i].strDispObject;
+                                        if ((strFile.IndexOf('?') >= 0) || (strFile.IndexOf('/') >= 0))
+                                        {
+                                            strFile = strFile.Substring(1);
+                                        }
+                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
                                         FileInfo f = new FileInfo(strFileName);
                                         if (f.Exists == true)
                                         {
@@ -9623,7 +12883,8 @@ namespace OpenJigWare
                 public static String _STR_EXT = "ojw"; // OpenJigWare File
 
                 //public static String _STR_EXT_VERSION = "01.00.00";
-                public static String _STR_EXT_VERSION = "01.01.00";
+                //public static String _STR_EXT_VERSION = "01.01.00";
+                public static String _STR_EXT_VERSION = "01.02.00"; // Center_Evd, MechMove 의 값 16비트에서 32비트로 변경
                 #endregion Version - Version Designer History header file(Kor: 디자이너 헤더 파일의 버전 기록)
 
                 public String m_strVersion = "";
@@ -9670,20 +12931,46 @@ namespace OpenJigWare
                         CheckInverse();
                         #endregion Compile
 
+                        m_rtxtDraw.Text = GetHeader_strDrawModel();
+                        GridMotionEditor_Init(70, 999);
+                        StringListToGrid();
+                                                
+                        //if (m_cmbDh.Items.Count < 512)
+                        //{
+                        //    m_cmbDh.Items.Clear();
+                        //    for (int j = 0; j < 512; j++)
+                        //    {
+                        //        m_cmbDh.Items.Add(j.ToString());
+                        //    }
+                        //}
+                        m_cmbDh.SelectedIndex = 0;
+                        cmbDhRefresh(m_cmbDh.SelectedIndex);
+
                         return CompileDesign(m_CHeader.strDrawModel, out nMotorCount, out strError);
 
                     }
                     return false;
-                }                
+                }
+                private int m_nCnt_Forward = 0;
+                private int m_nCnt_Inverse = 0;
+                public void GetCount_Kinematics(out int Forward, out int Inverse)
+                {
+                    Forward = m_nCnt_Forward;
+                    Inverse = m_nCnt_Inverse;
+                }
                 public void CheckForward()
                 {
                     int nPos = 0;
+                    m_nCnt_Forward = 0;
                     foreach (String strItem in m_CHeader.pstrKinematics)
                     {
                         if (strItem != null)
                         {
                             if (strItem.Length > 0)
+                            {
                                 CKinematics.CForward.MakeDhParam(strItem, out m_CHeader.pDhParamAll[nPos]);
+                                m_nCnt_Forward++;
+                            }
                         }
                         nPos++;
                     }
@@ -9692,12 +12979,16 @@ namespace OpenJigWare
                 {
                     int nPos = 0;
                     int nCnt_InverseKinematics = 0;
+                    m_nCnt_Inverse = 0;
                     foreach (String strItem in m_CHeader.pstrInverseKinematics)
                     {
                         if (strItem != null)
                         {
                             if (strItem.Length > 0)
+                            {
                                 CKinematics.CInverse.Compile(strItem, out m_CHeader.pSOjwCode[nPos]);
+                                m_nCnt_Inverse++;
+                            }
                         }
                         if (m_CHeader.pSOjwCode[nPos].nMotor_Max > 0) nCnt_InverseKinematics++;
                         nPos++;
@@ -9866,13 +13157,15 @@ namespace OpenJigWare
 
                             #region Center Position - Evd ( 2 Bytes )
                             byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nCenter_Evd);
-                            fs.Write(byteData, 0, 2);
+                            //fs.Write(byteData, 0, 2);  -> "01.02.00" 에서 4바이트로 변경
+                            fs.Write(byteData, 0, 4);
                             byteData = null;
                             #endregion Center Position - Evd ( 2 Bytes )
 
                             #region Mech Move - maximum Evd value( 2 Bytes )
                             byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nMechMove);
-                            fs.Write(byteData, 0, 2);
+                            //fs.Write(byteData, 0, 2);  -> "01.02.00" 에서 4바이트로 변경
+                            fs.Write(byteData, 0, 4);
                             byteData = null;
                             #endregion Mech Move - maximum Evd value ( 2 Bytes )
                             #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: 최대치 펄스에 해당하는 각도값 (분주각))]( 4 Bytes )
@@ -10647,16 +13940,30 @@ namespace OpenJigWare
                                 nPos += 4;
                                 #endregion Min Angle (-) ( 4 Bytes )
 
-                                #region Center Position - Evd ( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Center Position - Evd ( 2 Bytes )
+                                if (nVersion < 010200)
+                                {
+                                    #region Center Position - Evd ( 2 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt16(byteData, nPos);
+                                    nPos += 2;
+                                    #endregion Center Position - Evd ( 2 Bytes )
 
-                                #region Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 2 Bytes )
+                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 2 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
+                                    nPos += 2;
+                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 2 Bytes )
+                                }
+                                else
+                                {
+                                    #region Center Position - Evd ( 4 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt32(byteData, nPos);
+                                    nPos += 4;
+                                    #endregion Center Position - Evd ( 4 Bytes )
 
+                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 4 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt32(byteData, nPos);
+                                    nPos += 4;
+                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 4 Bytes )
+                                }
                                 #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: 최대치 펄스에 해당하는 각도값 (분주각))]( 4 Bytes )
                                 CDesignHeder.pSMotorInfo[i].fMechAngle = BitConverter.ToSingle(byteData, nPos);
                                 nPos += 4;
@@ -10863,7 +14170,6 @@ namespace OpenJigWare
 
                             // Event Running
                             Event_FileOpen.RunEvent();
-
                             return true;
                         }
 

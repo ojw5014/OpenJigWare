@@ -264,8 +264,6 @@ namespace OpenJigWare
                     dY = SDhT_Result.adT[nDirY, 3];
                     dZ = SDhT_Result.adT[nDirZ, 3];
 
-
-
                     // Checking Direction(Kor: 방향 확인)
                     j = 0;
                     double[] adDir = new double[3];
@@ -705,6 +703,7 @@ namespace OpenJigWare
 
                 private const int _POW = 0x0001000;
                 private const int _ABS = 0x0002000;
+                private const int _MOD = 0x0004000;
 
                 private const int _BRACKET_SMALL_START = 0x0004000;
                 private const int _BRACKET_SMALL_END = 0x0008000;
@@ -1262,7 +1261,7 @@ namespace OpenJigWare
                                     )
                                         continue;
                                     else if (
-                                          (CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _DIV | _COMMA, pstrLineSort[i - 1]) != 0) &&
+                                          (CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _DIV | _MOD | _COMMA, pstrLineSort[i - 1]) != 0) &&
                                           (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2, pstrLineSort[i]) == 0)
                                       )
                                     {
@@ -1494,7 +1493,7 @@ namespace OpenJigWare
                             //int nPow = 0; // 0 - Pow, 1 - sqrt
                             for (int j = 0; j < pstrTmp.Length; j++)
                             {
-                                int nData = CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _DIV, pstrTmp[j]);
+                                int nData = CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _MOD | _DIV, pstrTmp[j]);
                                 if (pstrTmp[j].IndexOf("sqrt") >= 0)
                                 {
                                     pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "sqrt");
@@ -1531,6 +1530,10 @@ namespace OpenJigWare
                                 {
                                     strResult += "MUL,";
                                 }
+                                else if ((nData & _MOD) != 0)
+                                {
+                                    strResult += "MOD,";
+                                }
                                 else if ((nData & _DIV) != 0)
                                 {
                                     strResult += "DIV,";
@@ -1544,7 +1547,7 @@ namespace OpenJigWare
                                     }
                                     else
                                     {
-                                        if (CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _DIV, pstrTmp[j + 1]) != 0)
+                                        if (CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _MOD | _DIV, pstrTmp[j + 1]) != 0)
                                         {
                                             strResult += "\r\n";
                                         }
@@ -1603,6 +1606,7 @@ namespace OpenJigWare
                     // 0x 00   00 00     00 10 : atan2
                     // 0x 00   00 00     00 11 : acos2
                     // 0x 00   00 00     00 12 : asin2
+                    // 0x 00   00 00     00 13 : mod
                     String strResult = "";
                     String strTmp = CConvert.RemoveChar(strSrc, '\r');
 
@@ -1651,6 +1655,7 @@ namespace OpenJigWare
                                     else if (strCode == "ATAN2") nData = 0x00000010;
                                     else if (strCode == "ACOS2") nData = 0x00000011;
                                     else if (strCode == "ASIN2") nData = 0x00000012;
+                                    else if (strCode == "MOD") nData = 0x00000013;
                                     else continue;
                                     pstrOperand[0] = CConvert.IntToHex(nData, nWidth);
                                 }
@@ -1883,7 +1888,7 @@ namespace OpenJigWare
                                 }
                                 //else
                                 //{
-                                //    afCode2[nLine] = OjwConvert.S_HexStrToInt(strItem);
+                                //    afCode2[nLine] = CConvert.S_HexStrToInt(strItem);
                                 //}
                                 nPos++;
                             }
@@ -2442,6 +2447,10 @@ namespace OpenJigWare
                     else if (lCmd == 5) // Div
                     {
                         dValue /= ((dData == 0) ? (double)CMath.Zero() : dData);
+                    }
+                    else if (lCmd == 0x13) // Mod
+                    {
+                        dValue %= dData;
                     }
                     else if (lCmd == 6) // sin
                     {

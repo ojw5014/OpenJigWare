@@ -79,6 +79,10 @@ namespace OpenJigWare
         // if you make your class, just write in here
         public class CHerculex
         {
+            public static int _DRS_0101 = 0;
+            public static int _DRS_0102 = 1;
+            public static int _DRS_0201 = 2;
+
             // if you make your class, just write in here
             private const int _MOTOR_MAX = 256;
 
@@ -2096,7 +2100,7 @@ namespace OpenJigWare
                         m_bEventInit = true;
                     }
 
-                    //String strPort = "COM" + OjwConvert.IntToStr(nPort);
+                    //String strPort = "COM" + CConvert.IntToStr(nPort);
                     //m_SerialPort = new SerialPort(strPort, nBaudRate, Parity.None, 8, StopBits.One);
                     m_SerialPort.PortName = "COM" + nPort.ToString();
                     m_SerialPort.BaudRate = nBaudRate;

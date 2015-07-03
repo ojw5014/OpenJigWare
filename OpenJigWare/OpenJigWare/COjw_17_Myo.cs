@@ -10,425 +10,306 @@ using System.Drawing;
 using MyoSharp.Communication;
 using MyoSharp.Device;
 using MyoSharp.Exceptions;
+using MyoSharp.Poses;
+//using System.Windows.Forms;
 //using MyoSharp.Poses;
 
 namespace OpenJigWare
 {
     partial class Ojw
     {
-#if false
-#if _DEF_EMG
-        private Ojw.CGraph m_CGrap = null;
-#endif
         public class CMyo
         {
-            private static CTimer m_CTId_GetData = new CTimer();
-            private static CTimer m_CTId_GetOrient = new CTimer();
-            private static CTimer m_CTId_GetEmg = new CTimer();
-            private static IChannel m_myoChannel;
-            private static IHub m_myoHub;
+            private bool m_bMyoDll = false;
             public CMyo()
+            {
+                if (CFile.IsFiles("Microsoft.Contracts.dll", "MyoSharp.dll", ((CSystem.Is64Bits() == true) ? "x64\\myo.dll" : "x86\\myo.dll")) == false)
+                {
+                    Ojw.CMessage.Write("[Warning] There's no any Myo Dll Files");
+                }
+                else m_bMyoDll = true;
+                //if (m_bMyoDll == true)
+                //    MessageBox.Show("Ok");
+                //else
+                //    MessageBox.Show("No Files");
+            }
+
+            #region Myo Step(1)
+            private IChannel m_myoChannel;
+            private IHub m_myoHub;
+            private IHeldPose m_myoPos;
+            private bool m_bInit = false;
+            public void InitMyo()
+            {
+                m_bInit = false;
+                if (m_bMyoDll == false) return;
+                try
+                {
+                    m_myoChannel = Channel.Create(ChannelDriver.Create(ChannelBridge.Create(), MyoErrorHandlerDriver.Create(MyoErrorHandlerBridge.Create())));
+                    m_myoHub = Hub.Create(m_myoChannel);
+
+                    // 이벤트 등록            
+                    m_myoHub.MyoConnected += new EventHandler<MyoEventArgs>(myoHub_MyoConnected); // 접속했을 때 myoHub_MyoConnected() 함수가 동작하도록 등록
+                    m_myoHub.MyoDisconnected += new EventHandler<MyoEventArgs>(myoHub_MyoDisconnected); // 접속했을 때 myoHub_MyoDisconnected() 함수가 동작하도록 등록
+
+                    // start listening for Myo data
+                    m_myoChannel.StartListening();
+                    m_bInit = true;
+                }
+                catch (Exception ex)
+                {
+                    m_bInit = false;
+                    Ojw.CMessage.Write_Error("Error -> {0}", ex.ToString());
+                }
+            }
+            public bool IsInit() { return m_bInit; }
+            public void DInitMyo()
             {                
+                m_bRight = false;
+                m_bLeft = false;
+                if (m_bMyoDll == false) return;
+                m_myoChannel.StopListening();
+
+                m_myoHub.Dispose();
+                m_myoChannel.Dispose();
             }
-            ~CMyo()
+            private void Myo_Unlocked(object sender, MyoEventArgs e)
             {
+                Ojw.CMessage.Write("UnLocked", e.Myo.Handle);
             }
-
-            public static void Init()
+            private void Myo_Locked(object sender, MyoEventArgs e)
             {
-                InitJesture();
-
-                // if you make your class, just write in here
-                m_myoChannel = Channel.Create(ChannelDriver.Create(ChannelBridge.Create(), MyoErrorHandlerDriver.Create(MyoErrorHandlerBridge.Create())));
-                m_myoHub = Hub.Create(m_myoChannel);
-
-                // Add Event    
-                m_myoHub.MyoConnected += new EventHandler<MyoEventArgs>(myoHub_MyoConnected);
-                m_myoHub.MyoDisconnected += new EventHandler<MyoEventArgs>(myoHub_MyoDisconnected);
+                Ojw.CMessage.Write("Locked", e.Myo.Handle);
             }
-
-            private static void myoHub_MyoConnected(object sender, MyoEventArgs e)
+            private Pose m_ER_Pose = new Pose();
+            private Pose m_EL_Pose = new Pose();
+            private void Myo_PoseChanged(object sender, MyoEventArgs e)
             {
-                m_CTId_GetData.Set();
-                m_CTId_GetOrient.Set();
-                m_CTId_GetEmg.Set();
-                Ojw.CMessage.Write(String.Format("Myo {0} has connected!", e.Myo.Handle)); 
-                e.Myo.Vibrate(VibrationType.Short);
+                Ojw.CMessage.Write("{0} arm Myo detected {1} pose!", e.Myo.Arm, e.Myo.Pose);
+                if (e.Myo.Arm == Arm.Right)
+                {
+                    m_ER_Pose = e.Myo.Pose;
+                }
+                else if (e.Myo.Arm == Arm.Left)
+                {
+                    m_EL_Pose = e.Myo.Pose;
+                }
+                nSeq_Pos++;
+            }
+            private bool m_bRight = false;
+            private bool m_bLeft = false;
+            public bool GetData(
+                                out bool bRight, out float fR_Pan, out float fR_Tilt, out float fR_Swing, out Pose ER_Pose,
+                                out bool bLeft, out float fL_Pan, out float fL_Tilt, out float fL_Swing, out Pose EL_Pose)
+            {
+                if (IsInit() == false)
+                {
+                    bRight = bLeft = false;
+                    fR_Pan = 0.0f;
+                    fR_Tilt = 0.0f;
+                    fR_Swing = 0.0f;
+                    fL_Pan = 0.0f;
+                    fL_Tilt = 0.0f;
+                    fL_Swing = 0.0f;
+                    ER_Pose = Pose.Unknown;
+                    EL_Pose = Pose.Unknown;
+                    return false;
+                }
 
-                e.Myo.Unlock(UnlockType.Hold);
+                bRight = m_bRight;
+                bLeft = m_bLeft;
+                fR_Pan = m_fR_Yaw;
+                fR_Tilt = m_fR_Pitch;
+                fR_Swing = m_fR_Roll;
+                fL_Pan = m_fL_Yaw;
+                fL_Tilt = m_fL_Pitch;
+                fL_Swing = m_fL_Roll;
 
-                //Ojw.CMessage.Write("Connected");
-#if _DEF_ORIENTATION
+                ER_Pose = m_ER_Pose;
+                EL_Pose = m_EL_Pose;
+
+                return true;
+            }
+            private int nSeq_Pos = 0;
+            private int nSeq_Pos_Back = 0;
+            private void Pose_Triggered(object sender, PoseEventArgs e)
+            {
+                m_nPos = (int)e.Pose;
+                //Ojw.CMessage.Write("{0} arm Myo detected [{1}] pose", e.Myo.Arm, m_nPos);
+            }
+            private Ojw.CTimer m_CTId0 = new Ojw.CTimer();
+            private float[] m_afInitAngle = new float[3];
+            //private bool m_bFirst = true;
+            //public void GetOrientationData(out float fRoll, out float fPitch, out float fYaw, out float fX, out float fY, out float fW)
+            //{
+            //    fRoll = m_fRoll;
+            //    fPitch = m_fPitch;
+            //    fYaw = m_fYaw;
+            //    fX = m_fX;
+            //    fY = m_fY;
+            //    fW = m_fW;
+            //}
+
+            private float m_fR_Roll = 0.0f;
+            private float m_fR_Pitch = 0.0f;
+            private float m_fR_Yaw = 0.0f;
+            private float m_fR_X = 0.0f;
+            private float m_fR_Y = 0.0f;
+            private float m_fR_W = 0.0f;
+
+            private float m_fL_Roll = 0.0f;
+            private float m_fL_Pitch = 0.0f;
+            private float m_fL_Yaw = 0.0f;
+            private float m_fL_X = 0.0f;
+            private float m_fL_Y = 0.0f;
+            private float m_fL_W = 0.0f;
+            
+            private void Myo_OrientationDataAcquired(object sender, OrientationDataEventArgs e)
+            {
+                if (e.Myo.Arm == Arm.Right)
+                {
+                    m_bRight = true;
+
+
+                    const float PI = (float)System.Math.PI;
+
+                    int nDev = 1; //10;
+                    // convert the values to a 0-9 scale (for easier digestion/understanding)
+                    float fRoll = (float)((e.Roll + PI) / (PI * 2.0f) * nDev);
+                    float fPitch = (float)((e.Pitch + PI) / (PI * 2.0f) * nDev);
+                    float fYaw = (float)((e.Yaw + PI) / (PI * 2.0f) * nDev);
+
+                    //if (m_CTId0.Get() >= 1000)
+                    //{
+                    //m_CTId0.Set();
+                    //if (m_bFirst == true)
+                    //{
+                    //    m_afInitAngle[0] = e.Orientation.X;
+                    //    m_afInitAngle[1] = e.Orientation.Y;
+                    //    m_afInitAngle[2] = e.Orientation.W;
+                    //}
+                    float fX = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.X - m_afInitAngle[0]), 3);
+                    float fY = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.Y - m_afInitAngle[1]), 3);
+                    float fW = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.W - m_afInitAngle[2]), 3);
+                    //float fSwing = (float)Math.Round(Ojw.CMath.R2D(e.Roll), 3);
+                    //float fTilt = (float)Math.Round(Ojw.CMath.R2D(e.Pitch), 3);
+                    //float fPan = (float)Math.Round(Ojw.CMath.R2D(e.Yaw), 3);
+                    //m_C3d.SetRobot_Rot(fPan - 90.0f, -fTilt, -fSwing);
+                    //Ojw.CMessage.Write("[{6}]Roll[{0}], Pitch[{1}], Yaw[{2}] || X[{3}], Y[{4}], W[{5}]", nRoll, nPitch, nYaw, fX, fY, fW, e.Myo.Handle);
+                    //}
+
+
+                    m_fR_Roll = fRoll;
+                    m_fR_Pitch = fPitch;
+                    m_fR_Yaw = fYaw;
+                    m_fR_X = fX;
+                    m_fR_Y = fY;
+                    m_fR_W = fW;
+                }
+                else if (e.Myo.Arm == Arm.Left)
+                {
+                    m_bLeft = true;
+
+
+                    const float PI = (float)System.Math.PI;
+
+                    int nDev = 1; //10;
+                    // convert the values to a 0-9 scale (for easier digestion/understanding)
+                    float fRoll = (float)((e.Roll + PI) / (PI * 2.0f) * nDev);
+                    float fPitch = (float)((e.Pitch + PI) / (PI * 2.0f) * nDev);
+                    float fYaw = (float)((e.Yaw + PI) / (PI * 2.0f) * nDev);
+
+                    //if (m_CTId0.Get() >= 1000)
+                    //{
+                    //m_CTId0.Set();
+                    //if (m_bFirst == true)
+                    //{
+                    //    m_afInitAngle[0] = e.Orientation.X;
+                    //    m_afInitAngle[1] = e.Orientation.Y;
+                    //    m_afInitAngle[2] = e.Orientation.W;
+                    //}
+                    float fX = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.X - m_afInitAngle[0]), 3);
+                    float fY = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.Y - m_afInitAngle[1]), 3);
+                    float fW = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.W - m_afInitAngle[2]), 3);
+                    //float fSwing = (float)Math.Round(Ojw.CMath.R2D(e.Roll), 3);
+                    //float fTilt = (float)Math.Round(Ojw.CMath.R2D(e.Pitch), 3);
+                    //float fPan = (float)Math.Round(Ojw.CMath.R2D(e.Yaw), 3);
+                    //m_C3d.SetRobot_Rot(fPan - 90.0f, -fTilt, -fSwing);
+                    //Ojw.CMessage.Write("[{6}]Roll[{0}], Pitch[{1}], Yaw[{2}] || X[{3}], Y[{4}], W[{5}]", nRoll, nPitch, nYaw, fX, fY, fW, e.Myo.Handle);
+                    //}
+
+
+                    m_fL_Roll = fRoll;
+                    m_fL_Pitch = fPitch;
+                    m_fL_Yaw = fYaw;
+                    m_fL_X = fX;
+                    m_fL_Y = fY;
+                    m_fL_W = fW;
+                }
+            }
+            private void myoHub_MyoConnected(object sender, MyoEventArgs e)
+            {
+                Ojw.CMessage.Write("Myo [{0}, {1}, {2}] has connected!", e.Myo.Handle, e.Myo.XDirectionOnArm.ToString(), e.Myo.Arm.ToString());
+
+                e.Myo.Vibrate(VibrationType.Short); // 접속에 성공했으니 짧게 진동 출력
+
+
+                e.Myo.Locked += Myo_Locked;
+                e.Myo.Unlocked += Myo_Unlocked;
+                //e.Myo.Locked += new EventHandler<MyoEventArgs>(Myo_Locked);
+                //e.Myo.Unlocked += new EventHandler<MyoEventArgs>(Myo_Unlocked);
+                #region Pose(Edge - 자세가 변하는 순간에만 기록)
+                e.Myo.PoseChanged += Myo_PoseChanged;
+                #endregion Pose(Edge - 자세가 변하는 순간에만 기록)
+
+                #region Pose(자세가 계속적으로 기록...)
+                // setup for the pose we want to watch for
+                m_myoPos = HeldPose.Create(e.Myo, Pose.Fist, Pose.FingersSpread, Pose.WaveIn, Pose.WaveOut, Pose.Rest);
+                // set the interval for the event to be fired as long as 
+                // the pose is held by the user
+                m_myoPos.Interval = TimeSpan.FromSeconds(0.5);
+
+                m_myoPos.Start();
+                m_myoPos.Triggered += Pose_Triggered;
+                #endregion Pose(자세가 계속적으로 기록...)
+
+                e.Myo.Unlock(UnlockType.Hold); // 이걸 마지막에 선언하면 Myo 가 내버려 두어도 Lock 이 되지 않는다.
+
+                #region Orientation
                 e.Myo.OrientationDataAcquired += Myo_OrientationDataAcquired;
-#endif
-#if _DEF_EMG
-                e.Myo.EmgDataAcquired += Myo_EmgDataAcquired;
-                e.Myo.SetEmgStreaming(true);
-                //tmrPulse.Enabled = true;
+                #endregion Orientation
+
+#if false //_DEF_EMG
+            e.Myo.EmgDataAcquired += Myo_EmgDataAcquired;
+            e.Myo.SetEmgStreaming(true);
+            //tmrPulse.Enabled = true;
 #endif
             }
-            private static void myoHub_MyoDisconnected(object sender, MyoEventArgs e)
+            //private float[] m_afAcc = new float[3];
+            //private float[] m_afGyro = new float[3];
+            //private float[] m_afAngle = new float[3];
+            private float[] m_afOrientation = new float[3];
+            private int m_nPos = -1;
+            private void myoHub_MyoDisconnected(object sender, MyoEventArgs e)
             {
-#if _DEF_ORIENTATION
+                e.Myo.Locked -= Myo_Locked;
+                e.Myo.Unlocked -= Myo_Unlocked;
+                e.Myo.PoseChanged -= Myo_PoseChanged;
+
+                m_myoPos.Stop();
+                m_myoPos.Triggered -= Pose_Triggered;
+
+                #region Orientation
                 e.Myo.OrientationDataAcquired -= Myo_OrientationDataAcquired;
-#endif
-#if _DEF_EMG
+                #endregion Orientation
+#if false // _DEF_EMG
                 e.Myo.SetEmgStreaming(false);
                 e.Myo.EmgDataAcquired -= Myo_EmgDataAcquired;
                 //tmrPulse.Enabled = false;
 #endif
-                Ojw.CMessage.Write("Disconnected");
-                e.Myo.Vibrate(VibrationType.Short);
-                CTimer.Wait(500);
-                e.Myo.Vibrate(VibrationType.Short);
+                Ojw.CMessage.Write("접속해제");
             }
-            
-#if _DEF_ORIENTATION
-            private static float[] m_afRot = new float[3];
-            private static void Myo_OrientationDataAcquired(object sender, OrientationDataEventArgs e)
-            {
-                const float PI = (float)System.Math.PI;
-
-                int nDev = 1; //10;
-                // convert the values to a 0-9 scale (for easier digestion/understanding)
-                var roll = (int)((e.Roll + PI) / (PI * 2.0f) * nDev);
-                var pitch = (int)((e.Pitch + PI) / (PI * 2.0f) * nDev);
-                var yaw = (int)((e.Yaw + PI) / (PI * 2.0f) * nDev);
-
-                //if (m_CTId_GetOrient.Get() >= 1000)
-                //{
-                //    m_CTId_GetOrient.Set();
-                //    float fX = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.X), 3);
-                //    float fY = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.Y), 3);
-                //    float fW = (float)Math.Round(Ojw.CMath.R2D(e.Orientation.W), 3);
-                //    float fSwing = (float)Math.Round(Ojw.CMath.R2D(e.Roll), 3);
-                //    float fTilt = (float)Math.Round(Ojw.CMath.R2D(e.Pitch), 3);
-                //    float fPan = (float)Math.Round(Ojw.CMath.R2D(e.Yaw), 3);
-                //    Ojw.CMessage.Write("Pan[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fPan), " ", 7, false) +
-                //        "], Tilt[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fTilt), " ", 7, false) +
-                //        "], Swing[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fSwing), " ", 7, false) + "]" +
-                //        "Oriental(X[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fX), " ", 7, false) +
-                //        "], Y[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fY), " ", 7, false) +
-                //        "], W[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fW), " ", 7, false) + "])");
-                //    //Ojw.CMessage.Write("Oriental(Swing[" + Ojw.CConvert.IntToStr(roll) + "], Tilt[" + Ojw.CConvert.IntToStr(pitch) + "], Pan[" + Ojw.CConvert.IntToStr(yaw) + "], X[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fX), " ", 7, false) + "], Y[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fY), " ", 7, false) + "], W[" + Ojw.CConvert.FillString(Ojw.CConvert.FloatToStr(fW), " ", 7, false) + "]");
-                //    //Ojw.CMessage.Write(String.Format("Oriental(Swing, Tilt, Pan): {0}\t{1}\t{2}\t*****]t{3}\t{4}\t{5}", roll, pitch, yaw, e.Orientation.X, e.Orientation.Y, e.Orientation.W));
-                //}
-            }
-#endif
-
-#if _DEF_EMG
-            private static int[] m_anIndex = new int[8];
-            //private bool bThumb = false;
-            //private bool 
-            public enum EMyoPos_t
-            {
-                Spread,
-                Fist,
-                V,
-                FirstFinger,
-                MiddleFinger,
-                LittleFinger,
-                _Count
-            }
-            
-            public static int GetJesture()
-            {
-                return m_nJesture;
-            }
-            private static int[,] m_anJesture = new int[(int)EMyoPos_t._Count, 8];//{{},
-            private static int CheckJesture(params int[] anData)
-            {
-                int nRet = -1;
-                List<int> lstTmp = new List<int>();
-                int nCnt = 0;
-                int nCnt_Prev = 0;
-                for (int i = 0; i < anData.Length; i++)
-                {
-                    if (anData[i] == 0)
-                    {
-                        nCnt++;
-                    }
-                    else
-                    {
-                        nCnt++;
-                        if (nCnt_Prev == 0)
-                            nCnt_Prev = nCnt;
-                        else
-                            lstTmp.Add(nCnt);
-                        nCnt = 0;
-                    }
-                    //if ((anData[i] > 0) && (anData[i - 1] > 0))
-                    //{
-                    //    nCnt++;
-                    //}
-                    //else
-                    //{
-                    //}
-                    
-                }
-                if (nCnt_Prev != 0) lstTmp.Add(nCnt_Prev);
-
-                if (lstTmp.Count > 0)
-                {
-                    //nRet = -1;
-                    for (int nIndex = 0; nIndex < (int)EMyoPos_t._Count; nIndex++)
-                    {
-                        int k = 0;
-                        bool bPass = true;
-                        for (int i = 0; i < m_anJesture[nIndex, 0]; i++)
-                        {
-                            for (int j = 0; j < m_anJesture[nIndex, 0]; j++)
-                            {
-                                if (m_anJesture[nIndex, i + 1] != lstTmp[(j + k) % m_anJesture[nIndex, 0]]) { bPass = false; break; }
-                            }
-                            k++;
-                        }
-                        if (bPass == true)
-                        {
-                            nRet = nIndex;
-                            break;
-                        }
-                    }
-                }
-
-                return nRet;
-            }
-            private static void InitJesture()
-            {
-                int i = 0;
-                // Spread
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 2;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 5;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.Spread, i++] = 0;
-                i = 0;
-                // Fist
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 5;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 2;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.Fist, i++] = 0;
-                i = 0;
-                // V
-                m_anJesture[(int)EMyoPos_t.V, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 4;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.V, i++] = 0;
-                i = 0;
-                // MiddleFinger
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 4;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.MiddleFinger, i++] = 0;
-                i = 0;
-                // FirstFinger
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 4;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 2;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 2;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 1;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.FirstFinger, i++] = 0;
-                i = 0;
-                // LittleFinger
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 2;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 3;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 5;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 0;
-                m_anJesture[(int)EMyoPos_t.LittleFinger, i++] = 0;
-            }
-            private static void InitData()
-            {
-                Array.Clear(m_anData, 0, m_anData.Length);
-                Array.Clear(m_anData_Back, 0, m_anData.Length);
-                Array.Clear(m_anData_Set, 0, m_anData.Length);
-                Array.Clear(m_anValue_Back, 0, m_anData.GetLength(0) * m_anData.GetLength(1));
-            }
-            private static bool m_bFilter = true;
-            private static bool m_bStep1 = true;
-            private static bool m_bStep2 = true;
-            private static int m_nThread = 30;
-            public static void SetFilterThread(int value) { m_nThread = value; }
-            public static void SetFilterValue(float value) { m_fAlpha = value; }
-            public static float GetFilterValue() { return m_fAlpha; }
-            private static float m_fAlpha = 0.1f;
-            private static int[] m_anData = new int[8];
-            private static int[] m_anData_Back = new int[8];
-            private const int _DATA_HISTORY = 10;
-            private static bool[] m_anData_Set = new bool[8];
-            private static int[,] m_anValue_Back = new int[8, _DATA_HISTORY];
-            private static int m_nJesture = -1;
-            private static void Myo_EmgDataAcquired(object sender, EmgDataEventArgs e)
-            {
-                //if (m_CTId2.Get() >= 1000)
-                //{
-                //    m_CTId2.Set();
-                //    // TODO: write your code to interpret EMG data!
-                //    Ojw.CMessage.Write(String.Format("Emg = {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}",
-                //        e.EmgData.GetDataForSensor(0),
-                //        e.EmgData.GetDataForSensor(1),
-                //        e.EmgData.GetDataForSensor(2),
-                //        e.EmgData.GetDataForSensor(3),
-                //        e.EmgData.GetDataForSensor(4),
-                //        e.EmgData.GetDataForSensor(5),
-                //        e.EmgData.GetDataForSensor(6),
-                //        e.EmgData.GetDataForSensor(7)));
-                //}
-                if (m_CTId_GetEmg.Get() >= 100)
-                {
-                    m_CTId_GetEmg.Set();
-
-                    float fAlpha = m_fAlpha;
-                    for (int i = 0; i < 8; i++)
-                    {
-                        //m_anData[i] = e.EmgData.GetDataForSensor(i);
-                        if (m_bFilter == true)
-                        {
-                            if (m_bStep1 == true)
-                                m_anData[i] = (int)Ojw.CMath.LowPassFilter(fAlpha, (float)m_anData[i], (int)Math.Abs(e.EmgData.GetDataForSensor(i)) + (int)Math.Abs(e.EmgData.GetDataForSensor(i) - m_anData_Back[i]));
-                            else
-                                m_anData[i] = (int)Ojw.CMath.LowPassFilter(fAlpha, (float)m_anData[i], (float)e.EmgData.GetDataForSensor(i));
-                        }
-                        else
-                        {
-                            if (m_bStep1 == true)
-                                m_anData[i] = (int)Math.Abs(e.EmgData.GetDataForSensor(i)) + (int)Math.Abs(e.EmgData.GetDataForSensor(i) - m_anData_Back[i]);
-                            else
-                                m_anData[i] = e.EmgData.GetDataForSensor(i);
-                        }
-
-                        m_anData_Back[i] = e.EmgData.GetDataForSensor(i);
-                    }
-                    if (m_bStep2 == true)
-                    {
-                        int nValue = m_nThread;// 30;// 50;
-                        //int nRange = 25;
-                        //m_CGrap.Push(
-                        //    (int)(m_anData[0] / nValue) * nValue,
-                        //    (int)(m_anData[1] / nValue) * nValue,
-                        //    (int)(m_anData[2] / nValue) * nValue,
-                        //    (int)(m_anData[3] / nValue) * nValue,
-                        //    (int)(m_anData[4] / nValue) * nValue,
-                        //    (int)(m_anData[5] / nValue) * nValue,
-                        //    (int)(m_anData[6] / nValue) * nValue,
-                        //    (int)(m_anData[7] / nValue) * nValue
-                        //);
-                        int[] anValue = new int[m_anData.Length];
-                        //Array.Copy(m_anValue_Back, 1, m_anValue_Back.Le
-
-                        for (int i = 0; i < m_anData.Length; i++)
-                        {
-                            int nCnt = 0;
-                            for (int j = 0; j < _DATA_HISTORY - 1; j++)
-                            {
-                                m_anValue_Back[i, _DATA_HISTORY - 1 - j] = m_anValue_Back[i, _DATA_HISTORY - 1 - (j + 1)];
-                            }
-                            anValue[i] = (int)(m_anData[i] / nValue) * nValue;
-                            if (anValue[i] >= nValue) anValue[i] = nValue;
-                            else anValue[i] = 0;
-                            m_anValue_Back[i, 0] = anValue[i];
-                            for (int j = 0; j < _DATA_HISTORY; j++)
-                            {
-                                if (m_anValue_Back[i, j] != 0) nCnt++;
-                            }
-
-
-                            if (m_anData_Set[i] == false)
-                            {
-                                if (nCnt >= 7) m_anData_Set[i] = true;
-                            }
-                            else
-                            {
-                                if (nCnt <= 2) m_anData_Set[i] = false;
-                            }
-                        }
-
-                        int nPos = CheckJesture(
-                            ((m_anData_Set[0] == true) ? nValue : 0),
-                            ((m_anData_Set[1] == true) ? nValue : 0),
-                            ((m_anData_Set[2] == true) ? nValue : 0),
-                            ((m_anData_Set[3] == true) ? nValue : 0),
-                            ((m_anData_Set[4] == true) ? nValue : 0),
-                            ((m_anData_Set[5] == true) ? nValue : 0),
-                            ((m_anData_Set[6] == true) ? nValue : 0),
-                            ((m_anData_Set[7] == true) ? nValue : 0)
-                        );
-                        m_nJesture = nPos;
-                        if (nPos >= 0)
-                        {
-                            if (nPos == (int)EMyoPos_t.FirstFinger)
-                            {
-                                Ojw.CMessage.Write("First Finger");
-                            }
-                            else if (nPos == (int)EMyoPos_t.MiddleFinger)
-                            {
-                                Ojw.CMessage.Write("Middle Finger");
-                            }
-                            else if (nPos == (int)EMyoPos_t.LittleFinger)
-                            {
-                                Ojw.CMessage.Write("Little Finger");
-                            }
-                            else if (nPos == (int)EMyoPos_t.Fist)
-                            {
-                                Ojw.CMessage.Write("Fist");
-                            }
-                            else if (nPos == (int)EMyoPos_t.Spread)
-                            {
-                                Ojw.CMessage.Write("Spread");
-                            }
-                            else if (nPos == (int)EMyoPos_t.V)
-                            {
-                                Ojw.CMessage.Write("Jesture V");
-                            }
-                        }
-                        //m_CGrap.Push(
-                        //    ((m_anData_Set[0] == true) ? nValue : 0),
-                        //    ((m_anData_Set[1] == true) ? nValue : 0),
-                        //    ((m_anData_Set[2] == true) ? nValue : 0),
-                        //    ((m_anData_Set[3] == true) ? nValue : 0),
-                        //    ((m_anData_Set[4] == true) ? nValue : 0),
-                        //    ((m_anData_Set[5] == true) ? nValue : 0),
-                        //    ((m_anData_Set[6] == true) ? nValue : 0),
-                        //    ((m_anData_Set[7] == true) ? nValue : 0)
-                        //);
-                    }
-                    else
-                    {
-                        //m_CGrap.Push(
-                        //    m_anData[0],
-                        //    m_anData[1],
-                        //    m_anData[2],
-                        //    m_anData[3],
-                        //    m_anData[4],
-                        //    m_anData[5],
-                        //    m_anData[6],
-                        //    m_anData[7]
-                        //);
-                    }
-                    //m_CGrap.OjwDraw();
-                }
-            }
-#endif
+            #endregion Myo Step(1)
         }
-#endif
     }
 }

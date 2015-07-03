@@ -929,7 +929,7 @@ namespace OpenJigWare
                 m_propGrid.Left = 0;
                 m_propGrid.Width = ctrlProp.Width;
                 m_propGrid.Height = ctrlProp.Height;
-                m_propGrid.Name = "pnOjwProp_" + Ojw.CConvert.IntToStr((int)ctrlProp.Handle);
+                m_propGrid.Name = "pnOjwProp_User00";// "pnOjwProp_" + Ojw.CConvert.IntToStr((int)ctrlProp.Handle);
                 //m_propGrid.LineColor = Color.Black;
                 m_propGrid.ToolbarVisible = false;
                 m_propGrid.LargeButtons = false;
@@ -944,10 +944,29 @@ namespace OpenJigWare
                 //m_propGrid.TextChanged += new System.EventHandler(m_atxtPos_TextChanged);
                 ctrlProp.Controls.Add(m_propGrid);
                 m_pnProp_Selected = ctrlProp;
+
+                
+                // Event
+                //foreach (Control c in m_propGrid.Controls)
+                //{
+                //    c.Enabled = true;
+                //    c.MouseClick += new MouseEventHandler(m_propGrid_MouseClick);
+                //}
             }
+            //protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+            //{
+
+            //}
+
             public void SetEvent_Changed(PropertyValueChangedEventHandler FFunction)
-            {                
+            {
                 m_propGrid.PropertyValueChanged += new PropertyValueChangedEventHandler(FFunction);                
+            }
+
+            void m_propGrid_MouseClick(object sender, MouseEventArgs e)
+            {
+                //throw new NotImplementedException();
+                //Ojw.ShowKeyPad_Number(sender);
             }
             public void RemoveEvent_Changed(PropertyValueChangedEventHandler FFunction)
             {
@@ -1438,8 +1457,14 @@ namespace OpenJigWare
             }
             public int GetTableCount() { return m_nTableCount; }
             public int GetLineCount() { return dgAngle.RowCount; }
+            //public void ReCreate()
+            //{
+            //    Create(dgAngle, m_nLineCnt, m_aSGridTable);
+            //}
+            private int m_nLineCnt = 0;
             public void Create(DataGridView dg, int nLineCnt, params SGridTable_t[] aSGridTable)
             {
+                m_nLineCnt = nLineCnt;
                 int nOffsetSize = 9;
                 int i;
                 dgAngle = dg;
@@ -2526,7 +2551,7 @@ namespace OpenJigWare
                             }
                             else
                             {
-                                if (m_txtDraw != null)
+                                if (m_rtxtDraw != null)
                                 {
                                     if (dgGrid.Focused == true)
                                     {
@@ -2540,11 +2565,11 @@ namespace OpenJigWare
                                                 {
                                                     int nFirst = m_nCurrntCell;
                                                     string strDraw = String.Empty;
-                                                    if (m_txtDraw.Lines.Length > 0)
+                                                    if (m_rtxtDraw.Lines.Length > 0)
                                                     {
-                                                        for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                                        for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
                                                         {
-                                                            strDraw += m_txtDraw.Lines[i];
+                                                            strDraw += m_rtxtDraw.Lines[i];
 
                                                             if (i == m_nCurrntCell)
                                                             {
@@ -2553,7 +2578,7 @@ namespace OpenJigWare
                                                                     strDraw += "\r\n//";
                                                                 }
                                                             }
-                                                            if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                                                            if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";
                                                         }
                                                     }
                                                     else
@@ -2566,7 +2591,7 @@ namespace OpenJigWare
                                                         //strDraw = "//";
                                                     }
                                                     m_bGridMotionEditing = true;
-                                                    m_txtDraw.Text = strDraw;
+                                                    m_rtxtDraw.Text = strDraw;
                                                     //Add(m_nCurrntCell, nInsertCnt);
                                                 }
                                             }
@@ -2581,9 +2606,9 @@ namespace OpenJigWare
                                                 {
                                                     int nFirst = m_nCurrntCell;
                                                     string strDraw = String.Empty;
-                                                    if (m_txtDraw.Lines.Length > 0)
+                                                    if (m_rtxtDraw.Lines.Length > 0)
                                                     {
-                                                        for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                                        for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
                                                         {
                                                             if (i == m_nCurrntCell)
                                                             {
@@ -2592,9 +2617,9 @@ namespace OpenJigWare
                                                                     strDraw += "//\r\n";
                                                                 }
                                                             }
-                                                            strDraw += m_txtDraw.Lines[i];
+                                                            strDraw += m_rtxtDraw.Lines[i];
 
-                                                            if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";
+                                                            if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";
                                                         }
                                                     }
                                                     else
@@ -2607,7 +2632,7 @@ namespace OpenJigWare
                                                         //strDraw = "//";
                                                     }
                                                     m_bGridMotionEditing = true;
-                                                    m_txtDraw.Text = strDraw;
+                                                    m_rtxtDraw.Text = strDraw;
 
                                                     //Insert(m_nCurrntCell, nInsertCnt);
                                                     //Grid_Insert(nFirst, nInsertCnt);
@@ -2807,14 +2832,14 @@ namespace OpenJigWare
                                     {
                                         int nTmp = 0;
                                         string strDraw = String.Empty;
-                                        if (m_txtDraw.Lines.Length > 0)
+                                        if (m_rtxtDraw.Lines.Length > 0)
                                         {
-                                            for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                                            for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
                                             {
                                                 if (i != m_nCurrntCell)
                                                 {
-                                                    strDraw += m_txtDraw.Lines[i];
-                                                    if (i < m_txtDraw.Lines.Length - 1) strDraw += "\r\n";                                                    
+                                                    strDraw += m_rtxtDraw.Lines[i];
+                                                    if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";                                                    
                                                 }
                                                 else nTmp++;
                                             }
@@ -2823,7 +2848,7 @@ namespace OpenJigWare
 
                                         //else strDraw = "//";
                                         m_bGridMotionEditing = true;
-                                        m_txtDraw.Text = strDraw;
+                                        m_rtxtDraw.Text = strDraw;
                                     }
                                 }
                             }
@@ -2854,7 +2879,7 @@ namespace OpenJigWare
                                                 if ((dgGrid[j, i].Selected == true) && (bPass == false))
                                                 {
                                                     nPos_X = i; nPos_Y = j;
-                                                    //Message(OjwConvert.IntToStr(nPos_X) + ", " + OjwConvert.IntToStr(nPos_Y));
+                                                    //Message(CConvert.IntToStr(nPos_X) + ", " + CConvert.IntToStr(nPos_Y));
                                                     bPass = true;
                                                     break;
                                                 }
@@ -2907,7 +2932,7 @@ namespace OpenJigWare
                                                 if ((strClip[i] == '\n') || (strClip[i] == '\t')) nAll++;
                                             }
                                             nW = (int)Math.Round((float)nAll / (float)nH, 0);
-                                            //Message("nW = " + OjwConvert.IntToStr(nW) + ", nH = " + OjwConvert.IntToStr(nH));
+                                            //Message("nW = " + CConvert.IntToStr(nW) + ", nH = " + CConvert.IntToStr(nH));
 
                                             bool bW = false, bH = false;
                                             if (nW >= nY_Limit) bW = true;
@@ -3069,7 +3094,7 @@ namespace OpenJigWare
                                                     //int nLen = nPos_End_X - nPos_Start_X;
 
                                                     // 여기서 계산
-                                                    //int nValue = OjwConvert.StrToInt(txtChangeValue.Text);
+                                                    //int nValue = CConvert.StrToInt(txtChangeValue.Text);
 
                                                     //bool bFirst = true;
                                                     for (k = nPos_Start_X; k <= nPos_End_X; k++)
@@ -3134,8 +3159,8 @@ namespace OpenJigWare
                 }
             }
             private bool m_bBlock = false;
-            private TextBox m_txtDraw = null;
-            public void dgAngle_Block_GridChange(TextBox txtDraw, bool bBlock) { m_txtDraw = txtDraw; m_bBlock = bBlock; }
+            private RichTextBox m_rtxtDraw = null;
+            public void dgAngle_Block_GridChange(RichTextBox rtxtDraw, bool bBlock) { m_rtxtDraw = rtxtDraw; m_bBlock = bBlock; }
             private void dgAngle_MouseClick(object sender, MouseEventArgs e)
             {
                 if (e.Button == MouseButtons.Right)

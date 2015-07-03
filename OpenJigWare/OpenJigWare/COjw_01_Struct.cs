@@ -57,6 +57,29 @@ namespace OpenJigWare
             public static SVector3D_t operator *(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z); }
             public static SVector3D_t operator /(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z); }
         }
+        public struct STrackD_t
+        {
+            public float fX;
+            public float fY;
+            public float fR;
+            //float fX, fY, fR;
+            public int nConnectedAxis; // 연결된 모터 번호
+            public float fCenter_X;      // 회전 해야 할 좌표 기준 점(X)
+            public float fCenter_Y;      // 회전 해야 할 좌표 기준 점(Y)
+            public int nMode;          // Mode(0 : 변화없음, 1 : 회전, 2 : 축 이동(fAxis_X 각도 연관 - 나중에 구현하자. 지금 바빠)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+            public int nDir;           // 방향(0 : 정, 1 : 반대)
+            public STrackD_t(float x, float y, float z, int axis, float fCx, float fCy, int mode, int dir) 
+            { 
+                this.fX = x; 
+                this.fY = y;
+                this.fR = z;
+                this.nConnectedAxis = axis;
+                this.fCenter_X = fCx;
+                this.fCenter_Y = fCy;
+                this.nMode = mode;
+                this.nDir = dir;
+            }
+        }
         #endregion Float(SVector_t)
         #region Double(SVertex_t)
         public struct SVertex_t

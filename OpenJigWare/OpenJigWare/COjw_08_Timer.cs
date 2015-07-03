@@ -90,7 +90,7 @@ namespace OpenJigWare
             private static void Set_Tick(int nHandle, long lTick) { long temp = (long)lTick * 100 / 1000000; m_abTimer[nHandle] = true; m_alTimer[nHandle] = temp; m_alTimer_Tick[nHandle] = lTick; }
             // Kill Timer ( if you have set you should kill it for sure ) (Kor: 생성을 했으면 반드시 Kill를 하도록 한다. )
             public static void Kill(int nHandle) { m_abTimer[nHandle] = false; m_alTimer[nHandle] = 0; m_alTimer_Tick[nHandle] = 0; }
-
+            
             // Handle = 0~99
             // return value from set to current time(Kor: Timer 생성 후 현재까지의 시간 값을 return)
             public static long Get(int nHandle)
@@ -143,9 +143,107 @@ namespace OpenJigWare
             // Kill Timer ( if you have set you should kill it for sure ) (Kor: 생성을 했으면 반드시 Kill를 하도록 한다. )
             public void Kill() { m_bTimer = false; m_lTimer = 0; m_lTimer_Tick = 0; }
 
+            // IntervalTime 간격으로 fInterval Value 만큼 증가한 값을 되돌림
+            private double m_dInterval_Init = 0.0;
+            private double m_dInterval_Target = 0.0;
+            private double m_dInterval_Value = 0.0;
+            private long m_lInterval_Time = 0;
+            private double m_dInterval_Diff = 0.0;
+            private double m_dInterval_Back = 0.0f;
+            private double m_dInterval = 0.0f;
+
+            private bool m_bReset_Interval = false;
+            //private double m_dInterval2 = 0.0f;
+            private double m_dInterval_Init2 = 0.0;// = m_dInterval; // 초기위치를 현재위치로 갱신
+            private double m_dInterval_Target2 = 0.0;// = dInterval_Target;
+            private double m_dInterval_Diff2 = 0.0;// = m_dInterval_Target - m_dInterval_Init;
+            private double m_dInterval_Value2 = 0.0;// = (double)Math.Abs(m_dInterval_Value) * ((m_dInterval_Diff < 0) ? -1 : 1);
+
+            private int m_nSeq = 0;
+            private int m_nSeq_Back = 0;
+            public void Set_Interval(double dInterval_Init, double dInterval_Target, double dIntervalValue, long lIntervalTime) 
+            { 
+                Set_Tick(DateTime.Now.Ticks);
+
+                m_dInterval_Init = dInterval_Init;
+                m_dInterval_Target = dInterval_Target;
+                m_dInterval_Diff = m_dInterval_Target - m_dInterval_Init;
+                m_dInterval_Value = (double)Math.Abs(dIntervalValue) * ((m_dInterval_Diff < 0) ? -1 : 1);
+                m_lInterval_Time = lIntervalTime;
+                m_dInterval_Back = 0.0;
+                m_dInterval = 0.0;
+            }
+            public void Reset_Interval_Target(double dInterval_Target)
+            {
+                m_dInterval_Init2 = m_dInterval; // 초기위치를 현재위치로 갱신
+                m_dInterval_Target2 = dInterval_Target;
+                m_dInterval_Diff2 = m_dInterval_Target2 - m_dInterval_Init2;
+                m_dInterval_Value2 = (double)Math.Abs(m_dInterval_Value) * ((m_dInterval_Diff2 < 0) ? -1 : 1);
+                
+                //m_dInterval_Back = 0.0;
+                //m_dInterval = 0.0;
+                m_bReset_Interval = true;
+            }
+            public bool IsGet_Interval()
+            {
+                if (m_bTimer == true)
+                {
+                    Get_Interval();
+                    if (m_nSeq != m_nSeq_Back)
+                    {
+                        m_nSeq_Back = m_nSeq;
+                        return true;
+                    }
+                }
+                return false;
+            }
+            public double Get_Interval()
+            {
+                if (m_bTimer == true)
+                {
+                    if (m_bReset_Interval == true)
+                    {
+                        m_bReset_Interval = false;
+                        m_dInterval_Init = m_dInterval_Init2;
+                        m_dInterval_Target = m_dInterval_Target2;
+                        m_dInterval_Diff = m_dInterval_Diff2;
+                        m_dInterval_Value = m_dInterval_Value2;
+
+                        Set_Tick(DateTime.Now.Ticks);
+                    }
+
+                    DateTime tmrTemp = DateTime.Now;
+                    long temp = (long)tmrTemp.Ticks * 100 / 1000000;
+
+                    long temp_Gap = temp - m_lTimer;
+                    
+                    /////
+                    long lCnt = temp_Gap / m_lInterval_Time;
+                    double dValue = m_dInterval_Value * lCnt;
+                    //dValue = (Math.Abs(dValue) > Math.Abs(m_dInterval_Diff)) ? m_dInterval_Diff : dValue;
+                    dValue = ((m_dInterval_Diff < 0) && (dValue < m_dInterval_Diff)) ? 
+                                m_dInterval_Diff 
+                                : 
+                                (((m_dInterval_Diff >= 0) && (dValue > m_dInterval_Diff)) ? m_dInterval_Diff : dValue);
+                    double dResult = m_dInterval_Init + dValue;// ((dValue < 0) ? m_dInterval_Diff : ((dValue > m_dInterval_Diff) ? m_dInterval_Diff : dValue));
+
+                    m_dInterval = dResult;
+
+                    if (m_dInterval_Back != m_dInterval)
+                    {
+                        m_dInterval_Back = m_dInterval;
+                        m_nSeq++;
+                    }
+                    /////
+
+                    return dResult;
+                }
+                else return (long)(0x7fffffffffffffff);
+            }
+
             // Handle = 0~(_SIZE_STATIC_TIMER - 1)
             // Returns to the current time(Kor: Timer 생성 후 현재까지의 시간 값을 return)
-            public long Get()
+            public double Get()
             {
                 if (m_bTimer == true)
                 {

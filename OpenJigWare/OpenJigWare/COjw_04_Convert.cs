@@ -33,6 +33,7 @@ namespace OpenJigWare
 
             private static int _POW = 0x0001000;
             private static int _ABS = 0x0002000;
+            private static int _MOD = 0x0004000;
 
             private static int _BRACKET_SMALL_START = 0x0004000;
             private static int _BRACKET_SMALL_END = 0x0008000;
@@ -344,7 +345,7 @@ namespace OpenJigWare
                 bool bComplete = false; // _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2;
                 int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2;
 
-                int nEq = _EQ | _PLUS | _MINUS | _MUL | _DIV;
+                int nEq = _EQ | _PLUS | _MINUS | _MUL | _DIV | _MOD;
                 int nBracket = _BRACKET_SMALL_START | _BRACKET_SMALL_END | _BRACKET_MIDDLE_START | _BRACKET_MIDDLE_END | _BRACKET_LARGE_START | _BRACKET_LARGE_END;
                 int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2;
                 if (strPrev == null) return false;
@@ -462,6 +463,7 @@ namespace OpenJigWare
                 if ((nCompare & _MINUS) != 0) { if (strData == "-") nRet |= _MINUS; }
                 if ((nCompare & _MUL) != 0) { if (strData == "*") nRet |= _MUL; }
                 if ((nCompare & _DIV) != 0) { if (strData == "/") nRet |= _DIV; } // 0x0b [____ ____] [____ ____] [___1 1111]
+                if ((nCompare & _MOD) != 0) { if (strData == "%") nRet |= _MOD; } 
 
                 if ((nCompare & _SIN) != 0) { if (strData == "sin") nRet |= _SIN; }
                 if ((nCompare & _COS) != 0) { if (strData == "cos") nRet |= _COS; }

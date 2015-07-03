@@ -68,6 +68,23 @@
     <Compile Include="COjw_02_InputBox.cs" />
     <Compile Include="COjw_01_Struct.cs" />
     <Compile Include="COjw_xx_User.cs" />
+    <Compile Include="Docking\KeyPad.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\KeyPad.Designer.cs">
+      <DependentUpon>KeyPad.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Docking\Model.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\Model.Designer.cs">
+      <DependentUpon>Model.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="COjw_03_Message.cs" />
     <Compile Include="COjw_05_Math.cs" />
@@ -89,6 +106,93 @@
     <Compile Include="COjw_21_Graph.cs" />
     <Compile Include="COjw_22_DC2408.cs" />
     <Compile Include="COjw_23_Joystic.cs" />
+    <Compile Include="COjw_24_System.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Docking\KeyPad.resx">
+      <DependentUpon>KeyPad.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\Model.resx">
+      <DependentUpon>Model.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="KeyPad\english_L\eL_normal_A.png" />
+    <Content Include="KeyPad\english_L\eL_normal_B.png" />
+    <Content Include="KeyPad\english_L\eL_normal_Back.png" />
+    <Content Include="KeyPad\english_L\eL_normal_bar.png" />
+    <Content Include="KeyPad\english_L\eL_normal_C.png" />
+    <Content Include="KeyPad\english_L\eL_normal_D.png" />
+    <Content Include="KeyPad\english_L\eL_normal_E.png" />
+    <Content Include="KeyPad\english_L\eL_normal_F.png" />
+    <Content Include="KeyPad\english_L\eL_normal_G.png" />
+    <Content Include="KeyPad\english_L\eL_normal_H.png" />
+    <Content Include="KeyPad\english_L\eL_normal_I.png" />
+    <Content Include="KeyPad\english_L\eL_normal_J.png" />
+    <Content Include="KeyPad\english_L\eL_normal_K.png" />
+    <Content Include="KeyPad\english_L\eL_normal_L.png" />
+    <Content Include="KeyPad\english_L\eL_normal_M.png" />
+    <Content Include="KeyPad\english_L\eL_normal_N.png" />
+    <Content Include="KeyPad\english_L\eL_normal_O.png" />
+    <Content Include="KeyPad\english_L\eL_normal_P.png" />
+    <Content Include="KeyPad\english_L\eL_normal_Q.png" />
+    <Content Include="KeyPad\english_L\eL_normal_R.png" />
+    <Content Include="KeyPad\english_L\eL_normal_S.png" />
+    <Content Include="KeyPad\english_L\eL_normal_Shift.png" />
+    <Content Include="KeyPad\english_L\eL_normal_Spacebar.png" />
+    <Content Include="KeyPad\english_L\eL_normal_T.png" />
+    <Content Include="KeyPad\english_L\eL_normal_U.png" />
+    <Content Include="KeyPad\english_L\eL_normal_V.png" />
+    <Content Include="KeyPad\english_L\eL_normal_W.png" />
+    <Content Include="KeyPad\english_L\eL_normal_X.png" />
+    <Content Include="KeyPad\english_L\eL_normal_Y.png" />
+    <Content Include="KeyPad\english_L\eL_normal_Z.png" />
+    <Content Include="KeyPad\english_S\es_nomal_a.png" />
+    <Content Include="KeyPad\english_S\es_nomal_b.png" />
+    <Content Include="KeyPad\english_S\es_nomal_c.png" />
+    <Content Include="KeyPad\english_S\es_nomal_d.png" />
+    <Content Include="KeyPad\english_S\es_nomal_e.png" />
+    <Content Include="KeyPad\english_S\es_nomal_f.png" />
+    <Content Include="KeyPad\english_S\es_nomal_g.png" />
+    <Content Include="KeyPad\english_S\es_nomal_h.png" />
+    <Content Include="KeyPad\english_S\es_nomal_hyphen.png" />
+    <Content Include="KeyPad\english_S\es_nomal_i.png" />
+    <Content Include="KeyPad\english_S\es_nomal_j.png" />
+    <Content Include="KeyPad\english_S\es_nomal_k.png" />
+    <Content Include="KeyPad\english_S\es_nomal_l.png" />
+    <Content Include="KeyPad\english_S\es_nomal_m.png" />
+    <Content Include="KeyPad\english_S\es_nomal_n.png" />
+    <Content Include="KeyPad\english_S\es_nomal_o.png" />
+    <Content Include="KeyPad\english_S\es_nomal_p.png" />
+    <Content Include="KeyPad\english_S\es_nomal_q.png" />
+    <Content Include="KeyPad\english_S\es_nomal_r.png" />
+    <Content Include="KeyPad\english_S\es_nomal_s.png" />
+    <Content Include="KeyPad\english_S\es_nomal_shift.png" />
+    <Content Include="KeyPad\english_S\es_nomal_spacebar.png" />
+    <Content Include="KeyPad\english_S\es_nomal_t.png" />
+    <Content Include="KeyPad\english_S\es_nomal_u.png" />
+    <Content Include="KeyPad\english_S\es_nomal_v.png" />
+    <Content Include="KeyPad\english_S\es_nomal_w.png" />
+    <Content Include="KeyPad\english_S\es_nomal_x.png" />
+    <Content Include="KeyPad\english_S\es_nomal_y.png" />
+    <Content Include="KeyPad\english_S\es_nomal_z.png" />
+    <Content Include="KeyPad\etc\a_normal_3_9.png" />
+    <Content Include="KeyPad\etc\es_nomal_0.png" />
+    <Content Include="KeyPad\etc\es_nomal_1.png" />
+    <Content Include="KeyPad\etc\es_nomal_2.png" />
+    <Content Include="KeyPad\etc\es_nomal_3.png" />
+    <Content Include="KeyPad\etc\es_nomal_4.png" />
+    <Content Include="KeyPad\etc\es_nomal_5.png" />
+    <Content Include="KeyPad\etc\es_nomal_6.png" />
+    <Content Include="KeyPad\etc\es_nomal_7.png" />
+    <Content Include="KeyPad\etc\es_nomal_8.png" />
+    <Content Include="KeyPad\etc\es_nomal_9.png" />
+    <Content Include="KeyPad\etc\es_nomal_back.png" />
+    <Content Include="KeyPad\etc\es_nomal_확인.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

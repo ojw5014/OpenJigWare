@@ -92,6 +92,7 @@ namespace OpenJigWare
             //public static double GetRotatedImageWidth(t, nSourceWidth, nSourceHeight)	((nSourceHeight) * Cos((t)) + (nSourceWidth) * Cos(180.0 - (t)))
             //////////////////
 #endif
+
             public static double Distance(double x, double y) { return (double)Math.Sqrt((double)(x) * (double)(x) + (double)(y) * (double)(y)); }
             public static double VectorNorm(double x, double y) { return (double)Math.Sqrt((double)(x) * (double)(x) + (double)(y) * (double)(y)); }
             public static double Norm(double x, double y) { return Distance(x, y); }
@@ -903,6 +904,59 @@ namespace OpenJigWare
             }
 #endif
             #endregion Kalman Filter
+
+            #region Complementary Filter - from Pieter-jan.com
+            // http://www.pieter-jan.com/node/11
+            private const float _ACCELEROMETER_SENSITIVITY = 8192.0f;
+            private const float _GYROSCOPE_SENSITIVITY = 65.536f;
+            public static void ComplementaryFilter(short[] asAcc, short[] gyrData, ref float fRoll, ref float fPitch)
+            {
+                float fAcc_Pitch, fAcc_Roll;               
+                float fDt = 0.01f;
+                // Integrate the gyroscope data -> int(angularSpeed) = angle
+                fPitch += ((float)gyrData[0] / _GYROSCOPE_SENSITIVITY) * fDt; // Angle around the X-axis
+                fRoll -= ((float)gyrData[1] / _GYROSCOPE_SENSITIVITY) * fDt;    // Angle around the Y-axis
+ 
+                // Compensate for drift with accelerometer data if !bullshit
+                // Sensitivity = -2 to 2 G at 16Bit -> 2G = 32768 && 0.5G = 8192
+                int forceMagnitudeApprox = (int)Math.Round((float)Math.Abs(asAcc[0]) + (float)Math.Abs(asAcc[1]) + (float)Math.Abs(asAcc[2]));
+                if (forceMagnitudeApprox > 8192 && forceMagnitudeApprox < 32768)
+                {
+	                // Turning around the X axis results in a vector on the Y-axis
+                    fAcc_Pitch = (float)Math.Atan2((float)asAcc[1], (float)asAcc[2]) * 180.0f / (float)Math.PI;
+                    fPitch = fPitch * 0.98f + fAcc_Pitch * 0.02f;
+ 
+	            // Turning around the Y axis results in a vector on the X-axis
+                    fAcc_Roll = (float)Math.Atan2((float)asAcc[0], (float)asAcc[2]) * 180 / (float)Math.PI;
+                    fRoll = fRoll * 0.98f + fAcc_Roll * 0.02f;
+                }
+            }
+            //public static void ComplementaryFilter(short[] asAcc, short[] gyrData, ref float fRoll, ref float fPitch, ref float fYaw)
+            //{
+            //    float fAcc_Roll, fAcc_Pitch, fAcc_Yaw;
+            //    float fDt = 0.01f;
+            //    // Integrate the gyroscope data -> int(angularSpeed) = angle
+            //    fPitch += ((float)gyrData[0] / _GYROSCOPE_SENSITIVITY) * fDt; // Angle around the X-axis
+            //    fRoll -= ((float)gyrData[1] / _GYROSCOPE_SENSITIVITY) * fDt;    // Angle around the Y-axis
+            //    fYaw += ((float)gyrData[2] / _GYROSCOPE_SENSITIVITY) * fDt;    // Angle around the Y-axis
+
+            //    // Compensate for drift with accelerometer data if !bullshit
+            //    // Sensitivity = -2 to 2 G at 16Bit -> 2G = 32768 && 0.5G = 8192
+            //    int forceMagnitudeApprox = (int)Math.Round((float)Math.Abs(asAcc[0]) + (float)Math.Abs(asAcc[1]) + (float)Math.Abs(asAcc[2]));
+            //    if (forceMagnitudeApprox > 8192 && forceMagnitudeApprox < 32768)
+            //    {
+
+
+            //        // Turning around the X axis results in a vector on the Y-axis
+            //        fAcc_Pitch = (float)Math.Atan2((float)asAcc[1], (float)asAcc[2]) * 180.0f / (float)Math.PI;
+            //        fPitch = fPitch * 0.98f + fAcc_Pitch * 0.02f;
+
+            //        // Turning around the Y axis results in a vector on the X-axis
+            //        fAcc_Roll = (float)Math.Atan2((float)asAcc[0], (float)asAcc[2]) * 180 / (float)Math.PI;
+            //        fRoll = fRoll * 0.98f + fAcc_Roll * 0.02f;
+            //    }
+            //} 
+            #endregion Complementary Filter
             #endregion Filter
         }
     }

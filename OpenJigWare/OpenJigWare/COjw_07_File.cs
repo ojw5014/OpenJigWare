@@ -15,6 +15,22 @@ namespace OpenJigWare
         {
             #region File Management
 
+            #region File Check(IsFile)
+            public static bool IsFile(String strFile)
+            {
+                System.IO.FileInfo f = new System.IO.FileInfo(strFile);
+                if (f.Exists == true) return true;
+                return false;
+            }
+            public static bool IsFiles(params String[] pstrFile)
+            {
+                int nCnt = 0;
+                foreach (string strItem in pstrFile) { if (IsFile(strItem) == true) nCnt++; }
+                if (nCnt == pstrFile.Length) return true;
+                return false;
+            }
+            #endregion File Check(IsFile)
+
             #region GetTitle(String strPath) - Get the file name(without file extention) only(Kor: 파일의 이름만 얻는 함수)
             // Get the file name without extension(Kor: 파일의 이름만 얻는 함수)
             public static String GetTitle(String strPath)

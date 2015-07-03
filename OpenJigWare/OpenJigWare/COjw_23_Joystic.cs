@@ -16,6 +16,77 @@ namespace OpenJigWare
             public static int _ID_0 = 0;
             public static int _ID_1 = 1;
 
+            public CXBox_t CXBox = new CXBox_t();
+            public class CXBox_t
+            {
+                //public int nLockKey; // 0 : normal, 1 : for control, 2 : for special control(ex-tilt)
+                public float Slide_Left;
+                public float Slide_Right;
+
+                public float fStick0_X;
+                public float fStick0_Y;
+                public float fStick0_Angle;
+                public float fStick0_Length;
+                public bool bStick0_Click;
+
+                public float fStick1_X;
+                public float fStick1_Y;
+                public float fStick1_Angle;
+                public float fStick1_Length;
+                public bool bStick1_Click;
+                
+                public bool bKey_Front_Left;
+                public bool bKey_Front_Right;
+
+                public bool bKey_Start;
+                public bool bKey_Back;
+
+                public bool bKey_Up;
+                public bool bKey_Down;
+                public bool bKey_Left;
+                public bool bKey_Right;
+
+                public bool bPad_Up;
+                public bool bPad_Down;
+                public bool bPad_Left;
+                public bool bPad_Right;
+
+                public CXBox_t()
+                {
+                    Slide_Left = 0.0f;
+                    Slide_Right = 0.0f;
+
+                    fStick0_X = 0.0f;
+                    fStick0_Y = 0.0f;
+                    fStick0_Angle = 0.0f;
+                    fStick0_Length = 0.0f;
+                    bStick0_Click = false;
+
+                    fStick1_X = 0.0f;
+                    fStick1_Y = 0.0f;
+                    fStick1_Angle = 0.0f;
+                    fStick1_Length = 0.0f;
+                    bStick1_Click = false;
+
+
+                    bKey_Front_Left = false;
+                    bKey_Front_Right = false;
+
+                    bKey_Start = false;
+                    bKey_Back = false;
+
+                    bKey_Up = false;
+                    bKey_Down = false;
+                    bKey_Left = false;
+                    bKey_Right = false;
+
+                    bPad_Up = false;
+                    bPad_Down = false;
+                    bPad_Left = false;
+                    bPad_Right = false;
+                }
+            }
+            
             public CJoystick(int id)
             {
                 caps = new JOYCAPS();
@@ -26,7 +97,8 @@ namespace OpenJigWare
                 };
 
                 this.nID = id;
-                this.IsValid = Update();
+                //this.IsValid = Update();
+                Update();
 
                 if (id != -1)
                     joyGetDevCaps(id, ref caps, Marshal.SizeOf(typeof(JOYCAPS)));
@@ -227,7 +299,7 @@ namespace OpenJigWare
             public double Slide { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
             public bool IsValid { get; private set; }
             public bool Update() 
-            {
+            {                
                 bool bRet = false;
                 if (this.nID >= 0)
                 {
@@ -238,6 +310,59 @@ namespace OpenJigWare
                         bRet = true;
                     }
                 }
+
+                ////////
+                #region XBox
+
+                CXBox.bPad_Left = IsDown(Ojw.CJoystick.PadKey.POVLeft);
+                CXBox.bPad_Right = IsDown(Ojw.CJoystick.PadKey.POVRight);
+                CXBox.bPad_Up = IsDown(Ojw.CJoystick.PadKey.POVUp);
+                CXBox.bPad_Down = IsDown(Ojw.CJoystick.PadKey.POVDown);
+
+                // 슬라이드
+                double dMul = 1.0;
+                CXBox.Slide_Left = ((Slide >= 0.5) ? (float)(dMul * (0.5 - Slide)) : 0.0f);
+                CXBox.Slide_Right = ((Slide <= 0.5) ? (float)(dMul * (Slide - 0.5)) : 0.0f);
+                
+                #region 계산
+                float fValueX = (float)((dX0 - 0.5));
+                float fValueY = (float)((dY0 - 0.5));
+                float fLength = (float)Math.Sqrt(fValueX * fValueX + fValueY * fValueY);
+                float fTheta = (fLength > 0.2f) ? (float)(Ojw.CMath.ATan2(fValueX, fValueY) + 90.0f) % 360.0f : 0.0f;
+                if (fTheta > 180.0f) fTheta -= 360.0f; // 이걸 살리면 +-180 으로 데이타가 변형된다.
+
+                CXBox.fStick0_Angle = fTheta;
+                CXBox.fStick0_Length = fLength;
+                CXBox.fStick0_X = (float)dX0;
+                CXBox.fStick0_Y = (float)dY0;
+                CXBox.bStick0_Click = IsDown(Ojw.CJoystick.PadKey.Button9);
+                
+                fValueX = (float)((dX1 - 0.5));
+                fValueY = (float)((dY1 - 0.5));
+                fLength = (float)Math.Sqrt(fValueX * fValueX + fValueY * fValueY);
+                fTheta = (fLength > 0.2f) ? (float)(Ojw.CMath.ATan2(fValueX, fValueY) + 90.0f) % 360.0f : 0.0f;
+                if (fTheta > 180.0f) fTheta -= 360.0f; // 이걸 살리면 +-180 으로 데이타가 변형된다.
+
+                CXBox.fStick1_Angle = fTheta;
+                CXBox.fStick1_Length = fLength;
+                CXBox.fStick1_X = (float)dX1;
+                CXBox.fStick1_Y = (float)dY1;
+                CXBox.bStick1_Click = IsDown(Ojw.CJoystick.PadKey.Button10);
+                #endregion 계산
+
+                CXBox.bKey_Left = IsDown(Ojw.CJoystick.PadKey.Button2);
+                CXBox.bKey_Right = IsDown(Ojw.CJoystick.PadKey.Button3);
+                CXBox.bKey_Up = IsDown(Ojw.CJoystick.PadKey.Button4);
+                CXBox.bKey_Down = IsDown(Ojw.CJoystick.PadKey.Button1);
+
+                CXBox.bKey_Start = IsDown(Ojw.CJoystick.PadKey.Button8);
+                CXBox.bKey_Back = IsDown(Ojw.CJoystick.PadKey.Button7);
+
+                CXBox.bKey_Front_Left = IsDown(Ojw.CJoystick.PadKey.Button5);
+                CXBox.bKey_Front_Right = IsDown(Ojw.CJoystick.PadKey.Button6);
+                #endregion XBox
+
+                IsValid = bRet;
                 return bRet;
             }
 
