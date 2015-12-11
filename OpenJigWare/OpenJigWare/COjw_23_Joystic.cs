@@ -1,4 +1,6 @@
-﻿using System;
+﻿// sorry I forgot where I got this key software from.
+// if you know who is key software (Joystick) from, please let me know.
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -90,6 +92,7 @@ namespace OpenJigWare
             public CJoystick(int id)
             {
                 caps = new JOYCAPS();
+
                 info = new JOYINFOEX
                 {
                     dwSize = (uint)Marshal.SizeOf(typeof(JOYINFOEX)),
@@ -287,6 +290,54 @@ namespace OpenJigWare
             JOYINFOEX info;
             JOYCAPS caps;
             readonly Dictionary<PadKey, bool> isDown = new Dictionary<PadKey, bool>();
+            private int[] m_anClickEvent_Up = new int[(int)(PadKey.SpinRight) + 1];
+            private int[] m_anClickEvent_Down = new int[(int)(PadKey.SpinRight) + 1];
+#if true
+            //// 좌상단
+            //public double dX0 { get { return (double)(((caps.wXmax - caps.wXmin) == 0) ? 0.5 : (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin)); } }
+            //public double dY0 { get { return (double)(((caps.wYmax - caps.wYmin) == 0) ? 0.5 : (double)(info.dwYpos - caps.wYmin) / (caps.wYmax - caps.wYmin)); } }
+            //public int nID { get; private set; }
+
+            //// Pad
+            //public double dX1 { get { return (double)(((caps.wUmax - caps.wUmin) == 0) ? 0.5 : (double)(info.dwUpos - caps.wUmin) / (caps.wUmax - caps.wUmin)); } }
+            //public double dY1 { get { return (double)(((caps.wRmax - caps.wRmin) == 0) ? 0.5 : (double)(info.dwRpos - caps.wRmin) / (caps.wRmax - caps.wRmin)); } }
+
+            //public double Slide { get { return (double)((caps.wZmax - caps.wZmin == 0) ? 0.5 : ((double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin))); } }
+            
+            // 좌상단
+            public double dX0 { get { return (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin); } }
+            public double dY0 { get { return (double)(info.dwYpos - caps.wYmin) / (caps.wYmax - caps.wYmin); } }
+            public int nID { get; private set; }
+
+            // Pad
+            public double dX1 { get { return (double)(info.dwUpos - caps.wUmin) / (caps.wUmax - caps.wUmin); } }
+            public double dY1 { get { return (double)(info.dwRpos - caps.wRmin) / (caps.wRmax - caps.wRmin); } }
+
+            public double Slide { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
+
+            private bool m_bValid = false;
+            public bool IsValid //{ get; private set; }
+            {
+                get
+                {
+                    return (
+                            (
+                                (caps.wXmax != 0) ||
+                                (caps.wYmax != 0) ||
+                                (caps.wUmax != 0) ||
+                                (caps.wRmax != 0) ||
+                                (caps.wZmax != 0)
+                            ) 
+                            &&
+                            (m_bValid == true)
+                        );
+                }
+                private set
+                {
+                    m_bValid = value;
+                }
+            }
+#else
             // 좌상단
             public double dX0 { get { return (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin); } }
             public double dY0 { get { return (double)(info.dwYpos - caps.wYmin) / (caps.wYmax - caps.wYmin); } }
@@ -298,6 +349,7 @@ namespace OpenJigWare
 
             public double Slide { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
             public bool IsValid { get; private set; }
+#endif
             public bool Update() 
             {                
                 bool bRet = false;
@@ -306,7 +358,17 @@ namespace OpenJigWare
                     if (joyGetPosEx(this.nID, ref info) == 0)
                     {
                         foreach (PadKey i in Enum.GetValues(typeof(PadKey)))
+                        {
                             isDown[i] = CheckIsDown(i);
+                            int nIndex = (int)i;
+                            // Down Event
+                            if ((isDown[i] == true) && (m_anClickEvent_Down[nIndex] == 0)) m_anClickEvent_Down[nIndex] = 1;
+                            else if ((isDown[i] == false) && (m_anClickEvent_Down[nIndex] != 0)) m_anClickEvent_Down[nIndex] = 0;
+                            
+                            // Up Event
+                            if ((isDown[i] == true) && (m_anClickEvent_Up[nIndex] == 0)) m_anClickEvent_Up[nIndex] = 1;
+                            else if ((isDown[i] == false) && (m_anClickEvent_Up[nIndex] == 1)) m_anClickEvent_Up[nIndex] = 2;
+                        }
                         bRet = true;
                     }
                 }
@@ -428,7 +490,15 @@ namespace OpenJigWare
                     return isDown[key];
                 return false;
             }
-
+            public bool IsDown_Event(PadKey key)
+            {
+                if (m_anClickEvent_Down[(int)key] == 1)
+                {
+                    m_anClickEvent_Down[(int)key] = 2;
+                    return true;
+                }
+                return false;
+            }
             public bool IsUp(IEnumerable<PadKey> all)
             {
                 return all.All(IsUp);
@@ -442,6 +512,16 @@ namespace OpenJigWare
             public bool IsUp(PadKey key)
             {
                 return !isDown[key];
+            }
+
+            public bool IsUp_Event(PadKey key)
+            {
+                if (m_anClickEvent_Up[(int)key] == 2)
+                {
+                    m_anClickEvent_Up[(int)key] = 0;
+                    return true;
+                }
+                return false;
             }
 
             //public static IEnumerable<CJoystick> GetAvailableGamePads()

@@ -5,11 +5,281 @@ using System.Text;
 using System.Drawing;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading;
+using System.Net;
 
 namespace OpenJigWare
 {
     partial class Ojw
     {
+        public class CServer
+        {
+            #region 변수
+            //private byte m_pbyteServer;
+            private bool m_bThread_Server = false;
+            private TcpListener m_tcpServer;    // 서버
+            private TcpClient m_tcpServer_Client; // 서버에 붙는 클라이언트
+            private Thread m_thServer;          // 스레드
+            private BinaryWriter m_bwServer_outData;
+            private BinaryReader m_bwServer_inData;
+            private String m_strOrgPath = "";
+            private int m_nServer_Seq = 0;
+            private int m_nReceived_ServerCmd = 0;
+            private int m_nCntAuth = 0;
+            private bool m_bAuth = false;
+            #endregion 변수
+
+            #region 공개
+            //Server thread가 돌고 있는지 여부
+            public bool sock_thread_started() { return m_bThread_Server; }
+            //서버가 클라이언트와 연결되어 있는지 여부
+            public bool sock_connected()
+            {
+                if (sock_started() == false) return false;
+                if (m_tcpServer_Client == null) return false;
+                return m_tcpServer_Client.Connected;
+            }
+            //서버 구동이 시작 되었는지 여부
+            public bool sock_started()
+            {
+                if (m_tcpServer == null) return false;
+                return true;// m_tcpServer.Server.Connected;
+            }
+            //seq값은 패킷을 하나 받을 때마다 자동으로 1씩 증가. seq 값 읽어오기.
+            public int sock_seq() { return m_nServer_Seq; }
+            //서버로 들어온 Cmd 값을 읽기
+            public int sock_get_result_cmd()
+            {
+                return m_nReceived_ServerCmd;
+            }
+            //인증이 되어 있는지 여부
+            public bool sock_get_auth() { return m_bAuth; }
+            //ack을 보내기
+            //public void sock_send_ack(int nCurrentCmd, int nStatus)
+            //{
+            //    sock_send_2_data(0xf0, (byte)(nCurrentCmd & 0xff), (byte)(nStatus & 0xff));
+            //}
+            public bool sock_start(int nA, int nB, int nC, int nD, int nPort)
+            {
+                String strIP = nA.ToString() + "," + nB.ToString() + "," + nC.ToString() + "," + nD.ToString();
+                return sock_start(strIP, nPort);
+            }
+            public bool sock_start(String strIP, int nPort)
+            {
+                bool bRet = false;
+                try
+                {
+                    byte[] pbyIp = new byte[4];
+                    String[] pstrIP = strIP.Split('.');
+                    int i = 0;
+                    foreach (String strItem in pstrIP)
+                    {
+                        int nIp = Convert.ToInt32(strItem);
+                        pbyIp[i++] = (byte)(nIp & 0xff);
+                    }
+                    if (i != 4)
+                    {
+                        return false;
+                    }
+
+                    IPAddress addr = new IPAddress(pbyIp);
+
+                    // Server
+                    m_tcpServer = new TcpListener(addr, nPort);
+                    m_tcpServer.Start();
+                                        
+                    //클라이언트 생성시 스레드를 생성한다.
+                    m_thServer = new Thread(new ThreadStart(ThreadServer));
+                    m_thServer.Start();
+
+                    pbyIp = null;
+                    addr = null;
+
+                    bRet = true;
+                }
+                catch
+                {
+                    bRet = false;
+                }
+                return bRet;
+            }
+            #region 비공개 - thread ...
+
+            private void ThreadServer()
+            {
+                try
+                {
+                    // 클라이언트가 붙으면 담당 소켓을 생성한다.
+                    m_tcpServer_Client = m_tcpServer.AcceptTcpClient();
+                    m_tcpServer_Client.NoDelay = false;
+                    m_bwServer_outData = new BinaryWriter(new BufferedStream(m_tcpServer_Client.GetStream()));
+                    m_bwServer_inData = new BinaryReader(new BufferedStream(m_tcpServer_Client.GetStream()));
+                    
+                    CMessage.Write("준비완료");
+
+                    m_nServer_Seq = 0;
+
+                    m_nCntAuth = 0;
+                    m_bAuth = false;
+
+                    m_bThread_Server = true;
+                    string strData = "";
+                    while (sock_connected() == true)
+                    {
+                        byte byteData = sock_get_byte();
+                        if (sock_connected() == false) return;
+
+                        //if (byteData != 0)
+                        //{
+                        //    strData += (char)(byteData);
+                        //    if (byteData == 10)
+                        //    {
+                        //        Ojw.CMessage.Write(strData);
+                        //        strData = String.Empty;
+                        //    }
+                        //}
+
+
+                        if (byteData != 0) CMessage.Write2("{0}", (char)(byteData));
+
+                        if (byteData != 0)
+                        {
+                            if ((char)(byteData) == 'f')
+                            {
+                                CMessage.Write("전진");
+                            }
+                            else if ((char)(byteData) == 'b')
+                            {
+                                CMessage.Write("후진");
+                            }
+                            else if ((char)(byteData) == 'l')
+                            {
+                                CMessage.Write("좌회전");
+                            }
+                            else if ((char)(byteData) == 'r')
+                            {
+                                CMessage.Write("우회전");
+                            }
+                            else
+                            {
+                                //CMessage.Write("{0}", (char)(byteData));
+                                CMessage.Write("알지못하는 명령 입력={0}", (char)byteData);
+                            }
+                        }
+                    }
+
+                    CMessage.Write("Connected {0}", m_tcpServer_Client.ToString());
+                    m_bThread_Server = false;
+                }
+                catch// (Exception e)
+                {
+                }
+            }
+            #endregion 비공개 - thread ...   
+            public void sock_stop()
+            {
+                // 스레드 종료
+                //m_bStartedServerThread = false;
+                // 열려있는 포트 닫음(Server)
+                //if (m_bStartedServer == true) m_tcpServer.Stop();
+                //if (m_tcpServer.Server.Connected == true) m_tcpServer.Stop();
+                bool bConnected = sock_connected();
+                bool bStarted = sock_started();
+                if (bConnected == true) m_tcpServer_Client.Close();
+                if (bStarted == true) m_tcpServer.Stop();
+
+                m_tcpServer = null;
+
+
+                m_bAuth = false;
+                m_nCntAuth = 0;
+            }
+            // 벌크데이타를 보냄
+            //public bool sock_send(byte[] byteData)
+            //{
+            //    try
+            //    {
+            //        if (!sock_connected()) return false;
+
+            //        if (sock_connected()) m_bwServer_outData.Write(byteData);
+            //        if (sock_connected()) m_bwServer_outData.Flush();
+            //        return true;
+            //    }
+            //    catch
+            //    {
+            //        return false;
+            //    }
+            //}
+            public bool sock_send(params byte[] byteData)
+            {
+                try
+                {
+                    if (!sock_connected()) return false;
+
+                    if (byteData != null)
+                    {
+                        if (byteData.Length > 0)
+                        {
+                            if (sock_connected()) m_bwServer_outData.Write(byteData);
+                            if (sock_connected()) m_bwServer_outData.Flush();
+                            return true;
+                        }
+                        return false;
+                    }
+                    return false;          
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            public byte sock_get_byte()
+            {
+                try
+                {
+                    if (sock_connected()) return m_bwServer_inData.ReadByte();
+                    else return 0;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            // 2 Byte 의 정수값을 반환
+            public int sock_get_int16()
+            {
+                //if (sock_connected()) return inData.ReadInt16(); //2 Bytes
+                //else return 0;
+                int nData;
+                byte[] byteData = sock_get_bytes(2);
+                nData = (byteData[2] << 8);
+                nData += (byteData[3]);
+                if (sock_connected()) return nData; //2 Bytes
+                else return 0;
+            }
+            // 4 Byte 의 정수값을 반환
+            public int sock_get_int32()
+            {
+                int nData;
+                byte[] byteData = sock_get_bytes(4);
+                nData = (byteData[0] << 24);
+                nData += (byteData[1] << 16);
+                nData += (byteData[2] << 8);
+                nData += (byteData[3]);
+                //if (sock_connected()) return inData.ReadInt32(); //4 Bytes
+                if (sock_connected()) return nData; //4 Bytes
+                else return 0;
+            }
+            // Size 만큼을 읽어감
+            public byte[] sock_get_bytes(int nSize)
+            {
+                return m_bwServer_inData.ReadBytes(nSize);
+                //if (sock_connected()) return inData.ReadBytes(nSize);
+                //else return null;
+            }
+            #endregion 공개
+        }
+        
         public class CSocket
         {
             public CSocket()

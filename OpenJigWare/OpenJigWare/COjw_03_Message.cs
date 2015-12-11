@@ -348,7 +348,120 @@ namespace OpenJigWare
             }
             private static Mutex m_mtxMessage = new Mutex();
             delegate void Ctrl_Involk(TextBox txtOjwMessage, bool bFile, bool bFunction, bool bLine, bool bTime, bool bLinefeed, string msg);
+            public static void SaveImageFile(String strFileName, Bitmap bmp)
+            {
+                string strPath = CFile.CheckAndMakeFolder(m_strMsgFilePath, false, true, true, true, false);
+                string strName = strPath + "\\" + strFileName;
+                SaveImage(bmp, strName);
+            }
 
+            private static bool SaveImage(System.Windows.Forms.PictureBox pictureBox, string path)
+            {
+                bool bRet = true;
+                using (var bitmap = new Bitmap(pictureBox.Width, pictureBox.Height))
+                {
+                    pictureBox.DrawToBitmap(bitmap, pictureBox.ClientRectangle);
+                    System.Drawing.Imaging.ImageFormat imageFormat = null;
+                    var extension = System.IO.Path.GetExtension(@path);
+                    switch (extension.ToLower())
+                    {
+                        case ".bmp":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Bmp;
+                            break;
+                        case ".png":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Png;
+                            break;
+                        case ".jpeg":
+                        case ".jpg":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Jpeg;
+                            break;
+                        case ".gif":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Gif;
+                            break;
+                        case ".tiff":
+                        case ".tif":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Tiff;
+                            break;
+                        default:
+                            //bRet = false;
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Bmp;
+                            break;
+                    }
+                    //bitmap.Save(@path, imageFormat);
+                    FileInfo file = new FileInfo(@path);
+                    if (file.Exists)
+                    {
+                        System.IO.File.Delete(@path); // => 이 부분을 이걸로 지우니까 지워진다.                    
+                    }
+                    bitmap.Save(@path, imageFormat);
+                }
+                return bRet;
+            }
+            private static bool SaveImage(Bitmap image, string path)
+            {
+                bool bRet = true;
+                using (var bitmap = new Bitmap(image.Width, image.Height))
+                {
+                    System.Drawing.Imaging.ImageFormat imageFormat = null;
+                    var extension = System.IO.Path.GetExtension(path);
+                    switch (extension.ToLower())
+                    {
+                        case ".bmp":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Bmp;
+                            break;
+                        case ".png":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Png;
+                            break;
+                        case ".jpeg":
+                        case ".jpg":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Jpeg;
+                            break;
+                        case ".gif":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Gif;
+                            break;
+                        case ".tiff":
+                        case ".tif":
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Tiff;
+                            break;
+                        default:
+                            //bRet = false;
+                            imageFormat = System.Drawing.Imaging.ImageFormat.Bmp;
+                            break;
+                    }
+                    /*
+
+                    FileInfo file = new FileInfo(@path);
+                    if (file.Exists)
+                    {
+                        System.IO.File.Delete(@path); // => 이 부분을 이걸로 지우니까 지워진다.
+                        image.Save(@path);
+                    }
+                    */
+
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                        //FileStream fs = File.Create(@path);
+                    }
+                    image.Save(path, imageFormat);
+                    /*
+
+                    if (File.Exists(@path))
+                        File.Delete(@path);
+                    FileStream file = File.Open(@path, FileMode.Create);
+                    //FileInfo file = new FileInfo(@path);
+                    //if (file.Exists)
+                    //{
+                    //    file.Delete();
+                    
+
+                        image.Save(@path, imageFormat);
+                    //}*/
+                    //SaveFileDialog sd = new SaveFileDialog();
+                    //sd.
+                }
+                return bRet;
+            }
             private static void OjwDebugMessage(TextBox txtOjwMessage, bool bFile, bool bFunction, bool bLine, bool bTime, bool bLinefeed, string msg)
             {
                 try

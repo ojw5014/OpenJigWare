@@ -46,6 +46,7 @@ namespace OpenJigWare
                     strResult += "// Start //\r\n==============\r\n";
 
                     double dTheta;
+                    double dD;
                     CDhParam DhParam = new CDhParam();
                     double dAngleData = 0.0f;
                     //bool bNamed = false;
@@ -60,7 +61,16 @@ namespace OpenJigWare
                         //}
                         //catch { dAngleData = 0; }
                         #endregion (fAngleData)Read Value of angle(Kor: 각도값 읽어오기)
+#if false // CalcDhParamAll_ToString 에 Theta 가 아닌 D 값이 모터 변경값일 경우의 수식 적용 되도록 수정
                         dTheta = DhParam.dTheta + (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+#else
+                        // Theta
+                        dTheta = DhParam.dTheta;
+                        dD = DhParam.dD;
+                        if (DhParam.nAxisDir < 2) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+                        // D
+                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
+#endif                                             
                         CMath.CalcT(DhParam.dA, DhParam.dAlpha, DhParam.dD, dTheta, out aSDhT[i].adT);
                         CMath.CalcT_Str(DhParam.dA, DhParam.dAlpha, DhParam.dD, DhParam.dTheta, ((DhParam.nAxisNum >= 0) ? "t" + CConvert.IntToStr(DhParam.nAxisNum) : ""), out aSDhT_Str[i].aStrT);
                         for (int k = 0; k < 4; k++)
@@ -2543,6 +2553,19 @@ namespace OpenJigWare
                     //////                 fValue = fTmp_Value + fTmp_Data;
                     //           }
 #endif
+
+                    #region Error Exception
+#if false
+                    if (double.IsNaN(dValue) == true)
+                    {
+                        dValue = 0;
+                    }
+                    if (double.IsInfinity(dValue) == true)
+                    {
+                        dValue = 0;
+                    }
+#endif
+                    #endregion Error Exception
                 }
             }
         }

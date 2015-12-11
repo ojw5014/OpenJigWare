@@ -12,6 +12,7 @@
     <AssemblyName>OpenJigWare</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -80,6 +81,12 @@
     <Compile Include="Docking\Model.Designer.cs">
       <DependentUpon>Model.cs</DependentUpon>
     </Compile>
+    <Compile Include="Docking\MotionEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\MotionEditor.Designer.cs">
+      <DependentUpon>MotionEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -107,6 +114,7 @@
     <Compile Include="COjw_22_DC2408.cs" />
     <Compile Include="COjw_23_Joystic.cs" />
     <Compile Include="COjw_24_System.cs" />
+    <Compile Include="COjw_25_Genibo.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Docking\KeyPad.resx">
@@ -114,6 +122,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Docking\Model.resx">
       <DependentUpon>Model.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\MotionEditor.resx">
+      <DependentUpon>MotionEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -193,6 +204,26 @@
     <Content Include="KeyPad\etc\es_nomal_9.png" />
     <Content Include="KeyPad\etc\es_nomal_back.png" />
     <Content Include="KeyPad\etc\es_nomal_확인.png" />
+    <None Include="MotionTool.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="AxWMPLib">
+      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>aximp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+    <COMReference Include="WMPLib">
+      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

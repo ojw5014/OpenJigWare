@@ -119,219 +119,222 @@
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="a_normal_3_9" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\a_normal_3_9.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\a_normal_3_9.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_A" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_a.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_A.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_B" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_b.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_B.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_Back" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_back.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_Back.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_bar" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_bar.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_bar.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_C" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_c.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_C.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_D" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_d.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_D.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_E" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_e.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_E.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_F" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_f.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_F.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_G" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_g.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_G.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_H" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_h.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_H.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_I" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_i.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_I.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_J" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_j.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_J.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_K" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_k.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_K.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_L" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_l.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_L.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_M" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_m.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_M.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_N" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_n.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_N.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_O" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_o.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_O.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_P" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_p.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_P.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_Q" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_q.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_Q.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_R" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_r.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_R.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_S" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_s.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_S.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_Shift" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_shift.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_Shift.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_Spacebar" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_spacebar.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_Spacebar.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_T" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_t.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_T.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_U" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_u.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_U.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_V" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_v.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_V.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_W" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_w.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_W.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_X" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_x.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_X.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_Y" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_y.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_Y.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="eL_normal_Z" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_l\el_normal_z.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_L\eL_normal_Z.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_0" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_0.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_0.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_1" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_1.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_2" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_2.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_3" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_3.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_3.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_4" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_4.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_4.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_5" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_5.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_5.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_6" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_6.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_6.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_7" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_7.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_7.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_8" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_8.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_8.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_9" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_9.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_9.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_a" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_a.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_a.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_b" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_b.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_b.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_back" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_back.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_back.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_c" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_c.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_c.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_d" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_d.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_d.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_e" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_e.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_e.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_f" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_f.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_f.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_g" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_g.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_g.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_h" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_h.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_h.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_hyphen" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_hyphen.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_hyphen.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_i" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_i.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_i.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_j" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_j.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_j.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_k" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_k.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_k.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_l" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_l.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_l.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_m" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_m.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_m.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_n" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_n.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_n.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_o" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_o.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_o.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_p" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_p.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_p.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_q" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_q.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_q.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_r" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_r.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_r.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_s" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_s.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_s.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_shift" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_shift.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_shift.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_spacebar" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_spacebar.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_spacebar.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_t" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_t.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_t.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_u" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_u.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_u.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_v" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_v.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_v.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_w" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_w.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_w.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_x" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_x.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_x.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_y" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_y.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_y.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_z" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\english_s\es_nomal_z.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\english_S\es_nomal_z.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="es_nomal_확인" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\keypad\etc\es_nomal_확인.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\KeyPad\Etc\es_nomal_확인.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MotionTool" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\MotionTool.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

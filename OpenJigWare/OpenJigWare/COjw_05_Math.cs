@@ -958,6 +958,430 @@ namespace OpenJigWare
             //} 
             #endregion Complementary Filter
             #endregion Filter
+
+            #region Delta Parallel 3 dof
+
+            private static double m_dRad0 = 200.0f;//214.0f;
+            private static double m_dL0 = 83.0f;//110.0f;//132.0f;//122.0f;//81.0f;//122.0f;//43.0f;//80.0f;
+            private static double m_dL1 = 247.0f;//302.5f;//340.0f;//342.5f;//340.0f;//386.0f;//291.0f;//151.0f;//310.0f;
+
+            private static double m_dRad1 = 38.0f;//28.0f;//37.0f;
+
+            private static bool m_bInitMetal = false;
+            public static void Delta_Parallel_Init(
+                                    double dRadius_Up, // 윗판의 반지름
+                                    double dLength_Up, // 윗 링크의 길이
+                                    double dLength_Down, // 아래 링크의 길이
+                                    double dRadius_Down // 아래판의 반지름
+                )
+            {                
+               m_dRad0 = dRadius_Up;
+               m_dL0 = dLength_Up;
+               m_dL1 = dLength_Down;
+               m_dRad1 = dRadius_Down;
+
+               m_bInitMetal = true;
+            }
+            // made by Donghyeon, Lee in dongbu-robot(Address Changed to DST Robot)
+            // X 가 앞뒤, Y 가 좌우, Z 가 상하
+            public static bool Delta_Parallel_InverseKinematics(double dX, double dY, double dZ, out double dAngle0, out double dAngle1, out double dAngle2)
+            {
+                dAngle0 = dAngle1 = dAngle2 = 0.0;
+                if (m_bInitMetal == false) return false;
+#if true// 원래것
+                // 축 방향이 반대
+                dX = -dX;
+
+                double x1p, y1p, x2p, y2p, x3p, y3p, zp;
+                double xf1, xf2, xf3;
+                //double yf1,yf2,yf3;
+                double xj1, zj1, xj2, zj2, xj3, zj3;
+                double theta, phi, a, b, c1, c2, dum;
+
+                zp = dZ;
+
+
+#if true
+                x1p = dX;
+                y1p = dY;
+
+                x2p = dX * Math.Cos(D2R(-120.0)) - dY * Math.Sin(D2R(-120.0));
+                y2p = dX * Math.Sin(D2R(-120.0)) + dY * Math.Cos(D2R(-120.0));
+
+                x3p = dX * Math.Cos(D2R(120.0)) - dY * Math.Sin(D2R(120.0));
+                y3p = dX * Math.Sin(D2R(120.0)) + dY * Math.Cos(D2R(120.0));
+#else
+	        x1p=dX*cos(D2R(60.0))-dY*sin(D2R(60.0));
+	        y1p=dX*sin(D2R(60.0))+dY*cos(D2R(60.0));
+	
+	        x2p=dX*cos(D2R(-120.0))-dY*sin(D2R(-120.0));
+	        y2p=dX*sin(D2R(-120.0))+dY*cos(D2R(-120.0));
+
+	        x3p=dX*cos(D2R(180.0))-dY*sin(D2R(180.0));
+	        y3p=dX*sin(D2R(180.0))+dY*cos(D2R(180.0));
+#endif
+
+                xf1 = m_dRad0; // m_dRad0 => mpbf->Mplength
+                xf2 = m_dRad0;
+                xf3 = m_dRad0;
+
+                //a=m_dRad1-x1p;
+                a = -m_dRad1 - x1p; // m_dRad1 => mpbf->Splength
+                b = m_dRad0;
+                c1 = m_dL0; // mpbf->Rflength
+                c2 = m_dL1; // mpbf->Relength
+
+                //phi=Math.Atan(zp/(a+b));
+                phi = Math.Atan2(zp, (a + b));
+
+                dum = ((c2 * c2 - zp * zp - y1p * y1p - (a + b) * (a + b) - c1 * c1) / (2.0 * c1 * Math.Sqrt((a + b) * (a + b) + zp * zp)));
+
+                theta = Math.Acos((c2 * c2 - zp * zp - y1p * y1p - (a + b) * (a + b) - c1 * c1) / (2.0 * c1 * Math.Sqrt((a + b) * (a + b) + zp * zp))) - phi;
+                //theta=acos((c2*c2-zp*zp-y1p*y1p-(a+b)*(a+b)-c1*c1)/(2.0*c1*sqrt((a+b)*(a+b)+zp*zp)))+phi;
+
+
+                xj1 = c1 * Math.Cos(theta) + b;
+                zj1 = c1 * Math.Sin(theta);
+                //zj1=-c1*Math.Sin(theta);
+
+                //dAngle0=Math.Atan(zj1/(xf1-xj1));
+                dAngle0 = R2D(Math.Atan2(zj1, (xj1 - xf1)));
+
+                //a=m_dRad1-x2p;
+                a = -m_dRad1 - x2p;
+
+                phi = Math.Atan2(zp, (a + b));
+
+                dum = ((c2 * c2 - zp * zp - y2p * y2p - (a + b) * (a + b) - c1 * c1) / (2.0 * c1 * Math.Sqrt((a + b) * (a + b) + zp * zp)));
+
+                theta = Math.Acos((c2 * c2 - zp * zp - y2p * y2p - (a + b) * (a + b) - c1 * c1) / (2.0 * c1 * Math.Sqrt((a + b) * (a + b) + zp * zp))) - phi;
+
+                xj2 = c1 * Math.Cos(theta) + b;
+                zj2 = c1 * Math.Sin(theta);
+
+                //dAngle1=Math.Atan(zj2/(xf2-xj2));
+                dAngle1 = R2D(Math.Atan2(zj2, (xj2 - xf2)));
+
+                a = -m_dRad1 - x3p;
+
+                //phi=Math.Atan(zp/(a+b));
+                phi = Math.Atan2(zp, (a + b));
+
+                dum = ((c2 * c2 - zp * zp - y3p * y3p - (a + b) * (a + b) - c1 * c1) / (2.0 * c1 * Math.Sqrt((a + b) * (a + b) + zp * zp)));
+
+                theta = Math.Acos((c2 * c2 - zp * zp - y3p * y3p - (a + b) * (a + b) - c1 * c1) / (2.0 * c1 * Math.Sqrt((a + b) * (a + b) + zp * zp))) - phi;
+
+                xj3 = c1 * Math.Cos(theta) + b;
+                //zj3=c1*sin(theta);
+                zj3 = c1 * Math.Sin(theta);
+
+                //dAngle2=Math.Atan(zj3/(xf3-xj3));
+                dAngle2 = R2D(Math.Atan2(zj3, (xj3 - xf3)));
+
+                /**********************************via angle******************************/
+
+#if false
+            double[] adRx = new double[3];
+            double[] adRy = new double[3];
+            double[] adRz = new double[3];
+            double[] adRTx = new double[3];
+            double[] adRTy = new double[3];
+	        double[] l3 = new double[3];
+            double[] adPrj = new double[3];
+
+            adRx[0] = dX + m_dRad1 - m_dRad0;
+            adRy[0] = dY;
+            adRz[0] = dZ;
+
+            l3[0] = adRx[0] * adRx[0] + adRy[0] * adRy[0] + adRz[0] * adRz[0];
+
+            adRx[1] = dX * Math.Cos(D2R(-120.0)) - dY * Math.Sin(D2R(-120.0));
+            adRy[1] = dX * Math.Sin(D2R(-120.0)) + dY * Math.Cos(D2R(-120.0));
+            adRz[1] = dZ;
+
+            adRx[1] = adRx[1] + m_dRad1 - m_dRad0;
+
+            l3[1] = adRx[1] * adRx[1] + adRy[1] * adRy[1] + adRz[1] * adRz[1];
+
+            adRx[2] = dX * Math.Cos(D2R(120.0)) - dY * Math.Sin(D2R(120.0));
+            adRy[2] = dX * Math.Sin(D2R(120.0)) + dY * Math.Cos(D2R(120.0));
+            adRz[2] = dZ;
+
+            adRx[2] = adRx[2] + m_dRad1 - m_dRad0;
+
+            l3[2] = adRx[2] * adRx[2] + adRy[2] * adRy[2] + adRz[2] * adRz[2];
+
+            m_afMot[3] = 180.0f - (float)R2D(Math.Acos((m_dL0 * m_dL0 + m_dL1 * m_dL1 - l3[0]) / (2.0 * m_dL0 * m_dL1)));
+            m_afMot[4] = 180.0f - (float)R2D(Math.Acos((m_dL0 * m_dL0 + m_dL1 * m_dL1 - l3[1]) / (2.0 * m_dL0 * m_dL1)));
+            m_afMot[5] = 180.0f - (float)R2D(Math.Acos((m_dL0 * m_dL0 + m_dL1 * m_dL1 - l3[2]) / (2.0 * m_dL0 * m_dL1)));
+#if false
+            ///////////////
+            for (int i = 0; i < 3; i++)
+            {
+                adRTx[i] = m_dRad0 * Math.Cos(D2R(-120.0 * i)) - 0 * Math.Sin(D2R(-120.0 * i));
+                adRTy[i] = m_dRad0 * Math.Sin(D2R(-120.0 * i)) + 0 * Math.Cos(D2R(-120.0 * i));
+
+                adPrj[i] = Math.Sqrt((adRTx[i] - adRx[i]) * (adRTx[i] - adRx[i]) + (adRTy[i] - adRy[i]) * (adRTy[i] - adRy[i]));
+            }
+            double d = adRx[0] * adRx[0] + adRy[0] * adRy[0];
+            //double d = dX * dX + dY * dY;
+
+            m_afMot[6] = (float)R2D(Math.Acos((m_dRad0 * m_dRad0 + adPrj[0] * adPrj[0] - d) / (2.0 * m_dRad0 * adPrj[0])));
+#endif
+        /*************************************************************************/
+
+
+
+#if false
+            // ojw5014
+            double dp2, d2, dMx, dMy, dMz;
+            // d -> (0, m_dRad0, 0)  & (x + 0, y + m_dRad1, zj1) 
+            dp2 = (x1p + m_dRad1 - m_dRad0) * (x1p + m_dRad1 - m_dRad0) + (y1p - 0) * (y1p - 0);
+            d2 = dp2 + (zp - 0) * (zp - 0);
+            m_afMot[3] = 180.0f - (float)R2D(Math.Acos((c1 * c1 + c2 * c2 - d2) / (2.0 * c1 * c2)));
+            // 중간링크의 위치
+            dMx =
+
+            m_afMot[6] = (float)R2D(Math.Atan2((y1p - 0), -(x1p + m_dRad1 - m_dRad0)));
+            //m_afMot[6] = (float)R2D(Math.Atan2((y1p - 0), (x1p + m_dRad1 - m_dRad0))) - 180.0f;
+            //d * d = c1 * c1 + c2 * c2 - 2.0 * c1 * c2 * cos(dAngle0);
+
+            // ojw5014
+            d2 = (x2p + m_dRad1 - m_dRad0) * (x2p + m_dRad1 - m_dRad0) + (y2p - 0) * (y2p - 0) + (zp - 0) * (zp - 0);
+            m_afMot[4] = 180.0f - (float)R2D(Math.Acos((c1 * c1 + c2 * c2 - d2) / (2.0 * c1 * c2)));
+
+            // ojw5014
+            d2 = (x3p + m_dRad1 - m_dRad0) * (x3p + m_dRad1 - m_dRad0) + (y3p - 0) * (y3p - 0) + (zp - 0) * (zp - 0);
+            m_afMot[5] = 180.0f - (float)R2D(Math.Acos((c1 * c1 + c2 * c2 - d2) / (2.0 * c1 * c2)));
+#endif
+#else
+                //double[] adRx = new double[3];
+                //double[] adRy = new double[3];
+                //double[] adRz = new double[3];
+                //double[] l3 = new double[3];
+                //double[] l3p = new double[3];
+                //adRx[0] = dX + m_dRad1 - m_dRad0;
+                //adRy[0] = dY;
+                //adRz[0] = dZ;
+
+                //l3[0] = adRx[0] * adRx[0] + adRy[0] * adRy[0] + adRz[0] * adRz[0];
+                //l3p[0] = adRx[0] * adRx[0] + adRz[0] * adRz[0];
+
+                //adRx[1] = dX * Math.Cos(D2R(-120.0)) - dY * Math.Sin(D2R(-120.0));
+                //adRy[1] = dX * Math.Sin(D2R(-120.0)) + dY * Math.Cos(D2R(-120.0));
+                //adRz[1] = dZ;
+
+                //adRx[1] = adRx[1] + m_dRad1 - m_dRad0;
+
+                //l3[1] = adRx[1] * adRx[1] + adRy[1] * adRy[1] + adRz[1] * adRz[1];
+                //l3p[1] = adRx[1] * adRx[1] + adRz[1] * adRz[1];
+
+                //adRx[2] = dX * Math.Cos(D2R(120.0)) - dY * Math.Sin(D2R(120.0));
+                //adRy[2] = dX * Math.Sin(D2R(120.0)) + dY * Math.Cos(D2R(120.0));
+                //adRz[2] = dZ;
+
+                //adRx[2] = adRx[2] + m_dRad1 - m_dRad0;
+
+                //l3[2] = adRx[2] * adRx[2] + adRy[2] * adRy[2] + adRz[2] * adRz[2];
+                //l3p[2] = adRx[2] * adRx[2] + adRz[2] * adRz[2];
+
+                //m_afMot[3] = 180.0f - (float)R2D(Math.Acos((m_dL0 * m_dL0 + m_dL1 * m_dL1 - l3p[0]) / (2.0 * m_dL0 * m_dL1)));
+                //m_afMot[4] = 180.0f - (float)R2D(Math.Acos((m_dL0 * m_dL0 + m_dL1 * m_dL1 - l3p[1]) / (2.0 * m_dL0 * m_dL1)));
+                //m_afMot[5] = 180.0f - (float)R2D(Math.Acos((m_dL0 * m_dL0 + m_dL1 * m_dL1 - l3p[2]) / (2.0 * m_dL0 * m_dL1)));
+
+                //if (float.IsNaN(m_afMot[3])) return false;
+                //if (float.IsNaN(m_afMot[4])) return false;
+                //if (float.IsNaN(m_afMot[5])) return false;
+
+                //m_afMot[6] = -(float)R2D(Math.Acos(l3p[0] / l3[0]));
+                //m_afMot[7] = -(float)R2D(Math.Acos(l3p[1] / l3[1]));
+                //m_afMot[8] = -(float)R2D(Math.Acos(l3p[2] / l3[2]));
+
+                return true;
+#endif
+
+#else
+            double a, b, c;
+            double beta1, gamma1, beta2, gamma2, beta3, gamma3;
+            double m1, m2, m3;
+
+            double R = COjwConvert.StrToDouble(txtRad0.Text);
+            double sr = COjwConvert.StrToDouble(txtRad1.Text);
+            double h = 0;
+            double L1 = COjwConvert.StrToDouble(txtL0.Text);
+            double L2 = COjwConvert.StrToDouble(txtL1.Text);
+
+            a = dX;
+            b = dY;
+            c = dZ;
+
+
+            const double dOffset = 30;
+            int nNum = 0;//0, 1, 2
+            double dAngle = D2R((120 * (nNum++ % 3) + dOffset) % 360);
+            double mmm1 = (a * Math.Cos(dAngle) - Math.Sin(dAngle) * b - sr + R);
+
+            //double mmm1 = (a * Math.Sqrt(3)) / 2 - 0.5 * b - sr + R;
+
+            beta1 = Math.Acos((Math.Pow(L1, 2) - Math.Pow(L2, 2) + Math.Pow(mmm1, 2) + Math.Pow(c - h, 2)) / (2 * L1 * Math.Sqrt(Math.Pow(mmm1, 2) + Math.Pow((c - h), 2))));
+
+            gamma1 = Math.Acos(mmm1 / Math.Sqrt(Math.Pow(mmm1, 2) + Math.Pow((c - h), 2)));
+
+            m1 = beta1 + gamma1 - 2 * Math.PI;
+
+            //double mmm2 = (a * Math.Sqrt(3)) / 2 + 0.5 * b + sr + R;
+            dAngle = D2R((120 * (nNum++ % 3) + dOffset) % 360);
+            double mmm2 = (a * Math.Cos(dAngle) - Math.Sin(dAngle) * b - sr + R);
+
+            beta2 = Math.Acos((Math.Pow(L1, 2) - Math.Pow(L2, 2) + Math.Pow(mmm2, 2) + Math.Pow(c - h, 2)) / (2 * L1 * Math.Sqrt(Math.Pow(mmm2, 2) + Math.Pow((c - h), 2))));
+
+            gamma2 = Math.Acos(mmm2 / Math.Sqrt(Math.Pow(mmm2, 2) + Math.Pow((c - h), 2)));
+
+            m2 = beta2 + gamma2 - 2 * Math.PI;
+
+            //double mmm3 = b - sr + R;
+
+            dAngle = D2R((120 * (nNum++ % 3) + dOffset) % 360);
+            double mmm3 = (a * Math.Cos(dAngle) - Math.Sin(dAngle) * b - sr + R);
+
+            beta3 = Math.Acos((Math.Pow(L1, 2) - Math.Pow(L2, 2) + Math.Pow(mmm3, 2) + Math.Pow(c - h, 2)) / (2 * L1 * Math.Sqrt(Math.Pow(mmm3, 2) + Math.Pow((c - h), 2))));
+
+            gamma3 = Math.Acos(mmm3 / Math.Sqrt(Math.Pow(mmm3, 2) + Math.Pow((c - h), 2)));
+
+            m3 = beta3 + gamma3 - 2 * Math.PI;
+
+
+
+            dAngle0 = (180 - R2D(m1)) % 360;
+            dAngle1 = (180 - R2D(m2)) % 360;
+            dAngle2 = (180 - R2D(m3)) % 360;
+
+
+
+            return true;
+
+#endif
+
+            }
+            public static bool Delta_Parallel_ForwardKinematics(double dM0, double dM1, double dM2, out double dX, out double dY, out double dZ)
+            {
+                // Made by Donghyon-Lee
+                double re2;
+                double w1, w2, w3, d, al1, al2, be1, be2;
+                double a, b, c;
+                double min, max;
+
+
+                //SVertex3D_t pc1, pc2, pc3;
+                double pc1_x, pc1_y, pc1_z;
+                double pc2_x, pc2_y, pc2_z;
+                double pc3_x, pc3_y, pc3_z;
+
+                pc1_x = (m_dRad0 - m_dRad1 + m_dL0 * Math.Cos(dM0)) * Math.Cos(D2R(0.0));
+                pc2_x = (m_dRad0 - m_dRad1 + m_dL0 * Math.Cos(dM1)) * Math.Cos(D2R(-120.0));
+                pc3_x = (m_dRad0 - m_dRad1 + m_dL0 * Math.Cos(dM2)) * Math.Cos(D2R(120.0));
+
+                pc1_y = -(m_dRad0 - m_dRad1 + m_dL0 * Math.Cos(dM0)) * Math.Sin(D2R(0.0));
+                pc2_y = -(m_dRad0 - m_dRad1 + m_dL0 * Math.Cos(dM1)) * Math.Sin(D2R(-120.0));
+                pc3_y = -(m_dRad0 - m_dRad1 + m_dL0 * Math.Cos(dM2)) * Math.Sin(D2R(120.0));
+
+                //pc1.z=-m_dL0*Math.Sin(dM0);
+                //pc2.z=-m_dL0*Math.Sin(dM1);
+                //pc3.z=-m_dL0*Math.Sin(dM2);
+
+                pc1_z = m_dL0 * Math.Sin(dM0);
+                pc2_z = m_dL0 * Math.Sin(dM1);
+                pc3_z = m_dL0 * Math.Sin(dM2);
+
+                re2 = m_dL1 * m_dL1;
+
+                /*********************Gauss elimination method************************************/
+
+                w1 = pc1_x * pc1_x + pc1_y * pc1_y + pc1_z * pc1_z;
+                w2 = pc2_x * pc2_x + pc2_y * pc2_y + pc2_z * pc2_z;
+                w3 = pc3_x * pc3_x + pc3_y * pc3_y + pc3_z * pc3_z;
+
+                d = (pc2_x - pc1_x) * pc3_y - (pc3_x - pc1_x) * pc2_y;
+
+                al1 = ((pc3_z - pc1_z) * pc2_y - (pc2_z - pc1_z) * pc3_y) / d;
+                be1 = (((w2 - w1) * pc3_y - (w3 - w1) * pc2_y) / 2.0) / d;
+                //be1=(((w1-w2)*pc3_y-(w1-w3)*pc2_y)/2.0)/d;
+
+                al2 = -((pc2_x - pc1_x) * (pc3_z - pc1_z) - (pc3_x - pc1_x) * (pc2_z - pc1_z)) / d;
+                be2 = -(((w2 - w1) * (pc3_x - pc1_x) - (w3 - w1) * (pc2_x - pc1_x)) / 2.0) / d;
+                //be2=-(((w1-w2)*(pc3_x-pc1_x)-(w1-w3)*(pc2_x-pc1_x))/2.0)/d;
+                /**********************************************************************************/
+
+                /******************************Z value Quadratic formula***************************/
+                a = (al1 * al1 + al2 * al2 + 1);
+                b = 2.0 * ((be1 - pc1_x) * al1 + al2 * be2 - pc1_z);
+                c = be2 * be2 + (pc1_x - be1) * (pc1_x - be1) + pc1_z * pc1_z - re2;
+
+                max = (-b + Math.Sqrt(b * b - 4 * a * c)) / (2.0 * a);
+                min = (-b - Math.Sqrt(b * b - 4 * a * c)) / (2.0 * a);
+                /**********************************************************************************/
+
+                if (min > 0.0 && max > 0.0)
+                {
+                    if (min < max)
+                        dZ = max;
+                    else
+                        dZ = min;
+                }
+                else
+                {
+                    if (min > 0.0)
+                        dZ = min;
+                    else if (max > 0.0)
+                        dZ = max;
+                    else
+                    {
+                        dX = dY = dZ = 0;
+                        return false;
+                        //printf("Error\n");
+                    }
+                }
+
+                dX = al1 * (dZ) + be1;
+                dY = al2 * (dZ) + be2;
+
+                /**********************************via angle******************************/
+
+                //XyPoint rxy[3];
+                //double l3[3];
+
+                //rxy[0].x=pobf->x+m_dRad1-m_dRad0;
+                //rxy[0].y=pobf->y;
+                //rxy[0].z=pobf->z;
+
+                //l3[0]=rxy[0].x*rxy[0].x+rxy[0].y*rxy[0].y+rxy[0].z*rxy[0].z;
+
+                //rxy[1].x=pobf->x*Math.Cos(DegreeToRadian(-120.0))-pobf->y*Math.Sin(DegreeToRadian(-120.0)); 
+                //rxy[1].y=pobf->x*Math.Sin(DegreeToRadian(-120.0))+pobf->y*Math.Cos(DegreeToRadian(-120.0));
+                //rxy[1].z=pobf->z;
+
+                //rxy[1].x=rxy[1].x+m_dRad1-m_dRad0;
+
+                //l3[1]=rxy[1].x*rxy[1].x+rxy[1].y*rxy[1].y+rxy[1].z*rxy[1].z;
+
+                //rxy[2].x=pobf->x*Math.Cos(DegreeToRadian(120.0))-pobf->y*Math.Sin(DegreeToRadian(120.0));
+                //rxy[2].y=pobf->x*Math.Sin(DegreeToRadian(120.0))+pobf->y*Math.Cos(DegreeToRadian(120.0));
+                //rxy[2].z=pobf->z;
+
+                //rxy[2].x=rxy[2].x+m_dRad1-m_dRad0;
+
+                //l3[2]=rxy[2].x*rxy[2].x+rxy[2].y*rxy[2].y+rxy[2].z*rxy[2].z;
+
+                //vjo->j1=Math.Acos((m_fL0*m_fL0+m_fL1*m_fL1-l3[0])/(2.0*m_fL0*m_fL1));
+                //vjo->j2=Math.Acos((m_fL0*m_fL0+m_fL1*m_fL1-l3[1])/(2.0*m_fL0*m_fL1));
+                //vjo->j3=Math.Acos((m_fL0*m_fL0+m_fL1*m_fL1-l3[2])/(2.0*m_fL0*m_fL1));
+
+                /*************************************************************************/
+                //}
+
+                return true;
+            }
+            #endregion Delta Parallel 3 dof
         }
     }
 }

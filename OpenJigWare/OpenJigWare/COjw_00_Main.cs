@@ -4,6 +4,7 @@
  * supported by Daesung-Choi, Ceolhea-yoon, Dongjoon-Chang (Advise)
  * supported by Mohssin (icons)
  * supported by Aram-Lee (all of the keypad images)
+ * supported by Donghyeon-Lee (3 dof parallel Delta robot Kinematics function made)
  */
 
 #region 나중에 참고
@@ -61,10 +62,39 @@ namespace OpenJigWare
     #region Cautions **********************************************************
 
     #endregion Cautions **********************************************************
+    // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.01.54";
+        public const string strVersion = "01.01.59";
         public const string strHistory = (String)(
+            
+                "[V01.01.59]" + "\r\n" +
+                "MakeDHSkeleton() 함수에서 라인피드 문자 추가. 이게 없어 버그 있었음" + "\r\n" +
+                "COjw_03_Message.cs 에 SaveImageFile() 기능 추가" + "\r\n" +
+                "ShowTools_Modeling 기능의 Scale 기능에서 내부 사이즈를 변동에서 고정값으로 변경(화면잘림현상 해결)" + "\r\n" +
+                "========================================\r\n" +
+                "[V01.01.58]" + "\r\n" +
+                "InitTools_Kinematics() 함수가 여러번 호출되는 부분 수정(DH 파라미터 정의시 2번씩 정의되는 버그 수정) - Key: OJW5014_20150922" + "\r\n" +
+                "COjw_03_Message.cs 에 SaveImageFile() 기능 추가" + "\r\n" +
+                "ShowTools_Modeling 기능의 Scale 기능에서 내부 사이즈를 변동에서 고정값으로 변경(화면잘림현상 해결)" + "\r\n" +
+                "========================================\r\n" +
+                "[V01.01.57]" + "\r\n" +
+                "InitTools_Kinematics() 함수가 여러번 호출되는 부분 수정(DH 파라미터 정의시 2번씩 정의되는 버그 수정) - Key: OJW5014_20150922" + "\r\n" +
+                "COjw_03_Message.cs 에 SaveImageFile() 기능 추가" + "\r\n" +
+                "ShowTools_Modeling 기능의 Scale 기능에서 내부 사이즈를 변동에서 고정값으로 변경(화면잘림현상 해결)" + "\r\n" +
+                "========================================\r\n" +
+                "[V01.01.56]" + "\r\n" +
+                "ShowTools_Modeling() 종료 후 다시 call 할 경우 에러나는 문제 해결" + "\r\n" + 
+                "COjw_10_Kinematics.cs 에 CalcCmd() 에 Error Exception 추가(IsNan, IsInfinity 대응)" + "\r\n" +
+                "화면 이동(View Change)을 직관적으로 변경 with Mouse" + "\r\n" +
+                "CalcDhParamAll_ToString 에 Theta 가 아닌 D 값이 모터 변경값일 경우의 수식 적용 되도록 수정" + "\r\n" +
+                "(ShowTools_Modeling())3D Modeling Tool 스케일 조정 후 출력 시 깨지는 현상 수정" + "\r\n" +
+                "m_txtKinematicsSkeleton 및 Skeleton 기능 추가 및 관련 object들 추가" + "\r\n" +
+                "========================================\r\n" +
+                "[V01.01.55]" + "\r\n" +
+                " - 3D 에서의 CalcLimit 함수를 private 에서 public 으로 전환" + "\r\n" +
+                " - Joystick : IsDown_Event, IsUp_Event 기능 추가" + "\r\n" +
+                "========================================\r\n" +
                 "[V01.01.54]" + "\r\n" +
                 " - 가상키보드 기능 추가" + "\r\n" +
                 "========================================\r\n" +
@@ -285,6 +315,18 @@ namespace OpenJigWare
         {
             Docking.CKeyPad_t.ShowKeyboard((TextBox)sender);
         }
+        #region MotionTool
+        #endregion MotionTool
+        public class CTools_Motion
+        {
+            private Docking.frmMotionEditor m_frmMotion = new Docking.frmMotionEditor();
+
+            public void ShowTools() { ShowTools(1.0f); }
+            public void ShowTools(float fScale)
+            {
+                m_frmMotion.Show();
+            }
+        }
         #region ModelingTool
         public class CTools
         {
@@ -317,6 +359,7 @@ namespace OpenJigWare
             private Docking.frmModel m_frmTools;
             public void ShowTools_Modeling(float fScale)
             {
+                // 지정 폴더말고도 일반 폴더도 인식하게...(복사)
                 m_C3d_Designer = new C3d();
                 #region Main Form
                 Form frmTool_Designer = new Form();
@@ -325,6 +368,7 @@ namespace OpenJigWare
                 frmTool_Designer.FormClosing += new FormClosingEventHandler(frmTool_Designer_FormClosing);
                 frmTool_Designer.SizeChanged += new EventHandler(frmTool_Designer_SizeChanged);
                 frmTool_Designer.Load += new EventHandler(frmTool_Designer_Load);
+                frmTool_Designer.FormClosed += new FormClosedEventHandler(frmTool_Designer_FormClosed);
                 #endregion Main Form
 
                 #region Panel(3D)
@@ -343,6 +387,7 @@ namespace OpenJigWare
                 m_tabAngle = new TabControl();
                 m_tabAngle.Left = m_pnDrawModel.Left;
                 m_tabAngle.Top = m_pnDrawModel.Bottom + 10;
+                m_tabAngle.Size = new Size(m_pnDrawModel.Width, 173);
                 frmTool_Designer.Controls.Add(m_tabAngle);
                 ////
                 #endregion TestBox - Angle[0 ~ 253]
@@ -351,7 +396,8 @@ namespace OpenJigWare
                 #region TabControl
                 int nLeft = 10;
                 m_tbCtrl = new TabControl();
-                m_tbCtrl.Size = new Size(frmTool_Designer.Width - 30 - nLeft - m_pnDrawModel.Right, m_tabAngle.Bottom - m_pnDrawModel.Top);
+                //m_tbCtrl.Size = new Size(frmTool_Designer.Width - 30 - nLeft - m_pnDrawModel.Right, m_tabAngle.Bottom - m_pnDrawModel.Top);
+                m_tbCtrl.Size = new Size(1000, m_pnDrawModel.Height + m_tabAngle.Height + 10);//frmTool_Designer.Width - 30 - nLeft - m_pnDrawModel.Right, m_pnDrawModel.Height + m_tabAngle.Height + 10);
                 m_tbCtrl.Location = new Point(m_pnDrawModel.Right + nLeft, m_pnDrawModel.Top);
                 frmTool_Designer.Controls.Add(m_tbCtrl);
 
@@ -1097,8 +1143,8 @@ namespace OpenJigWare
                 m_tbCtrl.TabPages.Add(tpPage1);
 
                 #region **TabControl - Page1 - Property
-                m_pnKinematics.Size = new Size(885, 778);
-                m_pnKinematics.Location = new Point(6, 9);
+                //m_pnKinematics.Size = new Size(900, 778);
+                //m_pnKinematics.Location = new Point(6, 9);
                 tpPage1.Controls.Add(m_pnKinematics);
                 #endregion **TabControl - Page1 - Property
 
@@ -1110,7 +1156,8 @@ namespace OpenJigWare
                 m_tbCtrl.TabPages.Add(tpPage2);
 
                 #region **TabControl - Page2 - Motor
-                m_pnMotors.Size = new Size(885, 778);
+                //m_pnMotors.Size = new Size(885, 778);
+                m_pnMotors.Size = new Size(940, 778);
                 m_pnMotors.Location = new Point(6, 9);
                 tpPage2.Controls.Add(m_pnMotors);
                 #endregion **TabControl - Page2 - Motor
@@ -1122,6 +1169,22 @@ namespace OpenJigWare
                 //Init3D(m_pnDrawModel);
                 MakeBox(m_tabAngle, 256);
                 ///////////////////////////////////
+
+
+
+
+                Init3D(m_pnDrawModel);
+
+                //m_C3d_Designer.InitTools_Motor(m_pnMotors);
+                //m_C3d_Designer.InitTools_Status(pnStatus);
+                //m_C3d_Designer.InitTools_Kinematics(m_pnKinematics);
+                //m_C3d_Designer.InitTools_Background(pnBackground);
+
+                m_frmTools.Init(m_C3d_Designer);
+
+
+
+
                 bool bFull = false;
                 if (fScale <= 0.0f)
                 {
@@ -1184,14 +1247,7 @@ namespace OpenJigWare
 
 
 
-                Init3D(m_pnDrawModel);
-
-                m_C3d_Designer.InitTools_Motor(m_pnMotors);
-                //m_C3d_Designer.InitTools_Status(pnStatus);
-                //m_C3d_Designer.InitTools_Kinematics(m_pnKinematics);
-                //m_C3d_Designer.InitTools_Background(pnBackground);
                 
-                m_frmTools.Init(m_C3d_Designer);
                 m_frmTools.Show();
 
                 m_tmrDrawModel.Enabled = true;
@@ -2003,6 +2059,7 @@ namespace OpenJigWare
                 m_nSize_H = (int)Math.Round(_SIZE_H * fScale);// frmTool_Designer.Height;
                 //throw new NotImplementedException();
 #else
+                return; // OJW5014_20150831
                 Form frmMain = (Form)sender;
                 //int nW = (frmMain.Width - m_nSize_W);
                 //int nH = (frmMain.Height - m_nSize_H);
@@ -2068,6 +2125,9 @@ namespace OpenJigWare
                 
                 m_C3d_Designer.InitTools_Motor(m_pnMotors);
                 //m_C3d_Designer.InitTools_Status(pnStatus);
+                //m_pnKinematics.Size = new Size(900, 778);
+                //m_pnKinematics.Location = new Point(6, 9);
+                m_C3d_Designer.SetTextboxes_ForAngle(m_atxtAngle);
                 m_C3d_Designer.InitTools_Kinematics(m_pnKinematics);
                 //m_C3d_Designer.InitTools_Background(pnBackground);
                 // 
@@ -2113,6 +2173,10 @@ namespace OpenJigWare
                 m_bProgEnd = false;
                 //m_C3d_Designer.Init(
                 //throw new NotImplementedException();
+            }
+            void frmTool_Designer_FormClosed(object sender, FormClosedEventArgs e)
+            {
+                //Application.Exit();
             }
             #region ProgEnd
             private bool m_bProgEnd = false;
@@ -2263,7 +2327,7 @@ namespace OpenJigWare
             {
                 if (nCnt > 0)
                 {
-                    tabAngle.Size = new Size(m_pnDrawModel.Width, 173);// new Size(640, 173);
+                    //tabAngle.Size = new Size(m_pnDrawModel.Width, 173);// new Size(640, 173);
                     int nColCount = 6;
                     int nRowCount = 5;
                     int nMax = nColCount * nRowCount;
@@ -2287,6 +2351,7 @@ namespace OpenJigWare
 
                     Color cBackColor = Color.White;
                     #region For RichTextBox
+                    m_rtxtDraw = new RichTextBox();
                     tp = new TabPage();
                     tp.Name = "tabPgText";
                     tp.BackColor = cBackColor;

@@ -85,7 +85,6 @@ namespace OpenJigWare
 
             // if you make your class, just write in here
             private const int _MOTOR_MAX = 256;
-
             //private bool m_bEventInit = false;
 
             //private float m_Param_fMechMove = 1024.0f;
@@ -107,10 +106,11 @@ namespace OpenJigWare
                 if (IsConnect()) DisConnect();
                 //m_SerialPort.Dispose();
             }
-
+            EType_t [] m_aEType = new EType_t[_MOTOR_MAX];
             private COjwMotor m_CMotor = new COjwMotor();
             public void SetModel(EType_t etype)//bool bEncodertype)
             {
+                
                 float fMechMove = 1024.0f;
                 float fDegree = 333.333f;
                 float fCenterPos = 512.0f;
@@ -123,8 +123,19 @@ namespace OpenJigWare
 
                 for (int nAxis = 0; nAxis < _MOTOR_MAX; nAxis++)
                 {
+                    m_aEType[nAxis] = etype;
                     m_CMotor.SetParam_Axis(nAxis, nAxis, 0, 99999.0f, -99999.0f, fCenterPos, fMechMove, fDegree);
+                    m_CMotor.SetSpeedType(nAxis, false);
                 }
+                m_CMotor.InitCmd();
+            }
+            public EType_t [] GetModel()
+            {
+                return m_aEType;
+            }
+            public EType_t GetModel(int nAxis)
+            {
+                return m_aEType[nAxis];
             }
             public void SetModel(int nData)//bool bEncodertype)
             {
@@ -140,8 +151,11 @@ namespace OpenJigWare
 
                 for (int nAxis = 0; nAxis < _MOTOR_MAX; nAxis++)
                 {
+                    m_aEType[nAxis] = (EType_t)nData;
                     m_CMotor.SetParam_Axis(nAxis, nAxis, 0, 99999.0f, -99999.0f, fCenterPos, fMechMove, fDegree);
+                    m_CMotor.SetSpeedType(nAxis, false);
                 }
+                m_CMotor.InitCmd();
             }
             public void SetModel(int nAxis, EType_t etype)//bool bEncodertype)
             {
@@ -154,7 +168,10 @@ namespace OpenJigWare
                     fDegree = 360.0f;
                     fCenterPos = 2964.0f;
                 }
+                m_aEType[nAxis] = etype;
                 m_CMotor.SetParam_Axis(nAxis, nAxis, 0, 99999.0f, -99999.0f, fCenterPos, fMechMove, fDegree);
+                m_CMotor.SetSpeedType(nAxis, false);
+                m_CMotor.InitCmd();
             }
             public void SetModel(int nAxis, int nData)//bool bEncodertype)
             {
@@ -168,7 +185,43 @@ namespace OpenJigWare
                     fCenterPos = 2964.0f;
                 }
 
+                m_aEType[nAxis] = (EType_t)nData;
                 m_CMotor.SetParam_Axis(nAxis, nAxis, 0, 99999.0f, -99999.0f, fCenterPos, fMechMove, fDegree);
+                m_CMotor.SetSpeedType(nAxis, false);
+                m_CMotor.InitCmd();
+            }
+            public void SetModel(int nAxis, EType_t etype, bool bSpeedType)//bool bEncodertype)
+            {
+                float fMechMove = 1024.0f;
+                float fDegree = 333.333f;
+                float fCenterPos = 512.0f;
+                if (etype == EType_t._0102)
+                {
+                    fMechMove = 6391.605f;
+                    fDegree = 360.0f;
+                    fCenterPos = 2964.0f;
+                }
+                m_aEType[nAxis] = etype;
+                m_CMotor.SetParam_Axis(nAxis, nAxis, 0, 99999.0f, -99999.0f, fCenterPos, fMechMove, fDegree);
+                m_CMotor.SetSpeedType(nAxis, bSpeedType);
+                m_CMotor.InitCmd();
+            }
+            public void SetModel(int nAxis, int nData, bool bSpeedType)//bool bEncodertype)
+            {
+                float fMechMove = 1024.0f;
+                float fDegree = 333.333f;
+                float fCenterPos = 512.0f;
+                if (nData == (int)EType_t._0102)
+                {
+                    fMechMove = 6391.605f;
+                    fDegree = 360.0f;
+                    fCenterPos = 2964.0f;
+                }
+
+                m_aEType[nAxis] = (EType_t)nData;
+                m_CMotor.SetParam_Axis(nAxis, nAxis, 0, 99999.0f, -99999.0f, fCenterPos, fMechMove, fDegree);
+                m_CMotor.SetSpeedType(nAxis, bSpeedType);
+                m_CMotor.InitCmd();
             }
             public void SetParam_Dir(int nAxis, bool bBackward) { m_CMotor.SetParam_Item_Dir(nAxis, ((bBackward) ? 1 : 0)); }
             // true : backward
@@ -695,7 +748,7 @@ namespace OpenJigWare
             #endregion parameter setup - 메소드 포함
         }
 
-        private class COjwMotor
+        public class COjwMotor
         {
             #region 생성자/소멸자
             public COjwMotor() // 생성자 초기화 함수
@@ -767,6 +820,10 @@ namespace OpenJigWare
             }
             public bool IsAutoReturn() { return m_bAutoReturn; }
             #endregion
+
+            private bool[] m_abSpeedType = new bool[_MOTOR_MAX];
+            public bool GetSpeedType(int nAxis) { return m_abSpeedType[nAxis]; }
+            public bool SetSpeedType(int nAxis, bool bSpeedType) { return m_abSpeedType[nAxis] = bSpeedType; }
 
             #region 축과 ID 설정
             private int[] m_pnAxis_By_ID = new int[256]; // ID = 0 ~ 254 까지 가능, 단, 254 는 BroadCasting - 에러방지를 위해서는 가용 수치까지 전부 잡는다.
@@ -1204,7 +1261,7 @@ namespace OpenJigWare
                 public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
             }
             #endregion [SMot_t]관절 파라미터 구조체 선언
-            public void InitCmd() { for (int i = 0; i < m_nMotor_Max; i++) { m_pSMot[i].bEn = false; SetCmd_Flag(i, false, false, false, false, false, true); } }
+            public void InitCmd() { for (int i = 0; i < m_nMotor_Max; i++) { m_pSMot[i].bEn = false; SetCmd_Flag(i, false, GetSpeedType(i), false, false, false, true); } }
             public void SetCmd(int nAxis, int nPos) { m_pSMot[nAxis].bEn = true; m_pSMot[nAxis].nPos = CalcLimit_Evd(nAxis, nPos); SetCmd_Flag_NoAction(nAxis, false); }
             public void SetCmd_Angle(int nAxis, float fAngle) { m_pSMot[nAxis].bEn = true; m_pSMot[nAxis].nPos = CalcLimit_Evd(nAxis, CalcAngle2Evd(nAxis, fAngle)); SetCmd_Flag_NoAction(nAxis, false); }
             public int GetCmd(int nAxis) { return m_pSMot[nAxis].nPos; }
@@ -3476,14 +3533,17 @@ namespace OpenJigWare
 #if true
 #if true
                 for (int i = 0; i < m_nMotor_Max; i++)
+                {
+                    if (GetSpeedType(i) == true) SetCmd(i, 0);
                     SetCmd_Flag_Stop(i, true);
+                }
                 SetMot(1000);
 #else
             int nPos = 0;
             int nTime = 0;
 
             int nDefaultSize = _CHECKSUM2 + 1;
-            byte[] pbyteBuffer = new byte[256];
+            byte[] pbyteBuffer = new byte[4096];
 
             int nCalcTime = CalcTime_ms(nTime);
 
@@ -3505,14 +3565,17 @@ namespace OpenJigWare
 
             for (int nAxis = 0; nAxis < m_nMotor_Max; nAxis++)
             {
-                nID = GetID_By_Axis(nAxis);
-                // Data
-                pbyteBuffer[nDefaultSize + i++] = (byte)(nPos & 0xff);
-                pbyteBuffer[nDefaultSize + i++] = (byte)((nPos >> 8) & 0xff);
-                pbyteBuffer[nDefaultSize + i++] = (byte)(nCalcTime & 0xff);
-                pbyteBuffer[nDefaultSize + i++] = (byte)((nCalcTime >> 8) & 0xff);
-                // - 모터당 아이디(후면에 붙는다)
-                pbyteBuffer[nDefaultSize + i++] = (byte)(nID & 0xff);
+                if (m_pSMot[nAxis].bEn == true)
+                {
+                    nID = GetID_By_Axis(nAxis);
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nPos & 0xff);
+                    pbyteBuffer[nDefaultSize + i++] = (byte)((nPos >> 8) & 0xff);
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nCalcTime & 0xff);
+                    pbyteBuffer[nDefaultSize + i++] = (byte)((nCalcTime >> 8) & 0xff);
+                    // - 모터당 아이디(후면에 붙는다)
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nID & 0xff);
+                }
             }
             /////////////////////////////////////////////////////
 
@@ -3757,6 +3820,12 @@ namespace OpenJigWare
                         //nPos |= _JOG_MODE_SPEED << 10;  // 속도제어 
                         #region Position
                         nPos = GetCmd(nAxis);
+                        if (nPos < 0)
+                        {
+                            nPos *= -1;
+                            nPos |= 0x4000;
+                        }
+
                         pbyteBuffer[i++] = (byte)(nPos & 0xff);
                         pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
                         #endregion
@@ -3802,6 +3871,11 @@ namespace OpenJigWare
                     //nPos |= _JOG_MODE_SPEED << 10;  // 속도제어 
                     #region Position
                     nPos = GetCmd(nAxis);
+                    if (nPos < 0)
+                    {
+                        nPos *= -1;
+                        nPos |= 0x4000;
+                    }
                     pbyteBuffer[i++] = (byte)(nPos & 0xff);
                     pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
                     #endregion

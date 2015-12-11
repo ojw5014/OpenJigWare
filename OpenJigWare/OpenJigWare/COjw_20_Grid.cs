@@ -1378,24 +1378,38 @@ namespace OpenJigWare
         {
             public bool bEn;
             public int nGroupLine;
-            public int nData0;
-            public int nData1;
-            public int nData2;
-            public int nData3;
-            public int nData4;
-            public int nData5;
+            public int nCommand;
+            public float fData0;
+            public float fData1;
+            public float fData2;
+            public float fData3;
+            public float fData4;
+            public float fData5;
+            public float fX;
+            public float fY;
+            public float fZ;
+            public float fPan;
+            public float fTilt;
+            public float fSwing;
             public string strCaption;
-            public SGridLineInfo_t(bool enable, int group, string caption, int d0, int d1, int d2, int d3, int d4, int d5)
+            public SGridLineInfo_t(bool enable, int group, int nCommand, float d0, float d1, float d2, float d3, float d4, float d5, string caption, float x, float y, float z, float pan, float tilt, float swing)
             {
                 this.bEn = enable;
                 this.nGroupLine = group;
                 this.strCaption = caption;
-                this.nData0 = d0;
-                this.nData1 = d1;
-                this.nData2 = d2;
-                this.nData3 = d3;
-                this.nData4 = d4;
-                this.nData5 = d5;
+                this.nCommand = nCommand;
+                this.fData0 = d0;
+                this.fData1 = d1;
+                this.fData2 = d2;
+                this.fData3 = d3;
+                this.fData4 = d4;
+                this.fData5 = d5;
+                this.fX = x;
+                this.fY = y;
+                this.fZ = z;
+                this.fPan = pan;
+                this.fTilt = tilt;
+                this.fSwing = swing;
             }
         }
         public class CGridView
@@ -1431,6 +1445,7 @@ namespace OpenJigWare
                 dgAngle.RowPostPaint += new System.Windows.Forms.DataGridViewRowPostPaintEventHandler(dgAngle_RowPostPaint);
                 dgAngle.CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellEnter);
                 dgAngle.KeyDown += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown);
+                dgAngle.KeyUp += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyUp);
                 dgAngle.MouseClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseClick);
                 dgAngle.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
                 dgAngle.MouseDown += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
@@ -1441,6 +1456,7 @@ namespace OpenJigWare
                 dgAngle.RowPostPaint -= new System.Windows.Forms.DataGridViewRowPostPaintEventHandler(dgAngle_RowPostPaint);
                 dgAngle.CellEnter -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellEnter);
                 dgAngle.KeyDown -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown);
+                dgAngle.KeyUp -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyUp);
                 dgAngle.MouseClick -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseClick);
                 dgAngle.MouseDoubleClick -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
                 dgAngle.MouseDown -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
@@ -1461,9 +1477,47 @@ namespace OpenJigWare
             //{
             //    Create(dgAngle, m_nLineCnt, m_aSGridTable);
             //}
+
+            private static readonly int m_nSize_Time = 1;
+            private static readonly int m_nSize_Delay = 1;
+            private static readonly int m_nSize_Offset_Command = 1;
+            private static readonly int m_nSize_Offset_Data = 6;
+            private static readonly int m_nSize_Offset_Group = 1;
+            private static readonly int m_nSize_Offset_Caption = 1;
+            private static readonly int m_nSize_Offset_Trans = 3;
+            private static readonly int m_nSize_Offset_Rot = 3;
+            private static readonly int m_nSize_Offset = m_nSize_Time + m_nSize_Delay +
+                m_nSize_Offset_Command +
+                m_nSize_Offset_Data +
+                m_nSize_Offset_Group +
+                m_nSize_Offset_Caption +
+                m_nSize_Offset_Trans +
+                m_nSize_Offset_Rot;
+            private static readonly int m_nPor_Dummy = 0;//1;
+            private static readonly int m_nPos_Time = m_nSize_Offset - m_nPor_Dummy;
+            private static readonly int m_nPos_Delay = m_nSize_Offset - (m_nSize_Time + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Command = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Data0 = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Data1 = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + 1 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Data2 = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + 2 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Data3 = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + 3 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Data4 = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + 4 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Data5 = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + 5 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Group = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Caption = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Trans = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Trans_X = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + 0 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Trans_Y = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + 1 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Trans_Z = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + 2 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Rot = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + m_nSize_Offset_Trans + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Rot_Pan = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + m_nSize_Offset_Trans + 0 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Rot_Tilt = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + m_nSize_Offset_Trans + 1 + m_nPor_Dummy);
+            private static readonly int m_nPos_Offset_Rot_Swing = m_nSize_Offset - (m_nSize_Time + m_nSize_Delay + m_nSize_Offset_Command + m_nSize_Offset_Data + m_nSize_Offset_Group + m_nSize_Offset_Caption + m_nSize_Offset_Trans + 2 + m_nPor_Dummy);
+
             private int m_nLineCnt = 0;
             public void Create(DataGridView dg, int nLineCnt, params SGridTable_t[] aSGridTable)
             {
+                Events_Remove();
                 m_nLineCnt = nLineCnt;
                 int nOffsetSize = 9;
                 int i;
@@ -1491,7 +1545,7 @@ namespace OpenJigWare
                 // 0 - En
                 dgAngle.Columns.Add("En", "En");
                 dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
-                dgAngle.Columns[nPos].Width = 50;
+                dgAngle.Columns[nPos].Width = 20;// 30;
                 nWidth += dgAngle.Columns[nPos++].Width + nWidth_Offset;
 
                 for (i = 0; i < m_nCnt_Col - nOffsetSize; i++)
@@ -1505,28 +1559,65 @@ namespace OpenJigWare
                     nWidth += dgAngle.Columns[nPos++].Width + nWidth_Offset;
                 }
 
+                //// 1 - Time
+                //dgAngle.Columns.Add("Time", "Time");
+                //dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
+                //dgAngle.Columns[nPos].Width = 10;
+                //dgAngle.Columns[nPos++].Visible = true;
+
+                //// 2 - Delay
+                //dgAngle.Columns.Add("Delay", "Delay");
+                //dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
+                //dgAngle.Columns[nPos].Width = 10;
+                //dgAngle.Columns[nPos++].Visible = true;
+
+                // 3 - Command
+                dgAngle.Columns.Add("Command", "Command");
+                dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
+                dgAngle.Columns[nPos].Width = 10;
+                dgAngle.Columns[nPos++].Visible = false;
+
                 i = 0;
                 for (i = 0; i < 6; i++)
                 {
-                    // 1 ~ 6 - Data0 ~ Data5
+                    // 4 ~ 9 - Data0 ~ Data5
                     dgAngle.Columns.Add("Data" + i.ToString(), "Data" + i.ToString());
                     dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
                     dgAngle.Columns[nPos].Width = 10;
                     dgAngle.Columns[nPos++].Visible = false;
                 }
-                // 7 - Group
+                // 10 - Group
                 dgAngle.Columns.Add("Group", "Group");
                 dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
                 dgAngle.Columns[nPos].Width = 10;
                 dgAngle.Columns[nPos++].Visible = false;
-                // 8 - Caption
+                // 11 - Caption
                 dgAngle.Columns.Add("Caption", "Caption");
                 dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
                 dgAngle.Columns[nPos].Width = 10;
                 dgAngle.Columns[nPos++].Visible = false;
 
+                // 12 ~ 14 - Translate(X, Y, Z)
+                string[] pstrTrans = new string[3] { "X", "Y", "Z" };
+                for (i = 0; i < 3; i++)
+                {
+                    dgAngle.Columns.Add(pstrTrans[i], pstrTrans[i]);
+                    dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
+                    dgAngle.Columns[nPos].Width = 10;
+                    dgAngle.Columns[nPos++].Visible = false;
+                }
+                // 15 ~ 17 - Rotate(Pan, tilt, Swing)
+                string[] pstrRot = new string[3] { "Pan", "Tilt", "Swing" };
+                for (i = 0; i < 3; i++)
+                {
+                    dgAngle.Columns.Add(pstrRot[i], pstrRot[i]);
+                    dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
+                    dgAngle.Columns[nPos].Width = 10;
+                    dgAngle.Columns[nPos++].Visible = false;
+                }
                 if (nLineCnt > 0) Insert(0, nLineCnt);
                 //return dgAngle.Width;
+
                 Events_Set();
             }
             private void dgAngle_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
@@ -1730,6 +1821,7 @@ namespace OpenJigWare
             public void ChangePos(DataGridView OjwGrid, int nLine, int nPos) { OjwGrid.FirstDisplayedCell = OjwGrid.Rows[nLine].Cells[nPos]; }
             public void Clear(int nLine)
             {
+#if false
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
                 dgAngle[0, nLine].Value = 0;
                 for (int i = 1; i < dgAngle.ColumnCount - 1; i++)
@@ -1742,6 +1834,25 @@ namespace OpenJigWare
                 dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 1].Value = String.Empty;
 
                 //Grid_DisplayLine(nLine, false);
+#else
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle[0, nLine].Value = 0;
+                int nOffset = 1;
+                for (int i = nOffset; i < dgAngle.ColumnCount - nOffset; i++)
+                {
+                    //if (i == dgAngle.ColumnCount - nOffset - m_nPos_Offset_Caption) { dgAngle.Rows[nLine].Cells[i].Value = "TEST"; continue; }
+                    if (((i - nOffset) >= 0) && ((i - nOffset) < m_aSGridTable.Length))
+                        dgAngle.Rows[nLine].Cells[i].Value = m_aSGridTable[i - nOffset].InitValue;
+                    else
+                    {
+                        if (i == dgAngle.ColumnCount - m_nPos_Offset_Caption) dgAngle.Rows[nLine].Cells[i].Value = "";//"TEST";
+                        else dgAngle.Rows[nLine].Cells[i].Value = 0;
+                    }
+                }
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - nOffset].Value = String.Empty;
+
+                //Grid_DisplayLine(nLine, false);
+#endif
             }
             // 그리드의 라인값을 초기화
             public void Clear()
@@ -1762,7 +1873,7 @@ namespace OpenJigWare
                 {
                     //if (m_bStart == true) return; // 속도의 버벅거림이 없게하기 위해 모션 수행시 이 함수를 실행하지 못하도록 한다.
 
-                    if ((dgGrid.CurrentCell.ColumnIndex == m_nCurrntColumn) && (dgGrid.CurrentCell.RowIndex == m_nCurrntCell)) return;
+                    //if ((dgGrid.CurrentCell.ColumnIndex == m_nCurrntColumn) && (dgGrid.CurrentCell.RowIndex == m_nCurrntCell)) return;
                     m_nCurrntColumn = dgGrid.CurrentCell.ColumnIndex;
                     if (dgGrid.Focused == true)
                     {
@@ -1803,144 +1914,200 @@ namespace OpenJigWare
                     return false;
                 }
             }
-            public void Set(int nNum, object data) { Set(m_nCurrntCell, nNum, data); }
-            public void Set(int nLine, int nNum, object data)
+            public void Set(int nNum, float data) { Set(m_nCurrntCell, nNum, data); }
+            public void Set(int nLine, int nNum, float data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
                 dgAngle.Rows[nLine].Cells[nNum + 1].Value = data;
             }
-            public object Get(int nNum) { return Get(m_nCurrntCell, nNum); }
-            public object Get(int nLine, int nNum)
+            public float Get(int nNum) { return Get(m_nCurrntCell, nNum); }
+            public float Get(int nLine, int nNum)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[nNum + 1].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[nNum + 1].Value);//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;// false;
+                }
+            }
+            public void SetTime(object data) { SetData0(m_nCurrntCell, data); }
+            public void SetTime(int nLine, object data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Time].Value = data;
+            }
+            public object GetTime() { return GetData0(m_nCurrntCell); }
+            public object GetTime(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Time].Value;//.ToString();
+                }
+                catch// (System.Exception e)
+                {
+                    return 0;// false;
+                }
+            }
+            public void SetDelay(int nLine, object data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Delay].Value = data;
+            }
+            public object GetDelay() { return GetData0(m_nCurrntCell); }
+            public object GetDelay(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Delay].Value;//.ToString();
+                }
+                catch// (System.Exception e)
+                {
+                    return 0;// false;
+                }
+            }
+            public void SetCommand(object data) { SetData0(m_nCurrntCell, data); }
+            public void SetCommand(int nLine, object data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Command].Value = data;
+            }
+            public object GetCommand() { return GetData0(m_nCurrntCell); }
+            public object GetCommand(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Command].Value;//.ToString();
+                }
+                catch// (System.Exception e)
+                {
+                    return 0;//false;
                 }
             }
             public void SetData0(object data) { SetData0(m_nCurrntCell, data); }
             public void SetData0(int nLine, object data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 8].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data0].Value = data;
             }
             public object GetData0() { return GetData0(m_nCurrntCell); }
             public object GetData0(int nLine)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 8].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data0].Value;//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;//false;
                 }
             }
             public void SetData1(object data) { SetData1(m_nCurrntCell, data); }
             public void SetData1(int nLine, object data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 7].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data1].Value = data;
             }
             public object GetData1() { return GetData1(m_nCurrntCell); }
             public object GetData1(int nLine)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 7].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data1].Value;//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;//false;
                 }
             }
             public void SetData2(object data) { SetData2(m_nCurrntCell, data); }
             public void SetData2(int nLine, object data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 6].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data2].Value = data;
             }
             public object GetData2() { return GetData2(m_nCurrntCell); }
             public object GetData2(int nLine)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 6].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data2].Value;//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;//false;
                 }
             }
             public void SetData3(object data) { SetData3(m_nCurrntCell, data); }
             public void SetData3(int nLine, object data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 5].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data3].Value = data;
             }
             public object GetData3() { return GetData3(m_nCurrntCell); }
             public object GetData3(int nLine)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 5].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data3].Value;//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;//false;
                 }
             }
             public void SetData4(object data) { SetData4(m_nCurrntCell, data); }
             public void SetData4(int nLine, object data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 4].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data4].Value = data;
             }
             public object GetData4() { return GetData4(m_nCurrntCell); }
             public object GetData4(int nLine)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 4].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data4].Value;//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;//false;
                 }
             }
             public void SetData5(object data) { SetData5(m_nCurrntCell, data); }
             public void SetData5(int nLine, object data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 3].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data5].Value = data;
             }
             public object GetData5() { return GetData5(m_nCurrntCell); }
             public object GetData5(int nLine)
             {
                 try
                 {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return false;
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 3].Value.ToString();
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Data5].Value;//.ToString();
                 }
                 catch// (System.Exception e)
                 {
-                    return false;
+                    return 0;//false;
                 }
             }
             public void SetGroup(int data) { SetGroup(m_nCurrntCell, data); }
             public void SetGroup(int nLine, int data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 2].Value = data;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Group].Value = data;
             }
             public void SetSelectedGroup(int nGroupNum) // 0 - Clear, 1 - Group1, 2 - Group2, 3 - Group3
             {
@@ -1966,8 +2133,159 @@ namespace OpenJigWare
                 // 색칠하기...
                 SetColorGrid(0, dgAngle.RowCount);
             }
+            
+            public int GetGroup() { return GetGroup(m_nCurrntCell); }
+            public int GetGroup(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;
+                    return Convert.ToInt32(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Group].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0;
+                }
+            }
+            public void SetCaption(String data) { SetCaption(m_nCurrntCell, data); }
+            public void SetCaption(int nLine, String strValue)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Caption].Value = strValue;
+            }
+            public String GetCaption() { return GetCaption(m_nCurrntCell); }
+            public String GetCaption(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return "";
+                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Caption].Value.ToString();
+                }
+                catch// (System.Exception e)
+                {
+                    return "";
+                }
+            }
 
-            private void SetColorGrid(int nIndex, int nCount)
+            #region Trans / Rot(Offset)
+            public void SetOffset_Trans_X(float fX) { SetOffset_Trans_X(m_nCurrntCell, fX); }
+            public void SetOffset_Trans_X(int nLine, float data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Trans_X].Value = data;
+            }
+            public float GetOffset_Trans_X() { return GetOffset_Trans_X(m_nCurrntCell); }
+            public float GetOffset_Trans_X(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0.0f;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Trans_X].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0.0f;
+                }
+            }
+            public void SetOffset_Trans_Y(float fX) { SetOffset_Trans_Y(m_nCurrntCell, fX); }
+            public void SetOffset_Trans_Y(int nLine, float data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Trans_Y].Value = data;
+            }
+            public float GetOffset_Trans_Y() { return GetOffset_Trans_Y(m_nCurrntCell); }
+            public float GetOffset_Trans_Y(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0.0f;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Trans_Y].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0.0f;
+                }
+            }
+            public void SetOffset_Trans_Z(float fX) { SetOffset_Trans_Z(m_nCurrntCell, fX); }
+            public void SetOffset_Trans_Z(int nLine, float data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Trans_Z].Value = data;
+            }
+            public float GetOffset_Trans_Z() { return GetOffset_Trans_Z(m_nCurrntCell); }
+            public float GetOffset_Trans_Z(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0.0f;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Trans_Z].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0.0f;
+                }
+            }
+            
+            public void SetOffset_Rot_Pan(float fX) { SetOffset_Rot_Pan(m_nCurrntCell, fX); }
+            public void SetOffset_Rot_Pan(int nLine, float data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Rot].Value = data;
+            }
+            public float GetOffset_Rot_Pan() { return GetOffset_Rot_Pan(m_nCurrntCell); }
+            public float GetOffset_Rot_Pan(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0.0f;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Rot_Pan].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0.0f;
+                }
+            }
+            public void SetOffset_Rot_Tilt(float fX) { SetOffset_Rot_Tilt(m_nCurrntCell, fX); }
+            public void SetOffset_Rot_Tilt(int nLine, float data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Rot_Tilt].Value = data;
+            }
+            public float GetOffset_Rot_Tilt() { return GetOffset_Rot_Tilt(m_nCurrntCell); }
+            public float GetOffset_Rot_Tilt(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0.0f;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Rot_Tilt].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0.0f;
+                }
+            }
+            public void SetOffset_Rot_Swing(float fX) { SetOffset_Rot_Swing(m_nCurrntCell, fX); }
+            public void SetOffset_Rot_Swing(int nLine, float data)
+            {
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Rot_Swing].Value = data;
+            }
+            public float GetOffset_Rot_Swing() { return GetOffset_Rot_Swing(m_nCurrntCell); }
+            public float GetOffset_Rot_Swing(int nLine)
+            {
+                try
+                {
+                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0.0f;
+                    return Convert.ToSingle(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - m_nPos_Offset_Rot_Swing].Value);
+                }
+                catch// (System.Exception e)
+                {
+                    return 0.0f;
+                }
+            }
+            #endregion Trans / Rot(Offset)
+
+            public void SetColorGrid(int nIndex, int nCount)
             {
                 if ((nIndex < 0) || (dgAngle.RowCount < nIndex)) return;
                 if (((nIndex + nCount) < 0) || (dgAngle.RowCount < (nIndex + nCount))) return;
@@ -1986,7 +2304,7 @@ namespace OpenJigWare
                 //                        };
                 //int nColorIndex = 0;
                 //for (int j = 1; j < dgAngle.ColumnCount - (9 - 1); j++)
-                for (int j = 0; j < dgAngle.ColumnCount - (9 - 1); j++)
+                for (int j = 0; j < dgAngle.ColumnCount - (m_nPos_Delay - 1); j++)
                 {
                     //nColorIndex = 0; // White
 
@@ -2071,44 +2389,13 @@ namespace OpenJigWare
                 }
             }
 
-            public int GetGroup() { return GetGroup(m_nCurrntCell); }
-            public int GetGroup(int nLine)
-            {
-                try
-                {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;
-                    return Convert.ToInt32(dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 2].Value);
-                }
-                catch// (System.Exception e)
-                {
-                    return 0;
-                }
-            }
             public void SetData(int nLine, int nNum, object value)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
                 dgAngle.Rows[nLine].Cells[nNum + 1].Value = value;
             }
             public object GetData(int nLine, int nNum) { return dgAngle.Rows[nLine].Cells[nNum + 1].Value; }
-            public void SetCaption(String data) { SetCaption(m_nCurrntCell, data); }
-            public void SetCaption(int nLine, String strValue)
-            {
-                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 1].Value = strValue;
-            }
-            public String GetCaption() { return GetCaption(m_nCurrntCell); }
-            public String GetCaption(int nLine)
-            {
-                try
-                {
-                    if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return "";
-                    return dgAngle.Rows[nLine].Cells[dgAngle.ColumnCount - 1].Value.ToString();
-                }
-                catch// (System.Exception e)
-                {
-                    return "";
-                }
-            }
+            
             #endregion Control Data
             //private int m_nCurrentLine = -1;
             //private int m_nCurrentCol = -1;
@@ -2506,6 +2793,10 @@ namespace OpenJigWare
             private void dgAngle_KeyDown(object sender, KeyEventArgs e)
             {
                 OjwGrid_KeyDown(dgAngle, e);
+            }
+            private void dgAngle_KeyUp(object sender, KeyEventArgs e)
+            {
+                OjwGrid_KeyUp(dgAngle, e);
             }
             private void OjwGrid_KeyDown(DataGridView dgGrid, KeyEventArgs e)
             {
@@ -3158,6 +3449,15 @@ namespace OpenJigWare
                     #endregion Keys.C - 복사하기
                 }
             }
+            private void OjwGrid_KeyUp(object sender, KeyEventArgs e)
+            {
+                m_nKey = 0;
+                m_bKey_Ctrl = false;
+                m_bKey_Alt = false;
+                m_bKey_Shift = false;
+
+                //m_bKeyDown = false;
+            }
             private bool m_bBlock = false;
             private RichTextBox m_rtxtDraw = null;
             public void dgAngle_Block_GridChange(RichTextBox rtxtDraw, bool bBlock) { m_rtxtDraw = rtxtDraw; m_bBlock = bBlock; }
@@ -3191,6 +3491,8 @@ namespace OpenJigWare
             {
                 OjwGrid_CellMouseDoubleClick(dgAngle, e);
             }
+            //public void Add_CellMouseDoubleClick(DataGridViewCellMouseEventHandler FFunc) { dgAngle.CellMouseDoubleClick += (DataGridViewCellMouseEventHandler)FFunc; }
+            //public void Sub_CellMouseDoubleClick(DataGridViewCellMouseEventHandler FFunc) { dgAngle.CellMouseDoubleClick -= (DataGridViewCellMouseEventHandler)FFunc; }
             private void OjwGrid_CellMouseDoubleClick(DataGridView dgData, MouseEventArgs e)
             {
                 DataGridView.HitTestInfo hti = dgData.HitTest(e.X, e.Y);
