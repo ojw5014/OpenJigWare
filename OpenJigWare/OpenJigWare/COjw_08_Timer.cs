@@ -103,7 +103,7 @@ namespace OpenJigWare
                     long temp_Gap = temp - m_alTimer[nHandle];
                     return temp_Gap;
                 }
-                else return 0;
+                else return (long)(0x7fffffffffffffff);
             }
             public static long GetCurrentTime() { return (long)DateTime.Now.Ticks * 100 / 1000000; }
 
@@ -132,7 +132,7 @@ namespace OpenJigWare
                     if (temp_Gap < t) return false;
                     else return true;
                 }
-                else return false;
+                else return true;
             }
             #endregion static
             #region Var
@@ -243,7 +243,7 @@ namespace OpenJigWare
 
             // Handle = 0~(_SIZE_STATIC_TIMER - 1)
             // Returns to the current time(Kor: Timer 생성 후 현재까지의 시간 값을 return)
-            public double Get()
+            public long Get()
             {
                 if (m_bTimer == true)
                 {
@@ -279,7 +279,7 @@ namespace OpenJigWare
                     if (temp_Gap < t) return false;
                     else return true;
                 }
-                else return false;
+                else return true;
             }
             #endregion Var
 

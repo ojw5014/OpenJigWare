@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>OpenJigWare</RootNamespace>
     <AssemblyName>OpenJigWare</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;_USING_DOTNET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -27,9 +27,10 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;_USING_DOTNET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <RegisterForComInterop>false</RegisterForComInterop>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Contracts">
@@ -87,6 +88,12 @@
     <Compile Include="Docking\MotionEditor.Designer.cs">
       <DependentUpon>MotionEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="Docking\Player.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\Player.Designer.cs">
+      <DependentUpon>Player.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -125,6 +132,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Docking\MotionEditor.resx">
       <DependentUpon>MotionEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\Player.resx">
+      <DependentUpon>Player.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -204,7 +214,6 @@
     <Content Include="KeyPad\etc\es_nomal_9.png" />
     <Content Include="KeyPad\etc\es_nomal_back.png" />
     <Content Include="KeyPad\etc\es_nomal_확인.png" />
-    <None Include="MotionTool.png" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="AxWMPLib">
@@ -224,6 +233,9 @@
       <Isolated>False</Isolated>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MotionTool.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -16,6 +16,25 @@ namespace OpenJigWare
             [DllImport("user32", EntryPoint = "mouse_event")]
             private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, IntPtr dwExtraInfo);
 
+            [DllImport("user32.dll")]
+            private static extern int GetCursorPos(int x, int y);
+
+            //Declare wrapper managed POINT class.
+            [StructLayout(LayoutKind.Sequential)]
+            public class POINT
+            {
+                public int x;
+                public int y;
+            }
+            [StructLayout(LayoutKind.Sequential)]
+            public class MouseHookStruct
+            {
+                public POINT pt;
+                public int hwnd;
+                public int wHitTestCode;
+                public int dwExtraInfo;
+            }
+
             private enum EMouseEventFlags_t
             {
                 WM_MOUSEMOVE = 0x201,

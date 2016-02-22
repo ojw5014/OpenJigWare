@@ -12,8 +12,46 @@ namespace OpenJigWare
         public class CConvert
         {
             // Check Numeric or ...
-            public static bool IsDigit(string strValue) { foreach (char cItem in strValue) { if (!Char.IsNumber(cItem)) return false; } return true; }
+            public static bool IsDigit(char cValue) { if (!Char.IsNumber(cValue)) return false; else return true; }
+            public static bool IsDigit(string strValue)
+            {               
+                bool bSimbol = false;
+                bool bPoint = false;
+                int nPoint = -1;
+                foreach (char cItem in strValue) 
+                {
+                    if ((cItem == '-') || (cItem == '+'))
+                    {
+                        if (bSimbol == true) return false;
+                        bSimbol = true;
+                    }
+                    else
+                    {
+                        if (nPoint >= 0)
+                        {
+                            if (cItem == '.')
+                            {
+                                nPoint++;
+                                bPoint = true;
+                            }
+                            else bPoint = false;
+                        }
 
+                        if (cItem != '.')
+                        {
+                            bSimbol = false;
+                            if (!Char.IsNumber(cItem))
+                                return false;
+                        }
+                    }
+                    if (nPoint < 0) nPoint = 0;
+                }
+                if (bSimbol == true) return false;
+                else if (nPoint > 1) return false;
+                else if (bPoint == true) return false;
+                return true;
+            }
+            
             #region Check String Separation(Kor: 스트링 구분 및 판단하기) - compiler only
 
             private static int _EQ = 0x0000001;
@@ -49,6 +87,8 @@ namespace OpenJigWare
             private static int _ATAN2 = 0x0800000;
             private static int _ACOS2 = 0x1000000;
             private static int _ASIN2 = 0x2000000;
+            //private static int _MOD = 0x4000000; // 이미 위에 선언
+            private static int _ROUND = 0x8000000;
             //private static int _RESERVE_1 = 0x1000000;
 
             private static int _COMMA2 = 0x0100000;
@@ -129,7 +169,7 @@ namespace OpenJigWare
             {
                 try
                 {
-                    String[] pstrData2 = new string[256];
+                    String[] pstrData2 = new string[1024];//256];
                     pstrData2.Initialize();
 
                     int nNum = 0;
@@ -137,6 +177,7 @@ namespace OpenJigWare
                     String strCurr = "";
                     bool bSqrt = false;
                     bool bPow = false;
+                    bool bRound = false;
                     bool bAtan2 = false;
                     bool bAcos2 = false;
                     bool bAsin2 = false;
@@ -218,7 +259,8 @@ namespace OpenJigWare
                                     ((strCurr.ToLower().IndexOf("asin") == 0) && (strCurr.ToLower().IndexOf("asin2") != 0)) || // asin
 
                                     //(strCurr.ToLower().IndexOf("atan") == 0) ||
-                                    (strCurr.ToLower().IndexOf("sqrt") == 0)
+                                    (strCurr.ToLower().IndexOf("sqrt") == 0) ||
+                                    (strCurr.ToLower().IndexOf("round") == 0)
                                     )
                                 {
                                     //                                 if (strCurr.Length > 4)
@@ -234,6 +276,7 @@ namespace OpenJigWare
 
                                 if (strCurr.ToLower() == "sqrt") bSqrt = true;
                                 if (strCurr.ToLower() == "pow") bPow = true;
+                                if (strCurr.ToLower() == "round") bRound = true;
                                 if (strCurr.ToLower() == "atan2") bAtan2 = true;
                                 if (strCurr.ToLower() == "acos2") bAcos2 = true;
                                 if (strCurr.ToLower() == "asin2") bAsin2 = true;
@@ -244,11 +287,13 @@ namespace OpenJigWare
                                     else if (bAtan2 == true) strCurr = ",_UP2_";
                                     else if (bAcos2 == true) strCurr = ",_UP3_";
                                     else if (bAsin2 == true) strCurr = ",_UP4_";
+                                    else if (bRound == true) strCurr = ",_UP5_";
                                     bSqrt = false;
                                     bPow = false;
                                     bAtan2 = false;
                                     bAcos2 = false;
                                     bAsin2 = false;
+                                    bRound = false;
                                 }
                                 pstrData2[nNum++] = strCurr;
                                 strPrev = strCurr;
@@ -343,11 +388,11 @@ namespace OpenJigWare
                 bool bComma2_1 = false;
 
                 bool bComplete = false; // _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2;
-                int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2;
+                int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND;
 
                 int nEq = _EQ | _PLUS | _MINUS | _MUL | _DIV | _MOD;
                 int nBracket = _BRACKET_SMALL_START | _BRACKET_SMALL_END | _BRACKET_MIDDLE_START | _BRACKET_MIDDLE_END | _BRACKET_LARGE_START | _BRACKET_LARGE_END;
-                int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2;
+                int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND;
                 if (strPrev == null) return false;
                 else if (strCurr == "\r\n") return true;
                 else if (strCurr == "\r") return true;
@@ -475,6 +520,7 @@ namespace OpenJigWare
                 if ((nCompare & _ATAN2) != 0) { if (strData == "atan2") nRet |= _ATAN2; }
                 if ((nCompare & _ACOS2) != 0) { if (strData == "acos2") nRet |= _ACOS2; }
                 if ((nCompare & _ASIN2) != 0) { if (strData == "asin2") nRet |= _ASIN2; }
+                if ((nCompare & _ROUND) != 0) { if (strData == "round") nRet |= _ROUND; }
                 if ((nCompare & _SQRT) != 0) { if (strData == "sqrt") nRet |= _SQRT; }
                 if ((nCompare & _POW) != 0) { if (strData == "pow") nRet |= _POW; } // 0x0b [____ ____] [___1 1111] [111_ ____]
                 if ((nCompare & _ABS) != 0) { if (strData == "abs") nRet |= _ABS; }
@@ -494,7 +540,7 @@ namespace OpenJigWare
                 if ((nCompare & _ALPHA) != 0) { if (CheckCalc_Alpha(strData) == true) nRet |= _ALPHA; } // Alpha('_' 포함)
                 // 0x0b [__11 ____] [____ ____] [____ ____]
 
-                if ((nRet & (_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2)) != 0)
+                if ((nRet & (_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND)) != 0)
                     nRet &= ((0xfffffff ^ (_DIGIT | _ALPHA)) & 0xfffffff);
 
                 if ((nCompare & _COMMA2) != 0) { if (strData == ";") nRet |= _COMMA2; } // 0x0b [___1] [____ ____] [____ ____] [____ ____]
@@ -1329,6 +1375,8 @@ namespace OpenJigWare
             //    }
             //    return lst;
             //}
+            public static double[] FloatsToDoubles(float[] afFloats) { return Array.ConvertAll(afFloats, element => (double)element); }
+            public static float[] DoublesToFloats(float[] adDoubles) { return Array.ConvertAll(adDoubles, element => (float)element); }
         }
         public class CConvert<T>
         {
@@ -1366,9 +1414,7 @@ namespace OpenJigWare
                         Dest[i + nLine_Dest, j + nCol_Dest] = Src[i + nLine_Src, j + nCol_Src];
                     }
                 }
-            }
-            public static double[] FloatsToDoubles(float[] afFloats) { return Array.ConvertAll(afFloats, element => (double)element); }
-            public static float[] DoublesToFloats(float[] adDoubles) { return Array.ConvertAll(adDoubles, element => (float)element); }
+            }            
         }
     }
 }

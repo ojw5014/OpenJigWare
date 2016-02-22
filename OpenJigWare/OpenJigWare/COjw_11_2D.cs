@@ -29,6 +29,8 @@ namespace OpenJigWare
 
             private PictureBox m_picDC;
             private Graphics m_gr;
+            private bool m_bImage;
+            //private Graphics m_gr_Image;
             private Color m_Color = Color.Blue;
             private Color m_BackColor;
             private float m_PenWidth;
@@ -102,6 +104,42 @@ namespace OpenJigWare
                     m_bIsValid = false;
                 }
             }
+            private Bitmap m_bmpFile;
+            public void Load(Bitmap bmp)
+            {
+                m_bImage = true;
+                m_bmpFile = bmp;
+                //m_gr_Image = Graphics.FromImage(bmp);
+            }
+            public void Load(Bitmap bmp, float fScale_X, float fScale_Y)
+            {
+                if (fScale_X == 0) fScale_X = 1.0f;
+                if (fScale_Y == 0) fScale_Y = 1.0f;
+                m_bImage = true;
+                bmp.SetResolution((float)bmp.Width * (1.0f / fScale_X), (float)bmp.Height * (1.0f / fScale_Y));
+                m_bmpFile = bmp;
+                //m_gr_Image = Graphics.FromImage(bmp);
+            }
+            public void Load(String strImageFile)
+            {
+                m_bImage = true;
+                //m_gr_Image = Graphics.FromImage(new Bitmap(strImageFile));//(Image.FromFile(strImageFile));
+                Bitmap bmp = new Bitmap(strImageFile);
+                m_bmpFile = bmp;
+            }
+            public void Load(String strImageFile, float fScale_X, float fScale_Y)
+            {
+                if (fScale_X == 0) fScale_X = 1.0f;
+                if (fScale_Y == 0) fScale_Y = 1.0f;
+                m_bImage = true; // 나중엔 에러처리까지 하도록... 꼭. 잊어버리지 말고!!! ojw5014
+                Bitmap bmp = new Bitmap(strImageFile); //Image.FromFile(strImageFile);
+                //bmp.
+                bmp.SetResolution((float)bmp.Width * (1.0f / fScale_X), (float)bmp.Height * (1.0f / fScale_Y));
+                //m_gr_Image = Graphics.FromImage(bmp);
+                m_bmpFile = bmp;
+            }
+            
+            public bool IsImage() { return m_bImage; }
 
             public bool IsValid() { return m_bIsValid; }
 
@@ -179,7 +217,10 @@ namespace OpenJigWare
             {
                 try
                 {
-                    m_gr.Clear(m_BackColor);
+                    if (IsImage() == true)
+                        m_gr.DrawImage(m_bmpFile, 0, 0);
+                    else
+                        m_gr.Clear(m_BackColor);
                     //SolidBrush brush = new SolidBrush(m_BackColor);
                     //m_gr.FillRectangle(brush, 0, 0, m_picDC.Width, m_picDC.Width);
                 }

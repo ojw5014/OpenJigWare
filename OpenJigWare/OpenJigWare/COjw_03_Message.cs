@@ -1,4 +1,6 @@
-﻿using System;
+﻿
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,7 +46,7 @@ namespace OpenJigWare
             public static void Init(TextBox txt) 
             { 
                 m_txtMessage = txt;
-                Write2("==== Open Jig Ware Ver {0} ====", SVersion_T.strVersion);
+                Write2("==== Open Jig Ware Ver [{0}] ====\r\n", SVersion_T.strVersion);
             }
             // set the text box handle for errors only ...
             public static void Init_Error(TextBox txt) { m_txtMessage_Error = txt; }
@@ -97,7 +99,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -119,7 +125,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -141,7 +151,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -163,7 +177,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -188,7 +206,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -212,7 +234,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -236,7 +262,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -260,7 +290,11 @@ namespace OpenJigWare
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Clear();
+#if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                             sb.AppendFormat(msg, objects);
                             msg = sb.ToString();
                         }
@@ -287,12 +321,17 @@ namespace OpenJigWare
                     if (objects.Length > 0)
                     {
                         StringBuilder sb = new StringBuilder();
-                        sb.Clear();
+#if _USING_DOTNET_3_5
+                        sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                         sb.AppendFormat(msg, objects);
                         msg = sb.ToString();
                     }
                 } 
                 OjwDebugMessage(true, true, true, true, true, msg);
+                if (m_txtMessage_Error.IsDisposed == true) m_txtMessage_Error = new TextBox();
                 OjwDebugMessage(m_txtMessage_Error, false, false, false, true, true, m_strErrorMessage);
             }
             public static void Write_Error(TextBox txtOjwMessage, string msg, params object[] objects)
@@ -308,7 +347,11 @@ namespace OpenJigWare
                     if (objects.Length > 0)
                     {
                         StringBuilder sb = new StringBuilder();
-                        sb.Clear();
+#if _USING_DOTNET_3_5
+                        sb.Remove(0, sb.Length);
+#else
+                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                         sb.AppendFormat(msg, objects);
                         msg = sb.ToString();
                     }
@@ -338,6 +381,7 @@ namespace OpenJigWare
                 try
                 {
                     m_nMessageStack++;
+                    if (m_txtMessage.IsDisposed == true) m_txtMessage = new TextBox();
                     OjwDebugMessage(m_txtMessage, bFile, bFunction, bLine, bTime, bLinefeed, msg);
                 }
                 catch (Exception e)

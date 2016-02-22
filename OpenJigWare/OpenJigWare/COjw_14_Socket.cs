@@ -89,8 +89,8 @@ namespace OpenJigWare
                     m_tcpServer.Start();
                                         
                     //클라이언트 생성시 스레드를 생성한다.
-                    m_thServer = new Thread(new ThreadStart(ThreadServer));
-                    m_thServer.Start();
+                    //m_thServer = new Thread(new ThreadStart(ThreadServer));
+                    //m_thServer.Start();
 
                     pbyIp = null;
                     addr = null;
@@ -103,78 +103,106 @@ namespace OpenJigWare
                 }
                 return bRet;
             }
-            #region 비공개 - thread ...
-
-            private void ThreadServer()
+            public int sock_get_size_buffer()
             {
-                try
-                {
-                    // 클라이언트가 붙으면 담당 소켓을 생성한다.
-                    m_tcpServer_Client = m_tcpServer.AcceptTcpClient();
-                    m_tcpServer_Client.NoDelay = false;
-                    m_bwServer_outData = new BinaryWriter(new BufferedStream(m_tcpServer_Client.GetStream()));
-                    m_bwServer_inData = new BinaryReader(new BufferedStream(m_tcpServer_Client.GetStream()));
-                    
-                    CMessage.Write("준비완료");
-
-                    m_nServer_Seq = 0;
-
-                    m_nCntAuth = 0;
-                    m_bAuth = false;
-
-                    m_bThread_Server = true;
-                    string strData = "";
-                    while (sock_connected() == true)
-                    {
-                        byte byteData = sock_get_byte();
-                        if (sock_connected() == false) return;
-
-                        //if (byteData != 0)
-                        //{
-                        //    strData += (char)(byteData);
-                        //    if (byteData == 10)
-                        //    {
-                        //        Ojw.CMessage.Write(strData);
-                        //        strData = String.Empty;
-                        //    }
-                        //}
-
-
-                        if (byteData != 0) CMessage.Write2("{0}", (char)(byteData));
-
-                        if (byteData != 0)
-                        {
-                            if ((char)(byteData) == 'f')
-                            {
-                                CMessage.Write("전진");
-                            }
-                            else if ((char)(byteData) == 'b')
-                            {
-                                CMessage.Write("후진");
-                            }
-                            else if ((char)(byteData) == 'l')
-                            {
-                                CMessage.Write("좌회전");
-                            }
-                            else if ((char)(byteData) == 'r')
-                            {
-                                CMessage.Write("우회전");
-                            }
-                            else
-                            {
-                                //CMessage.Write("{0}", (char)(byteData));
-                                CMessage.Write("알지못하는 명령 입력={0}", (char)byteData);
-                            }
-                        }
-                    }
-
-                    CMessage.Write("Connected {0}", m_tcpServer_Client.ToString());
-                    m_bThread_Server = false;
-                }
-                catch// (Exception e)
-                {
-                }
+                return m_tcpServer_Client.ReceiveBufferSize;
             }
+            #region 비공개 - thread ...
+            public void WaitClient(bool bBlockingMode)
+            {
+                // 클라이언트가 붙으면 담당 소켓을 생성한다.
+                m_tcpServer_Client = m_tcpServer.AcceptTcpClient();
+                m_tcpServer_Client.Client.Blocking = bBlockingMode;
+                m_tcpServer_Client.NoDelay = false;
+                m_bwServer_outData = new BinaryWriter(new BufferedStream(m_tcpServer_Client.GetStream()));
+                m_bwServer_inData = new BinaryReader(new BufferedStream(m_tcpServer_Client.GetStream()));
+
+                CMessage.Write("준비완료");
+
+                m_nServer_Seq = 0;
+
+                m_nCntAuth = 0;
+                m_bAuth = false;
+
+                m_bThread_Server = true;
+                //string strData = "";
+            }
+            //private void ThreadServer()
+            //{
+            //    try
+            //    {
+            //        // 클라이언트가 붙으면 담당 소켓을 생성한다.
+            //        m_tcpServer_Client = m_tcpServer.AcceptTcpClient();
+            //        m_tcpServer_Client.NoDelay = false;
+            //        m_bwServer_outData = new BinaryWriter(new BufferedStream(m_tcpServer_Client.GetStream()));
+            //        m_bwServer_inData = new BinaryReader(new BufferedStream(m_tcpServer_Client.GetStream()));
+                    
+            //        CMessage.Write("준비완료");
+
+            //        m_nServer_Seq = 0;
+
+            //        m_nCntAuth = 0;
+            //        m_bAuth = false;
+
+            //        m_bThread_Server = true;
+            //        //string strData = "";
+            //        while (sock_connected() == true)
+            //        {
+            //            byte byteData = sock_get_byte();
+            //            if (sock_connected() == false) return;
+
+            //            //if (byteData != 0)
+            //            //{
+            //            //    strData += (char)(byteData);
+            //            //    if (byteData == 10)
+            //            //    {
+            //            //        Ojw.CMessage.Write(strData);
+            //            //        strData = String.Empty;
+            //            //    }
+            //            //}
+
+
+            //            if (byteData != 0)
+            //            {
+            //                CMessage.Write2("{0}", (char)(byteData));
+            //                sock_send(byteData);
+            //            }
+                        
+
+            //            //if (byteData != 0)
+            //            //{
+            //            //    //if ((char)(byteData) == 'f')
+            //            //    //{
+            //            //    //    CMessage.Write("전진");
+            //            //    //}
+            //            //    //else if ((char)(byteData) == 'b')
+            //            //    //{
+            //            //    //    CMessage.Write("후진");
+            //            //    //}
+            //            //    //else if ((char)(byteData) == 'l')
+            //            //    //{
+            //            //    //    CMessage.Write("좌회전");
+            //            //    //}
+            //            //    //else if ((char)(byteData) == 'r')
+            //            //    //{
+            //            //    //    CMessage.Write("우회전");
+            //            //    //}
+            //            //    //else
+            //            //    //{
+            //            //    //    //CMessage.Write("{0}", (char)(byteData));
+            //            //    //    CMessage.Write("알지못하는 명령 입력={0}", (char)byteData);
+            //            //    //}
+            //            //    CMessage.Write2("{0}", (char)byteData);
+            //            //}
+            //        }
+
+            //        CMessage.Write("Connected {0}", m_tcpServer_Client.ToString());
+            //        m_bThread_Server = false;
+            //    }
+            //    catch// (Exception e)
+            //    {
+            //    }
+            //}
             #endregion 비공개 - thread ...   
             public void sock_stop()
             {
@@ -233,6 +261,8 @@ namespace OpenJigWare
                     return false;
                 }
             }
+            private int m_nSeq_Error = 0;
+            public int sock_get_seq_error() { return m_nSeq_Error; }
             public byte sock_get_byte()
             {
                 try
@@ -242,6 +272,7 @@ namespace OpenJigWare
                 }
                 catch
                 {
+                    m_nSeq_Error++;
                     return 0;
                 }
             }
@@ -310,11 +341,55 @@ namespace OpenJigWare
             public bool Connect(String strIP, int nPort)
             {
                 m_tcpClient = new TcpClient();       // TCP 클라이언트 생성
+                IAsyncResult IResult = null;
+                //ManualResetEvent MWait = new ManualResetEvent(false);
+                try
+                {
+                    // 서버 IP 주소와 포트 번호를 이용해 접속 시도
+                    //m_tcpClient.Connect(strIP, nPort); // - 이건 랙을 유발시킨다.
+                    //m_tcpClient.Connect(IPAddress.Parse(strIP), nPort);
+
+                    IResult = m_tcpClient.BeginConnect(IPAddress.Parse(strIP), nPort, null, null);
+                    //if (IResult.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1)) == false)
+                    //{
+                    //    // 서버에 접속 실패시
+                    //    m_bConnect = false;
+                    //    return false;
+                    //}            
+                    if (IResult.AsyncWaitHandle.WaitOne(100) == false) // ms
+                    {
+                        // 서버에 접속 실패시
+                        m_bConnect = false;
+                        return false;
+                    }
+                    m_tcpClient.EndConnect(IResult);
+                    //MWait.WaitOne(
+                }
+                catch
+                {
+                    // 서버에 접속 실패시
+                    m_bConnect = false;                    
+                    return false;
+                }
+
+                m_bConnect = true;
+
+                stream = m_tcpClient.GetStream();    // 스트림 가져오기
+                outData = new BinaryWriter(new BufferedStream(m_tcpClient.GetStream()));
+                inData = new BinaryReader(new BufferedStream(m_tcpClient.GetStream()));
+
+
+                return true;
+            }
+            public bool Connect(String strIP, int nPort, bool bBlockingMode)
+            {
+                m_tcpClient = new TcpClient();       // TCP 클라이언트 생성
 
                 try
                 {
                     // 서버 IP 주소와 포트 번호를 이용해 접속 시도
                     m_tcpClient.Connect(strIP, nPort);
+                    m_tcpClient.Client.Blocking = bBlockingMode;
                 }
                 catch
                 {
@@ -332,7 +407,6 @@ namespace OpenJigWare
 
                 return true;
             }
-
             public bool DisConnect()
             {
                 try

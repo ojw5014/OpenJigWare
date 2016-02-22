@@ -113,8 +113,48 @@ namespace OpenJigWare
             public float tilt;
             public float swing;
             public SAngle3D_t(float pan, float tilt, float swing) { this.pan = pan; this.tilt = tilt; this.swing = swing; }
-        }
+        }        
         #endregion Angle(SAngle3D_t -> For Pan, Tilt, Swing)
+        #region Motion
+        public struct SMotionTable_t
+        {
+            public bool bEn;
+            public int[] anMot;
+            public float[] afXyz; // reserve
+            public int[] anLed;
+            public bool[] abEn;
+            public bool[] abType;
+            public int nTime;
+            public int nDelay;
+            public int nGroup;
+            public int nCmd;
+            public int nData0;
+            public int nData1;
+            public int nData2;
+            public int nData3;
+            public int nData4;
+            public int nData5;
+
+            //public int nExtLed;
+            //public int nExtBuzz;
+        }
+        public struct SMotion_t
+        {
+            //public int nCount;
+
+            public int nFrameSize;
+            public int nCnt_LineComment;
+            public int nPlayTime;
+            public int nCommentSize;
+            public int nRobotModelNum;
+            public int nMotorCnt;
+            public int nStartPosition;
+            public string strFileName;
+            public string strTableName;
+            //public string strComment;
+            public SMotionTable_t[] STable;
+        }
+        #endregion Motion
         #region Define structure for motor(SParam_t. SParam_Axis_t)
 #if false  
         public struct SParam_t

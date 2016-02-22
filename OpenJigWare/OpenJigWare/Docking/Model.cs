@@ -39,7 +39,8 @@ namespace OpenJigWare.Docking
         }
         private void frmModel_Load(object sender, EventArgs e)
         {
-            
+            m_C3d.Prop_Set_Main_MouseControlMode(0);
+            m_C3d.Prop_Update_VirtualObject();
         }
         private void SetModel(String strObject)
         {
@@ -90,6 +91,7 @@ namespace OpenJigWare.Docking
 
         private void txtPan_TextChanged(object sender, EventArgs e)
         {
+            //m_C3d.SelectMotor(1); // test
             m_C3d.SetAngle_Display(Ojw.CConvert.StrToFloat(txtPan.Text), Ojw.CConvert.StrToFloat(txtTilt.Text), Ojw.CConvert.StrToFloat(txtSwing.Text));
         }
 

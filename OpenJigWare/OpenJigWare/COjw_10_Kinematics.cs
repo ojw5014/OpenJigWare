@@ -50,9 +50,17 @@ namespace OpenJigWare
                     CDhParam DhParam = new CDhParam();
                     double dAngleData = 0.0f;
                     //bool bNamed = false;
+                    int nPos = 0;
                     for (i = 0; i < nCnt; i++)
                     {
+                        bool bInv = false;
                         DhParam = DhParamAll.GetData(i);
+                        //if (
+                        //    (DhParam.dA == 0) &&
+                        //    (DhParam.dD == 0) &&
+                        //    (DhParam.dTheta == 0) &&
+                        //    (DhParam.dAlpha == 0)
+                        //    ) continue;
                         #region (dAngleData)Read Value of angle(Kor: 각도값 읽어오기)
                         //try
                         //{
@@ -67,12 +75,28 @@ namespace OpenJigWare
                         // Theta
                         dTheta = DhParam.dTheta;
                         dD = DhParam.dD;
-                        if (DhParam.nAxisDir < 2) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+                        if (DhParam.nAxisDir < 2)
+                        {
+                            dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+                            if (DhParam.nAxisDir != 0)
+                            {
+                                bInv = true;
+                            }
+                        }
                         // D
-                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
+                        else
+                        {
+                            dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
+                            if (DhParam.nAxisDir != 2)
+                            {
+                                bInv = true;
+                            }
+                        }
 #endif                                             
-                        CMath.CalcT(DhParam.dA, DhParam.dAlpha, DhParam.dD, dTheta, out aSDhT[i].adT);
-                        CMath.CalcT_Str(DhParam.dA, DhParam.dAlpha, DhParam.dD, DhParam.dTheta, ((DhParam.nAxisNum >= 0) ? "t" + CConvert.IntToStr(DhParam.nAxisNum) : ""), out aSDhT_Str[i].aStrT);
+                        //CMath.CalcT(DhParam.dA, DhParam.dAlpha, DhParam.dD, dTheta, out aSDhT[i].adT);
+                        CMath.CalcT(DhParam.dA, DhParam.dAlpha, dD, dTheta, out aSDhT[i].adT);
+                        //CMath.CalcT_Str(DhParam.dA, DhParam.dAlpha, DhParam.dD, DhParam.dTheta, ((DhParam.nAxisNum >= 0) ? "t" + CConvert.IntToStr(DhParam.nAxisNum) : ""), out aSDhT_Str[i].aStrT);
+                        CMath.CalcT_Str(DhParam.dA, DhParam.dAlpha, DhParam.dD, DhParam.dTheta, ((bInv == true)?"-" : "") + ((DhParam.nAxisNum >= 0) ? "t" + CConvert.IntToStr(DhParam.nAxisNum) : ""), out aSDhT_Str[i].aStrT);
                         for (int k = 0; k < 4; k++)
                         {
                             for (int j = 0; j < 4; j++)
@@ -81,7 +105,7 @@ namespace OpenJigWare
                             }
                             strResult += "\r\n";
                         }
-                        strResult += "// --" + CConvert.IntToStr(i) + "//\r\n==============\r\n";
+                        strResult += "// --" + CConvert.IntToStr(nPos++) + "//\r\n==============\r\n";
 
                     }
                     DhParam = null;
@@ -519,8 +543,12 @@ namespace OpenJigWare
                             // real interpreter(Kor: 실제 해석)
                             bRet2 = StringLine_To_Class_DHParam(strData, out pCDhParam[nPos]);
                             pCDhParam[nPos].strCaption = strCaption;
-                            nPos++;
-                            if (bRet2 == false) bRet = false;
+                            
+                            if (bRet2 == false)
+                            {
+                                bRet = false;
+                            }
+                            else nPos++;
                         }
 
                         Array.Resize<CDhParam>(ref pCDhParam, nPos);
@@ -688,7 +716,7 @@ namespace OpenJigWare
                 private const int _ADDRESS_V = _ADDRESS_X + 3;
                 private const int _ADDRESS_M = 0x2000;
 
-                private const int _CNT_ADDRESS = 0xfffff;
+                private const int _CNT_ADDRESS = 0xffffff;//0xfffff;
 
                 public const int _CNT_MOTOR = _ADDRESS_X - _ADDRESS_MOTOR;
                 public const int _CNT_VAR_V = _ADDRESS_M - _ADDRESS_V;
@@ -713,7 +741,8 @@ namespace OpenJigWare
 
                 private const int _POW = 0x0001000;
                 private const int _ABS = 0x0002000;
-                private const int _MOD = 0x0004000;
+                //private const int _MOD = 0x0004000;
+                //private const int _ROUND=0x0008000;
 
                 private const int _BRACKET_SMALL_START = 0x0004000;
                 private const int _BRACKET_SMALL_END = 0x0008000;
@@ -729,6 +758,8 @@ namespace OpenJigWare
                 private const int _ATAN2 = 0x0800000;
                 private const int _ACOS2 = 0x1000000;
                 private const int _ASIN2 = 0x2000000;
+                private const int _MOD   = 0x4000000;
+                private const int _ROUND = 0x8000000;
 
                 private const int _COMMA2 = 0x0100000;
                 #endregion Math Function Address(Kor: 수식 Address 정의)
@@ -747,7 +778,7 @@ namespace OpenJigWare
                                                     "Cannot use \";\"",                                                                                     //"문자 \";\"는 사용할 수 없는 문자입니다.",
                                                     "You may use some functional letters or illegal sentence",                                              //"특수문자를 사용하거나 완전한 문장이 이루어지지 않았습니다.",
                                                     "Check \"(\" or \")\"",                                                                                 //"문장내 괄호의 숫자가 맞지 않습니다.",
-                                                    "There is a problem with the syntax combinations. ex) sqrt(Value, power), pow(Value, power)",           //"문장내 문법 조합에 문제가 있습니다. ex) sqrt(값, 거듭제곱), pow(값, 거듭제곱)",
+                                                    "There is a problem with the syntax combinations. ex) sqrt(Value, power), pow(Value, power), round(value, digit)",//"문장내 문법 조합에 문제가 있습니다. ex) sqrt(값, 거듭제곱), pow(값, 거듭제곱)",
                                                     "There is a problem with the calculation combinations. ex) cannot use ++, --, +*, */, /+,/- ",          //"문장내 연산 조합에 문제가 있습니다. ex) ++, --, +*, */, /+,/- 등의 복합연산 사용불가[괄호를 이용할 것]",
                                                     "There is a problem with the calculation combinations. ex) cannot use it +,-,*,/ to tail of sentence",  //"문장내 연산 조합에 문제가 있습니다. => +-*/의 연산은 문장의 끝에사용할 수 없습니다.",
                                                     "Unknown errors",                                                                                       //"알수없는 에러 발생",
@@ -882,8 +913,9 @@ namespace OpenJigWare
                         int nAtan2 = CConvert.GetCnt(strSource, "atan2");
                         int nAcos2 = CConvert.GetCnt(strSource, "acos2");
                         int nAsin2 = CConvert.GetCnt(strSource, "asin2");
+                        int nRound = CConvert.GetCnt(strSource, "round");
                         int nTmp = CConvert.GetCnt(strSource, ",");
-                        if (nFirst + nLast + nAtan2 + nAcos2 + nAsin2 != nTmp) nRet = 6;
+                        if (nFirst + nLast + nAtan2 + nAcos2 + nAsin2 + nRound != nTmp) nRet = 6;
                         #endregion Ret = 6 - There is a problem with the syntax combinations. ex) sqrt(Value, power), pow(Value, power)(Kor: 문장내 문법 조합에 문제가 있습니다. ex) sqrt(값, 거듭제곱), pow(값, 거듭제곱))
                         #region Ret = 7 - There is a problem with the calculation combinations. ex) cannot use ++, --, +*, */, /+,/- (Kor: 문장내 연산 조합에 문제가 있습니다. ex) ++, --, +*, */, /+,/- 등의 복합연산 사용불가[괄호를 이용할 것])
                         // Check a double operation or illegal operation(Kor: 더블부호 및 이상부호 검증)
@@ -1150,7 +1182,7 @@ namespace OpenJigWare
 
                         #region define a new variable with datas in step(Kor: 쪼개진 데이타를 순서에 입각하여 변수정의한다.)
                         int nPush = 0;
-                        int nMax = 100000;
+                        int nMax = 1000000; // 100000; //ojw5014: 메모리 확장
                         pstrAsm = new string[nMax];
 
                         pstrAsm.Initialize();
@@ -1261,23 +1293,23 @@ namespace OpenJigWare
                                 {
                                     if (
                                         ((pstrLineSort[i - 1] == "=") && (pstrLineSort[i] != "-")) &&
-                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2, pstrLineSort[i]) == 0)
+                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND, pstrLineSort[i]) == 0)
                                     )
                                         pstrTmp[nPos2++] = "+" + pstrLineSort[i];
                                     else if (
                                         ((pstrLineSort[i - 1] == "=") && (pstrLineSort[i] == "-")) &&
-                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2, pstrLineSort[i]) == 0) &&
-                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2, pstrLineSort[i - 1]) == 0)
+                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND, pstrLineSort[i]) == 0) &&
+                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND, pstrLineSort[i - 1]) == 0)
                                     )
                                         continue;
                                     else if (
                                           (CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _DIV | _MOD | _COMMA, pstrLineSort[i - 1]) != 0) &&
-                                          (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2, pstrLineSort[i]) == 0)
+                                          (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND, pstrLineSort[i]) == 0)
                                       )
                                     {
                                         pstrTmp[nPos2++] = pstrLineSort[i - 1] + pstrLineSort[i];
                                     }
-                                    else if (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2, pstrLineSort[i - 1]) != 0)
+                                    else if (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND, pstrLineSort[i - 1]) != 0)
                                     {
                                         pstrTmp[nPos2++] = ((pstrLineSort[i - 2] == "=") ? "+" : pstrLineSort[i - 2]) + pstrLineSort[i - 1] + pstrLineSort[i];
                                     }
@@ -1455,6 +1487,7 @@ namespace OpenJigWare
                             bool bSqrt = false;
                             bool bAtan2 = false;
                             bool bAcos2 = false;
+                            bool bRound = false;
                             //bool bAsin2 = false;
                             bool bPow = false;
                             //int nIndex = strTmp.IndexOf(",");
@@ -1476,7 +1509,17 @@ namespace OpenJigWare
                                         if (nIndex < 0)
                                         {
                                             nIndex = strTmp.IndexOf(",_UP4_");// Asin2
-                                            //if (nIndex >= 0) bAsin2 = true;
+                                            if (nIndex < 0)
+                                            {
+                                                nIndex = strTmp.IndexOf(",_UP5_");// Round
+                                                if (nIndex < 0)
+                                                {
+                                                    nIndex = strTmp.IndexOf(",_UP6_");// 
+                                                    //if (nIndex >= 0) bRound = true;
+                                                }
+                                                else bRound = true;
+                                            }
+                                            //else bAsin2 = true;
                                         }
                                         else bAcos2 = true;
                                     }
@@ -1495,6 +1538,8 @@ namespace OpenJigWare
                                 strEnd = CConvert.RemoveString(strEnd, ",_UP2_");
                                 strEnd = CConvert.RemoveString(strEnd, ",_UP3_");
                                 strEnd = CConvert.RemoveString(strEnd, ",_UP4_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP5_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP6_");
                             }
 
                             #region StringSeparate(strTmp, out pstrTmp); - Split the string data.(Kor: 스트링 데이터를 조각조각 쪼개 놓는다.)
@@ -1526,6 +1571,11 @@ namespace OpenJigWare
                                 else if (pstrTmp[j].IndexOf("asin2") >= 0)
                                 {
                                     pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "asin2");
+                                }
+                                else if (pstrTmp[j].IndexOf("round") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "round");
+                                    //nPow = 1;
                                 }
 
                                 if ((nData & _PLUS) != 0)
@@ -1567,7 +1617,7 @@ namespace OpenJigWare
                             if (nIndex >= 0)
                             {
                                 //strResult += ((bSqrt == false) ? "POW," : "SQRT,") + strEnd + "\r\n";
-                                strResult += ((bPow == true) ? "POW," : ((bSqrt == true) ? "SQRT," : ((bAtan2 == true) ? "ATAN2," : ((bAcos2 == true) ? "ACOS2," : "ASIN2,")))) + strEnd + "\r\n";
+                                strResult += ((bPow == true) ? "POW," : ((bSqrt == true) ? "SQRT," : ((bAtan2 == true) ? "ATAN2," : ((bAcos2 == true) ? "ACOS2," : ((bRound == true) ? "ROUND," : "ASIN2,"))))) + strEnd + "\r\n";
                                 //strResult += "POW," + strEnd + "\r\n";
                             }
                             //strResult += "LD," + strTmp + pstrData[i].IndexOf(1, pstrData[i].Length - 1));
@@ -1617,6 +1667,7 @@ namespace OpenJigWare
                     // 0x 00   00 00     00 11 : acos2
                     // 0x 00   00 00     00 12 : asin2
                     // 0x 00   00 00     00 13 : mod
+                    // 0x 00   00 00     00 14 : round
                     String strResult = "";
                     String strTmp = CConvert.RemoveChar(strSrc, '\r');
 
@@ -1666,6 +1717,7 @@ namespace OpenJigWare
                                     else if (strCode == "ACOS2") nData = 0x00000011;
                                     else if (strCode == "ASIN2") nData = 0x00000012;
                                     else if (strCode == "MOD") nData = 0x00000013;
+                                    else if (strCode == "ROUND") nData = 0x00000014;
                                     else continue;
                                     pstrOperand[0] = CConvert.IntToHex(nData, nWidth);
                                 }
@@ -1684,6 +1736,7 @@ namespace OpenJigWare
                                     else if (strCode.IndexOf("atan2") == 0) nData = 0x00001000;
                                     else if (strCode.IndexOf("acos2") == 0) nData = 0x00001100;
                                     else if (strCode.IndexOf("asin2") == 0) nData = 0x00001200;
+                                    else if (strCode.IndexOf("round") == 0) nData = 0x00001400;
 
                                     int nIndex = 0;
                                     if (nData > 0)
@@ -2302,6 +2355,8 @@ namespace OpenJigWare
 
                 public static void SetValue_V(double[] adVar) { if (adVar.Length <= _CNT_VAR_V) { Array.Copy(adVar, 0, m_adV, 0, adVar.Length); } }
                 public static void SetValue_Motor(double[] adMotor) { if (adMotor.Length <= _CNT_MOTOR) { Array.Copy(adMotor, 0, m_adMot, 0, adMotor.Length); } }
+                public static void SetValue_V(float[] afVar) { SetValue_V(CConvert.FloatsToDoubles(afVar)); }
+                public static void SetValue_Motor(float[] afMotor) { SetValue_Motor(CConvert.FloatsToDoubles(afMotor)); }
 
                 public static double GetValue_X() { return m_dX; }
                 public static double GetValue_Y() { return m_dY; }
@@ -2440,109 +2495,115 @@ namespace OpenJigWare
 
                 private static void CalcCmd(long lCmd, double dData, ref double dValue)
                 {
-                    // second computation(Kor: 2차연산)
-                    // Cmd, Data, Ret            
-                    if (lCmd == 2) // Add
+                    try
                     {
-                        dValue += dData;
-                    }
-                    else if (lCmd == 3) // Sub
-                    {
-                        dValue -= dData;
-                    }
-                    else if (lCmd == 4) // Mul
-                    {
-                        dValue *= dData;
-                    }
-                    else if (lCmd == 5) // Div
-                    {
-                        dValue /= ((dData == 0) ? (double)CMath.Zero() : dData);
-                    }
-                    else if (lCmd == 0x13) // Mod
-                    {
-                        dValue %= dData;
-                    }
-                    else if (lCmd == 6) // sin
-                    {
-                        dValue = (double)CMath.Sin(dValue);
-                    }
-                    else if (lCmd == 7) // cos
-                    {
-                        dValue = (double)CMath.Cos(dValue);
-                    }
-                    else if (lCmd == 8) // tan
-                    {
-                        dValue = (double)CMath.Tan(dValue);
-                    }
-                    else if (lCmd == 9) // asin
-                    {
-                        if (dValue > 1) dValue = 1.0f;
-                        else if (dValue < -1) dValue = -1.0f;
-
-                        dValue = (double)CMath.ASin(dValue);
-                    }
-                    else if (lCmd == 0x0a) // acos
-                    {
-                        if (dValue > 1) dValue = 1.0f;
-                        else if (dValue < -1) dValue = -1.0f;
-
-                        dValue = (double)CMath.ACos(dValue);
-                    }
-                    else if (lCmd == 0x0b) // atan
-                    {
-                        dValue = (double)CMath.ATan(dValue);
-                    }
-                    else if (lCmd == 0x0c) // sqrt
-                    {
-                        if (dData == 2)
+                        // second computation(Kor: 2차연산)
+                        // Cmd, Data, Ret            
+                        if (lCmd == 2) // Add
                         {
-                            dValue = (double)Math.Sqrt(dValue);
-                            if (Double.IsNaN(dValue) == true) dValue = 0;
+                            dValue += dData;
                         }
-                        else dValue = (double)Math.Pow(dValue, 1.0f / ((dData == 0) ? (double)CMath.Zero() : dData));
-                    }
-                    else if (lCmd == 0x0d) // pow
-                    {
-                        dValue = (double)Math.Pow(dValue, dData);
-                    }
-                    else if (lCmd == 0x0e) // clear
-                    {
-                        dValue = 0.0f;
-                    }
-                    else if (lCmd == 0x0f) // abs
-                    {
-                        dValue = (double)Math.Abs(dValue);
-                    }
-                    else if (lCmd == 0x10) // atan2
-                    {
-                        //fValue = (double)Math.Atan2(fValue, fData);
-                        // atan2(y, x)
-                        //fValue = (double)CMath.Ojw_aTan2(((fData == 0) ? (double)CMath.Zero() : fData), fValue);
-                        dValue = (double)CMath.ATan2(dValue, ((dData == 0) ? (double)CMath.Zero() : dData));
-                    }
-                    else if (lCmd == 0x11) // acos2
-                    {
-                        int nPlane = (int)Math.Round(dData);
+                        else if (lCmd == 3) // Sub
+                        {
+                            dValue -= dData;
+                        }
+                        else if (lCmd == 4) // Mul
+                        {
+                            dValue *= dData;
+                        }
+                        else if (lCmd == 5) // Div
+                        {
+                            dValue /= ((dData == 0) ? (double)CMath.Zero() : dData);
+                        }
+                        else if (lCmd == 0x13) // Mod
+                        {
+                            dValue %= dData;
+                        }
+                        else if (lCmd == 6) // sin
+                        {
+                            dValue = (double)CMath.Sin(dValue);
+                        }
+                        else if (lCmd == 7) // cos
+                        {
+                            dValue = (double)CMath.Cos(dValue);
+                        }
+                        else if (lCmd == 8) // tan
+                        {
+                            dValue = (double)CMath.Tan(dValue);
+                        }
+                        else if (lCmd == 9) // asin
+                        {
+                            if (dValue > 1) dValue = 1.0f;
+                            else if (dValue < -1) dValue = -1.0f;
 
-                        if (dValue > 1) dValue = 1.0f;
-                        else if (dValue < -1) dValue = -1.0f;
+                            dValue = (double)CMath.ASin(dValue);
+                        }
+                        else if (lCmd == 0x0a) // acos
+                        {
+                            if (dValue > 1) dValue = 1.0f;
+                            else if (dValue < -1) dValue = -1.0f;
 
-                        // asin(Angle, Plane) // - Plane 0~3(1,2,3,4 quadrants) so, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-,
-                        // Kor: asin(각도, 평면) // - 평면 0~3(각각 1,2,3,4분면) 즉, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-,
-                        dValue = (double)CMath.ACos_Plane(nPlane, (double)dValue);
-                    }
-                    else if (lCmd == 0x12) // asin2
-                    {
-                        int nPlane = (int)Math.Round(dData);
+                            dValue = (double)CMath.ACos(dValue);
+                        }
+                        else if (lCmd == 0x0b) // atan
+                        {
+                            dValue = (double)CMath.ATan(dValue);
+                        }
+                        else if (lCmd == 0x0c) // sqrt
+                        {
+                            if (dData == 2)
+                            {
+                                dValue = (double)Math.Sqrt(dValue);
+                                if (Double.IsNaN(dValue) == true) dValue = 0;
+                            }
+                            else dValue = (double)Math.Pow(dValue, 1.0f / ((dData == 0) ? (double)CMath.Zero() : dData));
+                        }
+                        else if (lCmd == 0x0d) // pow
+                        {
+                            dValue = (double)Math.Pow(dValue, dData);
+                        }
+                        else if (lCmd == 0x0e) // clear
+                        {
+                            dValue = 0.0f;
+                        }
+                        else if (lCmd == 0x0f) // abs
+                        {
+                            dValue = (double)Math.Abs(dValue);
+                        }
+                        else if (lCmd == 0x10) // atan2
+                        {
+                            //fValue = (double)Math.Atan2(fValue, fData);
+                            // atan2(y, x)
+                            //fValue = (double)CMath.Ojw_aTan2(((fData == 0) ? (double)CMath.Zero() : fData), fValue);
+                            dValue = (double)CMath.ATan2(dValue, ((dData == 0) ? (double)CMath.Zero() : dData));
+                        }
+                        else if (lCmd == 0x11) // acos2
+                        {
+                            int nPlane = (int)Math.Round(dData);
 
-                        if (dValue > 1) dValue = 1.0f;
-                        else if (dValue < -1) dValue = -1.0f;
+                            if (dValue > 1) dValue = 1.0f;
+                            else if (dValue < -1) dValue = -1.0f;
 
-                        // asin(Angle, Plane)  // - Plane 0~3(1,2,3,4 quadrants) so, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-,
-                        // Kor: asin(각도, 평면) // - 평면 0~3(각각 1,2,3,4분면) 즉, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-
-                        dValue = (double)CMath.ASin_Plane(nPlane, (double)dValue);
+                            // asin(Angle, Plane) // - Plane 0~3(1,2,3,4 quadrants) so, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-,
+                            // Kor: asin(각도, 평면) // - 평면 0~3(각각 1,2,3,4분면) 즉, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-,
+                            dValue = (double)CMath.ACos_Plane(nPlane, (double)dValue);
+                        }
+                        else if (lCmd == 0x12) // asin2
+                        {
+                            int nPlane = (int)Math.Round(dData);
 
-                    }
+                            if (dValue > 1) dValue = 1.0f;
+                            else if (dValue < -1) dValue = -1.0f;
+
+                            // asin(Angle, Plane)  // - Plane 0~3(1,2,3,4 quadrants) so, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-,
+                            // Kor: asin(각도, 평면) // - 평면 0~3(각각 1,2,3,4분면) 즉, 0 - x+,y+, 1 - x-,y+, 3 - x-,y-, 4 - x+,y-
+                            dValue = (double)CMath.ASin_Plane(nPlane, (double)dValue);
+
+                        }
+                        else if (lCmd == 0x14) // round
+                        {
+                            dValue = (double)Math.Round(dValue, (int)dData);
+                        }
 #if false
                     // Test code - 없어도 상관없는 코드
                     //            if (Single.IsNaN(fValue) == true)
@@ -2554,7 +2615,7 @@ namespace OpenJigWare
                     //           }
 #endif
 
-                    #region Error Exception
+                        #region Error Exception
 #if false
                     if (double.IsNaN(dValue) == true)
                     {
@@ -2565,7 +2626,12 @@ namespace OpenJigWare
                         dValue = 0;
                     }
 #endif
-                    #endregion Error Exception
+                        #endregion Error Exception
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.ToString());
+                    }
                 }
             }
         }

@@ -186,16 +186,65 @@ namespace OpenJigWare
                             strTmp = String.Empty;
                             strTmp0 = aStrS0[i, k];
                             strTmp1 = aStrS1[k, j];
+
+                            
+
                             if ((CConvert.IsDigit(strTmp0) == true) && (CConvert.IsDigit(strTmp1) == true))
                             {
                                 strTmp = CConvert.FloatToStr(CConvert.StrToFloat(strTmp0) * CConvert.StrToFloat(strTmp1));
                             }
-                            else if (strTmp0 == "1") strTmp = strTmp1;
-                            else if (strTmp1 == "1") strTmp = strTmp0;
-                            else if (strTmp0 == "0") strTmp = "0";
-                            else if (strTmp1 == "0") strTmp = "0";
-                            else                     strTmp = strTmp0 + "*" + strTmp1;
+                            else
+                            {
+                                //CMessage.Write("Test");
+                                //if ((CConvert.IsDigit(strTmp0) == true) && (CConvert.IsDigit(strTmp1) == true)) 
+                                //    CMessage.Write("Digit");
+                                //else
+                                //    CMessage.Write("No Digit");
 
+                                //if ((strTmp0 == "-1") && (strTmp1 == "-1"))
+                                //{
+                                //    strTmp0 = "1";
+                                //    strTmp1 = "1";
+                                //}
+                                //else 
+                                if (strTmp0 == "-1")
+                                {
+                                    if (strTmp1[0] == '-')
+                                    {
+                                        strTmp1 = aStrS1[k, j].Substring(1);
+                                    }
+                                    else
+                                    {
+                                        strTmp1 = "-" + strTmp1;
+                                    }
+                                    strTmp0 = "1";
+                                }
+                                else if (strTmp1 == "-1")
+                                {
+                                    if (strTmp0[0] == '-')
+                                    {
+                                        strTmp0 = aStrS0[i, k].Substring(1);
+                                    }
+                                    else
+                                    {
+                                        strTmp0 = "-" + strTmp0;
+                                    }
+                                    strTmp1 = "1";
+                                }
+
+                                
+                                if (strTmp0 == "1") strTmp = strTmp1;
+                                else if (strTmp1 == "1") strTmp = strTmp0;
+                                else if (strTmp0 == "0") strTmp = "0";
+                                else if (strTmp1 == "0") strTmp = "0";
+                                else
+                                {
+                                    //if ((strTmp0[0] != '(') || (strTmp0[strTmp0.Length - 1] != ')')) strTmp0 = "(" + strTmp0 + ")";
+                                    //if ((strTmp1[0] != '(') || (strTmp1[strTmp1.Length - 1] != ')')) strTmp1 = "(" + strTmp1 + ")";
+                                    //strTmp = strTmp0 + "*" + strTmp1;
+                                    strTmp = "(" + strTmp0 + ")*(" + strTmp1 + ")";
+                                }
+                            }
                             //if ((aStrRes[i, j].Length == 0) || (aStrRes[i, j] == "0")) aStrRes[i, j] = (String)strTmp.Clone();
                             if (aStrRes[i, j].Length == 0) aStrRes[i, j] = (String)strTmp.Clone();
                             else
@@ -958,9 +1007,13 @@ namespace OpenJigWare
             //} 
             #endregion Complementary Filter
             #endregion Filter
-
-            #region Delta Parallel 3 dof
-
+            
+            #region Delta Parallel 3 dof - 제작 : 이동현 차장(동부로봇)
+            //////////////////////////////////////////////////////////////////////////////////
+            // made by Donghyeon, Lee in dongbu-robot(Address Changed to DST Robot)
+            // 참고 논문 - http://www.google.co.kr/url?sa=t&rct=j&q=&esrc=s&source=web&cd=10&ved=0ahUKEwiD2Nv_lsbKAhWBFqYKHe7FCzIQFghsMAk&url=http%3A%2F%2Fwww.jonmartinez.neositios.com%2Fdownloads.php%3Fid%3D1012189%26dId%3D0%26fId%3D61194&usg=AFQjCNENsRA6axGz4V_9XgRi7-QU03j-_A&bvm=bv.112454388,d.dGY&cad=rja
+            //////////////////////////////////////////////////////////////////////////////////
+            
             private static double m_dRad0 = 200.0f;//214.0f;
             private static double m_dL0 = 83.0f;//110.0f;//132.0f;//122.0f;//81.0f;//122.0f;//43.0f;//80.0f;
             private static double m_dL1 = 247.0f;//302.5f;//340.0f;//342.5f;//340.0f;//386.0f;//291.0f;//151.0f;//310.0f;
@@ -982,7 +1035,7 @@ namespace OpenJigWare
 
                m_bInitMetal = true;
             }
-            // made by Donghyeon, Lee in dongbu-robot(Address Changed to DST Robot)
+
             // X 가 앞뒤, Y 가 좌우, Z 가 상하
             public static bool Delta_Parallel_InverseKinematics(double dX, double dY, double dZ, out double dAngle0, out double dAngle1, out double dAngle2)
             {
@@ -1381,7 +1434,7 @@ namespace OpenJigWare
 
                 return true;
             }
-            #endregion Delta Parallel 3 dof
+            #endregion Delta Parallel 3 dof - 제작 : 이동현 차장(동부로봇)
         }
     }
 }

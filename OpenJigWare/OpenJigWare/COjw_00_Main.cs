@@ -1,10 +1,15 @@
-﻿/* This is a Open Source for Jig tools
+﻿// Dotnet 프레임 4.0 기준이나 3.5 버전으로 컴파일 시 _USING_DOTNET_3_5 를 조건부 컴파일에 선언할 것
+
+/* This is a Open Source for Jig tools
  * 
  * made by Jinwook-On (ojw5014@hanmail.net)
  * supported by Daesung-Choi, Ceolhea-yoon, Dongjoon-Chang (Advise)
  * supported by Mohssin (icons)
  * supported by Aram-Lee (all of the keypad images)
  * supported by Donghyeon-Lee (3 dof parallel Delta robot Kinematics function made)
+ * supported by JhoYoung-Choi (Motion Editor advise = beta testing = - tajo27@naver.com) & Debugging & recommend new feature(simulation... and so on)
+ * supported by Daniel Park, from DevTree (Motion Editor advise = beta testing = - www.facebook.com/DevTree)
+ * =================================================================================================================> Written by Jinwook, On
  */
 
 #region 나중에 참고
@@ -65,9 +70,48 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.01.59";
+        public const string strVersion = "01.01.63";
         public const string strHistory = (String)(
-            
+                "[V01.01.63]\r\n" +
+                "BinaryFileOpen() 함수 추가\r\n" +
+                "PlayFrame() 에서 LED 등의 기능이상부분 버그 처리(debugging advise - JhoYoung-Choi : tajo27@naver.com\r\n" + 
+                "Motion_Play(), Motion_Stop(), Motion_Reset() 함수 추가 - Motion file 을 programming 으로 run 할수 있도록 feature 추가\r\n" +
+                "BinaryFileOpen() 함수 추가\r\n" + 
+                "m_CGridMotionEditor 이 null 일경우 모델링 파일이 불러지지 않는 버그 패치\r\n" + 
+                "MotionEditor 의 Simulation 기능 추가(체크박스 체크 해제시 단일 프레임 시뮬레이션)\r\n" +
+                "MotionEditor 의 파일복구 기능 버그 수정\r\n" +
+                "MotionEditor 에서 Control^C,E 하고 엑셀 같은곳은 Control^V 시 Evd(Engineering value of degree : raw data) 로 데이타가 전환되어 붙여넣기가 가능\r\n" +
+                "CTimer 의 Class Get() 함수 return value 가 double 로 되어 있는 것을 long 으로 수정\r\n" +
+                "COjwMotor class 내의 m_nRxIndex 의 초기값을 255로 해 두어야 하는데 0으로 해놓은 오타 덕에 초기 1번의 데이터 Get 이 Error 를 일으키는 문제 해결\r\n" +
+                "내부의 CTimer static 메모리를 사용하는 부분을 전부 클래스 변수로 전환\r\n" +
+                "========================================\r\n" + // NoReleased            
+                "[V01.01.62]" + "\r\n" +
+                "selectmotor 함수에 외견상 선택뿐 아니라 실제 모터선택도 같이 되도록 수정" + "\r\n" +
+                "Motion Tool Upgrade" + "\r\n" +
+                "Motion Tool 에 multimedia 기능 삽입" + "\r\n" +
+                "========================================\r\n" + // NoReleased            
+                "[V01.01.61]" + "\r\n" +
+                "Forward Kinematics 자동 생성 함수에 오타성 버그 발견 및 수정, Inverse Kinematics 내부 메모리 확장" + "\r\n" +
+                "IsDigit 기능 강화(부호, 소숫점 판단)" + "\r\n" + 
+                "CalcDhParamAll_ToString() 함수에서 자동으로 수식 만들어 주는 부분에 방향이 반대인 경우의 수식 계산과정을 스트링으로 만들어주는 부분 적용" + "\r\n" + 
+                "ShowTools_Modeling() 에서 Prop_Set_Main_MouseControlMode(0) 을 삽입, 마우스 모드를 제어 모드가 아닌 이동 모드로 시작하도록 구현" + "\r\n" +
+                "========================================\r\n" + // Released            
+                "[V01.01.61]" + "\r\n" +
+                "SetParam_Axis, SetSpeedType 부분을 CMotor 뿐만 아니라 CHerculex 에도 삽입" + "\r\n" + 
+                "CConvert 의 FloatsToDoubles, DoublesToFloats 의 함수 call 위치 변경" + "\r\n" +
+                "Kinematics 에 SetValue_V, SetValue_Motor 의 Doubles -> floats 추가" + "\r\n" +
+                "IsRunningProgram() 함수 추가" + "\r\n" +
+                "CreateProb_VirtualObject, CreateProp_Selected 의 argument 를 Panel -> Control 로 변경" + "\r\n" +
+                "CreateProb_VirtualObject -> CreateProp_VirtualObject으로 이름 변경(현재 혼용사용 가능)" + "\r\n" + 
+                "DataFileOpen() 함수 구현" + "\r\n" +
+                "OjwMouseDown 수정 - 클릭시 선택된 Kinematics 수식 번호가 이전 것으로 되어 있던 버그 수정" + "\r\n" + 
+                "Socket Connect 함수를 랙이 생기지 않게 BeginConnect 로 변경" + "\r\n" +
+                "C2d 클래스에서 Load 항목 추가 - 기존 색으로 지우던 부분을 로드한 파일로 대치하도록 기능추가." + "\r\n" +
+                "GridMotionEditor_Init() 에서 에러 메세지 삭제" + "\r\n" +
+                "ShowTools_Modeling() 의 scale 기능 보완 - 현재 0.5 배율까지 확인" + "\r\n" +
+                "SelectMotor_Sync_With_Mouse() 함수 추가 - 마우스 클릭시 기존 선택된 selectedmotor 를 해제한다." + "\r\n" +
+                "SetMousePickEnable() 함수 추가 - 마우스 클릭시에 색이 변하는 걸 막을 수 있다." + "\r\n" +
+                "========================================\r\n" + // NoReleased            
                 "[V01.01.59]" + "\r\n" +
                 "MakeDHSkeleton() 함수에서 라인피드 문자 추가. 이게 없어 버그 있었음" + "\r\n" +
                 "COjw_03_Message.cs 에 SaveImageFile() 기능 추가" + "\r\n" +
@@ -359,6 +403,14 @@ namespace OpenJigWare
             private Docking.frmModel m_frmTools;
             public void ShowTools_Modeling(float fScale)
             {
+                if (fScale == 0)
+                {
+                    CMessage.Write_Error("Scale error - 0 division");
+                    return;
+                }
+
+                float fScale2 = fScale;
+                fScale = 1.0f;
                 // 지정 폴더말고도 일반 폴더도 인식하게...(복사)
                 m_C3d_Designer = new C3d();
                 #region Main Form
@@ -370,7 +422,7 @@ namespace OpenJigWare
                 frmTool_Designer.Load += new EventHandler(frmTool_Designer_Load);
                 frmTool_Designer.FormClosed += new FormClosedEventHandler(frmTool_Designer_FormClosed);
                 #endregion Main Form
-
+                                
                 #region Panel(3D)
                 m_pnDrawModel = new Panel();
                 m_pnDrawModel.Size = new Size(m_nSize_DRAW_W, m_nSize_DRAW_H);
@@ -415,6 +467,7 @@ namespace OpenJigWare
                 m_pnProperty.Location = new Point(6, 9 + nProperty_Top);
                 //m_pnProperty.Location = new Point(6, 9);
                 m_pnProperty.BorderStyle = BorderStyle.Fixed3D;
+                //m_pnProperty.Scale(new SizeF(fScale + 1 - fScale2, fScale + 1 - fScale2));
                 tpPage0.Controls.Add(m_pnProperty);
                 
                 m_pnProperty_Selected = new Panel();
@@ -1212,7 +1265,7 @@ namespace OpenJigWare
                 frmTool_Designer.Scale(new SizeF(fRatio_W, fRatio_H));
                 foreach (Control control in frmTool_Designer.Controls)
                 {
-                    control.Font = new Font("Verdana", control.Font.SizeInPoints * fScale);//fRatio_W * fRatio_H);
+                    control.Font = new Font(control.Font.Name, control.Font.SizeInPoints * fScale2);//fRatio_W * fRatio_H);
                 }
 
                 // 수정된 위치 적용
@@ -1245,13 +1298,22 @@ namespace OpenJigWare
 
 
 
+                //m_pnProperty.Scale(new SizeF(fScale + 1 - fScale2, fScale + 1 - fScale2));
 
 
-                
+                frmTool_Designer.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi; // (Font 로 되어 있으면 영문윈도우시 깨짐)
+                frmTool_Designer.Scale(new SizeF(fScale2, fScale2));
+
+                m_frmTools.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi; // (Font 로 되어 있으면 영문윈도우시 깨짐)
+                m_frmTools.Scale(new SizeF(1.0f / fScale2, 1.0f / fScale2));
+
+
+                frmTool_Designer.Size = new Size((int)Math.Round((float)_SIZE_W * fScale2) + 10, (int)Math.Round((float)_SIZE_H * fScale2) + 10);
+
                 m_frmTools.Show();
 
                 m_tmrDrawModel.Enabled = true;
-
+                
                 frmTool_Designer.Show();
             }
 

@@ -91,9 +91,12 @@ namespace OpenJigWare
             //private float m_Param_fDegree = 333.333f;
             //private float m_Param_fCenterPos = 512.0f;
             private SMot_t[] m_pSMot = new SMot_t[_MOTOR_MAX];
+            private const int _CNT_TIMER = 999;
+            private Ojw.CTimer[] m_aCTmr = new CTimer[_CNT_TIMER];
             public CHerculex() // 생성자 초기화 함수
             {
-                CTimer.Init(999);
+                for (int i = 0; i < _CNT_TIMER; i++) m_aCTmr[i] = new CTimer();
+                //CTimer.Init(999);
                 //m_SerialPort = new SerialPort();
                 SetModel(EType_t._0101);
 
@@ -101,7 +104,7 @@ namespace OpenJigWare
             }
             ~CHerculex()
             {
-                CTimer.DInit();
+                //CTimer.DInit();
                 //m_bClassEnd = true;
                 if (IsConnect()) DisConnect();
                 //m_SerialPort.Dispose();
@@ -129,6 +132,15 @@ namespace OpenJigWare
                 }
                 m_CMotor.InitCmd();
             }
+            public void SetParam_Axis(int nAxis, int nID, int nDir, float fLimitUp, float fLimitDn, int nCenterPos, float fMechMove, float fDegree)
+            {
+                m_CMotor.SetParam_Axis(nAxis, nID, nDir, fLimitUp, fLimitDn, nCenterPos, fMechMove, fDegree);
+            }
+            public bool SetSpeedType(int nAxis, bool bSpeedType)
+            {
+                return m_CMotor.SetSpeedType(nAxis, bSpeedType);
+            }
+        
             public EType_t [] GetModel()
             {
                 return m_aEType;
@@ -751,8 +763,11 @@ namespace OpenJigWare
         public class COjwMotor
         {
             #region 생성자/소멸자
+            private const int _CNT_TIMER = 999;
             public COjwMotor() // 생성자 초기화 함수
             {
+                for (int i = 0; i < _CNT_TIMER; i++) m_aCTmr[i] = new CTimer();
+
                 m_SerialPort = new SerialPort();
                 //델리게이트 생성
                 //runDele d = new MainForm.runDele(this.initServer);
@@ -765,7 +780,7 @@ namespace OpenJigWare
             }
 
             public void ReleaseClass()
-            {
+            {                
                 m_bClassEnd = true;
                 DisConnect();
                 m_SerialPort.Dispose();
@@ -786,6 +801,8 @@ namespace OpenJigWare
             private const int _ADDRESS_PRESENT_CONTROL_MODE = 56;
             private const int _ADDRESS_TICK = 57;
             private const int _ADDRESS_CALIBRATED_POSITION = 58;
+
+            private Ojw.CTimer[] m_aCTmr = new CTimer[_CNT_TIMER];
 
             #region 패킷 정의(Header 등...)
             private const int _HEADER1 = 0;
@@ -1465,9 +1482,9 @@ namespace OpenJigWare
             private int[] m_pnCntTick_Send = new int[_MOTOR_MAX];
             private int[] m_pnCntTick_Receive = new int[_MOTOR_MAX];
             private int[] m_pnCntTick_Receive_Back = new int[_MOTOR_MAX];
-            private long Tick_GetTimer(int nAxis) { return CTimer.Get(nAxis); }
-            private void Tick_Send(int nAxis) { if (IsConnect() == false) return; m_pnCntTick_Send[nAxis]++; CTimer.Set(nAxis); m_pnCntTick_Receive_Back[nAxis] = m_pnCntTick_Receive[nAxis]; }
-            private void Tick_Receive(int nAxis) { m_pnCntTick_Receive[nAxis]++; CTimer.Set(nAxis); }
+            private long Tick_GetTimer(int nAxis) { return m_aCTmr[nAxis].Get(); }
+            private void Tick_Send(int nAxis) { if (IsConnect() == false) return; m_pnCntTick_Send[nAxis]++; m_aCTmr[nAxis].Set(); m_pnCntTick_Receive_Back[nAxis] = m_pnCntTick_Receive[nAxis]; }
+            private void Tick_Receive(int nAxis) { m_pnCntTick_Receive[nAxis]++; m_aCTmr[nAxis].Set(); }
             public int GetCounter_Tick_Send(int nAxis) { return m_pnCntTick_Send[nAxis]; }
             public int GetCounter_Tick_Receive(int nAxis) { return m_pnCntTick_Receive[nAxis]; }
             public void ResetCounter()
@@ -1481,11 +1498,12 @@ namespace OpenJigWare
             // 틱을 이용한 ...
             // 통신 장애 시간 체크
             public long GetCounter_Timer(int nAxis) { return Tick_GetTimer(nAxis); }
-            //public bool IsReceived(int nAxis) { return ((m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) || (CTimer.Get(nAxis) > 100)) ? true : false; }
+            //public bool IsReceived(int nAxis) { return ((m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) || (m_aCTmr[nAxis].Get() > 100)) ? true : false; }
             public bool IsReceived(int nAxis) { return (m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) ? true : false; }
             public bool WaitReceive(int nAxis, long lWaitTimer)  // true : Receive Ok, false : Fail
             {
-                CTimer.Set(512 + 1);
+                CTimer tmrReceive = new CTimer();
+                tmrReceive.Set();
                 bool bError = true;
                 bool bOver = false;
                 while ((IsConnect() == true) && (m_bClassEnd == false) && (bOver == false))
@@ -1497,7 +1515,7 @@ namespace OpenJigWare
                     }
                     if (lWaitTimer > 0)
                     {
-                        if (CTimer.Get(512 + 1) >= lWaitTimer)
+                        if (tmrReceive.Get() >= lWaitTimer)
                         {
                             bOver = true;
                         }
@@ -1658,8 +1676,16 @@ namespace OpenJigWare
             {
                 if (IsConnect() == true)
                 {
-                    if (IsZigBee() == true) SendPacket_with_zigbee(GetZigBee_Address(), buffer, nLength);
-                    else m_SerialPort.Write(buffer, 0, nLength);
+                    try
+                    {
+                        if (IsZigBee() == true) SendPacket_with_zigbee(GetZigBee_Address(), buffer, nLength);
+                        else m_SerialPort.Write(buffer, 0, nLength);
+                    }
+                    catch (Exception ex)
+                    {
+                        Ems();
+                        Ojw.CMessage.Write_Error("Serial Connection Error - " + ex.ToString());
+                    }
                 }
             }
 
@@ -1833,7 +1859,7 @@ namespace OpenJigWare
             }
             private byte m_byCheckSum = 0;
             private byte m_byCheckSum2 = 0;
-            private int m_nRxIndex = 0;
+            private int m_nRxIndex = 255;//0;
             private int m_nRxDataCount = 0;
             private int m_nRxId = 0;
             private int m_nRxCmd = 0;
@@ -2592,9 +2618,9 @@ namespace OpenJigWare
             private int m_nCntTick_Receive_Mpsu = 0;
             private int m_nCntTick_Receive_Mpsu_Back = 0;
             public long GetCounter_Timer_Mpsu() { return Tick_GetTimer(256); }
-            private long Tick_GetTimer_Mpsu(int nAxis) { return CTimer.Get(256); }
-            private void Tick_Send_Mpsu() { if (IsConnect() == false) return; m_nCntTick_Send_Mpsu++; CTimer.Set(256); m_nCntTick_Receive_Mpsu_Back = m_nCntTick_Receive_Mpsu; }
-            private void Tick_Receive_Mpsu() { m_nCntTick_Receive_Mpsu++; CTimer.Set(256); }
+            private long Tick_GetTimer_Mpsu(int nAxis) { return m_aCTmr[256].Get(); }
+            private void Tick_Send_Mpsu() { if (IsConnect() == false) return; m_nCntTick_Send_Mpsu++; m_aCTmr[256].Set(); m_nCntTick_Receive_Mpsu_Back = m_nCntTick_Receive_Mpsu; }
+            private void Tick_Receive_Mpsu() { m_nCntTick_Receive_Mpsu++; m_aCTmr[256].Set(); }
             public void ResetCounter_Mpsu()
             {
                 m_nCntTick_Send_Mpsu = 0;
@@ -2605,7 +2631,7 @@ namespace OpenJigWare
             public bool IsReceived_Mpsu() { return (m_nCntTick_Receive_Mpsu != m_nCntTick_Receive_Mpsu_Back) ? true : false; }
             public bool WaitReceive_Mpsu(long lWaitTimer)  // true : Receive Ok, false : Fail
             {
-                CTimer.Set(512 + 2);
+                m_aCTmr[512 + 2].Set();
                 bool bError = true;
                 bool bOver = false;
                 while ((IsConnect() == true) && (m_bClassEnd == false) && (bOver == false))
@@ -2617,7 +2643,7 @@ namespace OpenJigWare
                     }
                     if (lWaitTimer > 0)
                     {
-                        if (CTimer.Get(512 + 2) >= lWaitTimer)
+                        if (m_aCTmr[512 + 2].Get() >= lWaitTimer)
                         {
                             bOver = true;
                         }
@@ -3036,9 +3062,9 @@ namespace OpenJigWare
             private int m_nCntTick_Receive_Sensor = 0;
             private int m_nCntTick_Receive_Sensor_Back = 0;
             public long GetCounter_Timer_Sensor() { return Tick_GetTimer(256); }
-            private long Tick_GetTimer_Sensor(int nAxis) { return CTimer.Get(256); }
-            private void Tick_Send_Sensor() { if (IsConnect() == false) return; m_nCntTick_Send_Sensor++; CTimer.Set(256); m_nCntTick_Receive_Sensor_Back = m_nCntTick_Receive_Sensor; }
-            private void Tick_Receive_Sensor() { m_nCntTick_Receive_Sensor++; CTimer.Set(256); }
+            private long Tick_GetTimer_Sensor(int nAxis) { return m_aCTmr[256].Get(); }
+            private void Tick_Send_Sensor() { if (IsConnect() == false) return; m_nCntTick_Send_Sensor++; m_aCTmr[256].Set(); m_nCntTick_Receive_Sensor_Back = m_nCntTick_Receive_Sensor; }
+            private void Tick_Receive_Sensor() { m_nCntTick_Receive_Sensor++; m_aCTmr[256].Set(); }
             public void ResetCounter_Sensor()
             {
                 m_nCntTick_Send_Sensor = 0;
@@ -3049,7 +3075,7 @@ namespace OpenJigWare
             public bool IsReceived_Sensor() { return (m_nCntTick_Receive_Sensor != m_nCntTick_Receive_Sensor_Back) ? true : false; }
             public bool WaitReceive_Sensor(long lWaitTimer)  // true : Receive Ok, false : Fail
             {
-                CTimer.Set(512 + 2);
+                m_aCTmr[512 + 2].Set();
                 bool bError = true;
                 bool bOver = false;
                 while ((IsConnect() == true) && (m_bClassEnd == false) && (bOver == false))
@@ -3061,7 +3087,7 @@ namespace OpenJigWare
                     }
                     if (lWaitTimer > 0)
                     {
-                        if (CTimer.Get(512 + 2) >= lWaitTimer)
+                        if (m_aCTmr[512 + 2].Get() >= lWaitTimer)
                         {
                             bOver = true;
                         }
@@ -3445,9 +3471,9 @@ namespace OpenJigWare
             private int m_nCntTick_Receive_Head = 0;
             private int m_nCntTick_Receive_Head_Back = 0;
             public long GetCounter_Timer_Head() { return Tick_GetTimer(256); }
-            private long Tick_GetTimer_Head(int nAxis) { return CTimer.Get(256); }
-            private void Tick_Send_Head() { if (IsConnect() == false) return; m_nCntTick_Send_Head++; CTimer.Set(256); m_nCntTick_Receive_Head_Back = m_nCntTick_Receive_Head; }
-            private void Tick_Receive_Head() { m_nCntTick_Receive_Head++; CTimer.Set(256); }
+            private long Tick_GetTimer_Head(int nAxis) { return m_aCTmr[256].Get(); }
+            private void Tick_Send_Head() { if (IsConnect() == false) return; m_nCntTick_Send_Head++; m_aCTmr[256].Set(); m_nCntTick_Receive_Head_Back = m_nCntTick_Receive_Head; }
+            private void Tick_Receive_Head() { m_nCntTick_Receive_Head++; m_aCTmr[256].Set(); }
             public void ResetCounter_Head()
             {
                 m_nCntTick_Send_Head = 0;
@@ -3458,7 +3484,7 @@ namespace OpenJigWare
             public bool IsReceived_Head() { return (m_nCntTick_Receive_Head != m_nCntTick_Receive_Head_Back) ? true : false; }
             public bool WaitReceive_Head(long lWaitTimer)  // true : Receive Ok, false : Fail
             {
-                CTimer.Set(512 + 2);
+                m_aCTmr[512 + 2].Set();
                 bool bError = true;
                 bool bOver = false;
                 while ((IsConnect() == true) && (m_bClassEnd == false) && (bOver == false))
@@ -3470,7 +3496,7 @@ namespace OpenJigWare
                     }
                     if (lWaitTimer > 0)
                     {
-                        if (CTimer.Get(512 + 2) >= lWaitTimer)
+                        if (m_aCTmr[512 + 2].Get() >= lWaitTimer)
                         {
                             bOver = true;
                         }

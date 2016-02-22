@@ -1,13 +1,18 @@
-Ôªø//#define _IS_VAR_GRIDDRAW //
-//#define _SET_DEFAULT_PERSPECTIVE // Ïù¥Í±∏ ÏÇ¥Î¶¨Î©¥ Perspective Î™®ÎìúÍ∞Ä Í∏∞Î≥∏ Î™®ÎìúÎ°ú ÏÑ§Ï†ï
-//#define _ENABLE_PERSPECTIVE => IsPerspectiveMode() Î°ú Î∞îÎÄú
+#define _COPY_FLAG
+#define _ENABLE_LED_FONT_COLOR
+//#define _ENABLE_LED_FONT_BOLD
+//#define _REMOVE GRIDDRAW
+
+//#define _IS_VAR_GRIDDRAW //
+//#define _SET_DEFAULT_PERSPECTIVE // ¿Ã∞… ªÏ∏Æ∏È Perspective ∏µÂ∞° ±‚∫ª ∏µÂ∑Œ º≥¡§
+//#define _ENABLE_PERSPECTIVE => IsPerspectiveMode() ∑Œ πŸ≤Ò
 
 //#define _USE_LOOKAT
 
 //#define _STL_CW
 #define _OLD_PROP
 #define _DHF_FILE
-#define _GL_FLAT
+//#define _GL_FLAT
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,22 +39,22 @@ namespace OpenJigWare
 #if false
         [DllImport("user32.dll")]
         public static extern int SetCursor(int hCursor);
-        private const int IDC_APPSTARTING   = 32650; // Arrow/Wait ÌôîÏÇ¥Ìëú/Î™®ÎûòÏãúÍ≥Ñ 
-        private const int IDC_ARROW         = 32512; // ÌôîÏÇ¥Ìëú 
-        private const int IDC_CROSS         = 32515; // Ïã≠ÏûêÍ∞Ä 
-        private const int IDC_HAND          = 32649; // ÏÜê 
-        private const int IDC_HELP          = 32651; // ÎèÑÏõÄÎßê 
-        private const int IDC_IBEAM         = 32513; // ÌÖçÏä§Ìä∏(Îπî) 
-        private const int IDC_ICON          = 32641; // ÏïÑÏù¥ÏΩò 
-        private const int IDC_NO            = 32648; // ÏõêÌòï 
-        private const int IDC_SIZE          = 32640; // ÌÅ¨Í∏∞Ï°∞Ï†ï 
-        private const int IDC_SIZEALL       = 32646; // ÌÅ¨Í∏∞Ï°∞Ï†ï 
-        private const int IDC_SIZENESW      = 32643; // Ï¢åÏö∞ ÌÅ¨Í∏∞Ï°∞Ï†ï 
-        private const int IDC_SIZENS        = 32645; // ÏÑ∏Î°ú ÌÅ¨Í∏∞Ï°∞Ï†ï 
-        private const int IDC_SIZENWSE      = 32642; // Ï¢åÏö∞ ÌÅ¨Í∏∞Ï°∞Ï†ï 
-        private const int IDC_SIZEWE        = 32644; //Size Width Í∞ÄÎ°ú ÌÅ¨Í∏∞Ï°∞Ï†ï 
+        private const int IDC_APPSTARTING   = 32650; // Arrow/Wait »≠ªÏ«•/∏∑°Ω√∞Ë 
+        private const int IDC_ARROW         = 32512; // »≠ªÏ«• 
+        private const int IDC_CROSS         = 32515; // Ω ¿⁄∞° 
+        private const int IDC_HAND          = 32649; // º’ 
+        private const int IDC_HELP          = 32651; // µµøÚ∏ª 
+        private const int IDC_IBEAM         = 32513; // ≈ÿΩ∫∆Æ(∫ˆ) 
+        private const int IDC_ICON          = 32641; // æ∆¿Ãƒ‹ 
+        private const int IDC_NO            = 32648; // ø¯«¸ 
+        private const int IDC_SIZE          = 32640; // ≈©±‚¡∂¡§ 
+        private const int IDC_SIZEALL       = 32646; // ≈©±‚¡∂¡§ 
+        private const int IDC_SIZENESW      = 32643; // ¡¬øÏ ≈©±‚¡∂¡§ 
+        private const int IDC_SIZENS        = 32645; // ºº∑Œ ≈©±‚¡∂¡§ 
+        private const int IDC_SIZENWSE      = 32642; // ¡¬øÏ ≈©±‚¡∂¡§ 
+        private const int IDC_SIZEWE        = 32644; //Size Width ∞°∑Œ ≈©±‚¡∂¡§ 
         private const int IDC_UPARROW       = 32516; // Arrow(Up)
-        private const int IDC_WAIT          = 32541; // Wait ÎåÄÍ∏∞
+        private const int IDC_WAIT          = 32541; // Wait ¥Î±‚
 #endif
         #endregion SetCursor
         public class C3d : SimpleOpenGlControl
@@ -93,6 +98,7 @@ namespace OpenJigWare
             //
             private TextBox m_txtForwardKinematics = new TextBox();
             private TextBox m_txtForwardKinematics_Message = new TextBox();
+            private TextBox m_txtInverseKinematics_Message = new TextBox();
             private TextBox m_txtDH_Draw_Size = new TextBox();
             private ComboBox m_cmbDH_AxisDir = new ComboBox();
             private TextBox m_txtDH_Draw_Alpha = new TextBox();
@@ -220,7 +226,7 @@ namespace OpenJigWare
                 }
                 else if (((System.Windows.Forms.TextBox)sender) == m_txtTestObjectSize)
                 {
-                    // ÌÖåÏä§Ìä∏ Í∞í ÏûÖÎ†•
+                    // ≈◊Ω∫∆Æ ∞™ ¿‘∑¬
                     SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
                 }
                 else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Caption)
@@ -370,7 +376,7 @@ namespace OpenJigWare
                 m_pnStatus = pnStatus;
 
                 i = 0;
-                Control[] aCtrl = new Control[_CNT_LABEL_TOOLSTATUS]; // Ïó¨Ïú†Î°≠Í≤å 100
+                Control[] aCtrl = new Control[_CNT_LABEL_TOOLSTATUS]; // ø©¿Ø∑”∞‘ 100
                 int[] anSeparation = new int[aCtrl.Length];
 
                 aCtrl[i] = m_txtObjectName;
@@ -459,7 +465,7 @@ namespace OpenJigWare
                 m_pnKinematics.Location = new Point(6, 9);
 
                 i = 0;
-                //Control[] aCtrl = new Control[_CNT_LABEL_TOOLMOTOR]; // Ïó¨Ïú†Î°≠Í≤å 100
+                //Control[] aCtrl = new Control[_CNT_LABEL_TOOLMOTOR]; // ø©¿Ø∑”∞‘ 100
                 //int[] anSeparation = new int[aCtrl.Length];
                 //Array.Resize<Control>(ref aCtrl, i + 1);
                 //Array.Resize<Label>(ref m_albTools_Motor, i + 1);
@@ -626,13 +632,21 @@ namespace OpenJigWare
                 m_txtInverseKinematics.WordWrap = false;
                 m_txtInverseKinematics.ScrollBars = ScrollBars.Both;
                 m_txtInverseKinematics.Width = m_tabKinematics.Width - m_txtInverseKinematics.Left * 2 - 10;
-                m_txtInverseKinematics.Height = m_tabKinematics.Height - m_txtInverseKinematics.Top * 2 - 30;
+                m_txtInverseKinematics.Height = m_tabKinematics.Height - m_txtInverseKinematics.Top * 2 - 30 - nHeight_Message;
                 m_tabpgInverse.Controls.Add(m_txtInverseKinematics);
                 // Event
                 m_txtInverseKinematics.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
                 i++; nItems++;
 
+                m_txtInverseKinematics_Message.Left = 10;
+                m_txtInverseKinematics_Message.Top = 10 + m_txtInverseKinematics.Height + nHeight_Message_Gap;
+                m_txtInverseKinematics_Message.Multiline = true;
+                m_txtInverseKinematics_Message.WordWrap = false;
+                m_txtInverseKinematics_Message.ScrollBars = ScrollBars.Both;
+                m_txtInverseKinematics_Message.Width = m_txtInverseKinematics.Width;// m_tabKinematics.Width - m_txtInverseKinematics_Message.Left * 2 - 10;
+                m_txtInverseKinematics_Message.Height = nHeight_Message;
+                m_tabpgInverse.Controls.Add(m_txtInverseKinematics_Message);
                 #endregion Inverse
 
                 #region String
@@ -763,7 +777,7 @@ namespace OpenJigWare
                 //
                 i++; nItems++;
 
-                // Íµ¨Î∂ÑÏÑ†
+                // ±∏∫–º±
                 m_albTools_Kinematics[nItems].Top = nDefaultTop + i * nGapH;
                 m_albTools_Kinematics[nItems].Text = "< D-H Param >";
                 gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
@@ -871,7 +885,7 @@ namespace OpenJigWare
                 m_btnCheckDH.Click += new EventHandler(m_btnKinematics_Click);
                 i++; nItems++;
                 
-                // Íµ¨Î∂ÑÏÑ†
+                // ±∏∫–º±
                 m_albTools_Kinematics[nItems].Top = nDefaultTop + i * nGapH;
                 m_albTools_Kinematics[nItems].Text = "< Inverse >";
                 gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
@@ -1033,7 +1047,7 @@ namespace OpenJigWare
                     Ojw.CKinematics.CForward.CalcKinematics(m_COjwDhParamAll, adAngle, out colX, out colY, out colZ, out dX, out dY, out dZ);
 
                     m_COjwDhParam.InitData();
-                    // Ï¥àÍ∏∞Ìôî
+                    // √ ±‚»≠
                     m_txtDH_A.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dA);
                     m_txtDH_D.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dD);
                     m_txtDH_Theta.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dTheta);
@@ -1047,50 +1061,52 @@ namespace OpenJigWare
                     if (m_chkSkeletonView.Checked == true)
                         MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
                 }
-                else if (((System.Windows.Forms.Button)sender) == m_btnChangePos) // "Go" Î≤ÑÌäº
+                else if (((System.Windows.Forms.Button)sender) == m_btnChangePos) // "Go" πˆ∆∞
                 {
                     int nNum = Ojw.CConvert.StrToInt(m_cmbInverseKinematics.Text);
                     float fX = Ojw.CConvert.StrToFloat(m_txtPos_X.Text);
                     float fY = Ojw.CConvert.StrToFloat(m_txtPos_Y.Text);
                     float fZ = Ojw.CConvert.StrToFloat(m_txtPos_Z.Text);
-
-                    // ÏßëÏñ¥ÎÑ£Í∏∞ Ï†ÑÏóê ÎÇ¥Î∂Ä Î©îÎ™®Î¶¨Î•º ÌÅ¥Î¶¨Ïñ¥ ÌïúÎã§.
+                    
+                    // ¡˝æÓ≥÷±‚ ¿¸ø° ≥ª∫Œ ∏ﬁ∏∏Æ∏¶ ≈¨∏ÆæÓ «—¥Ÿ.
                     Ojw.CKinematics.CInverse.SetValue_ClearAll(ref GetHeader_pSOjwCode()[nNum]);
                     Ojw.CKinematics.CInverse.SetValue_X(fX);
                     Ojw.CKinematics.CInverse.SetValue_Y(fY);
                     Ojw.CKinematics.CInverse.SetValue_Z(fZ);
 
 
-                    // ÌÖåÏä§Ìä∏ ÏãúÏûë
+                    // ≈◊Ω∫∆Æ Ω√¿€
                     SetTestCircle(m_chkTestObject.Checked);
                     //Settes
                     SetColor_Test(Color.Red);
-                    // ÌÖåÏä§Ìä∏ Í∞í ÏûÖÎ†•
+                    // ≈◊Ω∫∆Æ ∞™ ¿‘∑¬
                     SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
                     SetPos_Test(fX, fY, fZ);
 
-                    // ÌòÑÏû¨Ïùò Î™®ÌÑ∞Í∞ÅÏùÑ Ï†ÑÎ∂Ä ÏßëÏñ¥ ÎÑ£ÎèÑÎ°ù ÌïúÎã§.
+                    // «ˆ¿Á¿« ∏≈Õ∞¢¿ª ¿¸∫Œ ¡˝æÓ ≥÷µµ∑œ «—¥Ÿ.
                     //UpdateMotorCommand();
                     for (int i = 0; i < 256; i++)
                     {
-                        // Î™®ÌÑ∞Í∞íÏùÑ 3DÏóê ÎÑ£Ïñ¥Ï£ºÍ≥†
+                        // ∏≈Õ∞™¿ª 3Dø° ≥÷æÓ¡÷∞Ì
                         //SetData(i, Ojw.CConvert.StrToFloat(m_txtAngle[i].Text));
-                        // Í∑∏ Í∞íÏùÑ Í∫ºÎÇ¥ ÏàòÏãù Í≥ÑÏÇ∞Ïóê ÎÑ£Ïñ¥Ï§ÄÎã§.
+                        // ±◊ ∞™¿ª ≤®≥ª ºˆΩƒ ∞ËªÍø° ≥÷æÓ¡ÿ¥Ÿ.
                         Ojw.CKinematics.CInverse.SetValue_Motor(i, GetData(i));
                     }
 
-                    // Ïã§Ï†ú ÏàòÏãùÍ≥ÑÏÇ∞
+                    // Ω«¡¶ ºˆΩƒ∞ËªÍ
                     Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]);
 
                     m_txtForwardKinematics_Message.Clear();
+                    m_txtInverseKinematics_Message.Clear();
                     //m_lbV.Text = String.Empty;
                     for (int i = 0; i < 10; i++)
                     {
                         Ojw.CMessage.Write("V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)));
                         //m_lbV.Text += "V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)) + ",";
                         Ojw.CMessage.Write(m_txtForwardKinematics_Message, "V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)));
+                        Ojw.CMessage.Write(m_txtInverseKinematics_Message, "V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)));                    
                     }
-                    // ÎÇòÏò® Í≤∞Í≥ºÍ∞íÏùÑ ÏòÆÍ∏¥Îã§.
+                    // ≥™ø¬ ∞·∞˙∞™¿ª ø≈±‰¥Ÿ.
                     int nMotCnt = GetHeader_pSOjwCode()[nNum].nMotor_Max;
                     for (int i = 0; i < nMotCnt; i++)
                     {
@@ -1099,6 +1115,7 @@ namespace OpenJigWare
                         
                         m_atxtAngle[nMotNum].Text = Ojw.CConvert.FloatToStr((float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum));
                         Ojw.CMessage.Write(m_txtForwardKinematics_Message, "T" + nMotNum.ToString() + ":" + m_atxtAngle[nMotNum].Text);
+                        Ojw.CMessage.Write(m_txtInverseKinematics_Message, "T" + nMotNum.ToString() + ":" + m_atxtAngle[nMotNum].Text);
                     }
                     //BlockUpdate(true);
                     //for (int i = 0; i < 256; i++)
@@ -1129,11 +1146,11 @@ namespace OpenJigWare
                     m_txtPos_Y.Text = Ojw.CConvert.DoubleToStr(dY);
                     m_txtPos_Z.Text = Ojw.CConvert.DoubleToStr(dZ);
 
-                    // ÌÖåÏä§Ìä∏ ÏãúÏûë
+                    // ≈◊Ω∫∆Æ Ω√¿€
                     SetTestCircle(m_chkTestObject.Checked);
                     //Settes
                     SetColor_Test(Color.Red);
-                    // ÌÖåÏä§Ìä∏ Í∞í ÏûÖÎ†•
+                    // ≈◊Ω∫∆Æ ∞™ ¿‘∑¬
                     SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
                     SetPos_Test((float)dX, (float)dY, (float)dZ);
 
@@ -1164,26 +1181,26 @@ namespace OpenJigWare
             // return MotorCount, and ...
             public int GetData_Inverse(int nNum, double dX, double dY, double dZ, out int [] anMotorID, out double [] adValue)
             {
-                // ÏßëÏñ¥ÎÑ£Í∏∞ Ï†ÑÏóê ÎÇ¥Î∂Ä Î©îÎ™®Î¶¨Î•º ÌÅ¥Î¶¨Ïñ¥ ÌïúÎã§.
+                // ¡˝æÓ≥÷±‚ ¿¸ø° ≥ª∫Œ ∏ﬁ∏∏Æ∏¶ ≈¨∏ÆæÓ «—¥Ÿ.
                 Ojw.CKinematics.CInverse.SetValue_ClearAll(ref GetHeader_pSOjwCode()[nNum]);
                 Ojw.CKinematics.CInverse.SetValue_X(dX);
                 Ojw.CKinematics.CInverse.SetValue_Y(dY);
                 Ojw.CKinematics.CInverse.SetValue_Z(dZ);
                                 
-                // ÌòÑÏû¨Ïùò Î™®ÌÑ∞Í∞ÅÏùÑ Ï†ÑÎ∂Ä ÏßëÏñ¥ ÎÑ£ÎèÑÎ°ù ÌïúÎã§.
+                // «ˆ¿Á¿« ∏≈Õ∞¢¿ª ¿¸∫Œ ¡˝æÓ ≥÷µµ∑œ «—¥Ÿ.
                 for (int i = 0; i < m_CHeader.nMotorCnt; i++)
                 {
-                    // Î™®ÌÑ∞Í∞íÏùÑ 3DÏóê ÎÑ£Ïñ¥Ï£ºÍ≥†
+                    // ∏≈Õ∞™¿ª 3Dø° ≥÷æÓ¡÷∞Ì
                     //SetData(i, Ojw.CConvert.StrToFloat(m_txtAngle[i].Text));
-                    // Í∑∏ Í∞íÏùÑ Í∫ºÎÇ¥ ÏàòÏãù Í≥ÑÏÇ∞Ïóê ÎÑ£Ïñ¥Ï§ÄÎã§.
+                    // ±◊ ∞™¿ª ≤®≥ª ºˆΩƒ ∞ËªÍø° ≥÷æÓ¡ÿ¥Ÿ.
                     Ojw.CKinematics.CInverse.SetValue_Motor(i, GetData(i));
                 }
 
-                // Ïã§Ï†ú ÏàòÏãùÍ≥ÑÏÇ∞
+                // Ω«¡¶ ºˆΩƒ∞ËªÍ
                 Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]);
 
 
-                // ÎÇòÏò® Í≤∞Í≥ºÍ∞íÏùÑ ÏòÆÍ∏¥Îã§.
+                // ≥™ø¬ ∞·∞˙∞™¿ª ø≈±‰¥Ÿ.
                 int nMotCnt = GetHeader_pSOjwCode()[nNum].nMotor_Max;
                 if (nMotCnt <= 0)
                 {
@@ -1265,8 +1282,8 @@ namespace OpenJigWare
                         }
                         i++;
                     }
-                    //if (i != 6) return null; // Ìï¥ÏÑù ÏóêÎü¨
-                    if (i != 6) continue; // Ìï¥ÏÑù ÏóêÎü¨
+                    //if (i != 6) return null; // «ÿºÆ ø°∑Ø
+                    if (i != 6) continue; // «ÿºÆ ø°∑Ø
                     #endregion Items
 
                     //Prop_Set_DispObject("#20");
@@ -1366,7 +1383,11 @@ namespace OpenJigWare
                 }
                 #region Skeleton
                 StringBuilder sbResult = new StringBuilder();
-                sbResult.Clear();
+#if _USING_DOTNET_3_5
+                sbResult.Remove(0, sbResult.Length);
+#else
+                sbResult.Clear(); // Dotnet 4.0 ¿ÃªÛø°º≠∏∏ ªÁøÎ
+#endif
                 int nGroupNum = 0;
                 int nMotorNum = -1;
                 int nCnt = User_GetCnt();
@@ -1525,7 +1546,7 @@ namespace OpenJigWare
                         //Prop_Set_Name(nAxis);
                         //if ((nDir == 0) || (nDir == 1)) Prop_Set_AxisMoveType(1);
                         //else if ((nDir == 2) || (nDir == 3)) Prop_Set_AxisMoveType(3);
-                        //if ((nDir == 0) || (nDir == 2)) Prop_Set_Dir(1); // Î∞òÎåÄÍ∞ÅÏúºÎ°ú ÎèàÎã§. Ïã§Ï†úÏôÄ Îã§Î•¥Í≤å... -_-;;;
+                        //if ((nDir == 0) || (nDir == 2)) Prop_Set_Dir(1); // π›¥Î∞¢¿∏∑Œ µ∑¥Ÿ. Ω«¡¶øÕ ¥Ÿ∏£∞‘... -_-;;;
                         //else if ((nDir == 1) || (nDir == 3)) Prop_Set_Dir(0);
 
                         Prop_Set_Width_Or_Radius(m_fStickSize);
@@ -1582,7 +1603,7 @@ namespace OpenJigWare
                 //m_lbTestDh.Text = "[x=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dX, 3)) + ", y=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dY, 3)) + ", z=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dZ, 3)) + "]";
 
                 #region Checking Direction
-                // Î∞©Ìñ• ÌôïÏù∏
+                // πÊ«‚ »Æ¿Œ
                 float[] afX = new float[3];
                 float[] afY = new float[3];
                 float[] afZ = new float[3];
@@ -1662,11 +1683,11 @@ namespace OpenJigWare
                     float fY = Ojw.CConvert.StrToFloat(m_txtPos_Y.Text);
                     float fZ = Ojw.CConvert.StrToFloat(m_txtPos_Z.Text);
 
-                    // ÌÖåÏä§Ìä∏ ÏãúÏûë
+                    // ≈◊Ω∫∆Æ Ω√¿€
                     SetTestCircle(m_chkTestObject.Checked);
                     //Settes
                     SetColor_Test(Color.Red);
-                    // ÌÖåÏä§Ìä∏ Í∞í ÏûÖÎ†•
+                    // ≈◊Ω∫∆Æ ∞™ ¿‘∑¬
                     SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
                     SetPos_Test(fX, fY, fZ);
 
@@ -1677,10 +1698,10 @@ namespace OpenJigWare
             {
                 if ((nNum >= 0) && (nNum < m_cmbDh.Items.Count))
                 {
-                    Ojw.CEncryption.SetEncrypt("OJW5014"); // ÏïîÌò∏Ìôî Ìï¥Ï†úÎäî Î≥¥ÏïàÏù¥ ÌïÑÏöî
+                    Ojw.CEncryption.SetEncrypt("OJW5014"); // æœ»£»≠ «ÿ¡¶¥¬ ∫∏æ»¿Ã « ø‰
                     m_txtForwardKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptKinematics_encryption()[nNum].byteEncryption));
 
-                    Ojw.CEncryption.SetEncrypt("OJW5014"); // ÏïîÌò∏Ìôî Ìï¥Ï†úÎäî Î≥¥ÏïàÏù¥ ÌïÑÏöî
+                    Ojw.CEncryption.SetEncrypt("OJW5014"); // æœ»£»≠ «ÿ¡¶¥¬ ∫∏æ»¿Ã « ø‰
                     m_txtInverseKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption));
 
                     m_txtGroupName.Text = GetHeader_pstrGroupName()[nNum];
@@ -1749,7 +1770,7 @@ namespace OpenJigWare
                 m_pnMotor = pnMotor;
 
                 i = 0;
-                Control[] aCtrl = new Control[_CNT_LABEL_TOOLMOTOR]; // Ïó¨Ïú†Î°≠Í≤å 100
+                Control[] aCtrl = new Control[_CNT_LABEL_TOOLMOTOR]; // ø©¿Ø∑”∞‘ 100
                 int[] anSeparation = new int[aCtrl.Length];
                 //Array.Resize<Control>(ref aCtrl, i + 1);
                 //Array.Resize<Label>(ref m_albTools_Motor, i + 1);
@@ -1887,11 +1908,11 @@ namespace OpenJigWare
             #endregion PropertyGrid(Main)
 
             #region PropertyGrid
-            private CProp_User m_CPropAll = new CProp_User();
-            private CProp_Selected m_CPropAll_Selected = new CProp_Selected();
+            private CProp_User m_CPropAll = null;//new CProp_User();
+            private CProp_Selected m_CPropAll_Selected = null;//new CProp_Selected();
 
-            private CProperty m_CProperty = new CProperty();
-            private CProperty m_CProperty_Selected = new CProperty();
+            private CProperty m_CProperty = null;// = new CProperty();
+            private CProperty m_CProperty_Selected = null;// = new CProperty();
 
             //private CProp m_CProp_Main = new CProp();
             public void CreateProb(Panel pnProp)
@@ -2010,8 +2031,8 @@ namespace OpenJigWare
                     public SVector3D_t SOffset_Trans { get { return CDisp.SOffset_Trans; } set { CDisp.SOffset_Trans = value; } }
                     public class CVector3DConvert : TypeConverter
                     {
-                        //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                        // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                        //// http://kindtis.tistory.com/458 ¬¸¡∂
+                        // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                         {
                             if (sourceType == typeof(string))
@@ -2019,7 +2040,7 @@ namespace OpenJigWare
                             return base.CanConvertFrom(context, sourceType);
                         }
 
-                        // string ÏúºÎ°ú Î∂ÄÌÑ∞ vector3Î°ú Î≥ÄÌôò
+                        // string ¿∏∑Œ ∫Œ≈Õ vector3∑Œ ∫Ø»Ø
                         public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                         {
                             if (value is string)
@@ -2030,7 +2051,7 @@ namespace OpenJigWare
                             return base.ConvertFrom(context, culture, value);
                         }
 
-                        // vector3 ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                        // vector3 ø°º≠ string¿∏∑Œ ∫Ø»Ø
                         public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                         {
                             if (destinationType == typeof(string))
@@ -2040,8 +2061,8 @@ namespace OpenJigWare
                     }
                     public class CAngle3DConvert : TypeConverter
                     {
-                        //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                        // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                        //// http://kindtis.tistory.com/458 ¬¸¡∂
+                        // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                         {
                             if (sourceType == typeof(string))
@@ -2049,7 +2070,7 @@ namespace OpenJigWare
                             return base.CanConvertFrom(context, sourceType);
                         }
 
-                        // string ÏúºÎ°ú Î∂ÄÌÑ∞ angle3Î°ú Î≥ÄÌôò
+                        // string ¿∏∑Œ ∫Œ≈Õ angle3∑Œ ∫Ø»Ø
                         public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                         {
                             if (value is string)
@@ -2060,7 +2081,7 @@ namespace OpenJigWare
                             return base.ConvertFrom(context, culture, value);
                         }
 
-                        // angle3 ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                        // angle3 ø°º≠ string¿∏∑Œ ∫Ø»Ø
                         public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                         {
                             if (destinationType == typeof(string))
@@ -2070,8 +2091,8 @@ namespace OpenJigWare
                     }
                     public class CPoint3DConvert : TypeConverter
                     {
-                        //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                        // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                        //// http://kindtis.tistory.com/458 ¬¸¡∂
+                        // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                         {
                             if (sourceType == typeof(string))
@@ -2079,7 +2100,7 @@ namespace OpenJigWare
                             return base.CanConvertFrom(context, sourceType);
                         }
 
-                        // string ÏúºÎ°ú Î∂ÄÌÑ∞ Point3dÎ°ú Î≥ÄÌôò
+                        // string ¿∏∑Œ ∫Œ≈Õ Point3d∑Œ ∫Ø»Ø
                         public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                         {
                             if (value is string)
@@ -2090,7 +2111,7 @@ namespace OpenJigWare
                             return base.ConvertFrom(context, culture, value);
                         }
 
-                        // Point3d ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                        // Point3d ø°º≠ string¿∏∑Œ ∫Ø»Ø
                         public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                         {
                             if (destinationType == typeof(string))
@@ -2176,7 +2197,8 @@ namespace OpenJigWare
             }
             #region Prop_Selected
             private COjwDisp m_CDisp_Selected = null;// = new COjwDisp();
-            private Panel m_panelSelected = null;
+            //private Panel m_panelSelected = null;
+            private Control m_panelSelected = null;
             public void CreateProp_Selected(int nLine)
             {
                 if (m_panelSelected != null)
@@ -2187,11 +2209,11 @@ namespace OpenJigWare
                 if (m_panelSelected != null)
                     CreateProp_Selected(m_panelSelected, CDisp);
             }
-            public void CreateProp_Selected(Panel pnProp, int nLine)
+            public void CreateProp_Selected(Control ctrlProp, int nLine)//(Panel pnProp, int nLine)
             {
-                CreateProp_Selected(pnProp, OjwDispAll.GetData(nLine));
+                CreateProp_Selected(ctrlProp, OjwDispAll.GetData(nLine));
             }
-            public void CreateProp_Selected(Panel pnProp, COjwDisp CDisp)
+            public void CreateProp_Selected(Control ctrlProp, COjwDisp CDisp)//(Panel pnProp, COjwDisp CDisp)
             {
 #if false
                 m_CProperty_Selected.Destroy(pnProp); 
@@ -2213,7 +2235,7 @@ namespace OpenJigWare
                 }
                 m_panelSelected = pnProp;
 #else
-                m_CProperty_Selected.Destroy(pnProp);
+                if (m_CProperty_Selected != null) m_CProperty_Selected.Destroy(ctrlProp);
                 if (m_CProperty_Selected == null) m_CProperty_Selected = new CProperty();
                 m_CDisp_Selected = null;
                 if (CDisp != null)
@@ -2222,16 +2244,17 @@ namespace OpenJigWare
                     //{
                         //m_CPropAll_Selected = null;
                         //CProp_Selected
-                        m_CPropAll_Selected.Create(CDisp);//m_CDisp);
-                        m_CProperty_Selected.Create(pnProp, m_CPropAll_Selected);//m_CProp_Main);
-                        m_CProperty_Selected.SetEvent_Changed(Prop_PropertyValueChanged_Selected);
+                    if (m_CPropAll_Selected == null) m_CPropAll_Selected = new CProp_Selected();
+                    m_CPropAll_Selected.Create(CDisp);//m_CDisp);
+                    m_CProperty_Selected.Create(ctrlProp, m_CPropAll_Selected);//m_CProp_Main);
+                    m_CProperty_Selected.SetEvent_Changed(Prop_PropertyValueChanged_Selected);
 
-                        m_CDisp_Selected = CDisp;
+                    m_CDisp_Selected = CDisp;
 
                         //Prop_Update_Selected();
                     //}
                 }
-                m_panelSelected = pnProp;
+                m_panelSelected = ctrlProp;//pnProp;
 #endif
             }
 
@@ -2370,8 +2393,8 @@ namespace OpenJigWare
                 public SVector3D_t SOffset_Trans { get { return (CDisp == null) ? new SVector3D_t(0.0f, 0.0f, 0.0f) : CDisp.SOffset_Trans; } set { CDisp.SOffset_Trans = value; } }
                 public class CVector3DConvert : TypeConverter
                 {
-                    //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                    //// http://kindtis.tistory.com/458 ¬¸¡∂
+                    // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                     {
                         if (sourceType == typeof(string))
@@ -2379,7 +2402,7 @@ namespace OpenJigWare
                         return base.CanConvertFrom(context, sourceType);
                     }
 
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ vector3Î°ú Î≥ÄÌôò
+                    // string ¿∏∑Œ ∫Œ≈Õ vector3∑Œ ∫Ø»Ø
                     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                     {
                         if (value is string)
@@ -2390,7 +2413,7 @@ namespace OpenJigWare
                         return base.ConvertFrom(context, culture, value);
                     }
 
-                    // vector3 ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                    // vector3 ø°º≠ string¿∏∑Œ ∫Ø»Ø
                     public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                     {
                         if (destinationType == typeof(string))
@@ -2400,8 +2423,8 @@ namespace OpenJigWare
                 }
                 public class CAngle3DConvert : TypeConverter
                 {
-                    //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                    //// http://kindtis.tistory.com/458 ¬¸¡∂
+                    // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                     {
                         if (sourceType == typeof(string))
@@ -2409,7 +2432,7 @@ namespace OpenJigWare
                         return base.CanConvertFrom(context, sourceType);
                     }
 
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ angle3Î°ú Î≥ÄÌôò
+                    // string ¿∏∑Œ ∫Œ≈Õ angle3∑Œ ∫Ø»Ø
                     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                     {
                         if (value is string)
@@ -2420,7 +2443,7 @@ namespace OpenJigWare
                         return base.ConvertFrom(context, culture, value);
                     }
 
-                    // angle3 ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                    // angle3 ø°º≠ string¿∏∑Œ ∫Ø»Ø
                     public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                     {
                         if (destinationType == typeof(string))
@@ -2430,8 +2453,8 @@ namespace OpenJigWare
                 }
                 public class CPoint3DConvert : TypeConverter
                 {
-                    //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                    //// http://kindtis.tistory.com/458 ¬¸¡∂
+                    // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                     {
                         if (sourceType == typeof(string))
@@ -2439,7 +2462,7 @@ namespace OpenJigWare
                         return base.CanConvertFrom(context, sourceType);
                     }
 
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Point3dÎ°ú Î≥ÄÌôò
+                    // string ¿∏∑Œ ∫Œ≈Õ Point3d∑Œ ∫Ø»Ø
                     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                     {
                         if (value is string)
@@ -2450,7 +2473,7 @@ namespace OpenJigWare
                         return base.ConvertFrom(context, culture, value);
                     }
 
-                    // Point3d ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                    // Point3d ø°º≠ string¿∏∑Œ ∫Ø»Ø
                     public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                     {
                         if (destinationType == typeof(string))
@@ -2535,6 +2558,8 @@ namespace OpenJigWare
 
             private void Prop_PropertyValueChanged_Selected(object s, PropertyValueChangedEventArgs e)
             {
+                if (m_CProperty_Selected == null) return;
+
                 // item add : step 4 / 4
                 switch (e.ChangedItem.Label)
                 {                    
@@ -2869,16 +2894,20 @@ namespace OpenJigWare
             //    //ShowKeyPad_Number(
             //}
             public void VisibleProp(String strName, bool bVisible) { m_CPropAll.Visible(strName, bVisible); }
-            public void CreateProb_VirtualObject(Panel pnProp)
+
+            private bool m_bProb_Virtual = false;
+            public void CreateProb_VirtualObject(Control ctrlProp) { CreateProp_VirtualObject(ctrlProp); }
+            public void CreateProp_VirtualObject(Control ctrlProp)//(Panel pnProp)
             {
                 m_CPropAll = new CProp_User();
                 m_CPropAll.Create(OjwVirtualDisp);//m_CDisp);
                 
                 if (m_CProperty == null) m_CProperty = new CProperty();
 
-                m_CProperty.Create(pnProp, m_CPropAll);//m_CProp_Main);
+                m_CProperty.Create(ctrlProp, m_CPropAll);//m_CProp_Main);
                 m_CProperty.SetEvent_Changed(Prop_PropertyValueChanged);
 
+                m_bProb_Virtual = true;
                 //pnProp.MouseClick += new MouseEventHandler(m_pnProperty_MouseClick);
                 //foreach (Control c in pnProp.Controls)
                 //{
@@ -2938,6 +2967,7 @@ namespace OpenJigWare
             }
             private void Prop_PropertyValueChanged(object s, PropertyValueChangedEventArgs e)
             {
+                if (m_CProperty == null) return;
                 // item add : step 4 / 4
                 switch(e.ChangedItem.Label)
                 {
@@ -3515,8 +3545,8 @@ namespace OpenJigWare
                 public SVector3D_t SOffset_Trans { get { return CDisp.SOffset_Trans; } set { CDisp.SOffset_Trans = value; } }
                 public class CVector3DConvert : TypeConverter
                 {
-                    //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                    //// http://kindtis.tistory.com/458 ¬¸¡∂
+                    // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                     {
                         if (sourceType == typeof(string))
@@ -3524,7 +3554,7 @@ namespace OpenJigWare
                         return base.CanConvertFrom(context, sourceType);
                     }
 
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ vector3Î°ú Î≥ÄÌôò
+                    // string ¿∏∑Œ ∫Œ≈Õ vector3∑Œ ∫Ø»Ø
                     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                     {
                         if (value is string)
@@ -3535,7 +3565,7 @@ namespace OpenJigWare
                         return base.ConvertFrom(context, culture, value);
                     }
 
-                    // vector3 ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                    // vector3 ø°º≠ string¿∏∑Œ ∫Ø»Ø
                     public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                     {
                         if (destinationType == typeof(string))
@@ -3545,8 +3575,8 @@ namespace OpenJigWare
                 }
                 public class CAngle3DConvert : TypeConverter
                 {
-                    //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                    //// http://kindtis.tistory.com/458 ¬¸¡∂
+                    // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                     {
                         if (sourceType == typeof(string))
@@ -3554,7 +3584,7 @@ namespace OpenJigWare
                         return base.CanConvertFrom(context, sourceType);
                     }
 
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ angle3Î°ú Î≥ÄÌôò
+                    // string ¿∏∑Œ ∫Œ≈Õ angle3∑Œ ∫Ø»Ø
                     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                     {
                         if (value is string)
@@ -3565,7 +3595,7 @@ namespace OpenJigWare
                         return base.ConvertFrom(context, culture, value);
                     }
 
-                    // angle3 ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                    // angle3 ø°º≠ string¿∏∑Œ ∫Ø»Ø
                     public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                     {
                         if (destinationType == typeof(string))
@@ -3575,8 +3605,8 @@ namespace OpenJigWare
                 }
                 public class CPoint3DConvert : TypeConverter
                 {
-                    //// http://kindtis.tistory.com/458 Ï∞∏Ï°∞
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Î≥ÄÌôòÏù¥ Í∞ÄÎä•ÌïúÍ∞Ä?
+                    //// http://kindtis.tistory.com/458 ¬¸¡∂
+                    // string ¿∏∑Œ ∫Œ≈Õ ∫Ø»Ø¿Ã ∞°¥…«—∞°?
                     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
                     {
                         if (sourceType == typeof(string))
@@ -3584,7 +3614,7 @@ namespace OpenJigWare
                         return base.CanConvertFrom(context, sourceType);
                     }
 
-                    // string ÏúºÎ°ú Î∂ÄÌÑ∞ Point3dÎ°ú Î≥ÄÌôò
+                    // string ¿∏∑Œ ∫Œ≈Õ Point3d∑Œ ∫Ø»Ø
                     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
                     {
                         if (value is string)
@@ -3595,7 +3625,7 @@ namespace OpenJigWare
                         return base.ConvertFrom(context, culture, value);
                     }
 
-                    // Point3d ÏóêÏÑú stringÏúºÎ°ú Î≥ÄÌôò
+                    // Point3d ø°º≠ string¿∏∑Œ ∫Ø»Ø
                     public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
                     {
                         if (destinationType == typeof(string))
@@ -3647,7 +3677,8 @@ namespace OpenJigWare
                 private const string strGroup12 = strGroup3;//"[7]5\'st Rotation";
                 [DisplayName(m_pstrProp_49), Browsable(true), CategoryAttribute(strGroup12), DescriptionAttribute("5\'st Rotation"), TypeConverter(typeof(CAngle3DConvert))]
                 public SAngle3D_t SRot_5{ get { return CDisp.afRot[4]; } set { CDisp.afRot[4] = value; } }
-[DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                
+                [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public float fScale_Serve0 { get { return CDisp.fScale_Serve0; } set { CDisp.fScale_Serve0 = value; } }
                 [DisplayName(m_pstrProp_57), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public float fScale_Serve1 { get { return CDisp.fScale_Serve1; } set { CDisp.fScale_Serve1 = value; } }
@@ -3696,13 +3727,13 @@ namespace OpenJigWare
                 }
                 #region #### Var(Group0) ####
                 private string _strVersion = "1.0.0";
-                private int _nMouseMode = 1; // m_nMouseControlMode Î≥ÄÏàòÏùò ÏÖãÌåÖÍ∞íÏùÑ Îî∞ÎùºÍ∞à Í≤É
+                private int _nMouseMode = 1; // m_nMouseControlMode ∫Øºˆ¿« º¬∆√∞™¿ª µ˚∂Û∞• ∞Õ
                 private int _n3DView = 0; // 0 - Default, 1 - Perpective
                 private int _nTerritoryView = 0; // 0 - Default, 1 - Show
                 private bool _bEmpty = false;
                 private bool _bLight = true;
-                private bool _bShowStandardAxis = false; // m_bStandardAxis Î≥ÄÏàòÏùò ÏÖãÌåÖÍ∞íÏùÑ Îî∞ÎùºÍ∞à Í≤É
-                private bool _bShowVirtualAxis = false; // m_bVirtualClass Î≥ÄÏàòÏùò ÏÖãÌåÖÍ∞íÏùÑ Îî∞ÎùºÍ∞à Í≤É
+                private bool _bShowStandardAxis = false; // m_bStandardAxis ∫Øºˆ¿« º¬∆√∞™¿ª µ˚∂Û∞• ∞Õ
+                private bool _bShowVirtualAxis = false; // m_bVirtualClass ∫Øºˆ¿« º¬∆√∞™¿ª µ˚∂Û∞• ∞Õ
                 private int _nDefaultFunctionNum = -1;
                 private float _fAlpha_All = 1.0f;
                 private Color _cBackColor = Color.DarkGray;
@@ -4011,31 +4042,31 @@ namespace OpenJigWare
 
 
                 public bool _bTest = true;
-                private string _strTest = "ÏùëÏö© ÌîÑÎ°úÍ∑∏Îû®ÏùÑ ÏãúÏûëÌï©ÎãàÎã§.";
+                private string _strTest = "¿¿øÎ «¡∑Œ±◊∑•¿ª Ω√¿€«’¥œ¥Ÿ.";
                 private int _nTest = 4;
                 private float _fTest = 10.0f;
                 //private bool settingsChanged = false;
                 //[CategoryAttribute("ID Settings"), DescriptionAttribute("the customer2")]
                 //private string appVersion = "1.0";
-                [CategoryAttribute("ÌÖåÏä§Ìä∏ 1"), DescriptionAttribute("the customer1")]
+                [CategoryAttribute("≈◊Ω∫∆Æ 1"), DescriptionAttribute("the customer1")]
                 public bool _1_bTest
                 {
                     get { return _bTest; }
                     set { _bTest = value; }
                 }
-                [CategoryAttribute("ÌÖåÏä§Ìä∏ 1"), DescriptionAttribute("the customer2")]
+                [CategoryAttribute("≈◊Ω∫∆Æ 1"), DescriptionAttribute("the customer2")]
                 public string _2_strTest
                 {
                     get { return _strTest; }
                     set { _strTest = value; }
                 }
-                [CategoryAttribute("ÌÖåÏä§Ìä∏ 2"), DescriptionAttribute("the customer3")]
+                [CategoryAttribute("≈◊Ω∫∆Æ 2"), DescriptionAttribute("the customer3")]
                 public int _3_nTest
                 {
                     get { return _nTest; }
                     set { _nTest = value; }
                 }
-                [CategoryAttribute("ÌÖåÏä§Ìä∏ 2"), DescriptionAttribute("the customer4")]
+                [CategoryAttribute("≈◊Ω∫∆Æ 2"), DescriptionAttribute("the customer4")]
                 public float _4_fTest
                 {
                     get { return _fTest; }
@@ -4160,15 +4191,15 @@ namespace OpenJigWare
                             }
                             break;
                 #endregion Keys.Right
-                #region Keys.Escape - ESC : Í∏¥Í∏âÏ†ïÏßÄ
+                #region Keys.Escape - ESC : ±‰±ﬁ¡§¡ˆ
                         //case Keys.Escape:
                         //    {
                         //        Stop();
                         //        //Cmd_Stop(m_nCurrentRobot);
                         //    }
                         //    break;
-                #endregion Keys.Escape - ESC : Í∏¥Í∏âÏ†ïÏßÄ
-                #region Keys.Delete: - ÏÇ≠Ï†úÌïòÍ∏∞
+                #endregion Keys.Escape - ESC : ±‰±ﬁ¡§¡ˆ
+                #region Keys.Delete: - ªË¡¶«œ±‚
                         case Keys.Delete:
                             {
                                 if (e.Control)
@@ -4179,7 +4210,7 @@ namespace OpenJigWare
                                 }
                             }
                             break;
-                #endregion Keys.Delete: - ÏÇ≠Ï†úÌïòÍ∏∞
+                #endregion Keys.Delete: - ªË¡¶«œ±‚
                     }
 #if false
                     float fDelta2 = 0.1f;// 1.0f;
@@ -4225,7 +4256,7 @@ namespace OpenJigWare
             private bool m_bAlpha = true;
             private float m_fAlpha = 1.0f;
             // The higher this number, the boundary line becomes dark.
-            // Kor: Ïù¥ Ïà´ÏûêÎ•º ÎÜíÏùºÏàòÎ°ù Í≤ΩÍ≥ÑÎùºÏù∏Ïù¥ ÏßÑÌï¥ÏßÑÎã§.
+            // Kor: ¿Ã º˝¿⁄∏¶ ≥Ù¿œºˆ∑œ ∞Ê∞Ë∂Û¿Œ¿Ã ¡¯«ÿ¡¯¥Ÿ.
             private const int _COLOR_GAP = 30;
 
             public COjwDesignerHeader m_CHeader = new COjwDesignerHeader();
@@ -4251,14 +4282,14 @@ namespace OpenJigWare
             public float GetData(int nMot) { if (nMot < m_afMot.Length) return m_afMot[nMot]; return 0; }
             public float [] GetData() { return m_afMot; }
 
-            #region CsGL Class / The actual drawing and initialization functions are all based here.(Kor: CsGL Class / Ïã§Ï†ú Í∑∏Î¶¨Í∏∞ Î∞è Ï¥àÍ∏∞Ìôî(Ï¶â, Main) Ìï®Ïàò Î™®Ïùå)
+            #region CsGL Class / The actual drawing and initialization functions are all based here.(Kor: CsGL Class / Ω«¡¶ ±◊∏Æ±‚ π◊ √ ±‚»≠(¡Ô, Main) «‘ºˆ ∏¿Ω)
 
                 private List<COjwAse> m_lstOjwAse = new List<COjwAse>();
                 private List<String> m_lstModel = new List<string>();
 
                 #region BaseVar
 
-                #region Variable and init value(Kor: Í∏∞Î≥∏ Î≥ÄÏàò & Ï¥àÍ∏∞Í∞í)
+                #region Variable and init value(Kor: ±‚∫ª ∫Øºˆ & √ ±‚∞™)
                 private float m_fX = 0.0f;
                 private float m_fY = 0.0f;
                 private float m_fZ = 0.0f;
@@ -4300,27 +4331,27 @@ namespace OpenJigWare
                 public float GetRobot_Rot_Swing() { return m_fSwing_Robot; }
                 public void GetRobot_Rot(out float fPan, out float fTilt, out float fSwing) { fPan = m_fPan_Robot; fTilt = m_fTilt_Robot; fSwing = m_fSwing_Robot; }
             
-                #region Set function settings for the entire screen(Kor: Ï†ÑÏ≤¥ÌôîÎ©¥Ïùò ÏÑ§Ï†ïÏùÑ Set/Get ÌïòÎäî Ìï®Ïàò)
-                // Set rotation/translation settings for the entire screen(Kor: ÌôîÎ©¥ Ï†ÑÏ≤¥Ïùò ÌöåÏ†ÑÍ∞Å/ÏúÑÏπòÍ∞í Í≤∞Ï†ï)
+                #region Set function settings for the entire screen(Kor: ¿¸√º»≠∏È¿« º≥¡§¿ª Set/Get «œ¥¬ «‘ºˆ)
+                // Set rotation/translation settings for the entire screen(Kor: »≠∏È ¿¸√º¿« »∏¿¸∞¢/¿ßƒ°∞™ ∞·¡§)
                 public void SetAngle_Display(float fPan, float fTilt, float fSwing) { m_fPan = fPan; m_fTilt = fTilt; m_fSwing = fSwing; }
                 public void SetPos_Display(float fX, float fY, float fZ) { m_fX = fX; m_fY = fY; m_fZ = fZ; }
 
                 public void GetAngle_Display(out float fPan, out float fTilt, out float fSwing) { fPan = m_fPan; fTilt = m_fTilt; fSwing = m_fSwing; }
                 public void GetPos_Display(out float fX, out float fY, out float fZ) { fX = m_fX; fY = m_fY; fZ = m_fZ; }
-
-                // Get the rotation of the entire screen(Kor: ÌôîÎ©¥ Ï†ÑÏ≤¥Ïùò ÌöåÏ†ÑÍ∞ÅÏùÑ Í∞ÄÏ†∏Ïò§Í∏∞)
+            
+                // Get the rotation of the entire screen(Kor: »≠∏È ¿¸√º¿« »∏¿¸∞¢¿ª ∞°¡Æø¿±‚)
                 public float GetPan() { return m_fPan; }
                 public float GetTilt() { return m_fTilt; }
                 public float GetSwing() { return m_fSwing; }
-
-                // Set the magnification of the entire screen(Kor: ÌôîÎ©¥ Ï†ÑÏ≤¥Ïùò ÌôïÎåÄÎπÑÏú® Í≤∞Ï†ï)
+            
+                // Set the magnification of the entire screen(Kor: »≠∏È ¿¸√º¿« »Æ¥Î∫Ò¿≤ ∞·¡§)
                 public void SetScale(float fScale) { m_fScale = fScale; }
-                // Get the magnification of the entire screen(Kor: ÌôîÎ©¥ Ï†ÑÏ≤¥Ïùò ÌôïÎåÄÎπÑÏú®ÏùÑ Í∞ÄÏ†∏Ïò§Í∏∞)
+                // Get the magnification of the entire screen(Kor: »≠∏È ¿¸√º¿« »Æ¥Î∫Ò¿≤¿ª ∞°¡Æø¿±‚)
                 public float GetScale() { return m_fScale; }
 
-                // Set transparent percentage of the whole screen(Kor: ÌôîÎ©¥ Ï†ÑÏ≤¥Ïùò Ìà¨Î™ÖÎπÑÏú® Í≤∞Ï†ï)
+                // Set transparent percentage of the whole screen(Kor: »≠∏È ¿¸√º¿« ≈ı∏Ì∫Ò¿≤ ∞·¡§)
                 public void SetAlpha(float fAlpha) { m_bAlpha = true; m_fAlpha = fAlpha; }
-                // Import transparent percentage of the whole screen(Kor: ÌôîÎ©¥ Ï†ÑÏ≤¥Ïùò Ìà¨Î™ÖÎπÑÏú® Í∞ÄÏ†∏Ïò§Í∏∞)
+                // Import transparent percentage of the whole screen(Kor: »≠∏È ¿¸√º¿« ≈ı∏Ì∫Ò¿≤ ∞°¡Æø¿±‚)
                 public float GetAlpha(float fAlpha) { return m_fAlpha; }
 
                 // Color
@@ -4329,13 +4360,13 @@ namespace OpenJigWare
 
                 public Color GetColor() { return m_Color; }
                 public Color GetBackColor() { return m_BackColor; }
-                #endregion Set function settings for the entire screen(Kor: Ï†ÑÏ≤¥ÌôîÎ©¥Ïùò ÏÑ§Ï†ïÏùÑ Set/Get ÌïòÎäî Ìï®Ïàò)
+                #endregion Set function settings for the entire screen(Kor: ¿¸√º»≠∏È¿« º≥¡§¿ª Set/Get «œ¥¬ «‘ºˆ)
 
                 #endregion BaseVar
 
                 #region Mouse Control
                 //// Mouse Control ////
-                // It is possible to control up to 10(Kor: 10Í∞ú ÍπåÏßÄ Ïª®Ìä∏Î°§ Í∞ÄÎä•) //
+                // It is possible to control up to 10(Kor: 10∞≥ ±Ó¡ˆ ƒ¡∆Æ∑— ∞°¥…) //
                 private bool m_bMouseClick = false;
                 private bool m_bMouseLeftClick = true;
                 private int m_nMouse_X_Left = 0;
@@ -4384,29 +4415,33 @@ namespace OpenJigWare
                     m_nSeq_MouseDown++;
                     if (m_bMouseClick == false)
                     {
+                        //OjwDraw();
                         SelectObject_Clear();
-                        int nInverseNum = m_nSelected_InverseKinematicsNumber;// m_nStatus_InverseKinematicsNumber;
                         m_bMouseClick = true;
                         if (e.Button == MouseButtons.Left)
                         {
                             SetPickCheck_OneShot(e.X, e.Y);
                             
-                            //OjwDraw();
+                            OjwDraw();
 
                             m_bMouseLeftClick = true;
                             m_nMouse_X_Left = e.X;
-                            m_nMouse_Y_Left = e.Y;                            
+                            m_nMouse_Y_Left = e.Y;
+                            Ojw.CMessage.Write("MouseDown(Left) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Left, m_nMouse_Y_Left);
                         }
                         else
                         {
                             m_bMouseLeftClick = false;
                             m_nMouse_X_Right = e.X;
                             m_nMouse_Y_Right = e.Y;
-                            // mousecontrol mode Ïù∏ Í≤ΩÏö∞ÏóêÎßå...
+                            // mousecontrol mode ¿Œ ∞ÊøÏø°∏∏...
                             //if ((GetMouseMode() == 0) && (e.Button == MouseButtons.Right)) m_nMenuStatus = 1;
-                            
+
+                            Ojw.CMessage.Write("MouseDown(Right) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Right, m_nMouse_Y_Right);
+
                             if (e.Button == MouseButtons.Right) m_nMenuStatus = 1;
                         }
+                        int nInverseNum = m_nSelected_InverseKinematicsNumber;// m_nStatus_InverseKinematicsNumber;
                                                 
                         #region Forward
                         double[] adMot = new double[m_afMot.Length];
@@ -4414,7 +4449,7 @@ namespace OpenJigWare
                         if (m_CHeader != null)
                             CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nInverseNum], adMot, out m_dPos_X, out m_dPos_Y, out m_dPos_Z);
                         
-                        //CMessage.Write("Forward={0}, {1}, {2}", m_dPos_X, m_dPos_Y, m_dPos_Z);
+                        //CMessage.Write("(MouseDown - Forward={0}, {1}, {2}", m_dPos_X, m_dPos_Y, m_dPos_Z);
                         //if (e.Button == MouseButtons.Right) PopupMenu();
 
                         adMot = null;
@@ -4450,7 +4485,7 @@ namespace OpenJigWare
                 private bool m_bItemAdded = false;
                 private void ItemAdded(object sender, EventArgs e)
                 {
-                    // Ïù¥Î≤§Ìä∏ Î∞úÏÉùÏãú ÎèôÏûë Í∏∞Îä•Îì§...
+                    // ¿Ã∫•∆Æ πﬂª˝Ω√ µø¿€ ±‚¥…µÈ...
                     //if (IsDrawText() == true)
                     //{
                     //    m_bItemAdded = true;
@@ -4464,94 +4499,787 @@ namespace OpenJigWare
                         m_bItemAdded = true;
                         m_rtxtDraw.Text = GetHeader_strDrawModel();
                         m_rtxtDraw.Select(m_nSelectedItem, 0);
-                        StringListToGrid();
+                        //StringListToGrid();
                         m_bItemAdded = false;
                     }
                 }
 
                 private bool m_bModelOpened = false;
                 public static readonly String _STR_BACKUP_FILE = "\\ojwbackup.back";
-                private void FileOpened(object sender, EventArgs e)
+                private void FileRestore(object sender, EventArgs e)
+                {
+                    //FileRestore();
+                }
+                public void FileRestore()//(object sender, EventArgs e)
                 {
                     //MessageBox.Show("FileOpened");
-                    StringListToGrid();
+                    //StringListToGrid();
                     #region Restore
                     if (m_bGridInit == true)
                     {
-                        if (m_bModelOpened == false)
+                        if (m_bModelOpened == true)//false)
                         {
-                            // Ï†ïÏÉÅÏ†ÅÏù∏ ÌîÑÎ°úÍ∑∏Îû® Ï¢ÖÎ£åÏãú Î∞±ÏóÖÌïú ÌååÏùº ÏßÄÏö∞Í∏∞
+                            #region ¡§ªÛ¿˚¿Œ «¡∑Œ±◊∑• ¡æ∑·Ω√ πÈæ˜«— ∆ƒ¿œ ¡ˆøÏ±‚
                             FileInfo fileBack = new FileInfo(Application.StartupPath + _STR_BACKUP_FILE);
-                            if (fileBack.Exists) // Î∞±ÏóÖÌï† ÌååÏùºÏù¥ ÏûàÎäîÏßÄ Ï≤¥ÌÅ¨
+                            if (fileBack.Exists) // πÈæ˜«“ ∆ƒ¿œ¿Ã ¿÷¥¬¡ˆ √º≈©
                             {
-                                // ÏûàÎã§Î©¥ ÎπÑÏ†ïÏÉÅ Ï¢ÖÎ£åÏù¥ÎØÄÎ°ú Î¨ºÏñ¥Î≥¥Í≥† Î≥µÍµ¨ÌïúÎã§.
-                                DialogResult dlgRet = MessageBox.Show("ÎπÑÏ†ïÏÉÅ Ï¢ÖÎ£å Ï†Ñ Î∞±ÏóÖÎêú ÌååÏùºÏù¥ ÏûàÏäµÎãàÎã§.\r\n\r\nÎ≥µÍµ¨ ÌïòÏãúÍ≤†ÏäµÎãàÍπå?", "Î™®ÏÖòÌååÏùº Î≥µÍµ¨", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                // ¿÷¥Ÿ∏È ∫Ò¡§ªÛ ¡æ∑·¿Ãπ«∑Œ π∞æÓ∫∏∞Ì ∫π±∏«—¥Ÿ.
+                                DialogResult dlgRet = MessageBox.Show("∫Ò¡§ªÛ ¡æ∑· ¿¸ πÈæ˜µ» ∆ƒ¿œ¿Ã ¿÷Ω¿¥œ¥Ÿ.\r\n\r\n∫π±∏ «œΩ√∞⁄Ω¿¥œ±Ó?", "∏º«∆ƒ¿œ ∫π±∏", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                                 if (dlgRet == DialogResult.OK)
                                 {
-                                    //if (DataFileOpen(_STR_BACKUP_FILE, null) == false)
-                                    //{
-                                    //    MessageBox.Show("dmt Î™®ÏÖò ÌååÏùºÏù¥ ÏïÑÎãôÎãàÎã§.");
-                                    //}
-                                    //else
-                                    //{
-                                    //    //Modify(false);
-                                    //    //Grid_DisplayTime();
-                                    //}
+                                    if (DataFileOpen(Application.StartupPath + _STR_BACKUP_FILE, null) == false)
+                                    {
+                                        MessageBox.Show("dmt ∏º« ∆ƒ¿œ¿Ã æ∆¥’¥œ¥Ÿ.");
+                                    }
+                                    else
+                                    {
+                                        //Modify(false);
+                                        //Grid_DisplayTime();
+                                    }
                                 }
                             }
+                            #endregion ¡§ªÛ¿˚¿Œ «¡∑Œ±◊∑• ¡æ∑·Ω√ πÈæ˜«— ∆ƒ¿œ ¡ˆøÏ±‚
                         }
-                        m_bModelOpened = true;
+                        //m_bModelOpened = true;
                     }
                     #endregion Restore
                 }
             
                 #region MotionFile
-
-                private void Grid_SetCommand(int nLine, int nData)
-                {
-                    m_CGridDraw.SetData2(nLine, nData);//SetCommand(j, nData);
-                }
-                private int Grid_GetCommand(int nLine)
-                {
-                    return (int)m_CGridDraw.GetData2(nLine);
-                }
-                private void Grid_SetData0(int nLine, int nData)
-                {
-                    m_CGridDraw.SetData3(nLine, nData);
-                }
-                private int Grid_GetData0(int nLine)
-                {
-                    return (int)m_CGridDraw.GetData3(nLine);
-                }
-                private void Grid_SetData1(int nLine, int nData)
-                {
-                    m_CGridDraw.SetData4(nLine, nData);
-                }
-                private int Grid_GetData1(int nLine)
-                {
-                    return (int)m_CGridDraw.GetData4(nLine);
-                }
-                private void Grid_SetData2(int nLine, int nData)
-                {
-                    m_CGridDraw.SetData4(nLine, nData);
-                }
-                private int Grid_GetData2(int nLine)
-                {
-                    return (int)m_CGridDraw.GetData4(nLine);
-                }
-                private string m_strMotionFile_FileName = "";
-                private string m_strMotionFile_TableName = "";
+                            
+                private string m_strMotionFile_FileName = String.Empty;
+                private string m_strMotionFile_TableName = String.Empty;
                 private int m_nMotionFile_StartPosition = 0;
-                private string m_strMotionFile_Comment = "";
+                private string m_strMotionFile_Comment = String.Empty;
+                public String GetMotionFile_Title() { return m_strMotionFile_TableName; }
+                public String GetMotionFile_Comment() { return m_strMotionFile_Comment; }
+                public int GetMotionFile_StartPosition() { return m_nMotionFile_StartPosition; }
+                public void SetMotionFile_Title(string strTableName) { m_strMotionFile_TableName = strTableName; }
+                public void SetMotionFile_Comment(string strComment) { m_strMotionFile_Comment = strComment; }
+                public void SetMotionFile_StartPosition(int nStartPosition) { m_nMotionFile_StartPosition = nStartPosition; }
+            
+                private string m_strMotionFile_FileAndTitle = String.Empty; 
+                private string GetMotionFile_FileAndTitle() { return m_strMotionFile_FileAndTitle; }
+
 #if true
+                // DataFileOpen ∞˙ ∞∞¿∏≥™ MotionEditor ≈◊¿Ã∫Ì æ¯¿Ã ∆ƒ¿œ∏∏ ∑Œµ˘
+                public bool BinaryFileOpen(String strFileName, out SMotion_t SMotion) 
+                {
+                    //SMotion.nCount = 0;
+                    SMotion.strTableName = String.Empty;
+                    SMotion.strFileName = strFileName;                  
+ 
+                    SMotion.nStartPosition = 0;
+                    SMotion.nFrameSize = 0;
+                    SMotion.nCommentSize = 0;
+                    SMotion.nCnt_LineComment = 0;
+                    SMotion.nPlayTime = 0;
+                    SMotion.nRobotModelNum = 0;
+                    SMotion.nMotorCnt = 0;
+                    SMotion.STable = null;
+
+                    //SMotion.STable = new SMotionTable_t[999];
+                    //Array.Clear(SMotion.STable, 0, SMotion.STable.Length);
+                    bool bFileOpened = false;
+                    String _STR_EXT = "dmt";
+                    String _STR_VER_V_12 = "1.2";
+                    String _STR_VER_V_11 = "1.1";
+                    String _STR_VER_V_10 = "1.0";
+
+                    FileInfo f = null;
+                    FileStream fs = null;
+
+                    try
+                    {
+                        int i, j;
+                        byte[] byteData;
+                        string strFileName2 = "";
+                        
+                        f = new FileInfo(strFileName);
+                        fs = f.OpenRead();
+                        byteData = new byte[fs.Length];
+                        fs.Read(byteData, 0, byteData.Length);
+                        strFileName2 = f.Name;
+                            
+                        fs.Close();
+                        f = null;
+                        
+                        // µ•¿Ã≈∏ «¸Ωƒ ±∏∫–
+                        String strTmp = "";
+                        strTmp += (char)byteData[0];
+                        strTmp += (char)byteData[1];
+                        strTmp += (char)byteData[2];
+                        strTmp += (char)byteData[3];
+                        strTmp += (char)byteData[4];
+                        strTmp += (char)byteData[5];
+                    
+                        if (strTmp.ToUpper() == _STR_EXT.ToUpper() + _STR_VER_V_10)
+                        {
+                            #region FileOpen V1.0
+                            int nPos = 6;   // æ’¿« 6∞≥¥¬ 'DMT1.0' ø° «“¥Á
+
+                            #region Header
+
+                            #region ≈∏¿Ã∆≤(21)
+                            byte[] byteGetData = new byte[21];
+                            for (i = 0; i < 21; i++) byteGetData[i] = 0;
+                            for (i = 0; i < 21; i++)
+                            {
+                                if (byteData[i + nPos] == 0) break;
+                                byteGetData[i] = byteData[i + nPos];
+                            }
+                            SMotion.strTableName = System.Text.Encoding.Default.GetString(byteGetData);
+                            nPos += 21;
+                            byteGetData = null;
+                            #endregion ≈∏¿Ã∆≤(21)
+
+                            #region Start Position(1)
+                            int nStartPosition = (int)(byteData[nPos++]);
+                            SMotion.nStartPosition = (nStartPosition >= 0) ? nStartPosition : 0;
+                            #endregion Start Position(1)
+
+                            #region Size - MotionFrame(2), Comment(2), Caption(2), PlayTime(4), RobotModelNumber(2), MotorCnt(1)
+                            // Size
+                            SMotion.nFrameSize = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nCommentSize = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nCnt_LineComment = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nPlayTime = (int)(byteData[nPos] + byteData[nPos + 1] * 256 + byteData[nPos + 2] * 256 * 256 + byteData[nPos + 3] * 256 * 256 * 256); nPos += 4;
+                            SMotion.nRobotModelNum = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nMotorCnt = (int)(byteData[nPos++]);
+                            #endregion Size - MotionFrame, Comment, Caption, PlayTime
+
+                            #endregion Header
+
+                            // nRobotModelNum ∏¶ ¿–∞Ì «ÿ¥Á ∆ƒ¿œ¿ª ¿–æÓµÈ¿Œ¥Ÿ.
+                            #region Header ∞À¡ı
+#if false
+                            if (SMotion.nMotorCnt != m_CHeader.nMotorCnt)
+                            {
+                                //if (bFile == true)
+                                //{
+                                //    fs.Close();
+                                //    f = null;
+                                //}
+                                this.Cursor = System.Windows.Forms.Cursors.Default;
+                                //MessageBox.Show("µ¿⁄¿Ã≥  ∆ƒ¿œ¿« ∏≈Õ ºˆ∑Æ∞˙ ∏¬¡ˆ æ Ω¿¥œ¥Ÿ.(ø‰±∏∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", ∏º«∆ƒ¿œø° ¡§¿«µ» ∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                //DialogResult dlgRet = MessageBox.Show("π´Ω√«œ∞Ì ∞Ëº” ø≠∞⁄Ω¿¥œ±Ó?", "∆ƒ¿œø≠±‚", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                MessageBox.Show("Motor quantity error.(Motors in 3D Modeling =" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", Motors in File =" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                DialogResult dlgRet = MessageBox.Show("Do you want to continue?", "File Open", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                if (dlgRet == DialogResult.OK)
+                                {
+                                    //MessageBox.Show("Yes");
+                                    //return;
+                                }
+                                else return false;
+                            }
+#endif
+                            #endregion Header ∞À¡ı
+
+                            #region Ω«¡¶ ∏º«
+                            SMotion.STable = new SMotionTable_t[SMotion.nFrameSize];
+                            for(j = 0; j < SMotion.nFrameSize; j++)
+                            {
+                                SMotion.STable[j].anMot = new int[SMotion.nMotorCnt];
+                                SMotion.STable[j].anLed = new int[SMotion.nMotorCnt];
+                                SMotion.STable[j].abEn = new bool[SMotion.nMotorCnt];
+                                SMotion.STable[j].abType = new bool[SMotion.nMotorCnt];
+                            }
+
+                            int nH = SMotion.nFrameSize;
+                            int nData;
+                            short sData;
+                            //float fValue;
+                            for (j = 0; j < nH; j++)
+                            {
+                                //En
+                                #region Enable
+                                int nEn = byteData[nPos++];
+                                SMotion.STable[j].bEn = ((nEn & 0x01) != 0) ? true : false;
+                                #endregion Enable
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                #region Motor
+                                int nMotorCntMax = (int)Math.Max(SMotion.nMotorCnt, m_CHeader.nMotorCnt);
+                                // 0-Index, 1-En, 2 ~ 24, 25 - speed, 26 - delay, 27,28,29,30 - Data0-3, 31 - time, 32 - caption
+                                for (int nAxis = 0; nAxis < nMotorCntMax; nAxis++)
+                                {
+                                    if (nAxis >= m_CHeader.nMotorCnt) nPos += 2;
+                                    else if (nAxis >= SMotion.nMotorCnt) SMotion.STable[j].anMot[nAxis] = 0;//0.0f;// Ω« ∏≈Õºˆ∑Æ∞˙ ∏¬¡ˆ æ ¥Ÿ∏È ±◊ ∫Œ∫–¿ª 0 ¿∏∑Œ √§øÔ ∞Õ
+                                    else
+                                    {
+                                        nData = (int)(BitConverter.ToInt16(byteData, nPos)); nPos += 2;
+                                        sData = (short)(nData & 0x0fff);
+                                        if ((sData & 0x800) != 0) sData -= 0x1000;
+                                        
+                                        SMotion.STable[j].anLed[nAxis] = (int)((nData >> 12) & 0x07);
+                                        SMotion.STable[j].abEn[nAxis] = (bool)(((nData & 0x8000) != 0) ? true : false);
+                                        SMotion.STable[j].abType[nAxis] = (bool)((sData == 0x7ff) ? false : true);
+
+                                        if (sData == 0x7ff)
+                                            SMotion.STable[j].anMot[nAxis] = 0;//0.0f;
+                                        else
+                                            SMotion.STable[j].anMot[nAxis] = (int)sData;//CalcEvd2Angle(nAxis, (int)sData);
+                                    }
+                                }
+                                #endregion Motor
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                // Speed  
+                                SMotion.STable[j].nTime = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+
+                                // Delay  
+                                SMotion.STable[j].nDelay = (int)BitConverter.ToInt16(byteData, nPos); nPos += 2;
+
+                                // Group  
+                                SMotion.STable[j].nGroup = (int)(byteData[nPos++]);
+
+                                // Command  
+                                SMotion.STable[j].nCmd = (int)(byteData[nPos++]);
+
+                                // Data0  
+                                SMotion.STable[j].nData0 = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                // Data1  
+                                SMotion.STable[j].nData1 = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                //
+                                SMotion.STable[j].nData2 = 0;
+                                SMotion.STable[j].nData3 = 0;
+                                SMotion.STable[j].nData4 = 0;
+                                SMotion.STable[j].nData5 = 0;
+                                #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                nPos += 24;
+                                //nPos += 4;
+                                //nPos += 4;
+                                //nPos += 4;
+
+                                //nPos += 4;
+                                //nPos += 4;
+                                //nPos += 4;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                            }
+                            #endregion Ω«¡¶ ∏º«
+#if false
+                            string strData_ME = "";
+                            string strData_FE = "";
+
+                            // 'M' 'E'
+                            strData_ME += (char)(byteData[nPos++]);
+                            strData_ME += (char)(byteData[nPos++]);
+
+                            #region Comment Data
+                            // Comment
+                            byte[] pstrComment = new byte[nCommentSize];
+                            for (j = 0; j < nCommentSize; j++)
+                                pstrComment[j] = (byte)(byteData[nPos++]);
+                            m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            pstrComment = null;
+                            #endregion Comment Data
+
+                            #region Caption
+                            int nLineNum = 0;
+                            string strLineComment;
+                            byte[] byLine = new byte[46];
+                            for (j = 0; j < nCnt_LineComment; j++)
+                            {
+                                nLineNum = (short)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                for (int k = 0; k < 46; k++)
+                                    byLine[k] = (byte)(byteData[nPos++]);
+                                strLineComment = System.Text.Encoding.Default.GetString(byLine);
+                                strLineComment = strLineComment.Trim((char)0);
+                                m_CGridMotionEditor.SetCaption(nLineNum, strLineComment);
+                            }
+                            byLine = null;
+                            #endregion Caption
+
+                            // 'T' 'E'
+                            strData_FE += (char)(byteData[nPos++]);
+                            strData_FE += (char)(byteData[nPos++]);
+#endif
+
+                            bFileOpened = true;
+                            #endregion FileOpen V1.0
+                        }
+                        else if (strTmp.ToUpper() == _STR_EXT.ToUpper() + _STR_VER_V_11)
+                        {
+                            #region FileOpen V1.1
+                            int nPos = 6;   // æ’¿« 6∞≥¥¬ 'DMT1.0' ø° «“¥Á
+
+                            #region Header
+
+                            #region ≈∏¿Ã∆≤(21)
+                            byte[] byteGetData = new byte[21];
+                            for (i = 0; i < 21; i++) byteGetData[i] = 0;
+                            for (i = 0; i < 21; i++)
+                            {
+                                if (byteData[i + nPos] == 0) break;
+                                byteGetData[i] = byteData[i + nPos];
+                            }
+                            SMotion.strTableName = System.Text.Encoding.Default.GetString(byteGetData);
+                            nPos += 21;
+                            byteGetData = null;
+                            #endregion ≈∏¿Ã∆≤(21)
+
+                            #region Start Position(1)
+                            int nStartPosition = (int)(byteData[nPos++]);
+                            SMotion.nStartPosition = (nStartPosition >= 0) ? nStartPosition : 0;
+                            #endregion Start Position(1)
+
+                            #region Size - MotionFrame(2), Comment(2), Caption(2), PlayTime(4), RobotModelNumber(2), MotorCnt(1)
+                            // Size
+                            SMotion.nFrameSize = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nCommentSize = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nCnt_LineComment = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nPlayTime = (int)(byteData[nPos] + byteData[nPos + 1] * 256 + byteData[nPos + 2] * 256 * 256 + byteData[nPos + 3] * 256 * 256 * 256); nPos += 4;
+                            SMotion.nRobotModelNum = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nMotorCnt = (int)(byteData[nPos++]);
+                            #endregion Size - MotionFrame, Comment, Caption, PlayTime
+
+                            #endregion Header
+
+                            // nRobotModelNum ∏¶ ¿–∞Ì «ÿ¥Á ∆ƒ¿œ¿ª ¿–æÓµÈ¿Œ¥Ÿ.
+                            #region Header ∞À¡ı
+#if false
+                            if (SMotion.nMotorCnt != m_CHeader.nMotorCnt)
+                            {
+                                //if (bFile == true)
+                                //{
+                                //    fs.Close();
+                                //    f = null;
+                                //}
+                                this.Cursor = System.Windows.Forms.Cursors.Default;
+                                MessageBox.Show("µ¿⁄¿Ã≥  ∆ƒ¿œ¿« ∏≈Õ ºˆ∑Æ∞˙ ∏¬¡ˆ æ Ω¿¥œ¥Ÿ.(ø‰±∏∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", ∏º«∆ƒ¿œø° ¡§¿«µ» ∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                DialogResult dlgRet = MessageBox.Show("π´Ω√«œ∞Ì ∞Ëº” ø≠∞⁄Ω¿¥œ±Ó?", "∆ƒ¿œø≠±‚", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                if (dlgRet == DialogResult.OK)
+                                {
+                                    //MessageBox.Show("Yes");
+                                    //return;
+                                }
+                                else return false;
+                            }
+#endif
+                            #endregion Header ∞À¡ı
+
+                            #region Ω«¡¶ ∏º«
+                            SMotion.STable = new SMotionTable_t[SMotion.nFrameSize];
+                            for (j = 0; j < SMotion.nFrameSize; j++)
+                            {
+                                SMotion.STable[j].anMot = new int[SMotion.nMotorCnt];
+                                SMotion.STable[j].anLed = new int[SMotion.nMotorCnt];
+                                SMotion.STable[j].abEn = new bool[SMotion.nMotorCnt];
+                                SMotion.STable[j].abType = new bool[SMotion.nMotorCnt];
+                            }
+
+                            int nH = SMotion.nFrameSize;
+                            int nData, nData2;
+                            //short sData;
+                            //float fValue;
+                            for (j = 0; j < nH; j++)
+                            {
+                                //En
+                                #region Enable
+                                int nEn = byteData[nPos++];
+                                SMotion.STable[j].bEn = ((nEn & 0x01) != 0) ? true : false;
+                                #endregion Enable
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                #region Motor
+                                int nMotorCntMax = (int)Math.Max(SMotion.nMotorCnt, m_CHeader.nMotorCnt);
+                                // 0-Index, 1-En, 2 ~ 24, 25 - speed, 26 - delay, 27,28,29,30 - Data0-3, 31 - time, 32 - caption
+                                for (int nAxis = 0; nAxis < nMotorCntMax; nAxis++)
+                                {
+                                    if (nAxis >= m_CHeader.nMotorCnt) nPos += 3;
+                                    else if (nAxis >= SMotion.nMotorCnt) SMotion.STable[j].anMot[nAxis] = 0;// Ω« ∏≈Õºˆ∑Æ∞˙ ∏¬¡ˆ æ ¥Ÿ∏È ±◊ ∫Œ∫–¿ª 0 ¿∏∑Œ √§øÔ ∞Õ
+                                    else
+                                    {
+                                        nData = byteData[nPos++];
+                                        nData += byteData[nPos++] * 256;
+                                        nData += byteData[nPos++] * 256 * 256;
+                                        nData2 = nData & 0x3fff;
+                                        if ((nData & 0x4000) != 0) nData2 *= -1; // ∫Œ»£∫Ò∆Æ ∞ÀªÁ
+
+                                        // ø£ƒ⁄¥ı ≈∏¿‘¡§¿«
+                                        // ¿œ¥‹ ≥—æÓ∞£¥Ÿ.
+
+                                        // Stop Bit
+                                        // ≥—æÓ∞£¥Ÿ.
+
+                                        // Mode
+#if false
+                                        //Grid_SetFlag_Type(j, nAxis, (((nData & 0x20000) != 0) ? true : false));
+
+                                        //Grid_SetFlag_Led(j, nAxis, ((nData >> 18) & 0x07));
+                                        //Grid_SetFlag_En(j, nAxis, ((nData == 0x200000) ? false : true));
+
+                                        if (m_CGridMotionEditor.GetEnable(j, nAxis) == false)
+                                        {
+                                            m_CGridMotionEditor.SetData(j, nAxis, 0);
+                                        }
+                                        else
+#endif
+                                        {
+                                            SMotion.STable[j].anMot[nAxis] = nData2;// CalcEvd2Angle(nAxis, (int)nData2);
+                                        }
+
+
+
+                                        /* - Save
+                                        fValue = GridMotionEditor_GetMotor(i, j);
+                                        sData = (short)(OjwMotor.CalcAngle2Evd(j, fValue) & 0x03ff);
+                                        //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
+                                        //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
+                                        //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                        sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
+                                         */
+
+
+                                        //fValue = GridMotionEditor_GetMotor(i, j);
+                                        //nData = (int)(((Grid_GetFlag_En(i, j) == true) ? CalcAngle2Evd(j, fValue) : 0x07ff) & 0x0fff);
+
+                                        //nData |= (int)(((j >= 6) && (j <= 8)) ? 0x8000 : 0x0000);
+                                        //nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x20000 : 0x0000); // ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x20000 - º”µµ
+
+                                        //nData |= (int)((Grid_GetFlag_Led(i, j) & 0x07) << 18);
+                                        //nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x8000 : 0x0000);
+                                        //nData |= (int)((Grid_GetFlag_En(i, j) == false) ? 0x200000 : 0x00000);
+
+                                        ////byteData = BitConverter.GetBytes((Int32)nData);
+                                        ////fs.Write(byteData, 0, 3);
+                                    }
+                                }
+                                #endregion Motor
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                // Speed  
+                                SMotion.STable[j].nTime = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+
+                                // Delay  
+                                SMotion.STable[j].nDelay = BitConverter.ToInt16(byteData, nPos); nPos += 2;
+
+                                // Group  
+                                SMotion.STable[j].nGroup = (int)(byteData[nPos++]);
+
+                                // Command  
+                                SMotion.STable[j].nCmd = (int)(byteData[nPos++]);
+
+                                // Data0  
+                                SMotion.STable[j].nData0 = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                // Data1  
+                                SMotion.STable[j].nData1 = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                SMotion.STable[j].nData2 = 0;
+                                SMotion.STable[j].nData3 = 0;
+                                SMotion.STable[j].nData4 = 0;
+                                SMotion.STable[j].nData5 = 0;
+                                #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                nPos += 24;
+                                //nPos += 4;
+                                //nPos += 4;
+                                //nPos += 4;
+
+                                //nPos += 4;
+                                //nPos += 4;
+                                //nPos += 4;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                            }
+                            #endregion Ω«¡¶ ∏º«
+#if false
+                            string strData_ME = "";
+                            string strData_FE = "";
+
+                            // 'M' 'E'
+                            strData_ME += (char)(byteData[nPos++]);
+                            strData_ME += (char)(byteData[nPos++]);
+
+                            #region Comment Data
+                            // Comment
+                            byte[] pstrComment = new byte[nCommentSize];
+                            for (j = 0; j < nCommentSize; j++)
+                                pstrComment[j] = (byte)(byteData[nPos++]);
+                            m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            pstrComment = null;
+                            #endregion Comment Data
+
+                            #region Caption
+                            int nLineNum = 0;
+                            string strLineComment;
+                            byte[] byLine = new byte[46];
+                            for (j = 0; j < nCnt_LineComment; j++)
+                            {
+                                nLineNum = (short)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                for (int k = 0; k < 46; k++)
+                                    byLine[k] = (byte)(byteData[nPos++]);
+                                strLineComment = System.Text.Encoding.Default.GetString(byLine);
+                                strLineComment = strLineComment.Trim((char)0);
+                                m_CGridMotionEditor.SetCaption(nLineNum, strLineComment);
+                            }
+                            byLine = null;
+                            #endregion Caption
+
+                            // 'T' 'E'
+                            strData_FE += (char)(byteData[nPos++]);
+                            strData_FE += (char)(byteData[nPos++]);
+
+                            //                     if (bMessage == true)
+                            //                     {
+                            //                         if (strData_ME != "ME") OjwMessage("Motion Table Error\r\n");
+                            //                         else OjwMessage("Table Loaded");
+                            //                         if (strData_FE != "TE") OjwMessage("File Error\r\n");
+                            //                         else OjwMessage("Table Loaded");
+                            //                     }
+#endif
+                            bFileOpened = true;
+                            #endregion FileOpen V1.1
+                        }
+                        else if (strTmp.ToUpper() == _STR_EXT.ToUpper() + _STR_VER_V_12)
+                        {
+                            #region FileOpen V1.2
+                            int nPos = 6;   // æ’¿« 6∞≥¥¬ 'DMT1.2' ø° «“¥Á
+
+                            #region Header
+
+                            #region ≈∏¿Ã∆≤(21)
+                            byte[] byteGetData = new byte[21];
+                            for (i = 0; i < 21; i++) byteGetData[i] = 0;
+                            for (i = 0; i < 21; i++)
+                            {
+                                if (byteData[i + nPos] == 0) break;
+                                byteGetData[i] = byteData[i + nPos];
+                            }
+                            SMotion.strTableName = System.Text.Encoding.Default.GetString(byteGetData);
+                            nPos += 21;
+                            byteGetData = null;
+                            #endregion ≈∏¿Ã∆≤(21)
+
+                            #region Start Position(1)
+                            int nStartPosition = (int)(byteData[nPos++]);
+                            SMotion.nStartPosition = (nStartPosition >= 0) ? nStartPosition : 0;
+                            #endregion Start Position(1)
+
+                            #region Size - MotionFrame(2), Comment(2), Caption(2), PlayTime(4), RobotModelNumber(2), MotorCnt(1), Motor Index(MC), Mirror Index(MC)
+                            // Size
+                            SMotion.nFrameSize = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nCommentSize = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nCnt_LineComment = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nPlayTime = (int)(byteData[nPos] + byteData[nPos + 1] * 256 + byteData[nPos + 2] * 256 * 256 + byteData[nPos + 3] * 256 * 256 * 256); nPos += 4;
+                            SMotion.nRobotModelNum = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                            SMotion.nMotorCnt = (int)(byteData[nPos++]);
+
+                            // ∏≈Õ¿« ¿Œµ¶Ω∫
+                            byte[] pbyteMotorIndex = new byte[SMotion.nMotorCnt];
+                            for (int nIndex = 0; nIndex < SMotion.nMotorCnt; nIndex++) pbyteMotorIndex[nIndex] = byteData[nPos++];
+
+                            // ∏≈Õ¿« Mirror ¿Œµ¶Ω∫
+                            byte[] pbyteMirrorIndex = new byte[SMotion.nMotorCnt];
+                            for (int nIndex = 0; nIndex < SMotion.nMotorCnt; nIndex++) pbyteMirrorIndex[nIndex] = byteData[nPos++];
+
+                            #endregion Size - MotionFrame(2), Comment(2), Caption(2), PlayTime(4), RobotModelNumber(2), MotorCnt(1), Motor Index(MC), Mirror Index(MC)
+
+                            #endregion Header
+
+                            // nRobotModelNum ∏¶ ¿–∞Ì «ÿ¥Á ∆ƒ¿œ¿ª ¿–æÓµÈ¿Œ¥Ÿ.
+                            #region Header ∞À¡ı
+#if false
+                            if (SMotion.nMotorCnt != m_CHeader.nMotorCnt)
+                            {
+                                this.Cursor = System.Windows.Forms.Cursors.Default;
+                                MessageBox.Show("µ¿⁄¿Ã≥  ∆ƒ¿œ¿« ∏≈Õ ºˆ∑Æ∞˙ ∏¬¡ˆ æ Ω¿¥œ¥Ÿ.(ø‰±∏∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", ∏º«∆ƒ¿œø° ¡§¿«µ» ∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                DialogResult dlgRet = MessageBox.Show("π´Ω√«œ∞Ì ∞Ëº” ø≠∞⁄Ω¿¥œ±Ó?", "∆ƒ¿œø≠±‚", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                if (dlgRet == DialogResult.OK)
+                                {
+                                    //MessageBox.Show("Yes");
+                                    //return;
+                                }
+                                else return false;
+                            }
+#endif
+                            #endregion Header ∞À¡ı
+
+                            for (i = SMotion.nFrameSize; i < m_CGridMotionEditor.GetLineCount() - SMotion.nFrameSize; i++) m_CGridMotionEditor.Clear(i);
+
+                            #region Ω«¡¶ ∏º«
+                            SMotion.STable = new SMotionTable_t[SMotion.nFrameSize];
+                            for (j = 0; j < SMotion.nFrameSize; j++)
+                            {
+                                SMotion.STable[j].anMot = new int[SMotion.nMotorCnt];
+                                SMotion.STable[j].anLed = new int[SMotion.nMotorCnt];
+                                SMotion.STable[j].abEn = new bool[SMotion.nMotorCnt];
+                                SMotion.STable[j].abType = new bool[SMotion.nMotorCnt];
+                            }
+
+                            int nH = SMotion.nFrameSize;
+                            int nData;
+                            short sData;
+                            //float fValue;
+                            for (j = 0; j < nH; j++)
+                            {
+                                //En
+                                #region Enable
+                                int nEn = byteData[nPos++];
+                                SMotion.STable[j].bEn = ((nEn & 0x01) != 0) ? true : false;
+                                #endregion Enable
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                #region Motor
+                                int nMotorCntMax = (int)Math.Max(SMotion.nMotorCnt, m_CHeader.nMotorCnt);
+                                // 0-Index, 1-En, 2 ~ 24, 25 - speed, 26 - delay, 27,28,29,30 - Data0-3, 31 - time, 32 - caption
+                                for (int nAxis = 0; nAxis < nMotorCntMax; nAxis++)
+                                {
+                                    if (nAxis >= m_CHeader.nMotorCnt) nPos += 3;
+                                    else if (nAxis >= SMotion.nMotorCnt) SMotion.STable[j].anMot[nAxis] = 0;// Ω« ∏≈Õºˆ∑Æ∞˙ ∏¬¡ˆ æ ¥Ÿ∏È ±◊ ∫Œ∫–¿ª 0 ¿∏∑Œ √§øÔ ∞Õ
+                                    else
+                                    {
+                                        nData = (int)(BitConverter.ToInt16(byteData, nPos)); nPos += 2;
+                                        sData = (short)(nData & 0x3fff);
+                                        if ((nData & 0x4000) != 0) sData -= 0x1000;
+                                        // ø£ƒ⁄¥ı ≈∏¿‘((0x8000) != 0)
+                                        
+                                        ///////////////////////////
+                                        // Reserve(2), Noaction(1), LED(3-Red Blue Green), Mode(1), Stop Bit(1)
+                                        int byteTmp = byteData[nPos++];
+                                        ///////////////////////////
+
+                                        //Grid_SetFlag_Led(j, nAxis, ((nData >> 12) & 0x07));
+                                        //Grid_SetFlag_Type(j, nAxis, (((nData & 0x8000) != 0) ? true : false));
+                                        //Grid_SetFlag_En(j, nAxis, ((sData == 0x7ff) ? false : true));
+
+                                        if (sData == 0x7ff)
+                                        {
+                                            SMotion.STable[j].anMot[nAxis] = 0;
+                                        }
+                                        else
+                                        {
+                                            SMotion.STable[j].anMot[nAxis] = (int)sData;// CalcEvd2Angle(nAxis, (int)sData);
+                                        }
+
+
+
+                                        /* - Save
+                                        fValue = GridMotionEditor_GetMotor(i, j);
+                                        sData = (short)(OjwMotor.CalcAngle2Evd(j, fValue) & 0x03ff);
+                                        //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
+                                        //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
+                                        //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                        sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
+                                         */
+                                    }
+                                }
+                                #endregion Motor
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                // Speed  
+                                SMotion.STable[j].nTime = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+
+                                // Delay  
+                                SMotion.STable[j].nDelay = BitConverter.ToInt16(byteData, nPos); nPos += 2;
+
+                                // Group  
+                                SMotion.STable[j].nGroup = (int)(byteData[nPos++]);
+
+                                // Command  
+                                SMotion.STable[j].nCmd = (int)(byteData[nPos++]);
+
+                                // Data0  
+                                SMotion.STable[j].nData0 = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                // Data1  
+                                SMotion.STable[j].nData1 = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                SMotion.STable[j].nData2 = 0;
+                                SMotion.STable[j].nData3 = 0;
+                                SMotion.STable[j].nData4 = 0;
+                                SMotion.STable[j].nData5 = 0;
+                                #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                nPos += 24;
+                                //nPos += 4;
+                                //nPos += 4;
+                                //nPos += 4;
+
+                                //nPos += 4;
+                                //nPos += 4;
+                                //nPos += 4;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                            }
+                            #endregion Ω«¡¶ ∏º«
+#if false
+                            string strData_ME = "";
+                            string strData_FE = "";
+
+                            // 'M' 'E'
+                            strData_ME += (char)(byteData[nPos++]);
+                            strData_ME += (char)(byteData[nPos++]);
+
+                            #region Comment Data
+                            // Comment
+                            byte[] pstrComment = new byte[nCommentSize];
+                            for (j = 0; j < nCommentSize; j++)
+                                pstrComment[j] = (byte)(byteData[nPos++]);
+                            m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            pstrComment = null;
+                            #endregion Comment Data
+
+                            #region Caption
+                            int nLineNum = 0;
+                            string strLineComment;
+                            byte[] byLine = new byte[46];
+                            for (j = 0; j < nCnt_LineComment; j++)
+                            {
+                                nLineNum = (short)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
+                                for (int k = 0; k < 46; k++)
+                                    byLine[k] = (byte)(byteData[nPos++]);
+                                strLineComment = System.Text.Encoding.Default.GetString(byLine);
+                                strLineComment = strLineComment.Trim((char)0);
+                                m_CGridMotionEditor.SetCaption(nLineNum, strLineComment);
+                            }
+                            byLine = null;
+                            #endregion Caption
+
+                            // 'T' 'E'
+                            strData_FE += (char)(byteData[nPos++]);
+                            strData_FE += (char)(byteData[nPos++]);
+#endif
+
+                            //                     if (bMessage == true)
+                            //                     {
+                            //                         if (strData_ME != "ME") OjwMessage("Motion Table Error\r\n");
+                            //                         else OjwMessage("Table Loaded");
+                            //                         if (strData_FE != "TE") OjwMessage("File Error\r\n");
+                            //                         else OjwMessage("Table Loaded");
+                            //                     }
+
+                            pbyteMotorIndex = null;
+                            pbyteMirrorIndex = null;
+                            bFileOpened = true;
+                            #endregion FileOpen V1.0
+                        }
+                        ////////////////////////////////////////////////////////////////////////////
+
+                        if (bFileOpened == true) return true;
+                        return false;
+                    }
+                    catch
+                    {
+                        this.Cursor = System.Windows.Forms.Cursors.Default;
+                        //if (bFile == true)
+                        //{
+                        //    fs.Close();
+                        //    f = null;
+                        //}
+                        return false;
+                    }
+                }
                 public bool DataFileOpen(String strFileName, byte[] byteArrayData)//, bool bMessage)//, bool bTableOut)
                 {
                     //ojw5014_v11
                     this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
 
-                    // Ï∫°ÏÖò ÌÅ¥Î¶¨Ïñ¥
-                    for (int i = 0; i < m_CGridDraw.GetLineCount(); i++)
-                        if (m_CGridDraw.GetCaption(i) != "") m_CGridDraw.SetCaption(i, "");
+                    // ƒ∏º« ≈¨∏ÆæÓ
+                    for (int i = 0; i < m_CGridMotionEditor.GetLineCount(); i++)
+                        if (m_CGridMotionEditor.GetCaption(i) != "") m_CGridMotionEditor.SetCaption(i, "");
                     
                     bool bFile = false;
 
@@ -4579,6 +5307,9 @@ namespace OpenJigWare
                             byteData = new byte[fs.Length];
                             fs.Read(byteData, 0, byteData.Length);
                             strFileName2 = f.Name;
+                            
+                            fs.Close();
+                            f = null;
                         }
                         else
                         {
@@ -4592,7 +5323,7 @@ namespace OpenJigWare
                             strFileName2 = strFileName;
                         }
 
-                        // Îç∞Ïù¥ÌÉÄ ÌòïÏãù Íµ¨Î∂Ñ
+                        // µ•¿Ã≈∏ «¸Ωƒ ±∏∫–
                         String strTmp = "";
                         strTmp += (char)byteData[0];
                         strTmp += (char)byteData[1];
@@ -4612,11 +5343,11 @@ namespace OpenJigWare
                             //chkFileVersionForSave.Checked = false;
                             #region FileOpen V1.0
                             //if (bMessage == true) OjwMessage("[" + _STR_EXT.ToUpper() + _STR_VER.ToUpper() + " Binary File Data(" + strTmp + ")]");
-                            int nPos = 6;   // ÏïûÏùò 6Í∞úÎäî 'DMT1.0' Ïóê Ìï†Îãπ
+                            int nPos = 6;   // æ’¿« 6∞≥¥¬ 'DMT1.0' ø° «“¥Á
 
                             #region Header
 
-                            #region ÌÉÄÏù¥ÌãÄ(21)
+                            #region ≈∏¿Ã∆≤(21)
                             byte[] byteGetData = new byte[21];
                             for (i = 0; i < 21; i++) byteGetData[i] = 0;
                             for (i = 0; i < 21; i++)
@@ -4627,7 +5358,7 @@ namespace OpenJigWare
                             m_strMotionFile_TableName = System.Text.Encoding.Default.GetString(byteGetData);
                             nPos += 21;
                             byteGetData = null;
-                            #endregion ÌÉÄÏù¥ÌãÄ(21)
+                            #endregion ≈∏¿Ã∆≤(21)
 
                             #region Start Position(1)
                             int nStartPosition = (int)(byteData[nPos++]);
@@ -4648,18 +5379,20 @@ namespace OpenJigWare
 
                             #endregion Header
 
-                            // nRobotModelNum Î•º ÏùΩÍ≥† Ìï¥Îãπ ÌååÏùºÏùÑ ÏùΩÏñ¥Îì§Ïù∏Îã§.
-                            #region Header Í≤ÄÏ¶ù
+                            // nRobotModelNum ∏¶ ¿–∞Ì «ÿ¥Á ∆ƒ¿œ¿ª ¿–æÓµÈ¿Œ¥Ÿ.
+                            #region Header ∞À¡ı
                             if (nMotorCnt != m_CHeader.nMotorCnt)
                             {
-                                if (bFile == true)
-                                {
-                                    fs.Close();
-                                    f = null;
-                                }
+                                //if (bFile == true)
+                                //{
+                                //    fs.Close();
+                                //    f = null;
+                                //}
                                 this.Cursor = System.Windows.Forms.Cursors.Default;
-                                MessageBox.Show("ÎîîÏûêÏù¥ÎÑà ÌååÏùºÏùò Î™®ÌÑ∞ ÏàòÎüâÍ≥º ÎßûÏßÄ ÏïäÏäµÎãàÎã§.(ÏöîÍµ¨Î™®ÌÑ∞ÏàòÎüâ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", Î™®ÏÖòÌååÏùºÏóê Ï†ïÏùòÎêú Î™®ÌÑ∞ÏàòÎüâ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// Ìï¥Îãπ Î™®Îç∏Ïóê ÎßûÎäî Î™®ÏÖòÏùÑ Î°úÎìúÌïòÏã≠ÏãúÏò§.");
-                                DialogResult dlgRet = MessageBox.Show("Î¨¥ÏãúÌïòÍ≥† Í≥ÑÏÜç Ïó¥Í≤†ÏäµÎãàÍπå?", "ÌååÏùºÏó¥Í∏∞", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                //MessageBox.Show("µ¿⁄¿Ã≥  ∆ƒ¿œ¿« ∏≈Õ ºˆ∑Æ∞˙ ∏¬¡ˆ æ Ω¿¥œ¥Ÿ.(ø‰±∏∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", ∏º«∆ƒ¿œø° ¡§¿«µ» ∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                //DialogResult dlgRet = MessageBox.Show("π´Ω√«œ∞Ì ∞Ëº” ø≠∞⁄Ω¿¥œ±Ó?", "∆ƒ¿œø≠±‚", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                MessageBox.Show("Motor quantity error.(Motors in 3D Modeling =" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", Motors in File =" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                DialogResult dlgRet = MessageBox.Show("Do you want to continue?", "File Open", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                                 if (dlgRet == DialogResult.OK)
                                 {
                                     //MessageBox.Show("Yes");
@@ -4667,16 +5400,16 @@ namespace OpenJigWare
                                 }
                                 else return false;
                             }
-                            #endregion Header Í≤ÄÏ¶ù
+                            #endregion Header ∞À¡ı
 
                             //Grid_ChangePos(dgAngle, 0, 0);
                             //Grid_ChangePos(dgKinematics, 0, 0);
                             //GridInit(nMotorCnt, nFrameSize, false);// + 50);
                             //GridInit(nMotorCnt, _SIZE_FRAME, false);
 
-                            for (i = nFrameSize; i < m_CGridDraw.GetLineCount() - nFrameSize; i++) m_CGridDraw.Clear(i);
+                            for (i = nFrameSize; i < m_CGridMotionEditor.GetLineCount() - nFrameSize; i++) m_CGridMotionEditor.Clear(i);
 
-                            #region Ïã§Ï†ú Î™®ÏÖò
+                            #region Ω«¡¶ ∏º«
                             int nH = nFrameSize;
                             int nData;
                             short sData;
@@ -4687,7 +5420,7 @@ namespace OpenJigWare
                                 #region Enable
                                 int nEn = byteData[nPos++];
                                 bool bEn = ((nEn & 0x01) != 0) ? true : false;
-                                m_CGridDraw.SetEnable(j, bEn);
+                                m_CGridMotionEditor.SetEnable(j, bEn);
                                 #endregion Enable
                                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                                 #region Motor
@@ -4696,38 +5429,38 @@ namespace OpenJigWare
                                 for (int nAxis = 0; nAxis < nMotorCntMax; nAxis++)
                                 {
                                     if (nAxis >= m_CHeader.nMotorCnt) nPos += 2;
-                                    else if (nAxis >= nMotorCnt) m_CGridDraw.SetData(j, nAxis, 0.0f);// Ïã§ Î™®ÌÑ∞ÏàòÎüâÍ≥º ÎßûÏßÄ ÏïäÎã§Î©¥ Í∑∏ Î∂ÄÎ∂ÑÏùÑ 0 ÏúºÎ°ú Ï±ÑÏö∏ Í≤É
+                                    else if (nAxis >= nMotorCnt) m_CGridMotionEditor.SetData(j, nAxis, 0.0f);// Ω« ∏≈Õºˆ∑Æ∞˙ ∏¬¡ˆ æ ¥Ÿ∏È ±◊ ∫Œ∫–¿ª 0 ¿∏∑Œ √§øÔ ∞Õ
                                     else
                                     {
                                         nData = (int)(BitConverter.ToInt16(byteData, nPos)); nPos += 2;
                                         sData = (short)(nData & 0x0fff);
                                         if ((sData & 0x800) != 0) sData -= 0x1000;
 
-                                        //Grid_SetFlag_Led(j, nAxis, ((nData >> 12) & 0x07));
-                                        //Grid_SetFlag_Type(j, nAxis, (((nData & 0x8000) != 0) ? true : false));
-                                        //Grid_SetFlag_En(j, nAxis, ((sData == 0x7ff) ? false : true));
+                                        Grid_SetFlag_Led(j, nAxis, ((nData >> 12) & 0x07));
+                                        Grid_SetFlag_Type(j, nAxis, (((nData & 0x8000) != 0) ? true : false));
+                                        Grid_SetFlag_En(j, nAxis, ((sData == 0x7ff) ? false : true));
 
                                         if (sData == 0x7ff)
                                         {
-                                            //m_CGridDraw.SetData(j, nAxis, 0);
+                                            //m_CGridMotionEditor.SetData(j, nAxis, 0);
                                             GridMotionEditor_SetMotor(j, nAxis, 0);
                                         }
                                         else
                                         {
                                             fValue = CalcEvd2Angle(nAxis, (int)sData);
-                                            //m_CGridDraw.SetData(j, nAxis, fValue);
+                                            //m_CGridMotionEditor.SetData(j, nAxis, fValue);
                                             GridMotionEditor_SetMotor(j, nAxis, fValue);
                                         }
 
 
 
                                         /* - Save
-                                        fValue = Grid_GetMot(i, j);
+                                        fValue = GridMotionEditor_GetMotor(i, j);
                                         sData = (short)(OjwMotor.CalcAngle2Evd(j, fValue) & 0x03ff);
-                                        //sData |= 0x0400; // ÏÜçÎèÑÎ™®ÎìúÏù∏Îïå Ï†ï(0-0x0000), Ïó≠(1-0x0400)
+                                        //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
                                         //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
-                                        //sData |= Ï†úÏñ¥ÌÉÄÏûÖ // 0 - ÏúÑÏπò, 0x2000 - ÏÜçÎèÑ
-                                        sData |= 0x4000; //Enable // Í∞úÎ≥Ñ Enable (0 - Disable, 0x4000 - Enable)
+                                        //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                        sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
                                          */
                                     }
                                 }
@@ -4737,49 +5470,51 @@ namespace OpenJigWare
                                 #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
                                 // Speed  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
-                                //m_CGridDraw.SetSpeed(j, nData);
+                                //m_CGridMotionEditor.SetSpeed(j, nData);
                                 GridMotionEditor_SetTime(j, nData);
 
                                 // Delay  
                                 nData = BitConverter.ToInt16(byteData, nPos); nPos += 2;
-                                //m_CGridDraw.SetDelay(j, nData);
+                                //m_CGridMotionEditor.SetDelay(j, nData);
                                 GridMotionEditor_SetDelay(j, nData);
 
                                 // Group  
                                 nData = (int)(byteData[nPos++]);
-                                //m_CGridDraw.SetGroup(j, nData);
+                                //m_CGridMotionEditor.SetGroup(j, nData);
                                 GridMotionEditor_SetGroup(j, nData);
 
                                 // Command  
                                 nData = (int)(byteData[nPos++]);
-                                Grid_SetCommand(j, nData);// m_CGridDraw.SetData2(j, nData);//SetCommand(j, nData);
+                                GridMotionEditor_SetCommand(j, nData);// m_CGridMotionEditor.SetData2(j, nData);//SetCommand(j, nData);
                                 
 
                                 // Data0  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
-                                //m_CGridDraw.SetData0(j, nData);
-                                m_CGridDraw.SetData3(j, nData);
+                                //m_CGridMotionEditor.SetData0(j, nData);
+                                //GridMotionEditor_SetData3(j, nData);
+                                GridMotionEditor_SetData0(j, nData);
                                 // Data1  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
                                 //Grid_SetData1(j, nData);
-                                m_CGridDraw.SetData4(j, nData);
+                                //GridMotionEditor_SetData4(j, nData);
+                                GridMotionEditor_SetData1(j, nData);
                                 #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
                                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                                #region Ïù¥ÏÇ∞ÏóêÏÑú Ï∂îÍ∞ÄÌïú Frame ÏúÑÏπò Î∞è ÏûêÏÑ∏
-                                //SetFrame_X(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Y(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Z(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                nPos += 4;//SetFrame_X(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Y(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Z(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
 
-                                //SetFrame_Pan(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Tilt(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Swing(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                #endregion Ïù¥ÏÇ∞ÏóêÏÑú Ï∂îÍ∞ÄÌïú Frame ÏúÑÏπò Î∞è ÏûêÏÑ∏
+                                nPos += 4;//SetFrame_Pan(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Tilt(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Swing(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
                             }
-                            #endregion Ïã§Ï†ú Î™®ÏÖò
+                            #endregion Ω«¡¶ ∏º«
 
 #if !_COLOR_GRID_IN_PAINT
-                            m_CGridDraw.SetColorGrid(0, nFrameSize);
+                            m_CGridMotionEditor.SetColorGrid(0, nFrameSize);
                             //Grid_SetColorGrid(0, nFrameSize);
 #endif
                             string strData_ME = "";
@@ -4809,7 +5544,7 @@ namespace OpenJigWare
                                     byLine[k] = (byte)(byteData[nPos++]);
                                 strLineComment = System.Text.Encoding.Default.GetString(byLine);
                                 strLineComment = strLineComment.Trim((char)0);
-                                m_CGridDraw.SetCaption(nLineNum, strLineComment);
+                                m_CGridMotionEditor.SetCaption(nLineNum, strLineComment);
                             }
                             byLine = null;
                             #endregion Caption
@@ -4835,11 +5570,11 @@ namespace OpenJigWare
                             //chkFileVersionForSave.Checked = true;
                             #region FileOpen V1.1
                             //if (bMessage == true) OjwMessage("[" + _STR_EXT.ToUpper() + _STR_VER.ToUpper() + " Binary File Data(" + strTmp + ")]");
-                            int nPos = 6;   // ÏïûÏùò 6Í∞úÎäî 'DMT1.0' Ïóê Ìï†Îãπ
+                            int nPos = 6;   // æ’¿« 6∞≥¥¬ 'DMT1.0' ø° «“¥Á
 
                             #region Header
 
-                            #region ÌÉÄÏù¥ÌãÄ(21)
+                            #region ≈∏¿Ã∆≤(21)
                             byte[] byteGetData = new byte[21];
                             for (i = 0; i < 21; i++) byteGetData[i] = 0;
                             for (i = 0; i < 21; i++)
@@ -4850,7 +5585,7 @@ namespace OpenJigWare
                             m_strMotionFile_TableName = System.Text.Encoding.Default.GetString(byteGetData);
                             nPos += 21;
                             byteGetData = null;
-                            #endregion ÌÉÄÏù¥ÌãÄ(21)
+                            #endregion ≈∏¿Ã∆≤(21)
 
                             #region Start Position(1)
                             int nStartPosition = (int)(byteData[nPos++]);
@@ -4871,18 +5606,18 @@ namespace OpenJigWare
 
                             #endregion Header
 
-                            // nRobotModelNum Î•º ÏùΩÍ≥† Ìï¥Îãπ ÌååÏùºÏùÑ ÏùΩÏñ¥Îì§Ïù∏Îã§.
-                            #region Header Í≤ÄÏ¶ù
+                            // nRobotModelNum ∏¶ ¿–∞Ì «ÿ¥Á ∆ƒ¿œ¿ª ¿–æÓµÈ¿Œ¥Ÿ.
+                            #region Header ∞À¡ı
                             if (nMotorCnt != m_CHeader.nMotorCnt)
                             {
-                                if (bFile == true)
-                                {
-                                    fs.Close();
-                                    f = null;
-                                }
+                                //if (bFile == true)
+                                //{
+                                //    fs.Close();
+                                //    f = null;
+                                //}
                                 this.Cursor = System.Windows.Forms.Cursors.Default;
-                                MessageBox.Show("ÎîîÏûêÏù¥ÎÑà ÌååÏùºÏùò Î™®ÌÑ∞ ÏàòÎüâÍ≥º ÎßûÏßÄ ÏïäÏäµÎãàÎã§.(ÏöîÍµ¨Î™®ÌÑ∞ÏàòÎüâ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", Î™®ÏÖòÌååÏùºÏóê Ï†ïÏùòÎêú Î™®ÌÑ∞ÏàòÎüâ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// Ìï¥Îãπ Î™®Îç∏Ïóê ÎßûÎäî Î™®ÏÖòÏùÑ Î°úÎìúÌïòÏã≠ÏãúÏò§.");
-                                DialogResult dlgRet = MessageBox.Show("Î¨¥ÏãúÌïòÍ≥† Í≥ÑÏÜç Ïó¥Í≤†ÏäµÎãàÍπå?", "ÌååÏùºÏó¥Í∏∞", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                MessageBox.Show("µ¿⁄¿Ã≥  ∆ƒ¿œ¿« ∏≈Õ ºˆ∑Æ∞˙ ∏¬¡ˆ æ Ω¿¥œ¥Ÿ.(ø‰±∏∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", ∏º«∆ƒ¿œø° ¡§¿«µ» ∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                DialogResult dlgRet = MessageBox.Show("π´Ω√«œ∞Ì ∞Ëº” ø≠∞⁄Ω¿¥œ±Ó?", "∆ƒ¿œø≠±‚", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                                 if (dlgRet == DialogResult.OK)
                                 {
                                     //MessageBox.Show("Yes");
@@ -4890,16 +5625,16 @@ namespace OpenJigWare
                                 }
                                 else return false;
                             }
-                            #endregion Header Í≤ÄÏ¶ù
+                            #endregion Header ∞À¡ı
 
                             //Grid_ChangePos(dgAngle, 0, 0);
                             //Grid_ChangePos(dgKinematics, 0, 0);
                             //GridInit(nMotorCnt, nFrameSize, false);// + 50);
                             //GridInit(nMotorCnt, _SIZE_FRAME, false);
 
-                            for (i = nFrameSize; i < m_CGridDraw.GetLineCount() - nFrameSize; i++) m_CGridDraw.Clear(i);
+                            for (i = nFrameSize; i < m_CGridMotionEditor.GetLineCount() - nFrameSize; i++) m_CGridMotionEditor.Clear(i);
 
-                            #region Ïã§Ï†ú Î™®ÏÖò
+                            #region Ω«¡¶ ∏º«
                             int nH = nFrameSize;
                             int nData, nData2;
                             //short sData;
@@ -4910,7 +5645,7 @@ namespace OpenJigWare
                                 #region Enable
                                 int nEn = byteData[nPos++];
                                 bool bEn = ((nEn & 0x01) != 0) ? true : false;
-                                m_CGridDraw.SetEnable(j, bEn);
+                                m_CGridMotionEditor.SetEnable(j, bEn);
                                 #endregion Enable
                                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                                 #region Motor
@@ -4919,7 +5654,7 @@ namespace OpenJigWare
                                 for (int nAxis = 0; nAxis < nMotorCntMax; nAxis++)
                                 {
                                     if (nAxis >= m_CHeader.nMotorCnt) nPos += 3;
-                                    else if (nAxis >= nMotorCnt) m_CGridDraw.SetData(j, nAxis, 0.0f);// Ïã§ Î™®ÌÑ∞ÏàòÎüâÍ≥º ÎßûÏßÄ ÏïäÎã§Î©¥ Í∑∏ Î∂ÄÎ∂ÑÏùÑ 0 ÏúºÎ°ú Ï±ÑÏö∏ Í≤É
+                                    else if (nAxis >= nMotorCnt) m_CGridMotionEditor.SetData(j, nAxis, 0.0f);// Ω« ∏≈Õºˆ∑Æ∞˙ ∏¬¡ˆ æ ¥Ÿ∏È ±◊ ∫Œ∫–¿ª 0 ¿∏∑Œ √§øÔ ∞Õ
                                     else
                                     {
                                         nData = byteData[nPos++];
@@ -4928,13 +5663,13 @@ namespace OpenJigWare
                                         //nData = (int)(BitConverter.ToInt(byteData, nPos)); nPos += 3;
                                         //sData = (short)(nData & 0x0fff);
                                         nData2 = nData & 0x3fff;
-                                        if ((nData & 0x4000) != 0) nData2 *= -1; // Î∂ÄÌò∏ÎπÑÌä∏ Í≤ÄÏÇ¨
+                                        if ((nData & 0x4000) != 0) nData2 *= -1; // ∫Œ»£∫Ò∆Æ ∞ÀªÁ
 
-                                        // ÏóîÏΩîÎçî ÌÉÄÏûÖÏ†ïÏùò
-                                        // ÏùºÎã® ÎÑòÏñ¥Í∞ÑÎã§.
+                                        // ø£ƒ⁄¥ı ≈∏¿‘¡§¿«
+                                        // ¿œ¥‹ ≥—æÓ∞£¥Ÿ.
 
                                         // Stop Bit
-                                        // ÎÑòÏñ¥Í∞ÑÎã§.
+                                        // ≥—æÓ∞£¥Ÿ.
 
                                         // Mode
 #if false
@@ -4943,34 +5678,34 @@ namespace OpenJigWare
                                         //Grid_SetFlag_Led(j, nAxis, ((nData >> 18) & 0x07));
                                         //Grid_SetFlag_En(j, nAxis, ((nData == 0x200000) ? false : true));
 
-                                        if (m_CGridDraw.GetEnable(j, nAxis) == false)
+                                        if (m_CGridMotionEditor.GetEnable(j, nAxis) == false)
                                         {
-                                            m_CGridDraw.SetData(j, nAxis, 0);
+                                            m_CGridMotionEditor.SetData(j, nAxis, 0);
                                         }
                                         else
 #endif
                                         {
                                             fValue = CalcEvd2Angle(nAxis, (int)nData2);
-                                            m_CGridDraw.SetData(j, nAxis, fValue);
+                                            m_CGridMotionEditor.SetData(j, nAxis, fValue);
                                         }
 
 
 
                                         /* - Save
-                                        fValue = Grid_GetMot(i, j);
+                                        fValue = GridMotionEditor_GetMotor(i, j);
                                         sData = (short)(OjwMotor.CalcAngle2Evd(j, fValue) & 0x03ff);
-                                        //sData |= 0x0400; // ÏÜçÎèÑÎ™®ÎìúÏù∏Îïå Ï†ï(0-0x0000), Ïó≠(1-0x0400)
+                                        //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
                                         //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
-                                        //sData |= Ï†úÏñ¥ÌÉÄÏûÖ // 0 - ÏúÑÏπò, 0x2000 - ÏÜçÎèÑ
-                                        sData |= 0x4000; //Enable // Í∞úÎ≥Ñ Enable (0 - Disable, 0x4000 - Enable)
+                                        //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                        sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
                                          */
 
 
-                                        //fValue = Grid_GetMot(i, j);
+                                        //fValue = GridMotionEditor_GetMotor(i, j);
                                         //nData = (int)(((Grid_GetFlag_En(i, j) == true) ? CalcAngle2Evd(j, fValue) : 0x07ff) & 0x0fff);
 
                                         //nData |= (int)(((j >= 6) && (j <= 8)) ? 0x8000 : 0x0000);
-                                        //nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x20000 : 0x0000); // Ï†úÏñ¥ÌÉÄÏûÖ // 0 - ÏúÑÏπò, 0x20000 - ÏÜçÎèÑ
+                                        //nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x20000 : 0x0000); // ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x20000 - º”µµ
 
                                         //nData |= (int)((Grid_GetFlag_Led(i, j) & 0x07) << 18);
                                         //nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x8000 : 0x0000);
@@ -4998,31 +5733,31 @@ namespace OpenJigWare
 
                                 // Command  
                                 nData = (int)(byteData[nPos++]);
-                                Grid_SetCommand(j, nData);
+                                GridMotionEditor_SetCommand(j, nData);
 
                                 // Data0  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
-                                Grid_SetData0(j, nData);
+                                GridMotionEditor_SetData0(j, nData);
                                 // Data1  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
-                                Grid_SetData1(j, nData);
+                                GridMotionEditor_SetData1(j, nData);
                                 #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
                                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                                #region Ïù¥ÏÇ∞ÏóêÏÑú Ï∂îÍ∞ÄÌïú Frame ÏúÑÏπò Î∞è ÏûêÏÑ∏
-                                //SetFrame_X(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Y(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Z(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                nPos += 4;//SetFrame_X(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Y(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Z(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
 
-                                //SetFrame_Pan(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Tilt(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Swing(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                #endregion Ïù¥ÏÇ∞ÏóêÏÑú Ï∂îÍ∞ÄÌïú Frame ÏúÑÏπò Î∞è ÏûêÏÑ∏
+                                nPos += 4;//SetFrame_Pan(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Tilt(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Swing(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
                             }
-                            #endregion Ïã§Ï†ú Î™®ÏÖò
+                            #endregion Ω«¡¶ ∏º«
 
 #if !_COLOR_GRID_IN_PAINT
-                            m_CGridDraw.SetColorGrid(0, nFrameSize);
+                            m_CGridMotionEditor.SetColorGrid(0, nFrameSize);
 #endif
 
                             string strData_ME = "";
@@ -5052,7 +5787,7 @@ namespace OpenJigWare
                                     byLine[k] = (byte)(byteData[nPos++]);
                                 strLineComment = System.Text.Encoding.Default.GetString(byLine);
                                 strLineComment = strLineComment.Trim((char)0);
-                                m_CGridDraw.SetCaption(nLineNum, strLineComment);
+                                m_CGridMotionEditor.SetCaption(nLineNum, strLineComment);
                             }
                             byLine = null;
                             #endregion Caption
@@ -5077,11 +5812,11 @@ namespace OpenJigWare
                             //chkFileVersionForSave_1_0.Checked = false;
                             //chkFileVersionForSave.Checked = false;
                             #region FileOpen V1.2
-                            int nPos = 6;   // ÏïûÏùò 6Í∞úÎäî 'DMT1.2' Ïóê Ìï†Îãπ
+                            int nPos = 6;   // æ’¿« 6∞≥¥¬ 'DMT1.2' ø° «“¥Á
 
                             #region Header
 
-                            #region ÌÉÄÏù¥ÌãÄ(21)
+                            #region ≈∏¿Ã∆≤(21)
                             byte[] byteGetData = new byte[21];
                             for (i = 0; i < 21; i++) byteGetData[i] = 0;
                             for (i = 0; i < 21; i++)
@@ -5092,7 +5827,7 @@ namespace OpenJigWare
                             m_strMotionFile_TableName = System.Text.Encoding.Default.GetString(byteGetData);
                             nPos += 21;
                             byteGetData = null;
-                            #endregion ÌÉÄÏù¥ÌãÄ(21)
+                            #endregion ≈∏¿Ã∆≤(21)
 
                             #region Start Position(1)
                             int nStartPosition = (int)(byteData[nPos++]);
@@ -5110,11 +5845,11 @@ namespace OpenJigWare
                             nRobotModelNum = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
                             nMotorCnt = (int)(byteData[nPos++]);
 
-                            // Î™®ÌÑ∞Ïùò Ïù∏Îç±Ïä§
+                            // ∏≈Õ¿« ¿Œµ¶Ω∫
                             byte[] pbyteMotorIndex = new byte[nMotorCnt];
                             for (int nIndex = 0; nIndex < nMotorCnt; nIndex++) pbyteMotorIndex[nIndex] = byteData[nPos++];
 
-                            // Î™®ÌÑ∞Ïùò Mirror Ïù∏Îç±Ïä§
+                            // ∏≈Õ¿« Mirror ¿Œµ¶Ω∫
                             byte[] pbyteMirrorIndex = new byte[nMotorCnt];
                             for (int nIndex = 0; nIndex < nMotorCnt; nIndex++) pbyteMirrorIndex[nIndex] = byteData[nPos++];
 
@@ -5122,18 +5857,18 @@ namespace OpenJigWare
 
                             #endregion Header
 
-                            // nRobotModelNum Î•º ÏùΩÍ≥† Ìï¥Îãπ ÌååÏùºÏùÑ ÏùΩÏñ¥Îì§Ïù∏Îã§.
-                            #region Header Í≤ÄÏ¶ù
+                            // nRobotModelNum ∏¶ ¿–∞Ì «ÿ¥Á ∆ƒ¿œ¿ª ¿–æÓµÈ¿Œ¥Ÿ.
+                            #region Header ∞À¡ı
                             if (nMotorCnt != m_CHeader.nMotorCnt)
                             {
-                                if (bFile == true)
-                                {
-                                    fs.Close();
-                                    f = null;
-                                }
+                                //if (bFile == true)
+                                //{
+                                //    fs.Close();
+                                //    f = null;
+                                //}
                                 this.Cursor = System.Windows.Forms.Cursors.Default;
-                                MessageBox.Show("ÎîîÏûêÏù¥ÎÑà ÌååÏùºÏùò Î™®ÌÑ∞ ÏàòÎüâÍ≥º ÎßûÏßÄ ÏïäÏäµÎãàÎã§.(ÏöîÍµ¨Î™®ÌÑ∞ÏàòÎüâ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", Î™®ÏÖòÌååÏùºÏóê Ï†ïÏùòÎêú Î™®ÌÑ∞ÏàòÎüâ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// Ìï¥Îãπ Î™®Îç∏Ïóê ÎßûÎäî Î™®ÏÖòÏùÑ Î°úÎìúÌïòÏã≠ÏãúÏò§.");
-                                DialogResult dlgRet = MessageBox.Show("Î¨¥ÏãúÌïòÍ≥† Í≥ÑÏÜç Ïó¥Í≤†ÏäµÎãàÍπå?", "ÌååÏùºÏó¥Í∏∞", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                MessageBox.Show("µ¿⁄¿Ã≥  ∆ƒ¿œ¿« ∏≈Õ ºˆ∑Æ∞˙ ∏¬¡ˆ æ Ω¿¥œ¥Ÿ.(ø‰±∏∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(m_CHeader.nMotorCnt) + ", ∏º«∆ƒ¿œø° ¡§¿«µ» ∏≈Õºˆ∑Æ=" + Ojw.CConvert.IntToStr(nMotorCnt) + ")\n");// «ÿ¥Á ∏µ®ø° ∏¬¥¬ ∏º«¿ª ∑ŒµÂ«œΩ Ω√ø¿.");
+                                DialogResult dlgRet = MessageBox.Show("π´Ω√«œ∞Ì ∞Ëº” ø≠∞⁄Ω¿¥œ±Ó?", "∆ƒ¿œø≠±‚", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                                 if (dlgRet == DialogResult.OK)
                                 {
                                     //MessageBox.Show("Yes");
@@ -5141,16 +5876,16 @@ namespace OpenJigWare
                                 }
                                 else return false;
                             }
-                            #endregion Header Í≤ÄÏ¶ù
+                            #endregion Header ∞À¡ı
 
                             //Grid_ChangePos(dgAngle, 0, 0);
                             //Grid_ChangePos(dgKinematics, 0, 0);
                             //GridInit(nMotorCnt, nFrameSize, false);// + 50);
                             //GridInit(nMotorCnt, _SIZE_FRAME, false);
 
-                            for (i = nFrameSize; i < m_CGridDraw.GetLineCount() - nFrameSize; i++) m_CGridDraw.Clear(i);
+                            for (i = nFrameSize; i < m_CGridMotionEditor.GetLineCount() - nFrameSize; i++) m_CGridMotionEditor.Clear(i);
 
-                            #region Ïã§Ï†ú Î™®ÏÖò
+                            #region Ω«¡¶ ∏º«
                             int nH = nFrameSize;
                             int nData;
                             short sData;
@@ -5161,7 +5896,7 @@ namespace OpenJigWare
                                 #region Enable
                                 int nEn = byteData[nPos++];
                                 bool bEn = ((nEn & 0x01) != 0) ? true : false;
-                                m_CGridDraw.SetEnable(j, bEn);
+                                m_CGridMotionEditor.SetEnable(j, bEn);
                                 #endregion Enable
                                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                                 #region Motor
@@ -5170,13 +5905,13 @@ namespace OpenJigWare
                                 for (int nAxis = 0; nAxis < nMotorCntMax; nAxis++)
                                 {
                                     if (nAxis >= m_CHeader.nMotorCnt) nPos += 3;
-                                    else if (nAxis >= nMotorCnt) m_CGridDraw.SetData(j, nAxis, 0.0f);// Ïã§ Î™®ÌÑ∞ÏàòÎüâÍ≥º ÎßûÏßÄ ÏïäÎã§Î©¥ Í∑∏ Î∂ÄÎ∂ÑÏùÑ 0 ÏúºÎ°ú Ï±ÑÏö∏ Í≤É
+                                    else if (nAxis >= nMotorCnt) m_CGridMotionEditor.SetData(j, nAxis, 0.0f);// Ω« ∏≈Õºˆ∑Æ∞˙ ∏¬¡ˆ æ ¥Ÿ∏È ±◊ ∫Œ∫–¿ª 0 ¿∏∑Œ √§øÔ ∞Õ
                                     else
                                     {
                                         nData = (int)(BitConverter.ToInt16(byteData, nPos)); nPos += 2;
                                         sData = (short)(nData & 0x3fff);
                                         if ((nData & 0x4000) != 0) sData -= 0x1000;
-                                        // ÏóîÏΩîÎçî ÌÉÄÏûÖ((0x8000) != 0)
+                                        // ø£ƒ⁄¥ı ≈∏¿‘((0x8000) != 0)
 
 
                                         ///////////////////////////
@@ -5203,23 +5938,23 @@ namespace OpenJigWare
 
                                         if (sData == 0x7ff)
                                         {
-                                            m_CGridDraw.SetData(j, nAxis, 0);
+                                            m_CGridMotionEditor.SetData(j, nAxis, 0);
                                         }
                                         else
                                         {
                                             fValue = CalcEvd2Angle(nAxis, (int)sData);
-                                            m_CGridDraw.SetData(j, nAxis, fValue);
+                                            m_CGridMotionEditor.SetData(j, nAxis, fValue);
                                         }
 
 
 
                                         /* - Save
-                                        fValue = Grid_GetMot(i, j);
+                                        fValue = GridMotionEditor_GetMotor(i, j);
                                         sData = (short)(OjwMotor.CalcAngle2Evd(j, fValue) & 0x03ff);
-                                        //sData |= 0x0400; // ÏÜçÎèÑÎ™®ÎìúÏù∏Îïå Ï†ï(0-0x0000), Ïó≠(1-0x0400)
+                                        //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
                                         //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
-                                        //sData |= Ï†úÏñ¥ÌÉÄÏûÖ // 0 - ÏúÑÏπò, 0x2000 - ÏÜçÎèÑ
-                                        sData |= 0x4000; //Enable // Í∞úÎ≥Ñ Enable (0 - Disable, 0x4000 - Enable)
+                                        //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                        sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
                                          */
                                     }
                                 }
@@ -5241,31 +5976,31 @@ namespace OpenJigWare
 
                                 // Command  
                                 nData = (int)(byteData[nPos++]);
-                                Grid_SetCommand(j, nData);
+                                GridMotionEditor_SetCommand(j, nData);
 
                                 // Data0  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
-                                Grid_SetData0(j, nData);
+                                GridMotionEditor_SetData0(j, nData);
                                 // Data1  
                                 nData = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
-                                Grid_SetData1(j, nData);
+                                GridMotionEditor_SetData1(j, nData);
                                 #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
                                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                                #region Ïù¥ÏÇ∞ÏóêÏÑú Ï∂îÍ∞ÄÌïú Frame ÏúÑÏπò Î∞è ÏûêÏÑ∏
-                                //SetFrame_X(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Y(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Z(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                nPos += 4;//SetFrame_X(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Y(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Z(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
 
-                                //SetFrame_Pan(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Tilt(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                //SetFrame_Swing(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
-                                #endregion Ïù¥ÏÇ∞ÏóêÏÑú Ï∂îÍ∞ÄÌïú Frame ÏúÑÏπò Î∞è ÏûêÏÑ∏
+                                nPos += 4;//SetFrame_Pan(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Tilt(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                nPos += 4;//SetFrame_Swing(j, (float)BitConverter.ToSingle(byteData, nPos)); nPos += 4;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
                             }
-                            #endregion Ïã§Ï†ú Î™®ÏÖò
+                            #endregion Ω«¡¶ ∏º«
 
 #if !_COLOR_GRID_IN_PAINT
-                            m_CGridDraw.SetColorGrid(0, nFrameSize);
+                            m_CGridMotionEditor.SetColorGrid(0, nFrameSize);
 #endif
                             string strData_ME = "";
                             string strData_FE = "";
@@ -5294,7 +6029,7 @@ namespace OpenJigWare
                                     byLine[k] = (byte)(byteData[nPos++]);
                                 strLineComment = System.Text.Encoding.Default.GetString(byLine);
                                 strLineComment = strLineComment.Trim((char)0);
-                                m_CGridDraw.SetCaption(nLineNum, strLineComment);
+                                m_CGridMotionEditor.SetCaption(nLineNum, strLineComment);
                             }
                             byLine = null;
                             #endregion Caption
@@ -5321,11 +6056,11 @@ namespace OpenJigWare
 
                         CheckFlag(0);
 
-                        if (bFile == true)
-                        {
-                            fs.Close();
-                            f = null;
-                        }
+                        //if (bFile == true)
+                        //{
+                        //    fs.Close();
+                        //    f = null;
+                        //}
                         this.Cursor = System.Windows.Forms.Cursors.Default;
 
                         if (bFileOpened == true) return true;
@@ -5334,17 +6069,1111 @@ namespace OpenJigWare
                     catch
                     {
                         this.Cursor = System.Windows.Forms.Cursors.Default;
-                        if (bFile == true)
-                        {
-                            fs.Close();
-                            f = null;
-                        }
+                        //if (bFile == true)
+                        //{
+                        //    fs.Close();
+                        //    f = null;
+                        //}
                         return false;
                     }
                 }
 #endif
-                #endregion MotionFile
+                //BinaryFileSave
+#if true
+                private bool m_bAutoSaved = false;
+                private bool m_bModify = false;
+                
+                private void Modify(bool bModify)
+                {
+                    //if ((bModify == true) && (m_bModify != bModify)) OjwTimer.TimerSet(TID_FILEBACKUP);
+                    m_bModify = bModify;
+                    //lbModify.ForeColor = (bModify == true) ? Color.Red : Color.Green;
+                    //lbModify.Text = (bModify == true) ? "ºˆ¡§¡ﬂ..." : "øœ∑·";
+                }
+            
+                // µπˆ±Î «√∑π¿Ã «“∂ß ªÁøÎ«œ±‚ ¿ß«— ∫Øºˆ
+                private int m_nFirstStreamNum = 0;
+                private int m_nLastStreamNum = 0;
 
+                //bool[] m_abEnc; // ø£ƒ⁄¥ı ≈∏¿‘¿Œ¡ˆ æ∆¥—¡ˆ...
+
+                private string[] m_strCalcTime = new string[10000];
+                private long[] m_lCalcTime = new long[10000];
+                private long Grid_CalcTimer(int nLine) //
+                {
+                    if ((nLine < 0) || (m_CGridMotionEditor.GetHandle().RowCount <= nLine)) return 0;
+
+                    int i = nLine - 1;
+
+                    bool bNull = false;
+                    if (nLine <= 0) bNull = true;
+                    
+                    if (bNull == false)
+                    {
+                        // Ω√∞£∞™ ∞ËªÍ
+                        // En
+                        short sData = (short)Ojw.CConvert.BoolToInt(m_CGridMotionEditor.GetEnable(i)); // En
+                        //                short sData0 = Convert.ToInt16(rowData[i]["Data0"]);
+                        long nSpeed = 0;
+                        long nDelay = 0;
+                        long nTimer = 0;
+                        if (sData != 0) // En ¿Ã µ«æÓ¿÷¥Ÿ∏È
+                        {
+                            // Speed
+                            nSpeed = (long)GridMotionEditor_GetTime(i);
+                            // Delay
+                            nDelay = (long)GridMotionEditor_GetDelay(i);
+                            //nTimer += nSpeed * 10 + nDelay * 10;
+                            nTimer += nSpeed + nDelay;
+                        }
+                        m_lCalcTime[nLine] = m_lCalcTime[i] + nTimer;
+                        int nMs = (int)(m_lCalcTime[nLine] % 1000);
+                        int nAllSec = (int)(m_lCalcTime[nLine] / 1000);
+                        int nS = nAllSec % 60;
+                        int nM = (nAllSec / 60) % 60;
+                        int nH = (nAllSec / 60) / 60;
+                        // Hour
+                        string strTmp = Ojw.CConvert.IntToStr(nH);
+                        if (strTmp.Length < 2) strTmp = "0" + strTmp;
+                        m_strCalcTime[nLine] = strTmp + ":";
+                        // Minute
+                        strTmp = Ojw.CConvert.IntToStr(nM);
+                        if (strTmp.Length < 2) strTmp = "0" + strTmp;
+                        m_strCalcTime[nLine] = m_strCalcTime[nLine] + strTmp + ":";
+                        // Second
+                        strTmp = Ojw.CConvert.IntToStr(nS);
+                        if (strTmp.Length < 2) strTmp = "0" + strTmp;
+                        m_strCalcTime[nLine] = m_strCalcTime[nLine] + strTmp + ".";
+                        // 1 Milli-Second
+                        strTmp = Ojw.CConvert.IntToStr(nMs);
+                        if (strTmp.Length < 2) strTmp = "0" + strTmp;
+                        m_strCalcTime[nLine] = m_strCalcTime[nLine] + strTmp;
+                    }
+                    else
+                    {
+                        m_strCalcTime[nLine] = "00:00:00.00";
+                        m_lCalcTime[nLine] = 0;
+                    }
+                    return m_lCalcTime[nLine];
+                }
+                private void Grid_CalcTimer() { for (int i = 0; i < m_CGridMotionEditor.GetHandle().RowCount; i++) Grid_CalcTimer(i); } /// Ω√∞£∞™ ∞ËªÍ
+                private const int _V_10 = 0;
+                private const int _V_11 = 1;
+                private const int _V_12 = 2;
+                private bool m_bMessageBoxShow = true;
+                public bool BinaryFileSave(int nFileVersion, String strFileName, bool bCompact, bool bMessageBoxShow)
+                {
+                    bool bMsg = m_bMessageBoxShow;
+                    m_bMessageBoxShow = bMessageBoxShow;
+                    bool bRet = BinaryFileSave(nFileVersion, strFileName, bCompact);
+                    m_bMessageBoxShow = bMsg;
+                    return bRet;
+                }
+                public bool BinaryFileSave(int nFileVersion, String strFileName, bool bCompact)
+                {
+                    bool bRet = false;
+                    if (strFileName == "")
+                    {
+                        Ojw.CMessage.Write_Error("File Saving Error - Null FileName");
+                        MessageBox.Show("File Saving Error - Null FileName");
+                        return false;
+                    }
+                    DataGridView dgAngle = m_CGridMotionEditor.GetHandle();
+                    // ¿œ¥‹ ∏’¿˙ º±≈√µ» «¡∑π¿”¿ª 
+                    int i, j;
+                    int nCntLine = dgAngle.SelectedRows.Count;
+                    int[] anFrameNum;// = new int [nCntLine];
+                    // Enable µ«æÓ ¿÷¥¬ «¡∑π¿” ¿¸√º Ω««‡           
+                    anFrameNum = new int[dgAngle.RowCount];
+                    m_nFirstStreamNum = -1;
+                    nCntLine = 0;
+                    int nFrameNum = 0;
+                    if (bCompact == true)
+                    {
+                        for (i = 0; i < dgAngle.RowCount; i++)
+                        {
+                            if (m_CGridMotionEditor.GetEnable(i) == true) // ∞°¿Â ∏∂¡ˆ∏∑±Ó¡ˆ ªÏæ∆¿÷¥¬ Enable Frame ¿« π¯»£∏¶ ±‚∑œ«—¥Ÿ.
+                            {
+                                anFrameNum[nFrameNum++] = i;
+                                nCntLine++;// = i + 1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (i = 0; i < dgAngle.RowCount; i++)
+                        {
+                            anFrameNum[nFrameNum++] = i;
+                            nCntLine++;
+                        }
+                    }
+                    // ¡§∑ƒ
+                    Array.Resize<int>(ref anFrameNum, nCntLine);
+                    Array.Sort<int>(anFrameNum);
+                    m_nFirstStreamNum = anFrameNum[0];// nMin;
+                    m_nLastStreamNum = anFrameNum[nCntLine - 1];//nMax;
+                    
+                    if (bCompact == false) { nCntLine = dgAngle.RowCount; m_nLastStreamNum = dgAngle.RowCount - 1; }
+
+                    #region ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2)
+                    //// Line Comment ////// ∂Û¿Œ ¡÷ºÆ¿« ¡Ÿ ºˆ
+                    int nCnt_LineComment = 0;
+                    for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                    {
+                        i = anFrameNum[nFrameNum];
+                        if (m_CGridMotionEditor.GetEnable(i) == true)
+                        {
+                            String strLineComment = m_CGridMotionEditor.GetCaption(i);
+                            if (strLineComment.Trim() != "") // ¡÷ºÆ
+                                nCnt_LineComment++;
+                        }
+                    }
+                    #endregion ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2)
+
+                    string strErrMsg = String.Empty;
+                    try
+                    {
+                        if (nFileVersion == _V_10)//#if false // ojw5014_v11           
+                        {
+                            #region V1.0
+                            String _STR_EXT = "DMT";
+                            String _STR_VER = "1.0";
+
+                            FileInfo f = new FileInfo(strFileName);
+                            FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
+
+                            try
+                            {
+                                // Ω∫∆Æ∏≤ πˆ∆€∏¶ ∫ÒøÓ¥Ÿ.
+                                fs.Flush();
+
+                                #region Ωƒ∫∞ƒ⁄µÂ ∫Œø©(6)
+                                fs.WriteByte((byte)(char.ToUpper(_STR_EXT[0])));
+                                fs.WriteByte((byte)(char.ToUpper(_STR_EXT[1])));
+                                fs.WriteByte((byte)(char.ToUpper(_STR_EXT[2])));
+                                fs.WriteByte((byte)(char.ToUpper(_STR_VER[0])));
+                                fs.WriteByte((byte)(char.ToUpper(_STR_VER[1])));
+                                fs.WriteByte((byte)(char.ToUpper(_STR_VER[2])));
+                                #endregion Ωƒ∫∞ƒ⁄µÂ ∫Œø©(6)
+
+                                #region Title - 21 Char
+                                // Name
+                                byte[] byteName = Encoding.Default.GetBytes(m_strMotionFile_TableName);// Encoding.ASCII.GetBytes(txtTableName.Text);
+                                for (i = 0; i < 20; i++)
+                                {
+                                    if (i < byteName.Length) fs.WriteByte(byteName[i]);
+                                    else fs.WriteByte(0);
+                                }
+                                // ≥Œ ¡æ∑·πÆ¿⁄ √ﬂ∞°
+                                fs.WriteByte(0);
+                                #endregion Title - 21 Char
+
+                                #region Ω√¿€¿⁄ºº(1)
+                                // Ω√¿€¿⁄ºº
+                                int nStartPosition = (int)(m_nMotionFile_StartPosition);
+                                //m_nMotionFile_StartPosition = (((cmbStartPosition.Items.Count > nStartPosition) && (nStartPosition > 0)) ? nStartPosition : 0);
+                                fs.WriteByte((byte)(m_nMotionFile_StartPosition & 0xff));
+                                #endregion Ω√¿€¿⁄ºº(1)
+
+                                short sData;
+                                // «¡∑π¿” ºˆ(∏º«)
+                                string strLineComment;
+                                int nLastFrameNum = 0;
+
+                                #region ∏º«¿« «¡∑π¿” ºˆ(2)
+                                nLastFrameNum = nCntLine;
+                                byte[] byteData = BitConverter.GetBytes((short)nCntLine);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion ∏º«¿« «¡∑π¿” ºˆ(2)
+
+                                // πÆ¿⁄ø≠ ºˆ(Comment)
+                                #region Comment ±€¿⁄ ºˆ(2)
+                                byte[] byteComment = Encoding.Default.GetBytes(m_strMotionFile_Comment);
+                                sData = (short)(byteComment.Length);
+
+                                // ≥Œ ¡æ∑·πÆ¿⁄ ∞≥ºˆ ∆˜«‘
+                                if (sData > 0) sData++;
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Comment ±€¿⁄ ºˆ(2)
+
+                                #region ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2)
+                                //// Line Comment ////// ∂Û¿Œ ¡÷ºÆ¿« ¡Ÿ ºˆ
+                                byteData = BitConverter.GetBytes((short)nCnt_LineComment);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2)
+
+                                #region «¡∑π¿” Ω««‡Ω√∞£ ¿˙¿Â(4)
+                                long lTime = Grid_CalcTimer(m_nLastStreamNum);// / 10;
+                                byteData = BitConverter.GetBytes((Int32)lTime);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+                                #endregion «¡∑π¿” Ω««‡Ω√∞£ ¿˙¿Â(4)
+                                //////////////////////
+                                #region ∑Œ∫ø ∏µ® π¯»£(≈∏¿‘) ¿˙¿Â(2)
+                            
+                                byteData = BitConverter.GetBytes((Int16)m_CHeader.nModelNum);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion ∑Œ∫ø ∏µ® π¯»£(≈∏¿‘) ¿˙¿Â(2)
+                                #region ∏≈Õ¿« √— ∞πºˆ ¿˙¿Â(1)
+                                fs.WriteByte((byte)(m_CHeader.nMotorCnt & 0xff));
+                                #endregion ∏≈Õ¿« √— ∞πºˆ ¿˙¿Â(1)
+
+                                #region Ω« «¡∑π¿” ¿˙¿Â
+                                // Motion
+                                float fValue;
+                                bool bEn, bCaption;
+                                for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                                {
+                                    i = anFrameNum[nFrameNum];
+                                    //////////////////////////////////
+                                    bEn = m_CGridMotionEditor.GetEnable(i);
+                                    strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                    bCaption = (strLineComment.Trim() == "") ? false : true;
+                                    if (
+                                        (bCompact == true) &&   // æ–√‡
+                                        (bEn == false) //&& // Enable ¿Ã Set ªÛ≈¬∞° æ∆¥œ∞Ì
+                                        //(bCaption == false) // ¡÷ºÆ¿Ã æ¯¥Ÿ∏È
+                                    ) continue;
+
+                                    //if ((bCompact == true) && ((bEn == false) && (bCaption == false))) continue;
+
+                                    // En
+                                    byte byteEn = 0;
+                                    if (bEn == true) byteEn |= 0x01;
+                                    if (bCaption == true) byteEn |= 0x02;
+                                    fs.WriteByte(byteEn);
+
+                                    // Motor
+                                    for (j = 0; j < m_CHeader.nMotorCnt; j++)
+                                    {
+                                        fValue = GridMotionEditor_GetMotor(i, j);
+                                        sData = (short)(CalcAngle2Evd(j, fValue) & 0x0fff);// (short)(((Grid_GetFlag_En(i, j) == true) ? CalcAngle2Evd(j, fValue) : 0x07ff) & 0x0fff);
+
+                                        sData |= (short)(((Grid_GetFlag_Led(i, j) & 0x07) << 12) & 0xf000);
+                                        sData |= (short)((Grid_GetFlag_Type(i, j) == true) ? 0x8000 : 0x0000);
+                                        //sData |= (short)((Grid_GetFlag_En(i, j) == false) ? 0x8000 : 0x0000);
+                                        //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
+                                        //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
+                                        //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                        //sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
+
+                                        byteData = BitConverter.GetBytes((Int16)sData);
+                                        fs.Write(byteData, 0, 2);
+                                        byteData = null;
+                                    }
+
+                                    #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                    #region Speed(2)
+                                    // Speed
+                                    sData = (short)GridMotionEditor_GetTime(i);
+                                    byteData = BitConverter.GetBytes(sData);
+                                    fs.Write(byteData, 0, 2);
+                                    byteData = null;
+                                    #endregion Speed(2)
+
+                                    #region Delay(2)
+                                    // Delay
+                                    sData = (short)GridMotionEditor_GetDelay(i);
+                                    byteData = BitConverter.GetBytes(sData);
+                                    fs.Write(byteData, 0, 2);
+                                    byteData = null;
+                                    #endregion Delay(2)
+
+                                    #region Group(1)
+                                    // Group
+                                    fs.WriteByte((byte)(GridMotionEditor_GetGroup(i) & 0xff));
+                                    #endregion Group(1)
+
+                                    #region Command(1)
+                                    // Command
+                                    fs.WriteByte((byte)(GridMotionEditor_GetCommand(i) & 0xff));
+                                    #endregion Command(1)
+
+                                    #region Data0(2)
+                                    // Data0
+                                    sData = (short)(((short)GridMotionEditor_GetData0(i) & 0x3ff) | (((short)GridMotionEditor_GetExtBuzz(i) & 0x3f) << 10));
+                                    byteData = BitConverter.GetBytes(sData);
+                                    fs.Write(byteData, 0, 2);
+                                    byteData = null;
+                                    #endregion Data0(2)
+
+                                    #region Data1(2)
+                                    // Data1
+                                    //sData = (short)m_CGridMotionEditor.GetData1(i);
+                                    sData = (short)(((short)GridMotionEditor_GetData1(i) & 0x3ff) | (((short)GridMotionEditor_GetExtLed(i) & 0x3f) << 10));
+                                    byteData = BitConverter.GetBytes(sData);
+                                    fs.Write(byteData, 0, 2);
+                                    byteData = null;
+                                    #endregion Data1(2)
+                                    #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                    #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                    fValue = 0;//GetFrame_X(i);
+                                    byteData = BitConverter.GetBytes(fValue);
+                                    fs.Write(byteData, 0, 4);
+                                    byteData = null;
+
+                                    fValue = 0;//GetFrame_Y(i);
+                                    byteData = BitConverter.GetBytes(fValue);
+                                    fs.Write(byteData, 0, 4);
+                                    byteData = null;
+
+                                    fValue = 0;//GetFrame_Z(i);
+                                    byteData = BitConverter.GetBytes(fValue);
+                                    fs.Write(byteData, 0, 4);
+                                    byteData = null;
+
+
+                                    fValue = 0;//GetFrame_Pan(i);
+                                    byteData = BitConverter.GetBytes(fValue);
+                                    fs.Write(byteData, 0, 4);
+                                    byteData = null;
+
+                                    fValue = 0;//GetFrame_Tilt(i);
+                                    byteData = BitConverter.GetBytes(fValue);
+                                    fs.Write(byteData, 0, 4);
+                                    byteData = null;
+
+                                    fValue = 0;// GetFrame_Swing(i);
+                                    byteData = BitConverter.GetBytes(fValue);
+                                    fs.Write(byteData, 0, 4);
+                                    byteData = null;
+                                    #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                }
+                                #endregion
+
+                                fs.WriteByte((byte)('M'));
+                                fs.WriteByte((byte)('E'));
+
+                                #region Comment
+                                // Comment
+                                for (int k = 0; k < byteComment.Length; k++) fs.WriteByte(byteComment[k]);
+                                // ≥Œ ¡æ∑·πÆ¿⁄
+                                if (byteComment.Length > 0) fs.WriteByte(0);
+                                #endregion
+
+                                #region Caption ¿˙¿Â
+                                // Caption Size
+                                int nSize_Caption = 46;
+                                // Caption
+                                for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                                {
+                                    i = anFrameNum[nFrameNum];
+                                    ////////////////////////////////////////////
+                                    strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                    strLineComment = strLineComment.Trim();
+                                    if (strLineComment != "") // ¡÷ºÆ
+                                    {
+                                        byteData = BitConverter.GetBytes((short)i);
+                                        fs.Write(byteData, 0, 2);
+                                        byteData = null;
+
+                                        byteData = Encoding.Default.GetBytes(strLineComment);
+                                        if (byteData.Length > nSize_Caption)
+                                        {
+                                            for (int k = 0; k < nSize_Caption; k++) fs.WriteByte((byte)byteData[k]);
+                                        }
+                                        else
+                                        {
+                                            for (int k = 0; k < byteData.Length; k++) fs.WriteByte((byte)byteData[k]);
+                                            for (int k = byteData.Length; k < nSize_Caption; k++) fs.WriteByte((byte)0);
+                                        }
+                                    }
+                                }
+                                #endregion
+
+
+                                fs.WriteByte((byte)('F'));
+                                fs.WriteByte((byte)('E'));
+
+                                fs.Close();
+                                f = null;
+                                if (m_bAutoSaved == false) Modify(false);
+
+                                byteName = null;
+                                byteComment = null;
+
+                                bRet = true;
+                            }
+                            catch
+                            {
+                                //Message("∆ƒ¿œ ¿˙¿Â ø°∑Ø");
+                                fs.Close();
+                                f = null;
+
+                                bRet = false;
+                            }
+                            #endregion V1.0
+                        }
+                        else if (nFileVersion == _V_11) //#else
+                    {
+                        #region V1.1
+                        String _STR_EXT = "DMT";
+                        String _STR_VER = "1.1";
+                        //bool bOpen = false;
+                        
+                        FileInfo f = new FileInfo(strFileName);
+                        FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
+
+                        try
+                        {
+                            // Ω∫∆Æ∏≤ πˆ∆€∏¶ ∫ÒøÓ¥Ÿ.
+                            fs.Flush();
+
+                            #region Ωƒ∫∞ƒ⁄µÂ ∫Œø©(6)
+                            fs.WriteByte((byte)(char.ToUpper(_STR_EXT[0])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_EXT[1])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_EXT[2])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_VER[0])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_VER[1])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_VER[2])));
+                            #endregion Ωƒ∫∞ƒ⁄µÂ ∫Œø©(6)
+
+                            #region Title - 21 Char
+                            // Name
+                            byte[] byteName = Encoding.Default.GetBytes(m_strMotionFile_TableName);// Encoding.ASCII.GetBytes(txtTableName.Text);
+                            for (i = 0; i < 20; i++)
+                            {
+                                if (i < byteName.Length) fs.WriteByte(byteName[i]);
+                                else fs.WriteByte(0);
+                            }
+                            // ≥Œ ¡æ∑·πÆ¿⁄ √ﬂ∞°
+                            fs.WriteByte(0);
+                            #endregion Title - 21 Char
+
+                            #region Ω√¿€¿⁄ºº(1)
+                            // Ω√¿€¿⁄ºº
+                            int nStartPosition = (int)(m_nMotionFile_StartPosition);
+                            //m_nMotionFile_StartPosition = (((cmbStartPosition.Items.Count > nStartPosition) && (nStartPosition > 0)) ? nStartPosition : 0);
+                            fs.WriteByte((byte)(m_nMotionFile_StartPosition & 0xff));
+                            #endregion Ω√¿€¿⁄ºº(1)
+
+                            short sData;
+                            // «¡∑π¿” ºˆ(∏º«)
+                            string strLineComment;
+
+                            #region ∏º«¿« «¡∑π¿” ºˆ(2)
+                            byte[] byteData = BitConverter.GetBytes((short)nCntLine);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion ∏º«¿« «¡∑π¿” ºˆ(2)
+
+                            // πÆ¿⁄ø≠ ºˆ(Comment)
+                            #region Comment ±€¿⁄ ºˆ(2)
+                            byte[] byteComment = Encoding.Default.GetBytes(m_strMotionFile_Comment);
+                            sData = (short)(byteComment.Length);
+
+                            // ≥Œ ¡æ∑·πÆ¿⁄ ∞≥ºˆ ∆˜«‘
+                            if (sData > 0) sData++;
+                            byteData = BitConverter.GetBytes(sData);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion Comment ±€¿⁄ ºˆ(2)
+
+                            #region ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2)
+                            //// Line Comment ////// ∂Û¿Œ ¡÷ºÆ¿« ¡Ÿ ºˆ
+                            byteData = BitConverter.GetBytes((short)nCnt_LineComment);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2)
+
+                            #region «¡∑π¿” Ω««‡Ω√∞£ ¿˙¿Â(4)
+                            long lTime = Grid_CalcTimer(m_nLastStreamNum);// / 10;
+                            byteData = BitConverter.GetBytes((Int32)lTime);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+                            #endregion «¡∑π¿” Ω««‡Ω√∞£ ¿˙¿Â(4)
+                            //////////////////////
+                            #region ∑Œ∫ø ∏µ® π¯»£(≈∏¿‘) ¿˙¿Â(2)
+                            byteData = BitConverter.GetBytes((Int16)m_CHeader.nModelNum);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion ∑Œ∫ø ∏µ® π¯»£(≈∏¿‘) ¿˙¿Â(2)
+                            #region ∏≈Õ¿« √— ∞πºˆ ¿˙¿Â(1)
+                            fs.WriteByte((byte)(m_CHeader.nMotorCnt & 0xff));
+                            #endregion ∏≈Õ¿« √— ∞πºˆ ¿˙¿Â(1)
+
+                            #region Ω« «¡∑π¿” ¿˙¿Â
+                            // Motion
+                            float fValue;
+                            bool bEn, bCaption;
+                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+                                //////////////////////////////////
+                                bEn = m_CGridMotionEditor.GetEnable(i);
+                                strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                bCaption = (strLineComment.Trim() == "") ? false : true;
+                                if (
+                                    (bCompact == true) &&   // æ–√‡
+                                    (bEn == false) && // Enable ¿Ã Set ªÛ≈¬∞° æ∆¥œ∞Ì
+                                    (bCaption == false) // ¡÷ºÆ¿Ã æ¯¥Ÿ∏È
+                                ) continue;
+
+                                //if ((bCompact == true) && ((bEn == false) && (bCaption == false))) continue;
+
+                                // En
+                                byte byteEn = 0;
+                                if (bEn == true) byteEn |= 0x01;
+                                if (bCaption == true) byteEn |= 0x02;
+                                fs.WriteByte(byteEn);
+                                int nData;
+                                // Motor
+                                for (j = 0; j < m_CHeader.nMotorCnt; j++)
+                                {
+                                    fValue = GridMotionEditor_GetMotor(i, j);
+                                    int nValue = CalcAngle2Evd(j, fValue);
+                                    int nMinus = 0;
+                                    if (nValue <= 0)
+                                    {
+                                        nMinus = 0x4000; // ∫Œ»£∫Ò∆Æ
+                                        nValue *= -1;
+                                    }
+                                    //if (fValue <= 0) nData = 0x4000; 
+                                    nData = (int)(nValue & 0x3fff); // ojw5014_genie Data
+                                    nData |= nMinus; // ojw5014_genie // ∫Œ»£∫Ò∆Æ
+
+                                    //nData |= (int)((m_abEnc[j] == true) ? 0x8000 : 0x0000); // ojw5014_genie ø£ƒ⁄¥ı≈∏¿‘
+                                    nData |= (int)(((j >= 6) && (j <= 8)) ? 0x8000 : 0x0000); // ojw5014_genie ø£ƒ⁄¥ı≈∏¿‘
+                                    nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x20000 : 0x0000); // ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x20000 - º”µµ
+
+                                    nData |= (int)((Grid_GetFlag_Led(i, j) & 0x07) << 18);
+                                    //nData |= (int)((Grid_GetFlag_Type(i, j) == true) ? 0x8000 : 0x0000);
+                                    nData |= (int)((Grid_GetFlag_En(i, j) == false) ? 0x200000 : 0x00000);
+
+                                    // Save
+                                    fs.WriteByte((byte)((nData) & 0xff));
+                                    fs.WriteByte((byte)((nData >> 8) & 0xff));
+                                    fs.WriteByte((byte)((nData >> 16) & 0xff));
+                                }
+
+                                #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                #region Speed(2)
+                                // Speed
+                                sData = (short)GridMotionEditor_GetTime(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Speed(2)
+
+                                #region Delay(2)
+                                // Delay
+                                sData = (short)GridMotionEditor_GetDelay(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Delay(2)
+
+                                #region Group(1)
+                                // Group
+                                fs.WriteByte((byte)(m_CGridMotionEditor.GetGroup(i) & 0xff));
+                                #endregion Group(1)
+
+                                #region Command(1)
+                                // Command
+                                fs.WriteByte((byte)((byte)(m_CGridMotionEditor.GetCommand(i)) & 0xff));
+                                #endregion Command(1)
+
+                                #region Data0(2)
+                                // Data0
+                                sData = (short)m_CGridMotionEditor.GetData0(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Data0(2)
+
+                                #region Data1(2)
+                                // Data1
+                                sData = (short)m_CGridMotionEditor.GetData1(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Data1(2)
+                                #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                fValue = (float)GetFrame_X(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Y(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Z(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+
+                                fValue = (float)GetFrame_Pan(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Tilt(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Swing(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                            }
+                            #endregion
+
+                            fs.WriteByte((byte)('M'));
+                            fs.WriteByte((byte)('E'));
+
+                            #region Comment
+                            // Comment
+                            for (int k = 0; k < byteComment.Length; k++) fs.WriteByte(byteComment[k]);
+                            // ≥Œ ¡æ∑·πÆ¿⁄
+                            if (byteComment.Length > 0) fs.WriteByte(0);
+                            #endregion
+
+                            #region Caption ¿˙¿Â
+                            // Caption Size
+                            int nSize_Caption = 46;
+                            // Caption
+                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+                                //////////////////////////////////
+                                strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                strLineComment = strLineComment.Trim();
+                                if (strLineComment != "") // ¡÷ºÆ
+                                {
+                                    byteData = BitConverter.GetBytes((short)i);
+                                    fs.Write(byteData, 0, 2);
+                                    byteData = null;
+
+                                    byteData = Encoding.Default.GetBytes(strLineComment);
+                                    if (byteData.Length > nSize_Caption)
+                                    {
+                                        for (int k = 0; k < nSize_Caption; k++) fs.WriteByte((byte)byteData[k]);
+                                    }
+                                    else
+                                    {
+                                        for (int k = 0; k < byteData.Length; k++) fs.WriteByte((byte)byteData[k]);
+                                        for (int k = byteData.Length; k < nSize_Caption; k++) fs.WriteByte((byte)0);
+                                    }
+                                }
+                            }
+                            #endregion
+
+
+                            fs.WriteByte((byte)('F'));
+                            fs.WriteByte((byte)('E'));
+
+                            fs.Close();
+                            f = null;
+                            if (m_bAutoSaved == false) Modify(false);
+
+                            byteName = null;
+                            byteComment = null;
+
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            fs.Close();
+                            f = null;
+
+                            bRet = false;
+                        }
+                        #endregion V1.1
+                    }//#endif
+                    else if (nFileVersion == _V_12)
+                    {
+                        #region V1.2
+                        String _STR_EXT = "DMT";
+                        String _STR_VER = "1.2";
+                        //bool bOpen = false;
+                        
+                        FileInfo f = new FileInfo(strFileName);
+                        FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
+
+                        try
+                        {
+                            // Ω∫∆Æ∏≤ πˆ∆€∏¶ ∫ÒøÓ¥Ÿ.
+                            fs.Flush();
+
+                            #region Ωƒ∫∞ƒ⁄µÂ ∫Œø©(6)
+                            fs.WriteByte((byte)(char.ToUpper(_STR_EXT[0])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_EXT[1])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_EXT[2])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_VER[0])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_VER[1])));
+                            fs.WriteByte((byte)(char.ToUpper(_STR_VER[2])));
+                            #endregion Ωƒ∫∞ƒ⁄µÂ ∫Œø©(6)
+
+                            #region Title - 21 Char
+                            // Name
+                            byte[] byteName = Encoding.Default.GetBytes(m_strMotionFile_TableName);// Encoding.ASCII.GetBytes(txtTableName.Text);
+                            for (i = 0; i < 20; i++)
+                            {
+                                if (i < byteName.Length) fs.WriteByte(byteName[i]);
+                                else fs.WriteByte(0);
+                            }
+                            // ≥Œ ¡æ∑·πÆ¿⁄ √ﬂ∞°
+                            fs.WriteByte(0);
+                            #endregion Title - 21 Char
+
+                            #region Ω√¿€¿⁄ºº(1)
+                            // Ω√¿€¿⁄ºº
+                            int nStartPosition = (int)(m_nMotionFile_StartPosition);
+                            //m_nMotionFile_StartPosition = (((cmbStartPosition.Items.Count > nStartPosition) && (nStartPosition > 0)) ? nStartPosition : 0);
+                            fs.WriteByte((byte)(m_nMotionFile_StartPosition & 0xff));
+                            #endregion Ω√¿€¿⁄ºº(1)
+
+                            short sData;
+                            // «¡∑π¿” ºˆ(∏º«)
+                            string strLineComment;
+
+                            #region ∏º«¿« «¡∑π¿” ºˆ(2) - ∏º«¿« «¡∑π¿”∏∏ √º≈©, ƒ∏º«¿∫ µ˚∑Œ √º≈©«—¥Ÿ.
+                            byte[] byteData = BitConverter.GetBytes((short)nCntLine);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion ∏º«¿« «¡∑π¿” ºˆ(2) - ∏º«¿« «¡∑π¿”∏∏ √º≈©, ƒ∏º«¿∫ µ˚∑Œ √º≈©«—¥Ÿ.
+
+                            // πÆ¿⁄ø≠ ºˆ(Comment)
+                            #region Comment ±€¿⁄ ºˆ(2)
+                            byte[] byteComment = Encoding.Default.GetBytes(m_strMotionFile_Comment);
+                            sData = (short)(byteComment.Length);
+
+                            // ≥Œ ¡æ∑·πÆ¿⁄ ∞≥ºˆ ∆˜«‘
+                            if (sData > 0) sData++;
+                            byteData = BitConverter.GetBytes(sData);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion Comment ±€¿⁄ ºˆ(2)
+
+                            #region ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2) - ø©±‚º≠ ø¨ªÍ«ÿæﬂ«“ √÷¥Î «¡∑π¿” ºˆ∏¶ ∞ËªÍ«—¥Ÿ.
+                            //// Line Comment ////// ∂Û¿Œ ¡÷ºÆ¿« ¡Ÿ ºˆ
+                            nCnt_LineComment = 0;
+
+                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+                                //////////////////////////////////
+#if false
+                        strLineComment = m_CGridMotionEditor.GetCaption(i);
+                        if (strLineComment.Trim() != "") // ¡÷ºÆ
+                            nCnt_LineComment++;
+#else
+
+                                strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                if (strLineComment.Trim() != "") // ¡÷ºÆ
+                                {
+                                    nCnt_LineComment++;
+                                    //nFrameSize++;
+                                }
+                                //else
+                                //{
+                                //    sData = (short)COjwConvert.BoolToInt(m_CGridMotionEditor.GetEnable(i)); // En
+                                //    if (sData != 0) nFrameSize++; // En
+                                //}
+#endif
+
+                            }
+                            byteData = BitConverter.GetBytes((short)nCnt_LineComment);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion ∂Û¿Œ ¡÷ºÆ(ƒ∏º«)¿« ¡Ÿ ºˆ(2) - ø©±‚º≠ ø¨ªÍ«ÿæﬂ«“ √÷¥Î «¡∑π¿” ºˆ∏¶ ∞ËªÍ«—¥Ÿ.
+
+                            #region «¡∑π¿” Ω««‡Ω√∞£ ¿˙¿Â(4)
+                            long lTime = Grid_CalcTimer(m_nLastStreamNum);// / 10;
+                            byteData = BitConverter.GetBytes((Int32)lTime);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+                            #endregion «¡∑π¿” Ω««‡Ω√∞£ ¿˙¿Â(4)
+                            //////////////////////
+                            #region ∑Œ∫ø ∏µ® π¯»£(≈∏¿‘) ¿˙¿Â(2)
+                            byteData = BitConverter.GetBytes((Int16)m_CHeader.nModelNum);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                            #endregion ∑Œ∫ø ∏µ® π¯»£(≈∏¿‘) ¿˙¿Â(2)
+                            #region ∏≈Õ¿« √— ∞πºˆ ¿˙¿Â(1)
+                            fs.WriteByte((byte)(m_CHeader.nMotorCnt & 0xff));
+                            #endregion ∏≈Õ¿« √— ∞πºˆ ¿˙¿Â(1)
+
+                            #region ∏≈Õ¿« ID ¿˙¿Â(1)
+                            for (i = 0; i < m_CHeader.nMotorCnt; i++)
+                            {
+                                fs.WriteByte((byte)(m_CHeader.pSMotorInfo[i].nMotorID & 0xff));
+                            }
+                            #endregion ∏≈Õ¿« ID ¿˙¿Â(1)
+
+                            #region ∏≈Õ¿« Mirror ID ¿˙¿Â(1)
+                            for (i = 0; i < m_CHeader.nMotorCnt; i++)
+                            {
+                                fs.WriteByte((byte)(m_CHeader.pSMotorInfo[i].nAxis_Mirror & 0xff));
+                            }
+                            #endregion ∏≈Õ¿« Mirror ID ¿˙¿Â(1)
+
+                            #region Ω« «¡∑π¿” ¿˙¿Â
+                            // Motion
+                            float fValue;
+                            bool bEn, bCaption;
+                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+                                //////////////////////////////////
+                                bEn = m_CGridMotionEditor.GetEnable(i);
+                                strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                bCaption = (strLineComment.Trim() == "") ? false : true;
+                                if (
+                                    (bCompact == true) &&   // æ–√‡
+                                    (bEn == false) && // Enable ¿Ã Set ªÛ≈¬∞° æ∆¥œ∞Ì
+                                    (bCaption == false) // ¡÷ºÆ¿Ã æ¯¥Ÿ∏È
+                                ) continue;
+
+                                if ((bCompact == true) && ((bEn == false) && (bCaption == false))) continue;
+
+                                // En
+                                byte byteEn = 0;
+                                if (bEn == true) byteEn |= 0x01;
+                                if (bCaption == true) byteEn |= 0x02;
+                                fs.WriteByte(byteEn);
+
+                                // Motor - 3 bytes
+                                int nData;
+                                for (j = 0; j < m_CHeader.nMotorCnt; j++)
+                                {
+                                    fValue = GridMotionEditor_GetMotor(i, j);
+                                    // º”µµ∏µÂ¿Œ¡ˆ∏¶ ∏’¿˙ √º≈© - º”µµ∏µÂΩ√ »ØªÍ¿ª «œ¡ˆ æ ¥¬¥Ÿ.
+                                    bool bSpeed = Grid_GetFlag_Type(i, j); // true -> Speed, false -> Position
+                                    int nMinus = 0;
+                                    if ((bSpeed == true) && (fValue < 0))
+                                    {
+                                        nMinus = 0x4000; // ∫Œ»£∫Ò∆Æ
+                                        fValue *= -1.0f;
+                                    }
+
+                                    // º”µµ∏µÂ¿œ∂© ±◊≥… ∞™¿ª ¿˚øÎ«œ∞Ì, ¿ßƒ°∏µÂ¿œ∂© ∞¢µµ »ØªÍ«œµµ∑œ «—¥Ÿ.
+                                    nData = (int)(((bSpeed == false) ? CalcAngle2Evd(j, fValue) : ((int)Math.Round(fValue))) & 0x3fff);
+
+                                    nData |= nMinus; // ∫Œ»£∫Ò∆Æ
+                                    nData |= (int)(((m_CHeader.pSMotorInfo[j].nMotorControlType >= 2) && (m_CHeader.pSMotorInfo[j].nMotorControlType <= 3)) ? 0x8000 : 0); // ø£ƒ⁄¥ı ≈∏¿‘ ¡§¿«
+
+                                    //nData |= (int)((bStop == true) ? 0x10000 : 0); // ¡§¡ˆ∫Ò∆Æ(1 ¿Œ∞ÊøÏ ¡§¡ˆ(√÷ªÛ¿ß øÏº±¡¶æÓ)
+                                    nData |= (int)((bSpeed == true) ? 0x20000 : 0); // ¿ßƒ°¡¶æÓ(0), º”µµ¡¶æÓ(1)
+
+                                    nData |= (int)(((Grid_GetFlag_Led(i, j) & 0x07) << 18) & 0x1C0000); // LED
+
+                                    nData |= (int)((Grid_GetFlag_En(i, j) == false) ? 0x200000 : 0);
+
+                                    //sData |= 0x0400; // º”µµ∏µÂ¿Œ∂ß ¡§(0-0x0000), ø™(1-0x0400)
+                                    //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
+                                    //sData |= ¡¶æÓ≈∏¿‘ // 0 - ¿ßƒ°, 0x2000 - º”µµ
+                                    //sData |= 0x4000; //Enable // ∞≥∫∞ Enable (0 - Disable, 0x4000 - Enable)
+
+                                    // Save
+                                    fs.WriteByte((byte)((nData) & 0xff));
+                                    fs.WriteByte((byte)((nData >> 8) & 0xff));
+                                    fs.WriteByte((byte)((nData >> 16) & 0xff));
+                                }
+
+                                #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2), Data2(2), ExtBuzz(1), ExtLed(1)
+                                #region Speed(2)
+                                // Speed
+                                sData = (short)GridMotionEditor_GetTime(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Speed(2)
+
+                                #region Delay(2)
+                                // Delay
+                                sData = (short)GridMotionEditor_GetDelay(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Delay(2)
+
+                                #region Group(1)
+                                // Group
+                                fs.WriteByte((byte)(m_CGridMotionEditor.GetGroup(i) & 0xff));
+                                #endregion Group(1)
+
+                                #region Command(1)
+                                // Command
+                                fs.WriteByte((byte)(GridMotionEditor_GetCommand(i) & 0xff));
+                                #endregion Command(1)
+
+                                #region Data0(2)
+                                // Data0
+                                sData = (short)GridMotionEditor_GetData0(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Data0(2)
+
+                                #region Data1(2)
+                                // Data1
+                                sData = (short)GridMotionEditor_GetData1(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Data1(2)
+
+                                #region Data2(2)
+                                // Data2
+                                sData = (short)GridMotionEditor_GetData2(i);
+                                byteData = BitConverter.GetBytes(sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion Data2(2)
+
+                                #region ExtBuzz(1)
+                                // Buzz
+                                fs.WriteByte((byte)(GridMotionEditor_GetExtBuzz(i) & 0xff));
+                                #endregion ExtBuzz(1)
+
+                                #region ExtLed(1)
+                                // Led
+                                fs.WriteByte((byte)(GridMotionEditor_GetExtLed(i) & 0xff));
+                                #endregion ExtLed(1)
+
+                                #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2), Data2(2), ExtBuzz(1), ExtLed(1)
+                                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                                #region √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                                fValue = (float)GetFrame_X(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Y(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Z(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+
+                                fValue = (float)GetFrame_Pan(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Tilt(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+
+                                fValue = (float)GetFrame_Swing(i);
+                                byteData = BitConverter.GetBytes(fValue);
+                                fs.Write(byteData, 0, 4);
+                                byteData = null;
+                                #endregion √ﬂ∞°«— Frame ¿ßƒ° π◊ ¿⁄ºº
+                            }
+                            #endregion
+
+                            fs.WriteByte((byte)('M'));
+                            fs.WriteByte((byte)('E'));
+
+                            #region Comment
+                            // Comment
+                            for (int k = 0; k < byteComment.Length; k++) fs.WriteByte(byteComment[k]);
+                            // ≥Œ ¡æ∑·πÆ¿⁄
+                            if (byteComment.Length > 0) fs.WriteByte(0);
+                            #endregion
+
+                            #region Caption ¿˙¿Â
+                            // Caption Size
+                            int nSize_Caption = 46;
+                            // Caption
+                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+                                //////////////////////////////////
+                                strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                strLineComment = strLineComment.Trim();
+                                if (strLineComment != "") // ¡÷ºÆ
+                                {
+                                    byteData = BitConverter.GetBytes((short)i);
+                                    fs.Write(byteData, 0, 2);
+                                    byteData = null;
+
+                                    byteData = Encoding.Default.GetBytes(strLineComment);
+                                    if (byteData.Length > nSize_Caption)
+                                    {
+                                        for (int k = 0; k < nSize_Caption; k++) fs.WriteByte((byte)byteData[k]);
+                                    }
+                                    else
+                                    {
+                                        for (int k = 0; k < byteData.Length; k++) fs.WriteByte((byte)byteData[k]);
+                                        for (int k = byteData.Length; k < nSize_Caption; k++) fs.WriteByte((byte)0);
+                                    }
+                                }
+                            }
+                            #endregion
+
+
+                            fs.WriteByte((byte)('F'));
+                            fs.WriteByte((byte)('E'));
+
+                            fs.Close();
+                            f = null;
+                            if (m_bAutoSaved == false) Modify(false);
+
+                            byteName = null;
+                            byteComment = null;
+
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            //Message("∆ƒ¿œ ¿˙¿Â ø°∑Ø");
+                            fs.Close();
+                            f = null;
+
+                            bRet = false;
+                        }
+                        #endregion V1.2
+                    }
+                    }
+                    catch (Exception ex)
+                    {
+                        bRet = false;
+                        strErrMsg = ex.ToString();
+                        CMessage.Write_Error(strErrMsg);
+                    }
+
+                    String strTmp = Ojw.CConvert.IntToStr(nFileVersion);// "V" + COjwConvert.FloatToStr((float)nFileVersion / 10.0f);
+                    //lbTitle.Text = m_strTitle + "[DMT1." + strTmp + "]" + strFileName;
+                    m_strMotionFile_FileAndTitle = "[DMT1." + strTmp + "]" + strFileName;
+
+                    if (bRet == true)
+                    {
+                        Ojw.CMessage.Write(String.Format("FileSaved: {0}", m_strMotionFile_FileAndTitle));
+                        if (m_bMessageBoxShow == true) MessageBox.Show(String.Format("FileSaved: {0}", m_strMotionFile_FileAndTitle));
+                    }
+                    else
+                    {
+                        Ojw.CMessage.Write_Error(String.Format("We can't Save file: {0}", m_strMotionFile_FileAndTitle));
+                        if (m_bMessageBoxShow == true) MessageBox.Show(String.Format("[Error] We can't Save file: {0}[{1}]", m_strMotionFile_FileAndTitle), strErrMsg);
+                    }
+                    return bRet;
+                }
+#endif
+                #endregion MotionFile
                 private void m_ctxmenuMouse_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
                     //if (e.ClickedItem != m_ctxmenuMouse.Items[_MENU_FILE])
@@ -5370,6 +7199,9 @@ namespace OpenJigWare
                 //{
                 //    MessageBox.Show(e.ToString());
                 //}
+
+                
+                public string m_strDesignerFilePath = String.Empty;
                 private void m_ctxmenuMouse_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
                     //MessageBox.Show("[Sub]" + e.ClickedItem.Text);
@@ -5381,45 +7213,7 @@ namespace OpenJigWare
                         if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_OPEN])
                         {
                             #region File Open
-                            OpenFileDialog ofdDesign = new OpenFileDialog();
-
-                            //SetAseFile_Path("ase"); // set ase file path
-
-                            ofdDesign.FileName = "*." + _STR_EXT;
-                            ofdDesign.Filter = "ÎîîÏûêÏù∏ ÌååÏùº(*." + _STR_EXT + ")|*." + _STR_EXT;
-
-                            ofdDesign.DefaultExt = _STR_EXT;
-                            if (ofdDesign.ShowDialog() == DialogResult.OK)
-                            {
-                                String fileName = ofdDesign.FileName;
-                                if (FileOpen(fileName) == false)
-                                {
-                                    Ojw.CMessage.Write_Error("It's not a our Modeling File.");
-                                }
-                                else
-                                {
-                                    Ojw.CMessage.Write("Design File - " + fileName + "(v" + m_strVersion + ")");
-                                    if (IsDrawRText() == true)
-                                    {
-                                        //Ojw.CMessage.Write2(m_rtxtDraw, m_CHeader.strDrawModel);
-                                        m_rtxtDraw.Text = GetHeader_strDrawModel();
-                                        StringListToGrid();
-                                    }
-                                    #region DH
-                                    //cmbDhRefresh(0);
-                                    #endregion DH
-
-                                    //cmbVersion.SelectedIndex = m_C3d.m_strVersion - 11;
-                                    float[] afData = new float[3];
-                                    GetPos_Display(out afData[0], out afData[1], out afData[2]);
-                                    //int i = 0;
-                                    //txtDisplay_X.Text = Ojw.CConvert.FloatToStr(afData[i++]);
-                                    //txtDisplay_Y.Text = Ojw.CConvert.FloatToStr(afData[i++]);
-                                    //txtDisplay_Z.Text = Ojw.CConvert.FloatToStr(afData[i++]);
-                                    GetAngle_Display(out afData[0], out afData[1], out afData[2]);
-                                    //i = 0;                                    
-                                }
-                            }
+                            FileOpen();
                             #endregion File Open
                         }
                         else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_SAVE])
@@ -5453,7 +7247,7 @@ namespace OpenJigWare
                             CompileDesign();
                             //StringListToGrid();
                             m_lstDraw.Clear();
-                            m_CGridDraw.Delete();
+                            m_CGridMotionEditor.Delete();
                             
                             m_CProperty_Selected.Destroy();
                             m_CDisp_Selected = null;                
@@ -5523,7 +7317,7 @@ namespace OpenJigWare
                 }
                 //public void SetDrawGrid_ForDisplay(DataGridView dgDraw) //{ //m_txtDraw = txtDraw; }
                 //{
-                //    //m_CGridDraw = dgDraw;
+                //    //m_CGridMotionEditor = dgDraw;
 
                 //}
                 //private bool IsDrawText() 
@@ -5663,15 +7457,15 @@ namespace OpenJigWare
                             }
                             break;
                         #endregion Keys.Right
-                        #region Keys.Escape - ESC : Í∏¥Í∏âÏ†ïÏßÄ
+                        #region Keys.Escape - ESC : ±‰±ﬁ¡§¡ˆ
                         //case Keys.Escape:
                         //    {
                         //        Stop();
                         //        //Cmd_Stop(m_nCurrentRobot);
                         //    }
                         //    break;
-                        #endregion Keys.Escape - ESC : Í∏¥Í∏âÏ†ïÏßÄ
-                        #region Keys.Delete: - ÏÇ≠Ï†úÌïòÍ∏∞
+                        #endregion Keys.Escape - ESC : ±‰±ﬁ¡§¡ˆ
+                        #region Keys.Delete: - ªË¡¶«œ±‚
                         case Keys.Delete:
                             {
                                 if (e.Control)
@@ -5682,7 +7476,7 @@ namespace OpenJigWare
                                 }
                             }
                             break;
-                        #endregion Keys.Delete: - ÏÇ≠Ï†úÌïòÍ∏∞
+                        #endregion Keys.Delete: - ªË¡¶«œ±‚
                     }
 #if false
                     float fDelta2 = 0.1f;// 1.0f;
@@ -5755,8 +7549,8 @@ namespace OpenJigWare
                                     PopupMenu();                                
                             }
                         }
-
-                        //// ÎßàÏö∞Ïä§ Ï†úÏñ¥ÏãúÏóê Í∑∏Î¶¨ÎìúÎ•º ÏÉùÏÑ±Ìïú Í≤ΩÏö∞ Í∑∏Î¶¨ÎìúÏóê Í∞íÏù¥ Í∞±Ïã†ÎêòÎèÑÎ°ù ...
+                        
+                        //// ∏∂øÏΩ∫ ¡¶æÓΩ√ø° ±◊∏ÆµÂ∏¶ ª˝º∫«— ∞ÊøÏ ±◊∏ÆµÂø° ∞™¿Ã ∞ªΩ≈µ«µµ∑œ ...
                         if (m_bGridInit == true)
                         {
                             for (int i = 0; i < m_CHeader.nMotorCnt; i++)
@@ -5764,6 +7558,7 @@ namespace OpenJigWare
                                 GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
                             }
                         }
+                        //Ojw.CMessage.Write("MouseUp");
                     }
 #endif
                     m_bMouseClick = false;
@@ -5784,6 +7579,15 @@ namespace OpenJigWare
                 public bool GetFreeze_X() { return m_bFreeze_X; }
                 public bool GetFreeze_Y() { return m_bFreeze_Y; }
                 public bool GetFreeze_Z() { return m_bFreeze_Z; }
+                private bool m_bFreeze_Pan = false;
+                private bool m_bFreeze_Tilt = false;
+                private bool m_bFreeze_Swing = false;
+                public void SetFreeze_Pan(bool bFreeze) { m_bFreeze_Pan = bFreeze; }
+                public void SetFreeze_Tilt(bool bFreeze) { m_bFreeze_Tilt = bFreeze; }
+                public void SetFreeze_Swing(bool bFreeze) { m_bFreeze_Swing = bFreeze; }
+                public bool GetFreeze_Pan() { return m_bFreeze_Pan; }
+                public bool GetFreeze_Tilt() { return m_bFreeze_Tilt; }
+                public bool GetFreeze_Swing() { return m_bFreeze_Swing; }
                 public void OjwMouseMove(object sender, MouseEventArgs e) { OjwMouseMove(e); }
                 public int m_nMenuStatus = 0;
                 public bool m_bShowPopup = true;//false;
@@ -5798,7 +7602,7 @@ namespace OpenJigWare
                             if (GetMouseMode() == 0)
                             {
                                 #region View Change
-#if false // ÌôîÎ©¥ Ïù¥Îèô(View Change)ÏùÑ ÏßÅÍ¥ÄÏ†ÅÏúºÎ°ú Î≥ÄÍ≤Ω with Mouse
+#if false // »≠∏È ¿Ãµø(View Change)¿ª ¡˜∞¸¿˚¿∏∑Œ ∫Ø∞Ê with Mouse
                                 m_fX -= (m_nMouse_X_Left - e.X);
                                 m_fY += (m_nMouse_Y_Left - e.Y);
 #else
@@ -5849,10 +7653,10 @@ namespace OpenJigWare
                                     // Tilt - Rotation(X)
                                     // Swing - Rotation(Z)
                                     #region Kor
-                                    // 2Ï∞®ÏõêÏùÑ 3Ï∞®ÏõêÏúºÎ°ú ÌöåÏ†Ñ : (e.X - m_nX) Î•º ÌöåÏ†Ñ
-                                    // Pan - YÏ∂ï ÌöåÏ†Ñ
-                                    // Tilt - XÏ∂ï ÌöåÏ†Ñ
-                                    // Swing - ZÏ∂ï ÌöåÏ†Ñ
+                                    // 2¬˜ø¯¿ª 3¬˜ø¯¿∏∑Œ »∏¿¸ : (e.X - m_nX) ∏¶ »∏¿¸
+                                    // Pan - Y√‡ »∏¿¸
+                                    // Tilt - X√‡ »∏¿¸
+                                    // Swing - Z√‡ »∏¿¸
                                     #endregion Kor
 #if true
                                     m_dPos_X += (GetFreeze_X() == true) ? 0.0f : dPos_X;
@@ -5900,7 +7704,7 @@ namespace OpenJigWare
                                 #endregion Robot Control(Translation)
                             }
 
-                            //// ÎßàÏö∞Ïä§ Ï†úÏñ¥ÏãúÏóê Í∑∏Î¶¨ÎìúÎ•º ÏÉùÏÑ±Ìïú Í≤ΩÏö∞ Í∑∏Î¶¨ÎìúÏóê Í∞íÏù¥ Í∞±Ïã†ÎêòÎèÑÎ°ù ...
+                            //// ∏∂øÏΩ∫ ¡¶æÓΩ√ø° ±◊∏ÆµÂ∏¶ ª˝º∫«— ∞ÊøÏ ±◊∏ÆµÂø° ∞™¿Ã ∞ªΩ≈µ«µµ∑œ ...
                             if (m_bGridInit == true)
                             {
                                 for (int i = 0; i < m_CHeader.nMotorCnt; i++)
@@ -5914,8 +7718,12 @@ namespace OpenJigWare
                         }
                         else if (e.Button == MouseButtons.Right)
                         {
-                            m_fPan -= (m_nMouse_X_Right - e.X);
-                            m_fTilt -= (m_nMouse_Y_Right - e.Y);
+                            if (GetFreeze_Pan() != true) m_fPan -= (m_nMouse_X_Right - e.X);
+                            if (GetFreeze_Tilt() != true) m_fTilt -= (m_nMouse_Y_Right - e.Y);
+                            if ((GetFreeze_Pan() == true) && (GetFreeze_Tilt() == true) && (GetFreeze_Swing() == false))
+                            {
+                                m_fSwing -= (m_nMouse_X_Right - e.X);
+                            }
                             if (m_fTilt < 0) m_fTilt += 360;
                             if (m_fPan < 0) m_fPan += 360;
                             if (m_fTilt >= 360) m_fTilt -= 360;
@@ -5988,7 +7796,7 @@ namespace OpenJigWare
                     if (m_bMouseClick == true)
                     {
                         // so if a key is depressed to move a little bit.
-                        // Kor: Shift Key Í∞Ä ÎàåÎ†∏Îã§Î©¥ ÏûëÍ≤å(1) ÏõÄÏßÅÏù¥ÎèÑÎ°ù...
+                        // Kor: Shift Key ∞° ¥≠∑»¥Ÿ∏È ¿€∞‘(1) øÚ¡˜¿Ãµµ∑œ...
                         float fDelta = ((bSmallValue == true) ? 0.005f : 0.01f); 
                         float fData = (e.Delta > 0) ? -fDelta : fDelta;
 
@@ -6079,7 +7887,7 @@ namespace OpenJigWare
                 /// Default Constructor
                 /// 
 
-                #region There are basic functions for initialization.(Kor: OpenGL ÏùÑ Ï≤òÏùå Ïã§ÌñâÏãú Ï¥àÍ∏∞Ìôî ÌïòÎäî Ìï®ÏàòÎì± OpenGL Í∏∞Î≥∏Ï†Å Íµ¨ÌòÑ Ìï®Ïàò)
+                #region There are basic functions for initialization.(Kor: OpenGL ¿ª √≥¿Ω Ω««‡Ω√ √ ±‚»≠ «œ¥¬ «‘ºˆµÓ OpenGL ±‚∫ª¿˚ ±∏«ˆ «‘ºˆ)
 
                 // contructor, destructor
                 #region Initialize
@@ -6095,6 +7903,9 @@ namespace OpenJigWare
                 public C3d()//CCsgl()
                     : base()
                 {
+                    // µ¿⁄¿Œ ∆ƒ¿œ ø¿«¬ ∞Ê∑Œ º≥¡§
+                    m_strDesignerFilePath = Application.StartupPath + "\\";
+
                     for (int i = 0; i < 3; i++) m_fColor[i] = 1.0f;
                     InitGLContext();
                     //m_txtDraw = new TextBox();
@@ -6133,14 +7944,15 @@ namespace OpenJigWare
 
                     //m_pnKinematics.Size = new Size(900, 778);
                     //m_pnKinematics.Location = new Point(6, 9);
-                    InitTools_Kinematics(m_pnKinematics); // Îã§Î•∏ Í≤ÉÎèÑ ÌïÑÏöîÌïòÎã§Î©¥ ÌïòÎäîÍ≤å Ï¢ãÏßÄÎßå Ïù¥Í≤å Combobox Îì§ Ï¥àÍ∏∞Ìôî ÎïåÎ¨∏Ïóê ÌïòÎäîÍ≤å Ï¢ãÎã§. OJW5014_20150922
+                    InitTools_Kinematics(m_pnKinematics); // ¥Ÿ∏• ∞Õµµ « ø‰«œ¥Ÿ∏È «œ¥¬∞‘ ¡¡¡ˆ∏∏ ¿Ã∞‘ Combobox µÈ √ ±‚»≠ ∂ßπÆø° «œ¥¬∞‘ ¡¡¥Ÿ. OJW5014_20150922
 
                     m_ctxmenuMouse.ItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_ItemClicked);
                     //m_ctxmenuMouse.Layout   +=new LayoutEventHandler(m_ctxmenuMouse_Layout);  // += new EventHandler(m_ctxmenuMouse_Opened);
                     //m_ctxmenuMouse.MouseMove +=new MouseEventHandler(m_ctxmenuMouse_MouseMove);
                     //m_ctxmenuMouse.Opened += new EventHandler(m_ctxmenuMouse_Opened); //new System.ComponentModel.EventHandlerList(m_ctxmenuMouse_Opened);
                     Event_ItemAdd.UserEvent += new EventHandler(ItemAdded);//+= new (ItemAdded);
-                    Event_FileOpen.UserEvent += new EventHandler(FileOpened);
+                    
+                    Event_FileOpen.UserEvent += new EventHandler(FileRestore);
                 }
 
                 //void m_txtDraw_MouseDown(object sender, MouseEventArgs e)
@@ -6148,7 +7960,7 @@ namespace OpenJigWare
                 //    //throw new NotImplementedException();
                 //    try
                 //    {
-                //        // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => Ï∞∏Í≥†
+                //        // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => ¬¸∞Ì
                 //        int nLine = m_txtDraw.GetLineFromCharIndex(m_txtDraw.GetFirstCharIndexOfCurrentLine());
 
                 //        SelectLine(nLine);
@@ -6162,7 +7974,7 @@ namespace OpenJigWare
                     //throw new NotImplementedException();
                     try
                     {
-                        // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => Ï∞∏Í≥†
+                        // http://blog.naver.com/PostView.nhn?blogId=gurae83&logNo=20155939347 => ¬¸∞Ì
                         int nLine = m_rtxtDraw.GetLineFromCharIndex(m_rtxtDraw.GetFirstCharIndexOfCurrentLine());
 
                         SelectLine(nLine);
@@ -6232,7 +8044,7 @@ namespace OpenJigWare
                         //    treeInfo.Nodes[0].Expand();
                         //if (treeInfo.Nodes[0].Nodes[nLine].IsExpanded == false)
                         //    treeInfo.Nodes[0].Nodes[nLine].Expand();
-                        //treeInfo.SelectedNode = treeInfo.Nodes[0].Nodes[nLine]; // ÏÑ†ÌÉù Ìö®Í≥º
+                        //treeInfo.SelectedNode = treeInfo.Nodes[0].Nodes[nLine]; // º±≈√ »ø∞˙
                         SelectObject_Clear();
                         SelectObject_Add(nLine);
                     }
@@ -6265,6 +8077,11 @@ namespace OpenJigWare
                 public void RemoveMouseEvent_Wheel(MouseEventHandler FFunc) { this.MouseWheel -= (MouseEventHandler)FFunc; }
 
                 public C3d GetHandle() { return this; }
+                private bool m_bMousePickEnable = true; // ±‚∫ª¿˚¿∏∑Œ ∏∂øÏΩ∫∞° ≈¨∏Ø«œ∏È ≈¨∏Ø∫Œ∫–¿Ã ≥™≈∏≥™µµ∑œ µ«æÓ ¿÷¥Ÿ.
+                public void SetMousePickEnable(bool bDisplayOn)
+                {
+                    m_bMousePickEnable = bDisplayOn;
+                }
                 public void SetMouseEventEnable(bool bEn)
                 {
                     if (bEn != m_bMouseEventEnable)
@@ -6312,13 +8129,17 @@ namespace OpenJigWare
                 {
                     //model.Destroy();
                     if (m_bClassEnd == true) m_bClassEnd = true;
+                    if (m_CPropAll_Selected != null) { m_CPropAll_Selected.Destroy(); m_CProperty_Selected = null; }
+                    if (m_CProperty_Selected != null) { m_CProperty_Selected.Destroy(); m_CProperty_Selected = null; }
+                    if (m_CPropAll != null) m_CPropAll = null;
+                    if (m_CProperty != null) { m_CProperty.Destroy(); m_CProperty = null; }
                 }
 #if _SET_DEFAULT_PERSPECTIVE
                 private int m_nPerspectiveMode = 1;
 #else
                 private int m_nPerspectiveMode = 0;
 #endif
-                public void SetPerspectiveMode(bool bOn) { m_nPerspectiveMode = ((bOn  == true) ? 1 : 0); } // Î≥¥Ïù¥Îäî Î∑∞Î•º ÏõêÍ∑º Î∑∞Î°ú Ï†ÑÌôò
+                public void SetPerspectiveMode(bool bOn) { m_nPerspectiveMode = ((bOn  == true) ? 1 : 0); } // ∫∏¿Ã¥¬ ∫‰∏¶ ø¯±Ÿ ∫‰∑Œ ¿¸»Ø
                 public bool IsPerspectiveMode() { return ((m_nPerspectiveMode == 1) ? true : false); }
                 public void InitGLContext()
                 {                    
@@ -6446,7 +8267,7 @@ namespace OpenJigWare
                 }
                 #endregion LoadTextures()
 
-                // The top function is first called to the drawing.(Kor: Í∑∏Î¶¨Í∏∞Î•º ÌïòÍ∏∞ÏúÑÌï¥ Îß® Ï≤òÏùå Ìò∏Ï∂úÌïòÎäî Ìï®Ïàò)
+                // The top function is first called to the drawing.(Kor: ±◊∏Æ±‚∏¶ «œ±‚¿ß«ÿ ∏« √≥¿Ω »£√‚«œ¥¬ «‘ºˆ)
                 #region glDraw_Ready
                 public void GetPickMousePoint(out int nX, out int nY)
                 {
@@ -6469,20 +8290,25 @@ namespace OpenJigWare
                     {
                         m_bPickMouseClick = true;
                         m_bPickMouseClick_Reserve = false;
+
+                        /////////////////////////////////////////////////////////
+                        // «»≈∑¿Ã º±≈√µ» º¯∞£ m_nSelectMotor ¥¬ ∫Ò»∞º∫
+                        //bool bSelectObject_DrawClass = SelectObject_Check(m_nDrawClass_Pos);
+                        if (m_bSyncSelectedMotor == true) m_nSelectedMotor = -1;
                     }
 
                     if (m_bPickMouseClick == true)
-                    {
+                    {            
                         //Refresh();
                         Picking_Ready(m_nMouse_X_Left, m_nMouse_Y_Left);
                     }
                     else
                     {
                         //Refresh();
-                        // Switch to normal rendering mode(Kor: Î≥¥ÌÜµÏùò Î†åÎçîÎßÅ Î™®ÎìúÎ°ú Ï†ÑÌôò)
+                        // Switch to normal rendering mode(Kor: ∫∏≈Î¿« ∑ª¥ı∏µ ∏µÂ∑Œ ¿¸»Ø)
                         //GL.glMatrixMode(GL.GL_MODELVIEW);
 
-                        SetLight(); // Ïù¥Í±∞ ÏóÜÏï†Î©¥ ÌÅ∞ÏùºÎÇúÎã§. -_-;;;
+                        SetLight(); // ¿Ã∞≈ æ¯æ÷∏È ≈´¿œ≥≠¥Ÿ. -_-;;;
 
                         Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
                         m_fColor_Back[0] = ((float)(m_BackColor.R) / 255.0f);  // R
@@ -6501,57 +8327,57 @@ namespace OpenJigWare
 #if _IS_VAR_GRIDDRAW
                     if (m_bGridDraw == true)
                     {
-                        int nRow = m_CGridDraw.m_nCurrntCell;
-                        int nCol = m_CGridDraw.m_nCurrntColumn;
+                        int nRow = m_CGridMotionEditor.m_nCurrntCell;
+                        int nCol = m_CGridMotionEditor.m_nCurrntColumn;
 
                         m_bEditing = true;
                         //String strData = CConvert.RemoveChar(CConvert.RemoveChar(m_CHeader.strDrawModel.Trim(), '['), ']');
                         m_lstDraw.Clear();
-                        m_CGridDraw.Delete();
+                        m_CGridMotionEditor.Delete();
                         //int i = 0;
 #if true
                         foreach (String strItem in m_rtxtDraw.Lines)
                         {
                             m_lstDraw.Add(strItem);
                             int nIndex = strItem.IndexOf("//");
-                            int nLength = m_CGridDraw.GetLineCount();
+                            int nLength = m_CGridMotionEditor.GetLineCount();
                             if (nIndex < 0)
                             {
-                                m_CGridDraw.Insert(nLength, 1);
-                                //m_CGridDraw.SetData(nLength, 0, "//");
+                                m_CGridMotionEditor.Insert(nLength, 1);
+                                //m_CGridMotionEditor.SetData(nLength, 0, "//");
                                 //m_lstDraw.Add("//");
                             }
                             else
                             {
-                                m_CGridDraw.Insert(nLength, 1);
-                                m_CGridDraw.SetData(nLength, 0, strItem.Substring(nIndex + 2));
+                                m_CGridMotionEditor.Insert(nLength, 1);
+                                m_CGridMotionEditor.SetData(nLength, 0, strItem.Substring(nIndex + 2));
                             }
                             //if (nLength - 1 == m_nSelectedItem)
-                            //    m_CGridDraw.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
+                            //    m_CGridMotionEditor.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
                         }
 #else
                         foreach (String strItem in m_txtDraw.Lines)
                         {
                             m_lstDraw.Add(strItem);
                             int nIndex = strItem.IndexOf("//");
-                            int nLength = m_CGridDraw.GetLineCount();
+                            int nLength = m_CGridMotionEditor.GetLineCount();
                             if (nIndex < 0)
                             {
-                                m_CGridDraw.Insert(nLength, 1);
-                                //m_CGridDraw.SetData(nLength, 0, "//");
+                                m_CGridMotionEditor.Insert(nLength, 1);
+                                //m_CGridMotionEditor.SetData(nLength, 0, "//");
                                 //m_lstDraw.Add("//");
                             }
                             else
                             {
-                                m_CGridDraw.Insert(nLength, 1);
-                                m_CGridDraw.SetData(nLength, 0, strItem.Substring(nIndex + 2));
+                                m_CGridMotionEditor.Insert(nLength, 1);
+                                m_CGridMotionEditor.SetData(nLength, 0, strItem.Substring(nIndex + 2));
                             }
                             //if (nLength - 1 == m_nSelectedItem)
-                            //    m_CGridDraw.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
+                            //    m_CGridMotionEditor.SetCaption(nLength, Prop_Get_PickGroup_Comment_Selected());
                         }
 #endif
                         if (m_bItemAdded == true)
-                            if (m_CGridDraw.GetHandle().Rows.Count > m_nSelectedItem) m_CGridDraw.GetHandle().CurrentCell = m_CGridDraw.GetHandle().Rows[m_nSelectedItem].Cells[1];
+                            if (m_CGridMotionEditor.GetHandle().Rows.Count > m_nSelectedItem) m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[m_nSelectedItem].Cells[1];
                         for (int i = 0; i < OjwDispAll.GetCount(); i++)
                         {
                             if (OjwDispAll.GetData(i) != null)
@@ -6572,25 +8398,25 @@ namespace OpenJigWare
                                         }
                                     }
                                 }
-                                m_CGridDraw.SetEnable(i, bData);
+                                m_CGridMotionEditor.SetEnable(i, bData);
                                 //if (bData == true)
-                                //    m_CGridDraw.SetEnable(i, true);
-                                //else m_CGridDraw.SetEnable(i, false);
+                                //    m_CGridMotionEditor.SetEnable(i, true);
+                                //else m_CGridMotionEditor.SetEnable(i, false);
                             }
-                            else m_CGridDraw.SetEnable(i, false);
+                            else m_CGridMotionEditor.SetEnable(i, false);
 
                             if (m_bItemAdded == false)
                             {
-                                //m_CGridDraw.ChangePos(m_CGridDraw.GetHandle(), nRow, nCol);
+                                //m_CGridMotionEditor.ChangePos(m_CGridMotionEditor.GetHandle(), nRow, nCol);
                                 if ((nRow >= 0) && (nCol >= 0))
-                                    m_CGridDraw.GetHandle().CurrentCell = m_CGridDraw.GetHandle().Rows[nRow].Cells[nCol];
+                                    m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nRow].Cells[nCol];
                             }
                         }
 
                         // Reset
-                        //m_CGridDraw.m_bGridAdded = false;
+                        //m_CGridMotionEditor.m_bGridAdded = false;
 
-                        //m_CGridDraw.SetChangeCurrentLine
+                        //m_CGridMotionEditor.SetChangeCurrentLine
                         m_bEditing = false;
                     }
 #endif
@@ -6610,43 +8436,43 @@ namespace OpenJigWare
                     }
                 }
 
-                private CGridView m_CGridDraw = new CGridView();
-                private bool m_bGridDraw = false;
-                public void GridDraw_Init(DataGridView dgDraw, int nWidth)
-                {
-                    int nLines = 0;
-                    //m_lstDraw.Clear();
-                    m_CGridDraw.Create(dgDraw, nLines, new SGridTable_t("Caption", 250, 0, 0, Color.LightGray, ""));
-                    //m_CGridDraw.Create(dgDraw, nLines, 
-                    //    new SGridTable_t("Group", 30, 0, 0, Color.LightGray, ""),
-                    //    new SGridTable_t("Motor(-1:None)", 30, 0, 0, Color.LightGray, ""),
-                    //    new SGridTable_t("", 30, 0, 0, Color.LightGray, ""),
-                    //    );
-                    
-                    //m_CGridDraw.GetHandle().Columns[0].Visible = false; // Enable Column Ïà®ÍπÄ
+                //private CGridView m_CGridMotionEditor = new CGridView();
+                //private bool m_bGridDraw = false;
+                //public void GridDraw_Init(DataGridView dgDraw, int nWidth)
+                //{
+                //    int nLines = 0;
+                //    //m_lstDraw.Clear();
+                //    m_CGridMotionEditor.Create(dgDraw, nLines, new SGridTable_t("Caption", 250, 0, 0, Color.LightGray, ""));
+                //    //m_CGridMotionEditor.Create(dgDraw, nLines, 
+                //    //    new SGridTable_t("Group", 30, 0, 0, Color.LightGray, ""),
+                //    //    new SGridTable_t("Motor(-1:None)", 30, 0, 0, Color.LightGray, ""),
+                //    //    new SGridTable_t("", 30, 0, 0, Color.LightGray, ""),
+                //    //    );
 
-                    m_CGridDraw.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridDraw_Event_CellEnter);
-                    m_CGridDraw.GetHandle().MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(GridDraw_MouseDoubleClick);
-                    //m_CGridDraw.Ignore_CellEnter(true);
+                //    //m_CGridMotionEditor.GetHandle().Columns[0].Visible = false; // Enable Column º˚±Ë
 
-                    m_CGridDraw.dgAngle_Block_GridChange(m_rtxtDraw, true); // Insert, Delete Î∏îÎü≠.
+                //    m_CGridMotionEditor.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridDraw_Event_CellEnter);
+                //    m_CGridMotionEditor.GetHandle().MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(GridDraw_MouseDoubleClick);
+                //    //m_CGridMotionEditor.Ignore_CellEnter(true);
 
-                    m_CGridDraw.GetHandle().RowsAdded += new DataGridViewRowsAddedEventHandler(GridDraw_Event_RowsAdded);
-                    m_CGridDraw.GetHandle().RowsRemoved += new DataGridViewRowsRemovedEventHandler(GridDraw_Event_RowsRemoved);
-                    m_CGridDraw.GetHandle().CellValueChanged += new DataGridViewCellEventHandler(GridDraw_CellValueChanged);
+                //    m_CGridMotionEditor.dgAngle_Block_GridChange(m_rtxtDraw, true); // Insert, Delete ∫Ì∑∞.
+
+                //    m_CGridMotionEditor.GetHandle().RowsAdded += new DataGridViewRowsAddedEventHandler(GridDraw_Event_RowsAdded);
+                //    m_CGridMotionEditor.GetHandle().RowsRemoved += new DataGridViewRowsRemovedEventHandler(GridDraw_Event_RowsRemoved);
+                //    m_CGridMotionEditor.GetHandle().CellValueChanged += new DataGridViewCellEventHandler(GridDraw_CellValueChanged);
 
 
-                    m_bGridDraw = true;
-                }
+                //    m_bGridDraw = true;
+                //}
                 #endregion Grid For Draw
 
                 //#region Add / Sub Grid Event
-                //public void Add_CellMouseDoubleClick(DataGridViewCellMouseEventHandler FFunc) { m_CGridDraw.Add_CellMouseDoubleClick((DataGridViewCellMouseEventHandler)FFunc); }
-                //public void Sub_CellMouseDoubleClick(DataGridViewCellMouseEventHandler FFunc) { m_CGridDraw.Sub_CellMouseDoubleClick((DataGridViewCellMouseEventHandler)FFunc); }
+                //public void Add_CellMouseDoubleClick(DataGridViewCellMouseEventHandler FFunc) { m_CGridMotionEditor.Add_CellMouseDoubleClick((DataGridViewCellMouseEventHandler)FFunc); }
+                //public void Sub_CellMouseDoubleClick(DataGridViewCellMouseEventHandler FFunc) { m_CGridMotionEditor.Sub_CellMouseDoubleClick((DataGridViewCellMouseEventHandler)FFunc); }
                 //#endregion Add / Sub Grid Event
 
                 #region Grid For Motion
-                public CGridView m_CGridMotionEditor = new CGridView();
+                public CGridView m_CGridMotionEditor = null;//new CGridView();
                 private bool m_bGridInit = false;
                 public bool IsGridInit() { return m_bGridInit; }
                 public int GetWidth_GridItem() { return m_nWidth_GridItem; }
@@ -6654,7 +8480,7 @@ namespace OpenJigWare
                 private void GridMotionEditor_Init(int nWidth, int nLines)
                 {
                     if (m_bGridInit == true) GridMotionEditor_Init(m_dgAngle, nWidth, nLines);
-                    else CMessage.Write_Error("Grid Init Error");
+                    //else CMessage.Write_Error("Grid Init Error");
                 }
 
                 private int m_nWidth_GridItem = 0;
@@ -6662,7 +8488,11 @@ namespace OpenJigWare
                 private Button[] m_pbtnType;
                 private Button[] m_pbtnEnable;
                 private int[,] m_pnFlag;
-                //private int[,] m_pnFlag_Copy;
+                private struct SFlag_t
+                {
+                    List<int> nLed;
+                }
+                private int[,] m_pnFlag_Copy;
                 Panel m_pnButton = new Panel();
                 public void GridMotionEditor_Init_Panel(Panel pnButton)
                 {
@@ -6676,25 +8506,26 @@ namespace OpenJigWare
                     //m_CGridMotionEditor.GetHandle().Controls.Clear();
                     //m_CGridMotionEditor = new CGridView();
                     m_dgAngle = dgAngle;
-                    // Î™®ÌÑ∞Ïùò Í∞ØÏàò
+                    // ∏≈Õ¿« ∞πºˆ
                     int nCnt = m_CHeader.nMotorCnt;
                     // GridView
                     //int nWidth = 65;
                     //int nLines = 0;
-                    SGridTable_t[] aSTable = new SGridTable_t[nCnt + 2]; // Speed, Delay
+                    SGridTable_t[] aSTable = new SGridTable_t[nCnt + 2];// + 12];// Speed, Delay   // Speed, Delay, Time //2]; // Speed, Delay
                     Color[] acColor = new Color[] { Color.Orange, Color.Green, Color.Yellow, Color.Cyan, Color.GreenYellow, Color.DarkOrange };
 
                     /////////////////////////////////////
-                    m_pnFlag = new int[nLines, nCnt + 12]; // En, Speed, Delay, Cmd, ...
+                    //m_abEnc = new bool[nLines + 1]; // ∞°∫Ø¿∏∑Œ ¿‚¿∏∏È º”µµ∞° øµ«‚¿ª πﬁ¿∏¥œ ∏ﬁ∏∏Æ ¿¸√º¿˚¿∏∑Œ ¿‚æ∆πˆ∏Æ¿⁄.
+                    m_pnFlag = new int[nLines + 1, nCnt];// + 12]; // En, Speed, Delay, Cmd, ...
                     m_pnFlag.Initialize();
-                    //m_pnFlag_Copy = new int[nLines, nCnt + 12];//nCnt];
-                    //for (int i = 0; i < m_pnFlag_Copy.GetLength(0); i++)
-                    //{
-                    //    for (int j = 0; j < m_pnFlag_Copy.GetLength(1); j++)
-                    //    {
-                    //        m_pnFlag_Copy[i, j] = -1;
-                    //    }
-                    //}
+                    m_pnFlag_Copy = new int[m_pnFlag.GetLength(0), m_pnFlag.GetLength(1)];// + 12];//nCnt];
+                    for (int i = 0; i < m_pnFlag_Copy.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < m_pnFlag_Copy.GetLength(1); j++)
+                        {
+                            m_pnFlag_Copy[i, j] = -1;
+                        }
+                    }
                     /////////////////////////////////////
 
                     if (m_pbtnEnable != null)
@@ -6765,31 +8596,1035 @@ namespace OpenJigWare
                         Color cColor = acColor[m_CHeader.pSMotorInfo[i].nGroupNumber % acColor.Length];
                         string strName = CConvert.RemoveChar(m_CHeader.pSMotorInfo[i].strNickName, '\0');
                         strName = (strName.Length > 0) ? strName : "Motor" + CConvert.IntToStr(i);
-                        aSTable[i] = new SGridTable_t(strName, nWidth, m_CHeader.pSMotorInfo[i].nGroupNumber, m_CHeader.pSMotorInfo[i].nAxis_Mirror, cColor, m_CHeader.pSMotorInfo[i].fInitAngle);
+                        aSTable[i] = new SGridTable_t(strName, nWidth, m_CHeader.pSMotorInfo[i].nGroupNumber, m_CHeader.pSMotorInfo[i].nAxis_Mirror, cColor, m_CHeader.pSMotorInfo[i].fInitAngle, m_CHeader.pSMotorInfo[i].fInitAngle2);
 
                         nWidth_Interval += nWidth + nWidth_Offset;
                     }
                     // Time
-                    aSTable[nCnt] = new SGridTable_t("Time", nWidth, 0, -1, Color.OrangeRed, 1000);
+                    aSTable[nCnt] = new SGridTable_t("Speed", nWidth, 0, -1, Color.OrangeRed, 1000, 1000);
                     // Delay
-                    aSTable[nCnt + 1] = new SGridTable_t("Delay", nWidth, 0, -1, Color.Olive, 0);
+                    aSTable[nCnt + 1] = new SGridTable_t("Delay", nWidth, 0, -1, Color.Olive, 0, 0);
+                    //// Time
+                    //aSTable[nCnt + 2] = new SGridTable_t("Time", nWidth, 0, -1, Color.LightBlue, 0);
+
+#if false
+                    int nDefaultWidth = 10;
+                    int nPos = 2;
+                    // 3 - Group
+                    aSTable[nCnt + nPos++] = new SGridTable_t("Grp", nDefaultWidth, 0, -1, Color.Gray, 0);
+                    // 4 - Command
+                    aSTable[nCnt + nPos++] = new SGridTable_t("Cmd", nDefaultWidth, 0, -1, Color.Gray, 0);
+
+                    for (int i = 0; i < 6; i++)
+                    {
+                        // 5 ~ 10 - Data0 ~ Data5
+                        aSTable[nCnt + nPos++] = new SGridTable_t(String.Format("D{0}", i), nDefaultWidth, 0, -1, Color.Gray, 0);
+                    }
+
+                    // 11 - Buzz
+                    aSTable[nCnt + nPos++] = new SGridTable_t("Bzz", nDefaultWidth, 0, -1, Color.Gray, 0);
+
+                    // 12 - Emoticon
+                    aSTable[nCnt + nPos++] = new SGridTable_t("Emt", nDefaultWidth, 0, -1, Color.Gray, 0);
+                    
+#endif
+                    m_CGridMotionEditor = new CGridView();
                     m_CGridMotionEditor.Create(dgAngle, nLines, aSTable);
+
+                    //int nLine;
+                    //int nMotPos;
+                    for (int i = 0; i < dgAngle.RowCount; i++)
+                    {
+                        for (int j = 0; j < m_CHeader.nMotorCnt; j++)
+                        {
+                            //nMotPos = j + 1;
+
+                            m_pnFlag[i, j] = (int)(
+                                0x10 | // Enable
+                                ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //0x08 //| // MotorType
+                                //0x07 // Led
+                                );
+                        }
+                    }
+
+
+                    m_CGridMotionEditor.Events_Remove_KeyDown();
+                    m_CGridMotionEditor.Events_Remove_KeyUp();
+                    //m_CGridMotionEditor.Events_Remove_CellEnter();
+                    //m_CGridMotionEditor.Events_Remove_MouseDoubleClick();
+                    
+                    //m_CGridMotionEditor.Events_Remove_MouseDown();
+                    //m_CGridMotionEditor.Events_Remove_MouseMove();
+                    //m_CGridMotionEditor.Events_Remove_MouseUp();
+
                     if (m_bGridInit == true)
                     {
                         m_CGridMotionEditor.GetHandle().CellEnter -= new System.Windows.Forms.DataGridViewCellEventHandler(GridMotionEditor_Event_CellEnter);
                         m_CGridMotionEditor.GetHandle().MouseDoubleClick -= new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseDoubleClick);
+
+                        m_CGridMotionEditor.GetHandle().KeyDown -= new System.Windows.Forms.KeyEventHandler(GridMotionEditor_Event_KeyDown);
+                        m_CGridMotionEditor.GetHandle().KeyUp -= new System.Windows.Forms.KeyEventHandler(GridMotionEditor_Event_KeyUp);
+
+                        m_CGridMotionEditor.GetHandle().MouseDown -= new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseDown);
+                        m_CGridMotionEditor.GetHandle().MouseUp -= new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseUp);
+                        m_CGridMotionEditor.GetHandle().MouseMove -= new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseMove);
+
+                        m_CGridMotionEditor.GetHandle().Scroll -= new ScrollEventHandler(GridMotionEditor_Scroll);
                     }
                     m_CGridMotionEditor.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridMotionEditor_Event_CellEnter);
                     m_CGridMotionEditor.GetHandle().MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseDoubleClick);
-                    
-                    //m_CGridMotionEditor.Ignore_CellEnter(true); // ÏÜçÎèÑ Î≤ÑÎ≤ÖÍ±∞Î¶ºÏùÑ ÏóÜÏï†Í∏∞ ÏúÑÌï¥ Î™®ÏÖò ÏàòÌñâÏãúÎßå Ïù¥Í≤å Îì§Ïñ¥Í∞ÑÎã§.
 
+                    m_CGridMotionEditor.GetHandle().KeyDown += new System.Windows.Forms.KeyEventHandler(GridMotionEditor_Event_KeyDown);
+                    m_CGridMotionEditor.GetHandle().KeyUp += new System.Windows.Forms.KeyEventHandler(GridMotionEditor_Event_KeyUp);
+
+                    m_CGridMotionEditor.GetHandle().MouseDown += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseDown);
+                    m_CGridMotionEditor.GetHandle().MouseUp += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseUp);
+                    m_CGridMotionEditor.GetHandle().MouseMove += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseMove);
+
+                    //m_CGridMotionEditor.Ignore_CellEnter(true); // º”µµ πˆπ˜∞≈∏≤¿ª æ¯æ÷±‚ ¿ß«ÿ ∏º« ºˆ«‡Ω√∏∏ ¿Ã∞‘ µÈæÓ∞£¥Ÿ.
+
+                    m_CGridMotionEditor.GetHandle().Scroll += new ScrollEventHandler(GridMotionEditor_Scroll);
+                    
                     m_nWidth_GridItem = nWidth;
 
                     CheckFlag(0);
 
+#if false // For Test
+                    MessageBox.Show(String.Format("{0}", m_CGridMotionEditor.GetOffset_Rot_Swing(0)));
+#endif
+
+                    m_CGridMotionEditor.SetHeader(this);
+
                     m_bGridInit = true;
                 }
+
+                #region KeyDown & KeyUp
+                private void GridMotionEditor_Event_KeyDown(object sender, KeyEventArgs e)
+                {
+                    OjwGrid_KeyDown(m_CGridMotionEditor.GetHandle(), e);
+                }
+                private void GridMotionEditor_Event_KeyUp(object sender, KeyEventArgs e)
+                {
+                    OjwGrid_KeyUp(m_CGridMotionEditor.GetHandle(), e);
+                }
+                private int m_nKey = 0;  // Keyboard Event variable
+                private bool m_bKey_Ctrl = false;
+                private bool m_bKey_Alt = false;
+                private bool m_bKey_Shift = false;
+                private int m_nFirstPos_Min_X = 9999999;
+                private int m_nFirstPos_Min_Line = 9999999;
+                public void Flag_Insert(int nInsertCnt) { Flag_Insert(m_CGridMotionEditor.m_nCurrntCell, nInsertCnt); }
+                public void Flag_Insert(int nIndex, int nInsertCnt)
+                {
+                    if (nInsertCnt <= 0) return;
+                    if (nIndex < 0) nIndex = 0;
+
+                    int[,] pnFlag = (int[,])m_pnFlag.Clone();
+                    for (int i = 0; i < m_pnFlag.GetLength(0) - nInsertCnt; i++)
+                    {
+                        if (i > nIndex)
+                        {
+                            if (i < nIndex + nInsertCnt)
+                            {
+                                for (int j = 0; j < GetHeader_nMotorCnt(); j++)
+                                {
+                                    m_pnFlag[i, j] = 0x10;
+                                }
+                            }
+                            else
+                            {
+                                for (int j = 0; j < GetHeader_nMotorCnt(); j++)
+                                {
+                                    m_pnFlag[i + nInsertCnt, j] = pnFlag[i, j];
+                                }
+                            }
+                        }
+                    }
+                }
+                private void Flag_Add(int nInsertCnt) { Flag_Add(m_CGridMotionEditor.m_nCurrntCell, nInsertCnt); }
+                public void Flag_Add(int nIndex, int nInsertCnt)
+                {
+                    if (nInsertCnt <= 0) return;
+                    if (nIndex < 0) nIndex = 0;
+
+                    int[,] pnFlag = (int[,])m_pnFlag.Clone();
+                    for (int i = 0; i < m_pnFlag.GetLength(0) - nInsertCnt; i++)
+                    {
+                        if (i >= nIndex)
+                        {
+                            if (i < nIndex + nInsertCnt)
+                            {
+                                for (int j = 0; j < GetHeader_nMotorCnt(); j++)
+                                {
+                                    m_pnFlag[i, j] = 0x10;
+                                }
+                            }
+                            else
+                            {
+                                for (int j = 0; j < GetHeader_nMotorCnt(); j++)
+                                {
+                                    m_pnFlag[i + nInsertCnt, j] = pnFlag[i, j];
+                                }
+                            }
+                        }
+                    }
+                }
+                public void Flag_Delete() { Flag_Delete(0, 999); }
+                private void Flag_Delete(int nIndex, int nDeleteCnt)
+                {
+                    if (nDeleteCnt <= 0) return;
+                    if (nIndex < 0) nIndex = 0;
+
+                    int[,] pnFlag = (int[,])m_pnFlag.Clone();
+                    for (int i = 0; i < m_pnFlag.GetLength(0); i++)
+                    {
+                        if (i >= nIndex)
+                        {
+                            if ((i + nDeleteCnt) >= m_pnFlag.GetLength(0) - 1)
+                            {
+                                for (int j = 0; j < GetHeader_nMotorCnt(); j++)
+                                {
+                                    m_pnFlag[i, j] = 0x10;
+                                }
+                            }
+                            else
+                            {
+                                for (int j = 0; j < GetHeader_nMotorCnt(); j++)
+                                {
+                                    m_pnFlag[i, j] = pnFlag[i + nDeleteCnt, j];
+                                }
+                            }
+                        }
+                    }
+                }
+#if false
+            public void Insert(int nInsertCnt) { Insert(m_nCurrntCell, nInsertCnt); }
+            public void Insert(int nIndex, int nInsertCnt)
+            {
+                int nErrorNum = 0;
+                try
+                {
+                    if (nIndex < 0) nIndex = 0;
+                    
+                    int nFirst = nIndex;
+                    dgAngle.Rows.Insert(nIndex, nInsertCnt);
+                    //m_lstLineInfo.Insert(nIndex, new SGridLineInfo_t(false, 0, "", 0, 0, 0, 0, 0, 0));
+                    for (int i = nFirst; i < nFirst + nInsertCnt; i++) Clear(i);
+#if !_TEST
+                    SetColorGrid(nIndex, nInsertCnt); 
+#endif
+                }
+                catch (System.Exception e)
+                {
+                    Ojw.CMessage.Write_Error("[" + Ojw.CConvert.IntToStr(nErrorNum) + "]" + e.ToString());
+                }
+            }
+            public void Add(int nInsertCnt) { Add(((dgAngle.RowCount == 0) ? 0 : dgAngle.RowCount - 1), nInsertCnt); }
+            public void Add(int nIndex, int nInsertCnt)
+            {
+                if (nIndex < 0) nIndex = 0;
+
+                if (dgAngle.RowCount > 0) nIndex++;
+                else nIndex = 0;
+
+                if (nIndex < dgAngle.RowCount - 1)
+                {
+                    Insert(nIndex, nInsertCnt);
+                    ChangePos(dgAngle, nIndex, dgAngle.CurrentCell.ColumnIndex);
+                    return;
+                }
+                int nFirst = nIndex;
+
+                dgAngle.Rows.Add(nInsertCnt);
+                ////////////////
+                for (int i = nFirst; i < nFirst + nInsertCnt; i++) Clear(i);
+                ChangePos(dgAngle, nIndex, dgAngle.CurrentCell.ColumnIndex);
+#if !_TEST
+                SetColorGrid(nIndex, nInsertCnt); 
+#endif
+                ////////////////
+            }
+#endif
+                private int m_nKeyCommand = 0;
+                public void KeyCommand_Clear() { m_nKeyCommand = 0; }
+                public int KeyCommand_Get() { int nKey = m_nKeyCommand; m_nKeyCommand = 0; return nKey; }
+                private void OjwGrid_KeyDown(DataGridView dgGrid, KeyEventArgs e)
+                {
+                    m_nKey = e.KeyValue;
+                    
+                    m_nKeyCommand = e.KeyValue; // KeyCommand
+
+                    if (e.Control == true) m_bKey_Ctrl = true; else m_bKey_Ctrl = false;
+                    if (e.Alt == true) m_bKey_Alt = true; else m_bKey_Alt = false;
+                    if (e.Shift == true) m_bKey_Shift = true; else m_bKey_Shift = false;
+
+                    switch (e.KeyCode)
+                    {
+                        #region Keys.Insert - ª¿‘
+                        case Keys.Insert:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    string strValue = "1";
+                                    if (e.Control)
+                                    {
+                                        if (Ojw.CInputBox.Show("Insert", "µ⁄∑Œ √ﬂ∞°«“ ≈◊¿Ã∫Ì¿« ºˆ∏¶ ¡ˆ¡§«œΩ√ø¿", ref strValue) == DialogResult.OK)
+                                        {
+                                            int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
+                                            int nFirst = m_CGridMotionEditor.m_nCurrntCell;
+                                            
+                                            // ∏’¿˙ ª©∞Ì
+                                            m_CGridMotionEditor.Delete(m_CGridMotionEditor.GetHandle().RowCount - nInsertCnt - 1, nInsertCnt);
+
+                                            Flag_Add(m_CGridMotionEditor.m_nCurrntCell, nInsertCnt);
+                                            m_CGridMotionEditor.Add(m_CGridMotionEditor.m_nCurrntCell, nInsertCnt);
+
+                                            for (int i = m_CGridMotionEditor.m_nCurrntCell; i < m_CGridMotionEditor.m_nCurrntCell + nInsertCnt; i++)
+                                            {
+                                                for (int j = 0; j < m_CHeader.nMotorCnt; j++)
+                                                {
+                                                    m_pnFlag[i, j] = (int)(
+                                                        0x10 | // Enable
+                                                        ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //0x08 //| // MotorType
+                                                        //0x07 // Led
+                                                        );
+                                                }
+                                            }
+
+                                            CheckFlag(m_CGridMotionEditor.m_nCurrntCell);
+                                            // ªˆƒ•«œ±‚...
+                                            GridMotionEditor_SetColorGrid(0, dgGrid.RowCount);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (Ojw.CInputBox.Show("Insert", "ª¿‘«“ ≈◊¿Ã∫Ì¿« ºˆ∏¶ ¡ˆ¡§«œΩ√ø¿", ref strValue) == DialogResult.OK)
+                                        {
+                                            //m_bKeyInsert = true;
+                                            int nInsertCnt = Ojw.CConvert.StrToInt(strValue);
+                                            int nFirst = m_CGridMotionEditor.m_nCurrntCell;
+
+                                            // ∏’¿˙ ª©∞Ì
+                                            m_CGridMotionEditor.Delete(m_CGridMotionEditor.GetHandle().RowCount - nInsertCnt - 1, nInsertCnt);
+
+                                            Flag_Insert(m_CGridMotionEditor.m_nCurrntCell, nInsertCnt);
+                                            m_CGridMotionEditor.Insert(m_CGridMotionEditor.m_nCurrntCell, nInsertCnt);
+                                            //Grid_Insert(nFirst, nInsertCnt);
+                                            //m_bKeyInsert = false;
+
+                                            for (int i = m_CGridMotionEditor.m_nCurrntCell; i < m_CGridMotionEditor.m_nCurrntCell + nInsertCnt; i++)
+                                            {
+                                                for (int j = 0; j < m_CHeader.nMotorCnt; j++)
+                                                {
+                                                    m_pnFlag[i, j] = (int)(
+                                                        0x10 | // Enable
+                                                        ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //0x08 //| // MotorType
+                                                        //0x07 // Led
+                                                        );
+                                                }
+                                            }
+                                            CheckFlag(m_CGridMotionEditor.m_nCurrntCell);
+                                            // ªˆƒ•«œ±‚...
+                                            GridMotionEditor_SetColorGrid(0, dgGrid.RowCount);
+                                        }
+                                    }
+                                    //Grid_DisplayLine(m_nCurrntCell);
+                                }
+                            }
+                            break;
+                        #endregion Keys.Insert - ª¿‘
+                        #region Keys.Escape - ESC : ±‰±ﬁ¡§¡ˆ
+                        case Keys.Escape:
+                            {
+                                //m_CMotor.Stop();
+                                //Cmd_Stop(m_nCurrentRobot);
+                            }
+                            break;
+                        #endregion Keys.Escape - ESC : ±‰±ﬁ¡§¡ˆ
+                        #region Keys.F4 - √ ±‚¿⁄ºº
+                        //case Keys.F4:
+                        //    {
+                        //        frmMain.Cmd_InitPos(m_nCurrentRobot, frmMain._INITPOS_DEFAULT, 2000);
+                        //        //DefaultPosition(1);
+                        //    }
+                        //    break;
+                        #endregion Keys.F4 - √ ±‚¿⁄ºº
+                        #region Keys.F5 - ∏º«
+                        //case Keys.F5:
+                        //    {
+                        //        if (m_bStart == false)
+                        //            StartMotion();
+                        //    }
+                        //    break;
+                        #endregion Keys.F5 - ∏º«
+                        #region Keys.F - ¡÷ºÆ ∞Àªˆ«œ±‚
+                        case Keys.F:
+                            {
+                                String strFind = "";
+                                if (Ojw.CInputBox.Show("∞Àªˆ", "∞Àªˆ«“ ¡÷ºÆ¿« ≈∞øˆµÂ∏¶ ¿‘∑¬«œΩ√ø¿", ref strFind) == DialogResult.OK)
+                                {
+                                    int nLine = m_CGridMotionEditor.GetHandle().CurrentCell.RowIndex;
+                                    int nPos = 0;
+                                    string strValue = "";
+                                    bool bFind = false;
+                                    for (int i = nLine; i < m_CGridMotionEditor.GetHandle().RowCount; i++)
+                                    {
+                                        strValue = m_CGridMotionEditor.GetCaption(i);
+
+                                        // ø¯«œ¥¬ πÆ¿⁄ø≠¿Ã æ¯¥Ÿ∏È -1¿ª ∏Æ≈œ
+                                        if (strValue.IndexOf(strFind) >= 0)
+                                        {
+                                            nPos = i;
+                                            bFind = true;
+                                            break;
+                                        }
+                                    }
+                                    if (bFind == true)
+                                    {
+                                        m_CGridMotionEditor.GetHandle()[0, nPos].Selected = true;
+                                        m_CGridMotionEditor.ChangePos(m_CGridMotionEditor.GetHandle(), nPos, 0);
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("∞·∞˙ æ¯¿Ω.");
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.F - ¡÷ºÆ ∞Àªˆ«œ±‚
+                        #region Keys.F1 - ¿ßƒ°∞™ ∞°¡Æø¿±‚
+                        case Keys.F1:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    int _ADDRESS_TORQUE_CONTROL = 52;
+                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                                    {
+                                        //if (m_abEnc[nAxis] == true)//((nAxis >= 6) && (nAxis <= 8)) // ojw5014_genie
+                                        //{
+                                        //    //Grid_SetMot(m_nCurrntCell, nAxis, 0);  -> Don't care ∞° ¥ı ≥∫¥Ÿ.
+                                        //}
+                                        //else
+                                        //{
+                                            m_CMotor.ReadMot(nAxis, _ADDRESS_TORQUE_CONTROL, 8);
+                                            bool bOk = m_CMotor.WaitReceive(nAxis, 40);
+                                            if (bOk == false)
+                                            {
+                                                //bPass = false;
+                                            }
+                                            else
+                                            {
+                                                GridMotionEditor_SetMotor(m_CGridMotionEditor.m_nCurrntCell, nAxis, m_CMotor.GetPos_Angle(nAxis));
+                                            }
+                                        //}
+                                    }
+                                    //Grid_DisplayLine(m_nCurrntCell);
+                                }
+                            }
+                            break;
+                        #endregion Keys.F1 - ¿ßƒ°∞™ ∞°¡Æø¿±‚
+                        #region Keys.Delete: - ªË¡¶«œ±‚
+                        case Keys.Delete:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    if (e.Control)
+                                    {
+                                        int nLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                        int nCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                        Flag_Delete(nLine, 1);
+                                        m_CGridMotionEditor.Delete(nLine, 1);
+
+                                        // ª´∏∏≈≠ ¥ı«ÿ¡ÿ¥Ÿ.
+                                        m_CGridMotionEditor.Add(m_CGridMotionEditor.GetHandle().RowCount - 1, 1);
+                                        for (int j = 0; j < m_CHeader.nMotorCnt; j++)
+                                        {
+                                            m_pnFlag[m_CGridMotionEditor.GetHandle().RowCount - 1, j] = (int)(
+                                                        0x10 | // Enable
+                                                        ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //0x08 //| // MotorType
+                                                //0x07 // Led
+                                                        );
+                                            CheckFlag(nLine);
+                                        }
+                                        //m_CGridMotionEditor.GetHandle().GetCellDisplayRectangle(
+                                        m_CGridMotionEditor.ChangePos(m_CGridMotionEditor.GetHandle(), nLine, nCol);
+                                    }
+                                    else
+                                    {
+                                        int nPos_Start_X = 0, nPos_Start_Y = 0;
+                                        int nPos_End_X = 0, nPos_End_Y = 0;
+                                        int nX_Limit = dgGrid.RowCount;
+                                        int nY_Limit = dgGrid.ColumnCount;
+                                        // √π ¿ßƒ° √£æ∆≥ª±‚
+                                        int k = 0;
+                                        bool bStart = false;
+                                        
+                                        bool bLed = false; // For Led Copy
+                                        bool bChoose = false;
+
+                                        for (int j = 0; j < nY_Limit; j++)
+                                        {
+                                            bStart = false;
+                                            for (int i = 0; i < nX_Limit; i++)
+                                            {
+                                                if (dgGrid[j, i].Selected == true)
+                                                {
+                                                    // Start
+                                                    if (i == 0)
+                                                    {
+                                                        bStart = true;
+                                                    }
+                                                    else if (dgGrid[j, i - 1].Selected == false)
+                                                    {
+                                                        bStart = true;
+                                                    }
+                                                    else bStart = false;
+
+                                                    if (bStart == true)
+                                                    {
+                                                        nPos_Start_X = i; nPos_Start_Y = j;
+
+                                                        for (k = i; k < nX_Limit; k++)
+                                                        {
+                                                            if (k >= (nX_Limit - 1))
+                                                            {
+                                                                nPos_End_X = k; nPos_End_Y = j; // j¥¬ «◊ªÛ ∞∞∞‘...
+                                                            }
+                                                            else
+                                                            {
+                                                                if (dgGrid[j, k + 1].Selected == false)
+                                                                {
+                                                                    nPos_End_X = k; nPos_End_Y = j; // j¥¬ «◊ªÛ ∞∞∞‘...
+
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        for (k = nPos_Start_X; k <= nPos_End_X; k++)
+                                                        {
+                                                            dgGrid[j, k].Selected = true;
+                                                            if (j == dgGrid.ColumnCount - 1) dgGrid[j, k].Value = ""; // Caption
+                                                            //else if (j == 0) {} // Index
+                                                            else
+                                                            {
+                                                                dgGrid[j, k].Value = 0;
+                                                                //if ((j > 0) && (j <= m_pCHeader[m_nCurrentRobot].nMotorCnt))
+                                                                //{
+                                                                // Led∏∏ ≈¨∏ÆæÓ «—¥Ÿ.
+                                                                //Grid_SetFlag_Led(k, j, 0);
+                                                                //    m_pnFlag[k, j - 1] = (int)(m_pnFlag[k, j - 1] & 0x18);// | (int)(nLed & 0x07));
+                                                                //}
+
+                                                                int nLine = k;
+                                                                int nMotNum = (j - 1);
+                                                                if ((nMotNum >= 0) && (nMotNum < GetHeader_nMotorCnt()))
+                                                                {
+                                                                    if (bLed == false)
+                                                                    {
+                                                                        if ((m_pnFlag[nLine, nMotNum] & 0X07) != 0)
+                                                                        {
+                                                                            if (bChoose == false)
+                                                                            {
+                                                                                bChoose = true;
+                                                                                DialogResult dlgRet = MessageBox.Show("Do you want to remove this with some LED Values?", "Copy", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                                                                if (dlgRet == DialogResult.OK) bLed = true;
+                                                                            }
+                                                                        }
+                                                                    }
+
+                                                                    #region Led
+                                                                    if (bLed == true)
+                                                                    {
+
+                                                                        m_pnFlag[nLine, nMotNum] = (
+                                                                            (m_pnFlag[nLine, nMotNum] & 0X18) | // Enable, SpeedType
+                                                                            0x00 // LED ¡§∫∏∏∏ ≈¨∏ÆæÓ
+                                                                            );
+#if _ENABLE_LED_FONT_COLOR
+                                                                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = Color.Black;
+#endif
+
+                                                                    }
+                                                                    #endregion Led
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    //Grid_DisplayLine(m_nCurrntCell);
+                                    //CheckFlag(m_nCurrntCell);
+                                    CheckFlag(m_CGridMotionEditor.m_nCurrntCell);
+                                    // ªˆƒ•«œ±‚...
+                                    GridMotionEditor_SetColorGrid(0, dgGrid.RowCount);
+                                }
+                            }
+                            break;
+                        #endregion Keys.Delete: - ªË¡¶«œ±‚
+                        #region Keys.V - ∫Ÿø©≥÷±‚
+                        case Keys.V:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    try
+                                    {
+                                        //int nCntPos = 0;
+
+                                        int nPos_X = 0, nPos_Y = 0;
+                                        bool bPass = false;
+                                        int nX_Limit = dgGrid.RowCount;
+                                        int nY_Limit = dgGrid.ColumnCount;
+
+                                        #region √π ¿ßƒ° √£æ∆≥ª±‚
+                                        for (int i = 0; i < nX_Limit; i++)
+                                        {
+                                            for (int j = 0; j < nY_Limit; j++)
+                                            {
+                                                if ((dgGrid[j, i].Selected == true) && (bPass == false))
+                                                {
+                                                    nPos_X = i; nPos_Y = j;
+                                                    //Message(CConvert.IntToStr(nPos_X) + ", " + CConvert.IntToStr(nPos_Y));
+                                                    bPass = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        #endregion
+
+                                        // ∫πªÁµ» «‡¿« ø≠¿ª ±∏«œ±‚ ¿ß«œø© ≈¨∏≥∫∏µÂ ªÁøÎ.
+                                        IDataObject iData = Clipboard.GetDataObject();
+                                        string strClp = (string)iData.GetData(DataFormats.Text);
+
+                                        if (strClp == null) break;
+
+                                        string strClip = "";
+
+                                        #region Tab, \r\n ¿« ∞≥ºˆ∏¶ º¿
+                                        int nCnt = 0;
+                                        int nT_Cnt = 0;
+                                        int nLine_Cnt = 0;
+                                        string strDisp = "";
+                                        for (int i = 0; i < strClp.Length; i++)
+                                        {
+                                            if (strClp[i] == '\t') nT_Cnt++;
+                                            else if (strClp[i] == '\n') nLine_Cnt++;
+                                            if (strClp[i] != '\r')
+                                            {
+                                                if ((i == strClp.Length - 1) && (strClp[i] < 0x20)) break;
+                                                if ((strClp[i] >= 0x20) && (strClp[i] != '\t') && (strClp[i] != '\n'))
+                                                {
+                                                    nCnt++;
+                                                    strDisp += strClp[i];
+                                                }
+                                                strClip += strClp[i];
+                                            }
+                                        }
+                                        #endregion
+
+                                        int nW = 0, nH = 0;
+                                        int nAll = 0;
+                                        if (strClip.Length > 0)
+                                        {
+                                            // strClip -> ¿Ã µ•¿Ã≈∏∞° ¡¯¬•
+                                            //nW = 1; 
+                                            nH = 1;
+                                            nAll = 1;
+                                            for (int i = 0; i < strClip.Length; i++)
+                                            {
+                                                // ∞°∑Œø≠, ºº∑Œø≠ ƒ´øÓ∆Æ
+                                                if (strClip[i] == '\n') nH++;
+                                                if ((strClip[i] == '\n') || (strClip[i] == '\t')) nAll++;
+                                            }
+                                            nW = (int)Math.Round((float)nAll / (float)nH, 0);
+                                            //Message("nW = " + CConvert.IntToStr(nW) + ", nH = " + CConvert.IntToStr(nH));
+
+                                            bool bW = false, bH = false;
+                                            if (nW >= nY_Limit) bW = true;
+                                            if (nH >= nX_Limit) bH = true;
+
+                                            String[,] pstrValue = new string[nW, nH];
+                                            bool[,] pbValid = new bool[nW, nH];
+                                            int nX = 0, nY = 0;
+                                            for (int i = 0; i < nW; i++) // √ ±‚»≠
+                                                for (int j = 0; j < nH; j++)
+                                                {
+                                                    pstrValue[i, j] = "";
+                                                    pbValid[i, j] = false;
+                                                }
+
+                                            for (int i = 0; i < strClip.Length; i++)
+                                            {
+                                                if (strClip[i] == '\n') { nY++; nX = 0; }
+                                                else if (strClip[i] == '\t') nX++;
+                                                else
+                                                {
+                                                    pbValid[nX, nY] = true;
+                                                    pstrValue[nX, nY] += strClip[i];
+                                                }
+                                            }
+
+                                            if (e.Shift)
+                                                m_CGridMotionEditor.Insert(m_CGridMotionEditor.m_nCurrntCell, nH);
+                                            //Grid_Insert(nPos_X, nH);
+                                            else
+                                            {
+                                                // ∏¿⁄∂ı ∂Û¿Œ √§øÏ±‚
+                                                if (nH > dgGrid.RowCount)
+                                                {
+                                                    m_CGridMotionEditor.Insert(m_CGridMotionEditor.m_nCurrntCell, nH - dgGrid.RowCount);
+                                                }
+                                            }
+
+                                            #region Ω« µ•¿Ã≈∏ ¿˙¿Â
+                                            ////// Ω« µ•¿Ã≈∏ ¿˙¿Â ///////
+                                            // Display
+                                            int nOffset_i = 0, nOffset_j = 0;
+                                            if (bW == true) nOffset_i++;
+                                            if (bH == true) nOffset_j++;
+                                            string strTmp;
+                                            
+                                            bool bLed = false; // For Led Copy
+                                            bool bChoose = false;
+
+                                            for (int j = 0; j < nH - nOffset_j; j++)
+                                                for (int i = 0; i < nW - nOffset_i; i++)
+                                                {
+                                                    strTmp = pstrValue[i + nOffset_i, j + nOffset_j];
+                                                    if (((nPos_X + j) < dgGrid.RowCount) && ((nPos_Y + i) < nY_Limit))
+                                                    {
+                                                        if ((pbValid[i + nOffset_i, j + nOffset_j] == true))
+                                                        {
+                                                            //dgGrid[nPos_Y + i, nPos_X + j].Style.BackColor = Color.Blue;
+                                                            // Data
+                                                            dgGrid[nPos_Y + i, nPos_X + j].Value = strTmp;
+                                                            dgGrid[nPos_Y + i, nPos_X + j].Selected = true;                                                                                                                                                    
+#if _COPY_FLAG // 'V'
+
+                                                            int nPosLine = nPos_X + j - (nPos_X - m_nFirstPos_Min_Line);// nPos_X + j + m_nFirstPos_Min_Line;
+                                                            int nPosMotor = nPos_Y + i - (nPos_Y - m_nFirstPos_Min_X) - 1;//nPos_Y + i + m_nFirstPos_Min_X;
+                                                            if (
+                                                                (nPosLine < dgGrid.RowCount) &&
+                                                                (nPosLine >= 0) &&
+                                                                (nPosMotor < GetHeader_nMotorCnt()) &&
+                                                                (nPosMotor >= 0)
+                                                            )
+                                                            {
+                                                                if (((m_pnFlag_Copy[nPosLine, nPosMotor] & 0x07) != 0) && (m_pnFlag_Copy[nPosLine, nPosMotor] != -1))
+                                                                {
+                                                                    if (bLed == false)
+                                                                    {
+                                                                        if (bChoose == false)
+                                                                        {
+                                                                            bChoose = true;
+                                                                            DialogResult dlgRet = MessageBox.Show("Do you want to copy this with some LED Values?", "Copy", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                                                            if (dlgRet == DialogResult.OK) bLed = true;
+                                                                        }
+                                                                    }
+
+                                                                    if (bLed == true)
+                                                                    {
+                                                                        int nLine = nPos_X + j;
+                                                                        int nMotNum = nPos_Y + (i - 1);
+
+                                                                        m_pnFlag[nLine, nMotNum] = (
+                                                                            (m_pnFlag[nLine, nMotNum] & 0X18) | // Enable, SpeedType
+                                                                            (m_pnFlag_Copy[nPosLine, nPosMotor] & 0x07) // LED ¡§∫∏∏∏ // (int)((m_pnFlag_Copy[nPosLine, nPosMotor] & 0x18) | (int)(m_pnFlag_Copy[nPosLine, nPosMotor] & 0x07));
+                                                                            );
+                                                                        m_pnFlag_Copy[nPosLine, nPosMotor] = -1; // ∫πªÁ∏¶ øœ∑·«ﬂ¿∏¥œ ≈¨∏ÆæÓ       
+                                                                                                                   
+#if _ENABLE_LED_FONT_COLOR
+                                                                        Color cColor = Color.FromArgb(
+                                                                            (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? 255 : 0), // R
+                                                                            (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? 255 : 0), // G
+                                                                            (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? 255 : 0) // B
+                                                                        );
+                                                                        //System.Drawing.Font("±º∏≤", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+
+#if _ENABLE_LED_FONT_BOLD
+                                                                        if (cColor != Color.FromArgb(0, 0, 0))//Color.Black)
+                                                                        {
+                                                                            Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                                                                            m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Bold);
+                                                                            //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Bold, fnt.Unit, fnt.GdiCharSet);
+                                                                        }
+                                                                        else// if (m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font.Bold == true)
+                                                                        {
+                                                                            Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                                                                            m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Regular);
+                                                                            //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Regular, fnt.Unit, fnt.GdiCharSet);
+                                                                        }
+#endif
+                                                                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? Color.Gray : cColor);
+#endif
+
+
+
+
+
+                                                                    }
+                                                                }
+                                                            }
+#endif
+                                                            //                                             if (dgGrid == dgAngle)
+                                                            //                                             {
+                                                            //                                                 // Forward
+                                                            //                                                 int nGroup = CheckKinematicsMotor_ByIndex(nPos_X + j);
+                                                            //                                                 if (nGroup >= 0)
+                                                            //                                                 {
+                                                            //                                                     Grid_ForwardKinematics_Separation(nPos_Y + i, nGroup);
+                                                            //                                                 }
+                                                            //                                             }
+                                                            //                                             else// dataGrid_XY2Angle(k);
+                                                            //                                             {
+                                                            //                                                 int nGroup = j / 3;
+                                                            //                                                 Grid_InverseKinematics_Separation(nPos_Y + i, nGroup);
+                                                            //                                             }
+                                                        }
+                                                    }
+                                                }
+                                            //                                 for (int j = 0; j < nH - nOffset_j; j++)
+                                            //                                 {
+                                            //                                     if (dgGrid == dataGrid_Angle) dataGrid_Angle2XY(nPos_X + j);
+                                            //                                     else dataGrid_XY2Angle(nPos_X + j);
+                                            //                                 }
+                                            #endregion
+
+
+
+                                        }
+                                        m_nFirstPos_Min_X = 9999999;
+                                        m_nFirstPos_Min_Line = 9999999;
+                                        //Grid_DisplayLine(m_nCurrntCell);
+
+                                        CheckFlag(m_CGridMotionEditor.m_nCurrntCell);
+                                        // ªˆƒ•«œ±‚...
+                                        GridMotionEditor_SetColorGrid(0, dgGrid.RowCount);
+                                    }
+                                    catch (Exception e2)
+                                    {
+                                        MessageBox.Show(e2.ToString());
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.V - ∫Ÿø©≥÷±‚
+
+                        #region Keys.E - ≈¨∏≥∫∏µÂ Evd ¿¸»Ø
+                        case Keys.E:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    try
+                                    {
+                                        int nLine = dgGrid.RowCount;
+                                        int nColumn = dgGrid.ColumnCount;
+                                        // √π ¿ßƒ° √£æ∆≥ª±‚
+
+                                        int nMin_Line = 9999999;
+                                        int nMin_Column = nMin_Line;
+                                        for (int j = 0; j < nColumn; j++)
+                                        {                                            
+                                            for (int i = 0; i < nLine; i++)
+                                            {
+                                                if (dgGrid[j, i].Selected == true)
+                                                {
+                                                    if (nMin_Line > i) nMin_Line = i;
+                                                    if (nMin_Column > j) nMin_Column = j;
+                                                }
+                                            }
+                                        }
+                                        //MessageBox.Show(String.Format("Line {0}, Column {1}", nMin_Line, nMin_Column));
+
+                                        string strClip = (string)Clipboard.GetDataObject().GetData(typeof(string));
+                                        //MessageBox.Show(strClip);
+                                        string strData = String.Empty;
+                                        string [] pstrClipLine = Ojw.CConvert.RemoveChar(strClip, '\r').Split('\n');
+                                        nLine = nMin_Line;
+                                        nColumn = nMin_Column;
+                                        int nLineAdd = 0;
+                                        int nColumnAdd = 0;
+                                        foreach (string strLine in pstrClipLine)
+                                        {
+                                            nColumnAdd = 0;
+                                            string [] pstrItems = strLine.Split('\t');
+                                            foreach (string strItem in pstrItems)
+                                            {
+                                                if (strItem.Length > 0)
+                                                {
+                                                    // Data
+                                                    int nAxis = nColumn + nColumnAdd - 1;
+                                                    if ((nAxis >= 0) && (nAxis < m_CHeader.nMotorCnt))
+                                                    {
+                                                        strData += String.Format("{0}\t", m_CMotor.CalcAngle2Evd(nAxis, Ojw.CConvert.StrToFloat(strItem)));
+                                                    }
+                                                    else strData += strItem + "\t";
+                                                }
+                                                else
+                                                {
+                                                    strData += strItem + "\t";
+                                                }
+                                                nColumnAdd++;
+                                            }
+                                            strData += "\r\n";
+                                            nLineAdd++;
+                                        }
+                                        Clipboard.SetText(strData);
+                                    }
+                                    catch (Exception e2)
+                                    {
+                                        MessageBox.Show(e2.ToString());
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.E - ≈¨∏≥∫∏µÂ Evd ¿¸»Ø
+                        #region Keys.C - ∫πªÁ«œ±‚
+                        case Keys.C:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    try
+                                    {
+                                        //bool bLed = true;
+                                        //DialogResult dlgRet = MessageBox.Show("Do you want to copy this with some LED Values?", "Copy", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                        //if (dlgRet != DialogResult.OK)
+                                        //{
+                                        //    bLed = false;
+                                        //}
+
+                                        m_nFirstPos_Min_X = 9999999;
+                                        m_nFirstPos_Min_Line = 9999999;
+
+                                        int nPos_Start_X = 0, nPos_Start_Y = 0;
+                                        int nPos_End_X = 0, nPos_End_Y = 0;
+                                        int nX_Limit = dgGrid.RowCount;
+                                        int nY_Limit = dgGrid.ColumnCount;
+                                        // √π ¿ßƒ° √£æ∆≥ª±‚
+                                        int k = 0;
+                                        bool bStart = false;
+                                        for (int j = 0; j < nY_Limit; j++)
+                                        {
+                                            bStart = false;
+                                            for (int i = 0; i < nX_Limit; i++)
+                                            {
+                                                if (dgGrid[j, i].Selected == true)
+                                                {
+                                                    // Start
+                                                    if (i == 0)
+                                                    {
+                                                        bStart = true;
+                                                    }
+                                                    else if (dgGrid[j, i - 1].Selected == false)
+                                                    {
+                                                        bStart = true;
+                                                    }
+                                                    else bStart = false;
+
+                                                    if (bStart == true)
+                                                    {
+                                                        nPos_Start_X = i; nPos_Start_Y = j;
+
+                                                        for (k = i; k < nX_Limit; k++)
+                                                        {
+                                                            if (k >= (nX_Limit - 1))
+                                                            {
+                                                                nPos_End_X = k; nPos_End_Y = j; // j¥¬ «◊ªÛ ∞∞∞‘...
+                                                            }
+                                                            else
+                                                            {
+                                                                if (dgGrid[j, k + 1].Selected == false)
+                                                                {
+                                                                    nPos_End_X = k; nPos_End_Y = j; // j¥¬ «◊ªÛ ∞∞∞‘...
+
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // ¿ßƒ°øÕ ∞™¿ª æÀ∞Ì≥™º≠...
+                                                        //nValue_Start = Convert.ToInt16(rowData[nPos_Start_X][pstrData[nPos_Start_Y]]);
+                                                        //nValue_End = Convert.ToInt16(rowData[nPos_End_X][pstrData[nPos_End_Y]]);
+                                                        //int nLen = nPos_End_X - nPos_Start_X;
+
+                                                        // ø©±‚º≠ ∞ËªÍ
+                                                        //int nValue = CConvert.StrToInt(txtChangeValue.Text);
+
+                                                        //bool bFirst = true;
+                                                        for (k = nPos_Start_X; k <= nPos_End_X; k++)
+                                                        {
+                                                            //dgGrid[j, k].Style.BackColor = Color.Blue;
+                                                            dgGrid[j, k].Selected = true;
+                                                            if (j == dgGrid.ColumnCount - 1) dgGrid[j, k].Value = ""; // Caption
+                                                            //else if (j == 0) {} // Index
+                                                            else
+                                                            {
+
+#if _COPY_FLAG // 'C'
+                                                                int nPosLine = k;
+                                                                int nPosMotor = j - 1;
+                                                                if ((nPosMotor >= 0) && (nPosMotor < GetHeader_nMotorCnt()))
+                                                                {
+                                                                    m_pnFlag_Copy[nPosLine, nPosMotor] = (int)m_pnFlag[nPosLine, nPosMotor];// (int)((m_pnFlag[nPosLine, nPosMotor] & 0x18) | (int)(m_pnFlag[nPosLine, nPosMotor] & 0x07));
+                                                                    m_nFirstPos_Min_Line = (m_nFirstPos_Min_Line > nPosLine) ? nPosLine : m_nFirstPos_Min_Line;
+                                                                    m_nFirstPos_Min_X = (m_nFirstPos_Min_X > j) ? j : m_nFirstPos_Min_X; // ¿ßƒ°¿« ∞°∑Œø≠ ∏Óπ¯¬∞¿Œ¡ˆ...
+                                                                }
+#if false
+                                                            if ((j >= 0) && (j <= m_pCHeader[m_nCurrentRobot].nMotorCnt))
+                                                            {
+                                                                int m = j;
+                                                                if ((m >= 1) && (m <= m_pCHeader[m_nCurrentRobot].nMotorCnt))
+                                                                {
+                                                                    // Led∏∏ ∫πªÁ «—¥Ÿ.
+                                                                    //Grid_SetFlag_Led(k, j, 0); 
+                                                                    m_pnFlag_Copy[k, m - 1] = (int)((m_pnFlag[k, m - 1] & 0x18) | (int)(m_pnFlag[k, m - 1] & 0x07));
+
+                                                                    m_nFirstPos_Min_Line = (m_nFirstPos_Min_Line > k) ? k : m_nFirstPos_Min_Line;
+                                                                    m_nFirstPos_Min_X = (m_nFirstPos_Min_X > (m - 1)) ? (m - 1) : m_nFirstPos_Min_X;
+
+                                                                    //m_pnFlag_Copy_Pos[k, m - 1, 0] = k;
+                                                                    //m_pnFlag_Copy_Pos[k, m - 1, 1] = m - 1;
+                                                                    //if (bFirst == true)
+                                                                    //{
+                                                                        m_pnFlag_Offset_Num_Line[nCntPos] = k;
+                                                                        m_pnFlag_Offset_Num_Motor[nCntPos] = m - 1;
+                                                                        nCntPos++;
+                                                                        //bFirst = false;
+                                                                    //}
+                                                                }
+                                                            }
+#endif
+#endif
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        //Grid_DisplayLine(m_nCurrntCell);
+                                    }
+                                    catch (Exception e2)
+                                    {
+                                        MessageBox.Show(e2.ToString());
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.C - ∫πªÁ«œ±‚
+                    }
+                }
+                private void OjwGrid_KeyUp(object sender, KeyEventArgs e)
+                {
+                    m_nKey = 0;
+                    m_bKey_Ctrl = false;
+                    m_bKey_Alt = false;
+                    m_bKey_Shift = false;
+
+                    //m_bKeyDown = false;
+                }
+                #endregion KeyDown & KeyUp
 
                 #region Button
                 private void btnServe_En_Click(object sender, EventArgs e)
@@ -6811,7 +9646,7 @@ namespace OpenJigWare
 #if _IS_VAR_GRIDDRAW
                         Grid_SetFlag_En(m_nCurrntCell, nSelected, !Grid_GetFlag_En(m_nCurrntCell, nSelected));
                         CheckFlag(m_nCurrntCell, nSelected);
-                        //MessageBox.Show(COjwConvertFunction.COjwConvert.IntToStr(nSelected) + "(En)Î≤à Î≤ÑÌäºÏù¥ ÎàåÎ†∏ÏäµÎãàÎã§.");
+                        //MessageBox.Show(Ojw.CConvert.IntToStr(nSelected) + "(En)π¯ πˆ∆∞¿Ã ¥≠∑»Ω¿¥œ¥Ÿ.");
 #endif
                     }
                 }
@@ -6875,7 +9710,7 @@ namespace OpenJigWare
                         //                 //int nRed = (nValue & 0x01);
                         //                 Grid_SetFlag_Led(m_nCurrntCell, nSelected, nValue);
                         //                 CheckFlag(m_nCurrntCell, nSelected);
-                        //                 //MessageBox.Show(COjwConvertFunction.COjwConvert.IntToStr(nSelected) + "(Led)Î≤à Î≤ÑÌäºÏù¥ ÎàåÎ†∏ÏäµÎãàÎã§.");
+                        //                 //MessageBox.Show(Ojw.CConvert.IntToStr(nSelected) + "(Led)π¯ πˆ∆∞¿Ã ¥≠∑»Ω¿¥œ¥Ÿ.");
 #if _IS_VAR_GRIDDRAW
                         bool[] abLed = new bool[3];
                         int i = 0;
@@ -6897,7 +9732,7 @@ namespace OpenJigWare
                         //                 //int nRed = (nValue & 0x01);
                         //                 Grid_SetFlag_Led(m_nCurrntCell, nSelected, nValue);
                         //                 CheckFlag(m_nCurrntCell, nSelected);
-                        //                 //MessageBox.Show(COjwConvertFunction.COjwConvert.IntToStr(nSelected) + "(Led)Î≤à Î≤ÑÌäºÏù¥ ÎàåÎ†∏ÏäµÎãàÎã§.");
+                        //                 //MessageBox.Show(Ojw.CConvert.IntToStr(nSelected) + "(Led)π¯ πˆ∆∞¿Ã ¥≠∑»Ω¿¥œ¥Ÿ.");
 #endif
                     }
                 }
@@ -6905,23 +9740,23 @@ namespace OpenJigWare
 
 
                 private int m_nSelectedItem = 0;
-                public void GridDraw_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
-                {
-                    //if (m_CGridMotionEditor.GetHandle().Focused == true)// || (m_bStart == true))
-                    //{
-                        SelectObject_Clear();
-                        SelectObject_Add(e.RowIndex);
-                        m_nSelectedItem = e.RowIndex;
+                //public void GridDraw_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
+                //{
+                //    //if (m_CGridMotionEditor.GetHandle().Focused == true)// || (m_bStart == true))
+                //    //{
+                //        SelectObject_Clear();
+                //        SelectObject_Add(e.RowIndex);
+                //        m_nSelectedItem = e.RowIndex;
 
-                        CheckFlag(e.RowIndex);
+                //        CheckFlag(e.RowIndex);
                         
-                    //}
-                }
-                public void GridDraw_MouseDoubleClick(object sender, MouseEventArgs e)
-                {
-                    DataGridView dgAngle = m_CGridDraw.GetHandle();
-                    OjwGrid_CellMouseDoubleClick(dgAngle, e);
-                }
+                //    //}
+                //}
+                //public void GridDraw_MouseDoubleClick(object sender, MouseEventArgs e)
+                //{
+                //    DataGridView dgAngle = m_CGridMotionEditor.GetHandle();
+                //    OjwGrid_CellMouseDoubleClick(dgAngle, e);
+                //}
                 public COjwMotor m_CMotor = new COjwMotor();
                 //public void OjwGrid_SetHandle_Herculex(COjwMotor CMotor)
                 //{
@@ -6934,7 +9769,7 @@ namespace OpenJigWare
                     int b = hti.ColumnIndex;
                     if ((b < 0) && (a >= 0) && (a < dgData.RowCount))
                     {
-                        //CaptionControl(m_bKey_Ctrl); // Ïª®Ìä∏Î°§ ÌÇ§Í∞Ä ÎàåÎ¶¨Î©¥ ÏÇΩÏûÖ, ÏïÑÎãàÎùºÎ©¥ Î≥ÄÍ≤Ω
+                        //CaptionControl(m_bKey_Ctrl); // ƒ¡∆Æ∑— ≈∞∞° ¥≠∏Æ∏È ª¿‘, æ∆¥œ∂Û∏È ∫Ø∞Ê
                     }
                     else
                     {
@@ -6983,13 +9818,13 @@ namespace OpenJigWare
                     for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
                     {
                         if (
-                            //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // ÏóîÏΩîÎçîÏù¥Í±∞ÎÇò
-                            (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // ÏúÑÏπòÏ†úÏñ¥Í∞Ä ÏïÑÎãàÎùºÎ©¥ //// Motor Control type => 0: Position, 1: Speed type
-                            //(m_abEnc[nAxis] == true) || // ÏóîÏΩîÎçîÏù¥Í±∞ÎÇò
-                            //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // ÏúÑÏπòÏ†úÏñ¥Í∞Ä ÏïÑÎãàÎùºÎ©¥
+                            //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                            (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //// Motor Control type => 0: Position, 1: Speed type
+                            //(m_abEnc[nAxis] == true) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                            //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È
                             )
                         {                            
-                            // Î™®ÎìúÏóê Îî∞Îùº Í≥ÑÏÇ∞Î≤ïÏù¥ ÌãÄÎ†§ÏßÄÍ∏∞Ïóê Î™®Îìú ÏÖãÌåÖÎ∂ÄÌÑ∞ Î®ºÏ†Ä ÌïúÎã§.
+                            // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
                             m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
                             m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
                             //if (CheckWifi() == true)
@@ -7029,7 +9864,7 @@ namespace OpenJigWare
                         }
                         else
                         {
-                            // Î™®ÎìúÏóê Îî∞Îùº Í≥ÑÏÇ∞Î≤ïÏù¥ ÌãÄÎ†§ÏßÄÍ∏∞Ïóê Î™®Îìú ÏÖãÌåÖÎ∂ÄÌÑ∞ Î®ºÏ†Ä ÌïúÎã§.
+                            // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
                             m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
                             m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
                             //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
@@ -7037,7 +9872,7 @@ namespace OpenJigWare
                             //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
 
-                            fVal = (float)Math.Round((float)OjwGrid.Get(nRow, nAxis)); //Grid_GetMot(m_nCurrntCell, nAxis);
+                            fVal = (float)Math.Round((float)OjwGrid.Get(nRow, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
                             m_CMotor.SetCmd_Angle(nAxis, fVal);
                             //if (CheckWifi() == true)
                             //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_angle(nAxis, fVal);
@@ -7058,63 +9893,283 @@ namespace OpenJigWare
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
                         }
                     }
-
-                    m_CMotor.SetMot((int)OjwGrid.GetTime(nRow));//Grid_GetSpeed(m_nCurrntCell));
+                    //m_CTmr_Interval_X.Set_Interval((double)fX, (double)m_afAnimation[nAxis, 0], (double)Math.Abs(fX - m_afAnimation[nAxis, 0]) / m_dInterval_Value, m_lInterval_Time);
+            
+                    m_CMotor.SetMot((int)OjwGrid.GetTime(nRow));//m_CGridMotionEditor.GetTime(m_nCurrntCell));
                     //m_CMotor.Mpsu_Play_HeadLed_Buzz(Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
+
+
+                    // Sound & Buzz
+                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
 
                     //if (CheckWifi() == true)
                     //{
-                    //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_request_move(Grid_GetSpeed(m_nCurrntCell));
+                    //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_request_move(m_CGridMotionEditor.GetTime(m_nCurrntCell));
                     //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_mpsu_play_headled_buzz(253, Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
                     //}
                     //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
-                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_move(Grid_GetSpeed(m_nCurrntCell));
+                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_move(m_CGridMotionEditor.GetTime(m_nCurrntCell));
                     //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(253, Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
                 }
+#if true
+                // 
+                public void Motion_Stop()
+                {
+                    m_CMotor.Stop();
+                    WaitAction_KillTimer();
+                    m_bMotionEnd = true;
+                    Ojw.CTimer.Stop();
+                }
+                public void Motion_Reset()
+                {
+                    m_CMotor.ResetEms();
+                    m_CMotor.ResetStop();
+                    //m_CMotor.Reset(); // -> ¿Ã∞« ≥™¡ﬂø° µπŸ¿ÃΩ∫ ø°∑Ø √º≈© »ƒ «“¡ˆ ∏ª¡ˆ ∞·¡§«œµµ∑œ «—¥Ÿ.
+                }
+                public void Motion_End()
+                {
+                    m_bMotionEnd = true;
+                }
+                public void Motion_Play(string strFileName, bool b3D_Display)
+                {
+                    try
+                    {
+                        SMotion_t SMotion = new SMotion_t();
+                        if (BinaryFileOpen(strFileName, out SMotion) == true)
+                        {
+                            if (SMotion.nFrameSize > 0)
+                            {
+                                m_bStart = true;
+
+                                WaitAction_SetTimer();
+
+                                foreach (SMotionTable_t STable in SMotion.STable)
+                                {
+                                    if (STable.bEn == true)
+                                    {
+                                        PlayFrame(STable, b3D_Display);
+
+                                        int nDelay = STable.nTime + STable.nDelay;
+                                        //m_nSimulTime_For_Last = -STable.nDelay;// nSpeedValue - nDelay;
+                                        //if (GetSimulation_With_PlayFrame() == true) { SetSimulation_Calc(STable.nTime, 1.0f); }
+
+                                        if (nDelay > 0) WaitAction_ByTimer(nDelay);
+                                        //else
+                                        //{
+                                        //    if (GetSimulation_With_PlayFrame() == true)
+                                        //    {
+                                        //        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                        //            SetData(i, GetSimulation_Value(i));
+                                        //        //OjwDraw();
+                                        //    }
+                                        //}
+                                    }
+                                }
+
+                                m_bStart = false;
+                                m_bMotionEnd = false;
+                            }
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        Ojw.CMessage.Write_Error("Error -> PlayMotion(), " + ex.ToString());
+                    }
+                }
+                public void PlayFrame(int nLine, SMotion_t SMotion, bool b3D_Display)
+                {
+                    if (SMotion.nFrameSize <= 0) return;
+                    if ((nLine < 0) || (nLine >= SMotion.nFrameSize)) return;
+
+                    if ((m_bStop == false) && (m_bEms == false) && (m_bMotionEnd == false))
+                    {
+                        m_CMotor.ResetStop();
+                        m_CMotor.DrvSrv(true, true);
+
+
+                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                        {
+                            if (
+                                //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                                (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //// Motor Control type => 0: Position, 1: Speed type
+                                //(m_abEnc[nAxis] == true) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                                //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È
+                                )
+                            {
+                                // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                                //float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)));
+                                int nVal = SMotion.STable[nLine].anMot[nAxis];//CalcAngle2Evd(nAxis, fTmpVal);
+                                if (nVal < 0)
+                                {
+                                    nVal *= -1;
+                                    nVal |= 0x4000;
+                                }
+                                m_CMotor.SetCmd(nAxis, nVal);
+
+                                m_CMotor.SetCmd_Flag_Led(nAxis,
+                                    GetFlag_Led_Green(SMotion.STable[nLine].anLed[nAxis]),
+                                    GetFlag_Led_Blue(SMotion.STable[nLine].anLed[nAxis]),
+                                    GetFlag_Led_Red(SMotion.STable[nLine].anLed[nAxis])
+                                    );
+                            }
+                            else
+                            {
+                                // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                                m_CMotor.SetCmd(nAxis, SMotion.STable[nLine].anMot[nAxis]);
+                                m_CMotor.SetCmd_Flag_Led(nAxis,
+                                    GetFlag_Led_Green(SMotion.STable[nLine].anLed[nAxis]),
+                                    GetFlag_Led_Blue(SMotion.STable[nLine].anLed[nAxis]),
+                                    GetFlag_Led_Red(SMotion.STable[nLine].anLed[nAxis])
+                                    );
+                            }
+                        }
+                        m_CMotor.SetMot(SMotion.STable[nLine].nTime);
+                        // Sound & Buzz
+                        if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(SMotion.STable[nLine].nData4, SMotion.STable[nLine].nData3);
+                    }
+                }
+                public void PlayFrame(SMotionTable_t STable, bool b3D_Display)
+                {
+                    if ((m_bStop == false) && (m_bEms == false) && (m_bMotionEnd == false))
+                    {
+                        m_CMotor.ResetStop();
+                        m_CMotor.DrvSrv(true, true);
+                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                        {
+                            if (
+                                //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                                (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //// Motor Control type => 0: Position, 1: Speed type
+                                //(m_abEnc[nAxis] == true) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                                //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È
+                                )
+                            {
+                                // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                                //float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)));
+                                int nVal = STable.anMot[nAxis];//CalcAngle2Evd(nAxis, fTmpVal);
+                                if (nVal < 0)
+                                {
+                                    nVal *= -1;
+                                    nVal |= 0x4000;
+                                }
+                                m_CMotor.SetCmd(nAxis, nVal);
+
+                                m_CMotor.SetCmd_Flag_Led(nAxis,
+                                    GetFlag_Led_Green(STable.anLed[nAxis]),
+                                    GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                    GetFlag_Led_Red(STable.anLed[nAxis])
+                                    );
+                            }
+                            else
+                            {
+                                // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                                m_CMotor.SetCmd(nAxis, STable.anMot[nAxis]);
+                                m_CMotor.SetCmd_Flag_Led(nAxis,
+                                    GetFlag_Led_Green(STable.anLed[nAxis]),
+                                    GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                    GetFlag_Led_Red(STable.anLed[nAxis])
+                                    );
+                            }
+                        }
+                        m_CMotor.SetMot(STable.nTime);
+                        // Sound & Buzz
+                        if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(STable.nData4, STable.nData3);
+                    }
+                }
+                public bool GetFlag_En(int nFlag) { return (((nFlag & 0x10) != 0) ? true : false); }
+                public bool GetFlag_Type(int nFlag) { return (((nFlag & 0x08) != 0) ? true : false); }
+                public int GetFlag_Led(int nFlag) { return nFlag & 0x07; }
+                public bool GetFlag_Led_Red(int nFlag) { return (((nFlag & 0x01) != 0) ? true : false); }
+                public bool GetFlag_Led_Blue(int nFlag) { return (((nFlag & 0x02) != 0) ? true : false); }
+                public bool GetFlag_Led_Green(int nFlag) { return (((nFlag & 0x04) != 0) ? true : false); }
+                
+#endif
+                private bool m_bSimulation = false;
+                private bool m_bSimulation_Smooth = true;
+                public void SetSimulation_Smooth(bool bOn) { m_bSimulation_Smooth = bOn; } 
+                public void SetSimulation_With_PlayFrame(bool bOn) { m_bSimulation = bOn; }
+                public bool GetSimulation_With_PlayFrame() {return m_bSimulation; }
                 public bool m_bControl_Tracking = false;
+                //public void GridMotionEditor_Set_ControlTracking(bool bTrackOn) { m_bControl_Tracking = bTrackOn; }
+
+
+                private Ojw.CTimer [] m_aCTmr_Simul = new CTimer[254];
+                private float[] m_afMot_Next = new float[256];
+                private float[] m_afMot_Curr = new float[256];
+                public void SetSimulation_SetCurrentData() { for (int i = 0; i < m_CHeader.nMotorCnt; i++) m_aCTmr_Simul[i] = new CTimer(); Array.Copy(GetData(), m_afMot_Curr, m_CHeader.nMotorCnt); }
+                //private void SetSimulation_SetNextData() { Array.Copy(m_afMot, m_afMot_Next, m_CHeader.nMotorCnt); }
+                public void SetSimulation_SetNextData(int nAxis, float fValue) { m_afMot_Next[nAxis] = fValue; }
+                public int m_nSimulTime_For_Last = 0;
+                public void SetSimulation_Calc(int nTime, double dDiffTime)
+                {
+                    double dInverval_Value = nTime / dDiffTime;// -1;
+                    if (dInverval_Value == 0) dInverval_Value = 1;
+                    long lInverval_Time = (long)Math.Round((double)nTime / dInverval_Value);
+                    //for (int i = 0; i < m_CHeader.nMotorCnt; i++) { m_aCTmr_Simul[i].Set_Interval((double)m_afMot_Curr[i], (double)m_afMot_Next[i], (double)Math.Abs(m_afMot_Curr[i] - m_afMot_Next[i]) / dInverval_Value, lInverval_Time); }
+                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                    {
+                        double dDiff = (double)Math.Abs(m_afMot_Curr[i] - m_afMot_Next[i]) / dInverval_Value;
+                        m_aCTmr_Simul[i].Set_Interval((double)m_afMot_Curr[i], (double)m_afMot_Next[i], dDiff, lInverval_Time); 
+                    }
+                }
+                public float GetSimulation_Value(int nAxis) { return (float)m_aCTmr_Simul[nAxis].Get_Interval(); }
+                public float GetSimulation_Value_Next(int nAxis) { return m_afMot_Next[nAxis]; }
+
                 public void PlayFrame(int nLine, int nAddSpeedPercent) // 100% + nAddSpeedPercent
                 {
                     CGridView OjwGrid = m_CGridMotionEditor;
-                    int nRow = OjwGrid.m_nCurrntCell;
+                    //int nRow = OjwGrid.m_nCurrntCell;
                     if (m_bStart == true)
                     {
 #if !_COLOR_GRID_IN_PAINT
-                        GridMotionEditor_SetColorGrid(nLine - 1, 1);
+                        //GridMotionEditor_SetColorGrid(nLine - 1, 1);
 #endif
-                        if (m_bControl_Tracking) m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[1];
-
-                        //if (m_aDrSock[m_nCurrentRobot].drsock_client_connected() == true)
-                        //{
-                        //    Grid_DisplayLine(nLine);
-                        //    for (int i = 0; i < dgAngle.ColumnCount - 1; i++)
-                        //        dgAngle[i, nLine].Style.BackColor = Color.Red;
-                        //}
+                        if (m_bControl_Tracking)
+                        {
+                            if ((GetSimulation_With_PlayFrame() == false) || ((m_bSimulation_Smooth == false) && (GetSimulation_With_PlayFrame() == true))) for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) SetData(nAxis, GridMotionEditor_GetMotor(nLine, nAxis)); // ¿Ã∞≈ ≥™¡ﬂø° Ω«Ω√∞£¿∏∑Œ «œ∞Ì ΩÕ¿∏∏È Ω√¿€¥‹∞Ëø°º≠ πÃ∏Æ ∞ËªÍ«œµµ∑œ ºˆ¡§«œµµ∑œ «—¥Ÿ. - æ∆¡˜¿∫ ª˝∞¢æ¯¿Ω.
+                            m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[1];
+                        }
                     }
 
                     float fPercent = 1.0f + (float)nAddSpeedPercent / 100.0f;
 
                     float fVal;
                     bool bRed, bBlue, bGreen;
+
+                    if (GetSimulation_With_PlayFrame() == true) { SetSimulation_SetCurrentData(); }
+
                     for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
                     {
                         if (
-                            //(m_abEnc[nAxis] == true) || // ÏóîÏΩîÎçîÏù¥Í±∞ÎÇò
-                            (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // ÏúÑÏπòÏ†úÏñ¥Í∞Ä ÏïÑÎãàÎùºÎ©¥ //// Motor Control type => 0: Position, 1: Speed type
-                            //(Grid_GetFlag_Type(nLine, nAxis) == true) // ÏúÑÏπòÏ†úÏñ¥Í∞Ä ÏïÑÎãàÎùºÎ©¥
-                            //((m_CMotor.GetCmd_Flag_Mode(nAxis) != 0) && (m_CMotor.GetCmd_Flag_Mode(nAxis) != 2)) // ÏúÑÏπòÏ†úÏñ¥Í∞Ä ÏïÑÎãàÎùºÎ©¥
+                            //(m_abEnc[nAxis] == true) || // ø£ƒ⁄¥ı¿Ã∞≈≥™
+                            (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //// Motor Control type => 0: Position, 1: Speed type
+                            //(Grid_GetFlag_Type(nLine, nAxis) == true) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È
+                            //((m_CMotor.GetCmd_Flag_Mode(nAxis) != 0) && (m_CMotor.GetCmd_Flag_Mode(nAxis) != 2)) // ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È
                             )//((nAxis >= 6) && (nAxis <= 8)) ojw5014 20120417
                         {
-                            //// ÎèôÏûë ////
-                            // Î™®ÎìúÏóê Îî∞Îùº Í≥ÑÏÇ∞Î≤ïÏù¥ ÌãÄÎ†§ÏßÄÍ∏∞Ïóê Î™®Îìú ÏÖãÌåÖÎ∂ÄÌÑ∞ Î®ºÏ†Ä ÌïúÎã§.
+                            //// µø¿€ ////
+                            // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
                             m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
                             //if (CheckWifi() == true)
                             //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
 
-                            float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nRow, nAxis)));
+                            float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)));
                             int nVal = CalcAngle2Evd(nAxis, fTmpVal);
 
-                            //int nVal = (int)Math.Round(Grid_GetMot(nLine, nAxis));
+                            //int nVal = (int)Math.Round(GridMotionEditor_GetMotor(nLine, nAxis));
                             if (nVal < 0)
                             {
                                 nVal *= -1;
@@ -7124,16 +10179,16 @@ namespace OpenJigWare
                             //if (CheckWifi() == true)
                             //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
-                            //bRed = Grid_GetFlag_Led_Red(nLine, nAxis);
-                            //bBlue = Grid_GetFlag_Led_Blue(nLine, nAxis);
-                            //bGreen = Grid_GetFlag_Led_Green(nLine, nAxis);
-                            bRed = false;// (Grid_GetFlag_Led(m_nCurrntCell, nAxis) == 1) ? true : false;
-                            bBlue = false;// (Grid_GetFlag_Led(m_nCurrntCell, nAxis) == 2) ? true : false;
-                            bGreen = false;// (Grid_GetFlag_Led(m_nCurrntCell, nAxis) == 4) ? true : false;
+
+
+                            bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
                             m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
                             if (fTmpVal == 0) m_CMotor.SetCmd_Flag_Stop(nAxis, true);
                             else m_CMotor.SetCmd_Flag_Stop(nAxis, false);
-                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);                            
+#if false
                             //m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nLine, nAxis));
                     
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_stop();
@@ -7159,24 +10214,46 @@ namespace OpenJigWare
 
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+#endif
+                            if (m_bSimulation == true)
+                            {
+                                SetData(nAxis, (float)nVal);
+                            }
                         }
                         else
                         {
-                            //// ÎèôÏûë ////
-                            // Î™®ÎìúÏóê Îî∞Îùº Í≥ÑÏÇ∞Î≤ïÏù¥ ÌãÄÎ†§ÏßÄÍ∏∞Ïóê Î™®Îìú ÏÖãÌåÖÎ∂ÄÌÑ∞ Î®ºÏ†Ä ÌïúÎã§.
+                            // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
                             m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
+                            m_CMotor.SetCmd_Angle(nAxis, fVal);
+                            bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            /////////////////////////////////////
+
+
+
+                            //// µø¿€ ////
+                            // ∏µÂø° µ˚∂Û ∞ËªÍπ˝¿Ã ∆≤∑¡¡ˆ±‚ø° ∏µÂ º¬∆√∫Œ≈Õ ∏’¿˙ «—¥Ÿ.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir); // ±ª¿Ã æ»≥÷æÓµµ µ»¥Ÿ. ¿Ã¡®... ±◊≥… ¿ÿæÓπˆ∏±±Ó∫¡ ∫“« ø‰ ƒ⁄µÂ ¡˝æÓ≥÷¿∫ ¡§µµ...
                             //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
 
-                            fVal = GridMotionEditor_GetMotor(nLine, nAxis);
+                            fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //fVal = GridMotionEditor_GetMotor(nLine, nAxis);
                             m_CMotor.SetCmd_Angle(nAxis, fVal);
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_angle(nAxis, fVal);
 
-                            bRed = false;// Grid_GetFlag_Led_Red(nLine, nAxis);
-                            bBlue = false;//Grid_GetFlag_Led_Blue(nLine, nAxis);
-                            bGreen = false;//Grid_GetFlag_Led_Green(nLine, nAxis);
-                            m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+                            bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
                             m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+
+                            m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+                            
                             //m_CMotor.SetCmd_Flag_NoAction(nAxis, !GridMotionEditor_GetFlag_En(nLine, nAxis));
                             //if (CheckWifi() == true)
                             //{
@@ -7187,22 +10264,47 @@ namespace OpenJigWare
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_stop(nAxis, false);
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
                             //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !GridMotionEditor_GetFlag_En(nLine, nAxis));
+                            if (m_bSimulation == true)
+                            {
+                                //SetData(nAxis, (float)fVal);
+                                if (GetSimulation_With_PlayFrame() == true) 
+                                {
+                                    if (m_bSimulation_Smooth == false)
+                                    {
+                                        SetData(nAxis, (float)fVal);
+                                    }
+                                    SetSimulation_SetNextData(nAxis, fVal); 
+                                }
+                            }
                         }
                     }
                     int nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
                     int nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
 
-                    m_CMotor.SetMot(nSpeedValue);
+                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.SetMot(nSpeedValue);
+                    //if ((m_bSimulation_Smooth == true) && (GetSimulation_With_PlayFrame() == true)) OjwDraw();
 
                     //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_move(nSpeedValue);
-                    if (Grid_GetCommand(nLine) != 2) // if it is not a "sync"
+                    if (GridMotionEditor_GetCommand(nLine) != 2) // if it is not a "sync"
                     {
                         int nDelay = nSpeedValue + nDelayValue;
+                        m_nSimulTime_For_Last = -nDelayValue;// nSpeedValue - nDelay;
+                        if (GetSimulation_With_PlayFrame() == true) { SetSimulation_Calc(nSpeedValue, 1.0f); }
+
                         if (nDelay > 0) WaitAction_ByTimer(nDelay);
+                        else
+                        {
+                            if (GetSimulation_With_PlayFrame() == true)
+                            {
+                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                    SetData(i, GetSimulation_Value(i));
+                                //OjwDraw();
+                            }
+                        }
                     }
 
                     // Sound & Buzz
-                    //m_COjwMotor.Mpsu_Play_HeadLed_Buzz(Grid_GetExtLed(nLine), Grid_GetExtBuzz(nLine));
+                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
 
                     //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
                     //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(0xfe, Grid_GetExtLed(nLine), Grid_GetExtBuzz(nLine));
@@ -7213,7 +10315,7 @@ namespace OpenJigWare
                 public const int TID_MP3CHECK = 99;
                 public const int TID_START = 98;
                 public const int TID_TIMER = 97;
-                public const int TID_MOTION_BY_TIMER = 96;
+                //public const int TID_MOTION_BY_TIMER = 96;
                 public const int TID_MOTIONS = 76; // 76 ~ 95
                 public const int TID_MOTIONS_WAIT_TICK = 56; // 56 ~ 75
                 public const int TID_SYNC = 36; // 36 ~ 55
@@ -7223,120 +10325,139 @@ namespace OpenJigWare
 
                 private bool m_bStop = false;
                 private bool m_bStart = false;
-                private bool m_bEms = false; // ÎπÑÏÉÅÏ†ïÏßÄ Ïö©, ÌòÑÏû¨Î°úÏÑúÎäî ÏïÑÏßÅ ÏÇ¨Ïö© ÏïàÌï®
+                private bool m_bEms = false; // ∫ÒªÛ¡§¡ˆ øÎ, «ˆ¿Á∑Œº≠¥¬ æ∆¡˜ ªÁøÎ æ»«‘
                 private bool m_bMotionEnd = false;
-
+                public void Start_Set() { m_bStart = true; }
+                public void Start_Reset() { m_bStart = false; } 
                 private long m_lWaitActionTimer = 0;
+
+
+                private Ojw.CTimer m_CTmr_Motion_By_Timer = new CTimer();
+                public void WaitAction_KillTimer()
+                {
+                    m_CTmr_Motion_By_Timer.Kill();
+                }
                 public void WaitAction_SetTimer()
                 {
                     m_lWaitActionTimer = 0;
-                    Ojw.CTimer.Set(TID_MOTION_BY_TIMER);
-                    return;
+                    //Ojw.CTimer.Set(TID_MOTION_BY_TIMER);
+                    m_CTmr_Motion_By_Timer.Set();
+                    //return;
                 }
                 public bool WaitAction_ByTimer(long t)
                 {
-                    if (t <= 0) return true;	// t Í∞íÏù¥ 0 Î≥¥Îã§ ÏûëÎã§Î©¥ ÎåÄÍ∏∞Î¨∏Ïù¥ ÌïÑÏöîÏóÜÏúºÎØÄÎ°ú ÏôÑÎ£åÎ•º Î≥¥ÎÉÑ.
+                    if (t <= 0) return true;	// t ∞™¿Ã 0 ∫∏¥Ÿ ¿€¥Ÿ∏È ¥Î±‚πÆ¿Ã « ø‰æ¯¿∏π«∑Œ øœ∑·∏¶ ∫∏≥ø.
                     m_lWaitActionTimer += t;
 
                     while (
-                            (Ojw.CTimer.Check(TID_MOTION_BY_TIMER, m_lWaitActionTimer) == false) && (m_bMotionEnd == false)// && (m_bEms == false)// && (m_bPause == FALSE) && 
+                            //(Ojw.CTimer.Check(TID_MOTION_BY_TIMER, m_lWaitActionTimer) == false) && (m_bMotionEnd == false)// && (m_bEms == false)// && (m_bPause == FALSE) && 
+                            (m_CTmr_Motion_By_Timer.Check(m_lWaitActionTimer) == false) && (m_bMotionEnd == false)// && (m_bEms == false)// && (m_bPause == FALSE) && 
                         //(g_bMainRun_Action)
                         )
                     {
+                        if (GetSimulation_With_PlayFrame() == true)
+                        {
+                            for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                SetData(i, GetSimulation_Value(i));
+                            //OjwDraw();
+                        }
                         Application.DoEvents();
                     }
                     return true;
                 }
-                public void GridDraw_Event_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
-                {
-                    //if ((m_CGridDraw.GetHandle().Focused == true) && (m_bEditing == false))
-                    //{
-                    //    //CMessage.Write(e.RowIndex.ToString());
-                    //    SetHeader_strDrawModel(m_txtDraw.Text);
-                    //    CompileDesign();
-                    //    StringListToGrid();
-                    //}
-                }
-                public void GridDraw_Event_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e)
-                {
-                    //if ((m_CGridDraw.GetHandle().Focused == true) && (m_bEditing == false))
-                    //{
-                    //    SetHeader_strDrawModel(m_txtDraw.Text);
-                    //    //CMessage.Write(e.RowIndex.ToString());
-                    //    CompileDesign();
-                    //    StringListToGrid();
-                    //}
-                }
-                public void GridDraw_CellValueChanged(object sender, DataGridViewCellEventArgs e)
-                {
-                    if (m_bEditing == false)
-                    {
-                        DataGridView dgAngle = m_CGridDraw.GetHandle();
-                        if (dgAngle.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected == true)
-                        {
-                            if (e.ColumnIndex == 0)
-                            {
-                                //        if (m_CGridDraw.GetEnable() == false) 
-                                //            Prop_Set_DispObject_Selected("#-1");
-                                //        //Prop_Update_Selected();
-                                CMessage.Write((m_CGridDraw.GetEnable() == false) ? "false" : "true");//"e.ColumnIndex == 0:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
-                                Prop_Set_DispObject_Selected("#-1");
-                                Prop_Update_Selected();
-                            }
-                            if (e.ColumnIndex == 1)
-                            {
+                //public void GridDraw_Event_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
+                //{
+                //    //if ((m_CGridMotionEditor.GetHandle().Focused == true) && (m_bEditing == false))
+                //    //{
+                //    //    //CMessage.Write(e.RowIndex.ToString());
+                //    //    SetHeader_strDrawModel(m_txtDraw.Text);
+                //    //    CompileDesign();
+                //    //    StringListToGrid();
+                //    //}
+                //}
+                //public void GridDraw_Event_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e)
+                //{
+                //    //if ((m_CGridMotionEditor.GetHandle().Focused == true) && (m_bEditing == false))
+                //    //{
+                //    //    SetHeader_strDrawModel(m_txtDraw.Text);
+                //    //    //CMessage.Write(e.RowIndex.ToString());
+                //    //    CompileDesign();
+                //    //    StringListToGrid();
+                //    //}
+                //}
+                //public void GridDraw_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+                //{
+                //    if (m_bEditing == false)
+                //    {
+                //        DataGridView dgAngle = m_CGridMotionEditor.GetHandle();
+                //        if (dgAngle.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected == true)
+                //        {
+                //            if (e.ColumnIndex == 0)
+                //            {
+                //                //        if (m_CGridMotionEditor.GetEnable() == false) 
+                //                //            Prop_Set_DispObject_Selected("#-1");
+                //                //        //Prop_Update_Selected();
+                //                CMessage.Write((m_CGridMotionEditor.GetEnable() == false) ? "false" : "true");//"e.ColumnIndex == 0:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
+                //                Prop_Set_DispObject_Selected("#-1");
+                //                Prop_Update_Selected();
+                //            }
+                //            if (e.ColumnIndex == 1)
+                //            {
 
-                                //        string strTmp = (string)m_CGridDraw.GetData(e.RowIndex, e.ColumnIndex);
-                                //        m_CGridDraw.SetData(e.RowIndex, e.ColumnIndex, strTmp);
+                //                //        string strTmp = (string)m_CGridMotionEditor.GetData(e.RowIndex, e.ColumnIndex);
+                //                //        m_CGridMotionEditor.SetData(e.RowIndex, e.ColumnIndex, strTmp);
 
-                                //        //string strDraw = String.Empty;
-                                //        //for (int i = 0; i < m_txtDraw.Lines.Length; i++)
-                                //        //{
-                                //        //    strDraw += m_txtDraw.Lines[i] + "\r\n";
-                                //        //    if (i == m_nCurrntCell)
-                                //        //        strDraw += "//\r\n";
-                                //        //}
-                                //        //Prop_Update_Selected();
+                //                //        //string strDraw = String.Empty;
+                //                //        //for (int i = 0; i < m_txtDraw.Lines.Length; i++)
+                //                //        //{
+                //                //        //    strDraw += m_txtDraw.Lines[i] + "\r\n";
+                //                //        //    if (i == m_nCurrntCell)
+                //                //        //        strDraw += "//\r\n";
+                //                //        //}
+                //                //        //Prop_Update_Selected();
 
-                                string strDraw = String.Empty;
-                                if (m_rtxtDraw.Lines.Length > 0)
-                                {
-                                    for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
-                                    {
-                                        if (i == e.RowIndex)
-                                        {
-                                            int nFind = m_rtxtDraw.Lines[i].IndexOf("//");
-                                            if (nFind < 0) nFind = m_rtxtDraw.Lines[i].Length;
-                                            // Í∏∞Ï°¥Ïùò Ï£ºÏÑùÏù¥ ÏûàÎäî Í≤ΩÏö∞ ÏùºÎã® Ï†úÍ±∞Ìï¥Ïïº ÌïúÎã§.                                                
-                                            strDraw += m_rtxtDraw.Lines[i].Substring(0, nFind) + "// " + (string)Ojw.CConvert.FloatToStr(m_CGridDraw.Get(e.RowIndex, 0));
-                                            //if (nFind >= 0)
-                                            //{
-                                            //    // Í∏∞Ï°¥Ïùò Ï£ºÏÑùÏù¥ ÏûàÎäî Í≤ΩÏö∞ ÏùºÎã® Ï†úÍ±∞Ìï¥Ïïº ÌïúÎã§.                                                
-                                            //    strDraw += m_rtxtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
-                                            //    //strDraw += "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
-                                            //}
-                                            //else
-                                            //{
-                                            //    strDraw += "// " + (string)m_CGridDraw.Get(e.RowIndex, 0);
-                                            //}
-                                        }
-                                        else strDraw += m_rtxtDraw.Lines[i];
-                                        if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";
-                                    }
-                                    m_rtxtDraw.Text = strDraw;
-                                }
+                //                string strDraw = String.Empty;
+                //                if (m_rtxtDraw.Lines.Length > 0)
+                //                {
+                //                    for (int i = 0; i < m_rtxtDraw.Lines.Length; i++)
+                //                    {
+                //                        if (i == e.RowIndex)
+                //                        {
+                //                            int nFind = m_rtxtDraw.Lines[i].IndexOf("//");
+                //                            if (nFind < 0) nFind = m_rtxtDraw.Lines[i].Length;
+                //                            // ±‚¡∏¿« ¡÷ºÆ¿Ã ¿÷¥¬ ∞ÊøÏ ¿œ¥‹ ¡¶∞≈«ÿæﬂ «—¥Ÿ.                                                
+                //                            strDraw += m_rtxtDraw.Lines[i].Substring(0, nFind) + "// " + (string)Ojw.CConvert.FloatToStr(m_CGridMotionEditor.Get(e.RowIndex, 0));
+                //                            //if (nFind >= 0)
+                //                            //{
+                //                            //    // ±‚¡∏¿« ¡÷ºÆ¿Ã ¿÷¥¬ ∞ÊøÏ ¿œ¥‹ ¡¶∞≈«ÿæﬂ «—¥Ÿ.                                                
+                //                            //    strDraw += m_rtxtDraw.Lines[i].Substring(0, nFind) + "// " + (string)m_CGridMotionEditor.Get(e.RowIndex, 0);
+                //                            //    //strDraw += "// " + (string)m_CGridMotionEditor.Get(e.RowIndex, 0);
+                //                            //}
+                //                            //else
+                //                            //{
+                //                            //    strDraw += "// " + (string)m_CGridMotionEditor.Get(e.RowIndex, 0);
+                //                            //}
+                //                        }
+                //                        else strDraw += m_rtxtDraw.Lines[i];
+                //                        if (i < m_rtxtDraw.Lines.Length - 1) strDraw += "\r\n";
+                //                    }
+                //                    m_rtxtDraw.Text = strDraw;
+                //                }
 
-                                CMessage.Write((string)Ojw.CConvert.FloatToStr(m_CGridDraw.Get(e.RowIndex, 0)));//"e.ColumnIndex == 1:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
-                            }
-                        }
-                    }
-                }
+                //                CMessage.Write((string)Ojw.CConvert.FloatToStr(m_CGridMotionEditor.Get(e.RowIndex, 0)));//"e.ColumnIndex == 1:" + e.RowIndex.ToString() + "," + e.ColumnIndex.ToString());
+                //            }
+                //        }
+                //    }
+                //}
             
                 public void GridMotionEditor_Event_CellEnter(object sender, DataGridViewCellEventArgs e)
                 {
                     if (m_CGridMotionEditor.GetHandle().Focused == true)// || (m_bStart == true))
                     {
-                        
+                        int nLine = e.RowIndex;
+                        int nPos = e.ColumnIndex;
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos].Style.ForeColor = Color.Red;
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos].Style.BackColor = Color.Red;
                         //m_bClick_dbAngle = true;
                         //if ((e.ColumnIndex == m_CGridMotionEditor.OjwGrid_GetCurrentColumn()) && (e.RowIndex == m_CGridMotionEditor.OjwGrid_GetCurrentLine())) return;
                         m_CGridMotionEditor.SetChangeCurrentCol(e.ColumnIndex);
@@ -7344,6 +10465,7 @@ namespace OpenJigWare
                         {
                             //m_CGridMotionEditor.SetChangeCurrentLine(e.RowIndex);
                             GridMotionEditor_Draw(e.RowIndex);
+                            CheckFlag(e.RowIndex); // Led ¿« ªÛ≈¬∏¶ ±◊∏∞¥Ÿ.
                         }
                         //if (m_panelSelected != null)
                         //{
@@ -7357,6 +10479,45 @@ namespace OpenJigWare
                     DataGridView dgAngle = m_CGridMotionEditor.GetHandle();
                     OjwGrid_CellMouseDoubleClick(dgAngle, e);
                 }
+                private bool m_bGridMotionEditor_MouseDown = false;
+                private bool m_bGridMotionEditor_MouseMove = false;
+                public void GridMotionEditor_MouseDown(object sender, MouseEventArgs e)
+                {
+                    m_bGridMotionEditor_MouseDown = true;
+                    m_bGridMotionEditor_MouseMove = false;
+                }
+                public void GridMotionEditor_MouseMove(object sender, MouseEventArgs e)
+                {
+                    if (m_bGridMotionEditor_MouseDown == true)
+                        m_bGridMotionEditor_MouseMove = true;
+                }
+                public void GridMotionEditor_MouseUp(object sender, MouseEventArgs e)
+                {
+                    m_bGridMotionEditor_MouseDown = false;
+                    m_bGridMotionEditor_MouseMove = false;
+                }
+                private void GridMotionEditor_Scroll(object sender, ScrollEventArgs e)
+                {
+                    if (e.ScrollOrientation == ScrollOrientation.HorizontalScroll)
+                    {
+                        int nWidth_Offset = 0;
+                        int nWidth_Interval = 11;
+                        int nWidth = (IsGridInit() == true) ? GetWidth_GridItem() : 70;
+                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                        {
+                            int nMotWidth = nWidth;
+
+                            // Enable
+                            m_pbtnEnable[i].Left = m_CGridMotionEditor.GetHandle().Left + (m_CGridMotionEditor.GetHandle().RowHeadersWidth + nWidth_Offset) + nWidth_Interval - e.NewValue;
+                            // Type
+                            m_pbtnType[i].Left = m_pbtnEnable[i].Left;
+                            // Led
+                            for (int j = 0; j < 3; j++) m_pbtnLed[j, i].Left = m_pbtnEnable[i].Left + nMotWidth / 5 * 2;
+                            nWidth_Interval += nWidth + nWidth_Offset;
+                        }
+                    }
+                    //Ojw.CMessage.Write(String.Format("NewValue={0}, OldValue={1}, Orientation={2}", e.NewValue, e.OldValue, e.ScrollOrientation));
+                }
                 public int GridMotionEditor_GetCurrentLine() { return m_CGridMotionEditor.OjwGrid_GetCurrentLine(); }
                 public int GridMotionEditor_GetCurrentColumn() { return m_CGridMotionEditor.OjwGrid_GetCurrentColumn(); }
                 
@@ -7366,25 +10527,138 @@ namespace OpenJigWare
                 public void GridMotionEditor_SetCommand(int nLine, int nCommand) { m_CGridMotionEditor.SetCommand(nLine, nCommand); }
                 public int GridMotionEditor_GetCommand(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetCommand(nLine)); }
 
-                public void GridMotionEditor_SetData0(int nLine, object value) { m_CGridMotionEditor.SetData0(nLine, value); }
-                public object GridMotionEditor_GetData0(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData0(nLine)); }
-                public void GridMotionEditor_SetData1(int nLine, object value) { m_CGridMotionEditor.SetData1(nLine, value); }
-                public object GridMotionEditor_GetData1(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData1(nLine)); }
-                public void GridMotionEditor_SetData2(int nLine, object value) { m_CGridMotionEditor.SetData2(nLine, value); }
-                public object GridMotionEditor_GetData2(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData2(nLine)); }
-                public void GridMotionEditor_SetData3(int nLine, object value) { m_CGridMotionEditor.SetData3(nLine, value); }
-                public object GridMotionEditor_GetData3(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData3(nLine)); }
-                public void GridMotionEditor_SetData4(int nLine, object value) { m_CGridMotionEditor.SetData4(nLine, value); }
-                public object GridMotionEditor_GetData4(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData4(nLine)); }
-                public void GridMotionEditor_SetData5(int nLine, object value) { m_CGridMotionEditor.SetData5(nLine, value); }
-                public object GridMotionEditor_GetData5(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData5(nLine)); }            
+                public void GridMotionEditor_SetData0(int nLine, int value) { m_CGridMotionEditor.SetData0(nLine, value); }
+                public int GridMotionEditor_GetData0(int nLine) { return m_CGridMotionEditor.GetData0(nLine); }
+                public void GridMotionEditor_SetData1(int nLine, int value) { m_CGridMotionEditor.SetData1(nLine, value); }
+                public int GridMotionEditor_GetData1(int nLine) { return m_CGridMotionEditor.GetData1(nLine); }
+                public void GridMotionEditor_SetData2(int nLine, int value) { m_CGridMotionEditor.SetData2(nLine, value); }
+                public int GridMotionEditor_GetData2(int nLine) { return m_CGridMotionEditor.GetData2(nLine); }
+                public void GridMotionEditor_SetData3(int nLine, int value) { m_CGridMotionEditor.SetData3(nLine, value); }
+                public int GridMotionEditor_GetData3(int nLine) { return m_CGridMotionEditor.GetData3(nLine); }
+                public void GridMotionEditor_SetData4(int nLine, int value) { m_CGridMotionEditor.SetData4(nLine, value); }
+                public int GridMotionEditor_GetData4(int nLine) { return m_CGridMotionEditor.GetData4(nLine); }
+                public void GridMotionEditor_SetData5(int nLine, int value) { m_CGridMotionEditor.SetData5(nLine, value); }
+                public int GridMotionEditor_GetData5(int nLine) { return m_CGridMotionEditor.GetData5(nLine); }            
 
                 public void GridMotionEditor_SetGroup(int nLine, int nGroup) { m_CGridMotionEditor.SetGroup(nLine, nGroup); }
                 public int GridMotionEditor_GetGroup(int nLine) { return m_CGridMotionEditor.GetGroup(nLine); }
-                public void GridMotionEditor_SetTime(int nLine, int nTime) { m_CGridMotionEditor.SetData(nLine, m_CGridMotionEditor.GetTableCount() - 2, nTime); }
-                public int GridMotionEditor_GetTime(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData(nLine, m_CGridMotionEditor.GetTableCount() - 2)); }
-                public void GridMotionEditor_SetDelay(int nLine, int nDelay) { m_CGridMotionEditor.SetData(nLine, m_CGridMotionEditor.GetTableCount() - 1, nDelay); }
-                public int GridMotionEditor_GetDelay(int nLine) { return Convert.ToInt32(m_CGridMotionEditor.GetData(nLine, m_CGridMotionEditor.GetTableCount() - 1)); }
+                public void GridMotionEditor_SetTime(int nLine, int nTime) { m_CGridMotionEditor.SetTime(nLine, nTime); }//SetData(nLine, m_CGridMotionEditor.GetTableCount() - 2, nTime); }
+                public int GridMotionEditor_GetTime(int nLine) { return m_CGridMotionEditor.GetTime(nLine); }//GetData(nLine, m_CGridMotionEditor.GetTableCount() - 2)); }
+                public void GridMotionEditor_SetDelay(int nLine, int nDelay) { m_CGridMotionEditor.SetDelay(nLine, nDelay); }//SetData(nLine, m_CGridMotionEditor.GetTableCount() - 1, nDelay); }
+                public int GridMotionEditor_GetDelay(int nLine) { return m_CGridMotionEditor.GetDelay(nLine); }//GetData(nLine, m_CGridMotionEditor.GetTableCount() - 1)); }
+
+                public void SetFrame_X(int i, float fValue) { m_CGridMotionEditor.SetOffset_Trans_X(i, fValue); }
+                public void SetFrame_Y(int i, float fValue) { m_CGridMotionEditor.SetOffset_Trans_Y(i, fValue); }
+                public void SetFrame_Z(int i, float fValue) { m_CGridMotionEditor.SetOffset_Trans_Z(i, fValue); }
+                public float GetFrame_X(int i) { return m_CGridMotionEditor.GetOffset_Trans_X(i); }
+                public float GetFrame_Y(int i) { return m_CGridMotionEditor.GetOffset_Trans_Y(i); }
+                public float GetFrame_Z(int i) { return m_CGridMotionEditor.GetOffset_Trans_Z(i); }
+                public void SetFrame_Pan(int i, float fValue) { m_CGridMotionEditor.SetOffset_Rot_Pan(i, fValue); }
+                public void SetFrame_Tilt(int i, float fValue) { m_CGridMotionEditor.SetOffset_Rot_Tilt(i, fValue); }
+                public void SetFrame_Swing(int i, float fValue) { m_CGridMotionEditor.SetOffset_Rot_Swing(i, fValue); }
+                public float GetFrame_Pan(int i) { return m_CGridMotionEditor.GetOffset_Rot_Pan(i); }
+                public float GetFrame_Tilt(int i) { return m_CGridMotionEditor.GetOffset_Rot_Tilt(i); }
+                public float GetFrame_Swing(int i) { return m_CGridMotionEditor.GetOffset_Rot_Swing(i); }
+
+
+                private void GridMotionEditor_SetExtBuzz(int nLine, int nValue)
+                {
+                    if ((nLine < 0) || (m_CGridMotionEditor.GetHandle().RowCount <= nLine)) return;
+                    int nPos = GridMotionEditor_GetIndex_byMotorAxis(m_CHeader.nMotorCnt - 1);
+                    if (nPos > 0)
+                    {
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos + 8].Value = nValue;
+                        //dgXyz.Rows[nLine].Cells[nPos + 8].Value = nValue;
+                    }
+                }
+                private int GridMotionEditor_GetExtBuzz(int nLine)
+                {
+                    if ((nLine < 0) || (m_CGridMotionEditor.GetHandle().RowCount <= nLine)) return 0;
+                    int nRet = 0;
+                    int nPos = GridMotionEditor_GetIndex_byMotorAxis(m_CHeader.nMotorCnt - 1);
+                    if (nPos > 0) nRet = (int)Ojw.CConvert.StrToFloat(m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos + 8].Value.ToString());
+                    return nRet;
+                }
+                private void GridMotionEditor_SetExtLed(int nLine, int nValue)
+                {
+                    if ((nLine < 0) || (m_CGridMotionEditor.GetHandle().RowCount <= nLine)) return;
+                    int nPos = GridMotionEditor_GetIndex_byMotorAxis(m_CHeader.nMotorCnt - 1);
+                    if (nPos > 0)
+                    {
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos + 9].Value = nValue;
+                        //dgXyz.Rows[nLine].Cells[nPos + 9].Value = nValue;
+                    }
+                }
+                private int GridMotionEditor_GetExtLed(int nLine)
+                {
+                    if ((nLine < 0) || (m_CGridMotionEditor.GetHandle().RowCount <= nLine)) return 0;
+                    int nRet = 0;
+                    int nPos = GridMotionEditor_GetIndex_byMotorAxis(m_CHeader.nMotorCnt - 1);
+                    if (nPos > 0) nRet = (int)Ojw.CConvert.StrToFloat(m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos + 9].Value.ToString());
+                    return nRet;
+                }
+                private int GridMotionEditor_GetIndex_byMotorAxis(int nAxis)
+                {
+                    int nPos = -1;
+                    if ((nAxis >= 0) && (nAxis < m_CHeader.nMotorCnt)) nPos = nAxis + 1;
+                    //                 if (nAxis == 7) nPos = 21;
+                    //                 else if ((nAxis >= 1) && (nAxis <= 6)) nPos = nAxis + 1;
+                    //                 else if ((nAxis >= 8) && (nAxis <= 19)) nPos = nAxis;
+                    //                 else if (nAxis == 20) nPos = 0;
+                    return nPos;
+                }
+                private int GridMotionEditor_GetAxisNum_byIndex(int nPos)
+                {
+                    int nAxis = -1;
+                    if ((nPos >= 1) && (nPos < m_CHeader.nMotorCnt + 1)) nAxis = nPos - 1;
+                    /*
+                    // Up(1), W(2), Dn(3)
+                    // Up(4), W(5), Dn(6)
+                    if ((nPos >= 2) && (nPos <= 7)) nAxis = nPos - 1;
+                    else if ((nPos >= 8) && (nPos <= 19)) nAxis = nPos;
+                    // Pan(8), W(9), Up(10), Dn(11)
+                    // Tilt(12), Swing(13)
+                    // Pan(14), W(15), Up(16), Dn(17)
+                    // Tilt(18), Swing(19)
+                    else if (nPos == 20) nAxis = 0;
+                    else if (nPos == 21) nAxis = 7;
+                    */
+                    return nAxis;
+                }
+#if false
+            private void Grid_SetCommand(int nLine, int nData)
+                {
+                    m_CGridMotionEditor.SetData2(nLine, nData);//SetCommand(j, nData);
+                }
+                private int Grid_GetCommand(int nLine)
+                {
+                    return (int)m_CGridMotionEditor.GetData2(nLine);
+                }
+                private void Grid_SetData0(int nLine, int nData)
+                {
+                    m_CGridMotionEditor.SetData3(nLine, nData);
+                }
+                private int Grid_GetData0(int nLine)
+                {
+                    return (int)m_CGridMotionEditor.GetData3(nLine);
+                }
+                private void Grid_SetData1(int nLine, int nData)
+                {
+                    m_CGridMotionEditor.SetData4(nLine, nData);
+                }
+                private int Grid_GetData1(int nLine)
+                {
+                    return (int)m_CGridMotionEditor.GetData4(nLine);
+                }
+                private void Grid_SetData2(int nLine, int nData)
+                {
+                    m_CGridMotionEditor.SetData4(nLine, nData);
+                }
+                private int Grid_GetData2(int nLine)
+                {
+                    return (int)m_CGridMotionEditor.GetData4(nLine);
+                }
+#endif
                 public int GridMotionEditor_GetLines()
                 {
                     return m_CGridMotionEditor.GetLineCount();
@@ -7411,43 +10685,193 @@ namespace OpenJigWare
                     m_CGridMotionEditor.SetColorGrid(nIndex, nCount);
                 }
 
+                // 0 - (+), 1 - (-), 2 - mul, 3 - div, 4 - increment, 5 - decrement, 6 - Change, 7 - Flip Value, 8 - Interpolation, 9 - 'S'Curve, 10 - Flip Position, 11 - Evd(+), 12 - Evd(-), 13 - EvdSet, 14 - Angle(+), 15 - Angle(-), 16 - AngleSet, 
+                // 17, 18, 19 - Gravity Set(18 - Tilt ∏∏ ∫Ø»≠, 19 - Swing ∏∏ ∫Ø»≠)
+                // 20, 21, 22 - LED Change(20-Red, 21-Green, 22-Blue) - 0 ¿œ∂ß ≈¨∏ÆæÓ, 1 ¿œ∂ß µø¿€
+                // 23 - Motor Enable() - LED øÕ µø¿œ
+                // 24 - MotorType() - LED øÕ µø¿œ
+                // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)          
+                public void GridMotionEditor_Calc(ECalc_t ECalc, float fValue) { GridMotionEditor_Calc(m_CGridMotionEditor.GetHandle(), ECalc, fValue); GridMotionEditor_Draw(m_CGridMotionEditor.m_nCurrntCell); }
+                public void GridMotionEditor_Calc(DataGridView OjwDataGrid, ECalc_t ECalc, float fValue) { m_CGridMotionEditor.Calc((int)ECalc, fValue); GridMotionEditor_Draw(m_CGridMotionEditor.m_nCurrntCell); }
+                public void GridMotionEditor_Clear() 
+                {
+                    m_CGridMotionEditor.SetTime(1000);
+                    m_CGridMotionEditor.Clear();
+                    for (int i = 0; i < m_CGridMotionEditor.GetHandle().RowCount; i++)
+                    {
+                        for (int j = 0; j < m_CHeader.nMotorCnt; j++)
+                        {
+                            //nMotPos = j + 1;
+
+                            m_pnFlag[i, j] = (int)(
+                                0x10 | // Enable
+                                ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// ¿ßƒ°¡¶æÓ∞° æ∆¥œ∂Û∏È //0x08 //| // MotorType
+                                //0x07 // Led
+                                );
+
+                            CheckFlag(i);
+                            m_CGridMotionEditor.GetHandle().Rows[i].Cells[j].Style.ForeColor = Color.Black;
+                        }
+                    }
+                }
+                public void GridMotionEditor_SetMotor(int nLine, int nMotorID, float fValue)
+                {
+                    m_CGridMotionEditor.SetData(nLine, nMotorID, fValue);
+                }
+                public void GridMotionEditor_SetSelectedGroup(int nGroup) { m_CGridMotionEditor.SetSelectedGroup(nGroup); }
                 #region LED
                 private Color[] m_pcLed = new Color[4] { Color.Black, Color.Red, Color.Blue, Color.LightGreen };
-                private void Grid_SetFlag_En(int nLine, int nMotNum, bool bEn) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return; m_pnFlag[nLine, nMotNum] = (byte)((m_pnFlag[nLine, nMotNum] & 0x0f) | ((bEn == true) ? 0x10 : 0x00)); }
+                public void Grid_SetFlag_En(int nLine, int nMotNum, bool bEn)
+                {
+                    if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return; 
+                    m_pnFlag[nLine, nMotNum] = (byte)((m_pnFlag[nLine, nMotNum] & 0x0f) | ((bEn == true) ? 0x10 : 0x00));
+#if _ENABLE_LED_FONT_COLOR
+                    Color cColor = Color.FromArgb(
+                        (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? 255 : 0), // R
+                        (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? 255 : 0), // G
+                        (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? 255 : 0) // B
+                    );
+                    //System.Drawing.Font("Íµ¥Î¶º", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+
+#if _ENABLE_LED_FONT_BOLD
+                    if (cColor != Color.FromArgb(0, 0, 0))//Color.Black)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Bold);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Bold, fnt.Unit, fnt.GdiCharSet);
+                    }
+                    else// if (m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font.Bold == true)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Regular);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Regular, fnt.Unit, fnt.GdiCharSet);
+                    }
+#endif
+                    m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = ((bEn == false) ? Color.Gray : cColor);
+#endif
+                }
                 //private void Grid_SetFlag_Type(int nLine, int nMotNum, bool bSpeedType) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return; m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x17) | (((bSpeedType == true) || ((nMotNum >= 6) && (nMotNum <= 8))) ? 0x08 : 0x00)); }
-                private void Grid_SetFlag_Type(int nLine, int nMotNum, bool bSpeedType) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return; m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x17) | ((bSpeedType == true) ? 0x08 : 0x00)); }
+                public void Grid_SetFlag_Type(int nLine, int nMotNum, bool bSpeedType) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return; m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x17) | ((bSpeedType == true) ? 0x08 : 0x00)); }
                 // 0x00 - Black, 0x01 - Red, 0x02 - Blue, 0x04 - Green
-                private void Grid_SetFlag_Led(int nLine, int nMotNum, int nLed)
+                public void Grid_SetFlag_Led(int nLine, int nMotNum, int nLed)
                 {
                     if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return;
                     m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x18) | (int)(nLed & 0x07));
+#if _ENABLE_LED_FONT_COLOR
+                    Color cColor = Color.FromArgb(
+                        (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? 255 : 0), // R
+                        (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? 255 : 0), // G
+                        (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? 255 : 0) // B
+                    );
+#if _ENABLE_LED_FONT_BOLD
+                    if (cColor != Color.FromArgb(0, 0, 0))//Color.Black)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Bold);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Bold, fnt.Unit, fnt.GdiCharSet);
+                    }
+                    else// if (m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font.Bold == true)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Regular);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Regular, fnt.Unit, fnt.GdiCharSet);
+                    }
+#endif
+                    m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = ((Grid_GetFlag_En(nLine, nMotNum) == false) ? Color.Gray : cColor);
+#endif
                 }
-                private void Grid_SetFlag_Led_Red(int nLine, int nMotNum, bool bRed)
+                public void Grid_SetFlag_Led_Red(int nLine, int nMotNum, bool bRed)
                 {
                     if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return;
                     // 0001 1110
                     m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x1e) | ((bRed == true) ? 0x01 : 0x00));
+#if _ENABLE_LED_FONT_COLOR                    
+                    Color cColor = Color.FromArgb(
+                        (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? 255 : 0), // R
+                        (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? 255 : 0), // G
+                        (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? 255 : 0) // B
+                    );
+#if _ENABLE_LED_FONT_BOLD
+                    if (cColor != Color.FromArgb(0, 0, 0))//Color.Black)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Bold);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Bold, fnt.Unit, fnt.GdiCharSet);
+                    }
+                    else// if (m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font.Bold == true)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Regular);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Regular, fnt.Unit, fnt.GdiCharSet);
+                    }
+#endif
+                    m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = ((Grid_GetFlag_En(nLine, nMotNum) == false) ? Color.Gray : cColor);
+#endif
                 }
-                private void Grid_SetFlag_Led_Blue(int nLine, int nMotNum, bool bBlue)
+                public void Grid_SetFlag_Led_Blue(int nLine, int nMotNum, bool bBlue)
                 {
                     if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return;
                     // 0001 1101
                     m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x1d) | ((bBlue == true) ? 0x02 : 0x00));
+#if _ENABLE_LED_FONT_COLOR
+                    Color cColor = Color.FromArgb(
+                        (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? 255 : 0), // R
+                        (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? 255 : 0), // G
+                        (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? 255 : 0) // B
+                    );
+#if _ENABLE_LED_FONT_BOLD
+                    if (cColor != Color.FromArgb(0, 0, 0))//Color.Black)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Bold);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Bold, fnt.Unit, fnt.GdiCharSet);
+                    }
+                    else// if (m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font.Bold == true)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Regular);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Regular, fnt.Unit, fnt.GdiCharSet);
+                    }
+#endif              
+                    m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = ((Grid_GetFlag_En(nLine, nMotNum) == false) ? Color.Gray : cColor);
+#endif
                 }
-                private void Grid_SetFlag_Led_Green(int nLine, int nMotNum, bool bGreen)
+                public void Grid_SetFlag_Led_Green(int nLine, int nMotNum, bool bGreen)
                 {
                     if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return;
                     // 0001 1011
                     m_pnFlag[nLine, nMotNum] = (int)((m_pnFlag[nLine, nMotNum] & 0x1b) | ((bGreen == true) ? 0x04 : 0x00));
+#if _ENABLE_LED_FONT_COLOR                    
+                    Color cColor = Color.FromArgb(
+                        (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? 255 : 0), // R
+                        (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? 255 : 0), // G
+                        (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? 255 : 0) // B
+                    );
+#if _ENABLE_LED_FONT_BOLD
+                    if (cColor != Color.FromArgb(0, 0, 0))//Color.Black)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Bold);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Bold, fnt.Unit, fnt.GdiCharSet);
+                    }
+                    else// if (m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font.Bold == true)
+                    {
+                        Font fnt = this.Font;//m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font;
+                        m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(m_CGridMotionEditor.GetHandle().Font, FontStyle.Regular);
+                        //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.Font = new Font(fnt.Name, fnt.Size, System.Drawing.FontStyle.Regular, fnt.Unit, fnt.GdiCharSet);
+                    }
+#endif
+                    m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nMotNum + 1].Style.ForeColor = ((Grid_GetFlag_En(nLine, nMotNum) == false) ? Color.Gray : cColor);
+#endif
                 }
 
-                private bool Grid_GetFlag_En(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x10) != 0) ? true : false); }
-                private bool Grid_GetFlag_Type(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x08) != 0) ? true : false); }
-                private int Grid_GetFlag_Led(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return 0; return m_pnFlag[nLine, nMotNum] & 0x07; }
-                private bool Grid_GetFlag_Led_Red(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? true : false); }
-                private bool Grid_GetFlag_Led_Blue(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? true : false); }
-                private bool Grid_GetFlag_Led_Green(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_CGridMotionEditor.GetHandle().RowCount) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? true : false); }
-                private void CheckFlag(int nLine, int nMotNum) // nLedNum 0, 1, 2 - nLedNum
+                public bool Grid_GetFlag_En(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x10) != 0) ? true : false); }
+                public bool Grid_GetFlag_Type(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x08) != 0) ? true : false); }
+                public int Grid_GetFlag_Led(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return 0; return m_pnFlag[nLine, nMotNum] & 0x07; }
+                public bool Grid_GetFlag_Led_Red(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x01) != 0) ? true : false); }
+                public bool Grid_GetFlag_Led_Blue(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x02) != 0) ? true : false); }
+                public bool Grid_GetFlag_Led_Green(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? true : false); }
+                public void CheckFlag(int nLine, int nMotNum) // nLedNum 0, 1, 2 - nLedNum
                 {
                     if (m_pnFlag != null)
                     {
@@ -7458,12 +10882,12 @@ namespace OpenJigWare
                         m_pbtnType[nMotNum].BackColor = ((Grid_GetFlag_Type(nLine, nMotNum) == true) ? Color.Yellow : Color.Gray);
                         //if (m_pbtnType[nMotNum].BackColor == Color.Gray)
                         //{
-                        //    // ÏóÜÎã§Î©¥ ÏûàÎäîÏßÄ Ï≤¥ÌÅ¨ÌïòÍ≥†
+                        //    // æ¯¥Ÿ∏È ¿÷¥¬¡ˆ √º≈©«œ∞Ì
                         //    if ((m_pnFlag[nLine, nMotNum] & 0x08) != 0) m_pbtnType[nMotNum].BackColor = Color.Cyan;
                         //}
                         //else
                         //{
-                        //    // ÏûàÎã§Î©¥ ÌÅ¥Î¶¨Ïñ¥Î•º Ï≤¥ÌÅ¨ÌïúÎã§.
+                        //    // ¿÷¥Ÿ∏È ≈¨∏ÆæÓ∏¶ √º≈©«—¥Ÿ.
                         //    if ((m_pnFlag[nLine, nMotNum] & 0x08) == 0) m_pbtnType[nMotNum].BackColor = Color.Gray;
                         //}
 
@@ -7482,7 +10906,7 @@ namespace OpenJigWare
                     }
                 }
 
-                private void CheckFlag(int nLine)
+                public void CheckFlag(int nLine)
                 {
                     if (m_pnFlag != null)
                     {
@@ -7494,21 +10918,6 @@ namespace OpenJigWare
                     }
                 }
                 #endregion LED
-
-                // 0 - (+), 1 - (-), 2 - mul, 3 - div, 4 - increment, 5 - decrement, 6 - Change, 7 - Flip Value, 8 - Interpolation, 9 - 'S'Curve, 10 - Flip Position, 11 - Evd(+), 12 - Evd(-), 13 - EvdSet, 14 - Angle(+), 15 - Angle(-), 16 - AngleSet, 
-                // 17, 18, 19 - Gravity Set(18 - Tilt Îßå Î≥ÄÌôî, 19 - Swing Îßå Î≥ÄÌôî)
-                // 20, 21, 22 - LED Change(20-Red, 21-Green, 22-Blue) - 0 ÏùºÎïå ÌÅ¥Î¶¨Ïñ¥, 1 ÏùºÎïå ÎèôÏûë
-                // 23 - Motor Enable() - LED ÏôÄ ÎèôÏùº
-                // 24 - MotorType() - LED ÏôÄ ÎèôÏùº
-                // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)       
-                public void GridMotionEditor_Calc(ECalc_t ECalc, float fValue) { GridMotionEditor_Calc(m_CGridMotionEditor.GetHandle(), ECalc, fValue); }
-                public void GridMotionEditor_Calc(DataGridView OjwDataGrid, ECalc_t ECalc, float fValue) { m_CGridMotionEditor.Calc((int)ECalc, fValue); }
-                public void GridMotionEditor_Clear() { m_CGridMotionEditor.Clear(); }
-                public void GridMotionEditor_SetMotor(int nLine, int nMotorID, float fValue)
-                {
-                    m_CGridMotionEditor.SetData(nLine, nMotorID, fValue);
-                }
-                public void GridMotionEditor_SetSelectedGroup(int nGroup) { m_CGridMotionEditor.SetSelectedGroup(nGroup); }
 
                 public void GridMotionEditor_Draw(int nLine)
                 {
@@ -7598,6 +11007,8 @@ namespace OpenJigWare
 
                 public void OjwDraw(float[] afData, COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
+                    if (afData == null) { nGroupA = 0; nGroupB = 0; nGroupC = 0; nInverseKinematicsNumber = 0; bPick = false; bLimit = false; return; }
+                    if (CHeader == null) { nGroupA = 0; nGroupB = 0; nGroupC = 0; nInverseKinematicsNumber = 0; bPick = false; bLimit = false; return; }
                     if (m_ctrlMain.InvokeRequired)
                     {
                         bLimit = false;
@@ -7610,7 +11021,7 @@ namespace OpenJigWare
                     }
                     else
                     {
-                        // ÎÆ§ÌÖçÏä§ ÎåÄÍ∏∞(Îã§Ï§ëÏä§Î†àÎìú Í≥µÏú† ÏúÑÎ∞ò Î∞©ÏßÄ)
+                        // π¬≈ÿΩ∫ ¥Î±‚(¥Ÿ¡ﬂΩ∫∑πµÂ ∞¯¿Ø ¿ßπ› πÊ¡ˆ)
                         m_mtxDraw.WaitOne();
 
                         //if (m_bJoystic == true)
@@ -7765,7 +11176,7 @@ namespace OpenJigWare
                                     if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
                                         CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
 
-                                    // Limit Check(Kor: Í∞ÅÎèÑÏùò Limit Ï≤¥ÌÅ¨) //
+                                    // Limit Check(Kor: ∞¢µµ¿« Limit √º≈©) //
                                     if (CDisp.nName >= 0)
                                     {
                                         if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
@@ -7786,7 +11197,7 @@ namespace OpenJigWare
                                     if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
                                         CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
 
-                                    // Limit Check(Kor: Í∞ÅÎèÑÏùò Limit Ï≤¥ÌÅ¨) //
+                                    // Limit Check(Kor: ∞¢µµ¿« Limit √º≈©) //
                                     if (CDisp.nName >= 0)
                                     {
                                         if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
@@ -7812,8 +11223,8 @@ namespace OpenJigWare
                                 //float fBlock_Depth = m_fTerritory_Block_Depth;
                                 //float fBlock_Height = m_fTerritory_Block_Height;
                                 //InitPosAngle();
-
-                                //// Î°úÎ¥áÏùò ÏõÄÏßÅÏûÑ Íµ¨ÌòÑ
+                                
+                                //// ∑Œ∫ø¿« øÚ¡˜¿” ±∏«ˆ
                                 //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                                 //OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
 
@@ -7846,7 +11257,7 @@ namespace OpenJigWare
                             //#endregion Init Again
                             #endregion User
 
-                            //// The actual part to be drawn(Kor: Ïã§Ï†ú Í∑∏Î†§Ïßà Î∂ÄÎ∂Ñ) ////
+                            //// The actual part to be drawn(Kor: Ω«¡¶ ±◊∑¡¡˙ ∫Œ∫–) ////
                             if (_CNT_FILEOPEN != m_nBackupCnt_HistoryFileOpen)
                             {
                                 m_nBackupCnt_HistoryFileOpen = _CNT_FILEOPEN;
@@ -7874,7 +11285,7 @@ namespace OpenJigWare
                                     if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
                                         CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
 
-                                    // Limit Check(Kor: Í∞ÅÎèÑÏùò Limit Ï≤¥ÌÅ¨) //
+                                    // Limit Check(Kor: ∞¢µµ¿« Limit √º≈©) //
                                     if (CDisp.nName >= 0)
                                     {
                                         if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
@@ -7933,6 +11344,27 @@ namespace OpenJigWare
                                         m_anSelectedGroup[1] = nGroupB;
                                         m_anSelectedGroup[2] = nGroupC;
                                         m_nSelected_InverseKinematicsNumber = nInverseKinematicsNumber;
+
+                                        if (m_CGridMotionEditor != null)
+                                        {
+                                            if (m_CGridMotionEditor.GetHandle() != null)
+                                            {
+                                                if (nInverseKinematicsNumber == 255)
+                                                {
+                                                    if (nGroupA != 0) 
+                                                    {
+                                                        int nMot = nGroupB;
+                                                        bool bMulti = m_CGridMotionEditor.GetHandle().MultiSelect;
+                                                        //m_CGridMotionEditor.GetHandle().MultiSelect = false;
+                                                        //m_CGridMotionEditor.GetHandle()[nGroupB + 1, m_CGridMotionEditor.m_nCurrntCell].Selected = true;
+
+                                                        if ((nMot >= 0) && (nMot < m_CHeader.nMotorCnt))
+                                                            m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[m_CGridMotionEditor.m_nCurrntCell].Cells[nMot + 1];
+                                                        //m_CGridMotionEditor.GetHandle().MultiSelect = bMulti;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
 
                                 }
@@ -7972,11 +11404,11 @@ namespace OpenJigWare
 
                             m_bDrawing = false;
                         }
-                        // ÎÆ§ÌÖçÏä§ Ìï¥Ï†ú
+                        // Release Mutex
                         m_mtxDraw.ReleaseMutex();
                     }
 
-                    // ÌååÏùºÏùÑ Î°úÎî©Ìïú Ï≤òÏùåÏóêÎßå ÌïÑÏöî Î°úÎî©ÌååÏùº ÏóêÎü¨Î•º Ï≤¥ÌÅ¨
+                    // ∆ƒ¿œ¿ª ∑Œµ˘«— √≥¿Ωø°∏∏ « ø‰ ∑Œµ˘∆ƒ¿œ ø°∑Ø∏¶ √º≈©
                     if (m_nSeq_Compile_Back != m_nSeq_Compile)
                     {
                         m_nSeq_Compile_Back = m_nSeq_Compile;
@@ -8086,9 +11518,9 @@ namespace OpenJigWare
                 }
                 public void OjwDraw_Serve(int nCmd_GroupType, // 0, 1, 2
                                             int nCmd_GroupNum,
-                    //int nCmd_GroupA, int nCmd_GroupA_Or_1, int nCmd_GroupA_Or_2, // Possible combination of 3 groups.(Kor: 3Í∞úÏùò Í∑∏Î£πÏùÑ Ï°∞Ìï©Í∞ÄÎä•ÌïòÎã§.)
-                    //int nCmd_GroupB, int nCmd_GroupB_Or_1, int nCmd_GroupB_Or_2, // Possible combination of 3 groups.(Kor: 3Í∞úÏùò Í∑∏Î£πÏùÑ Ï°∞Ìï©Í∞ÄÎä•ÌïòÎã§.)
-                    //int nCmd_GroupC, int nCmd_GroupC_Or_1, int nCmd_GroupC_Or_2, // Possible combination of 3 groups.(Kor: 3Í∞úÏùò Í∑∏Î£πÏùÑ Ï°∞Ìï©Í∞ÄÎä•ÌïòÎã§.)
+                    //int nCmd_GroupA, int nCmd_GroupA_Or_1, int nCmd_GroupA_Or_2, // Possible combination of 3 groups.(Kor: 3∞≥¿« ±◊∑Ï¿ª ¡∂«’∞°¥…«œ¥Ÿ.)
+                    //int nCmd_GroupB, int nCmd_GroupB_Or_1, int nCmd_GroupB_Or_2, // Possible combination of 3 groups.(Kor: 3∞≥¿« ±◊∑Ï¿ª ¡∂«’∞°¥…«œ¥Ÿ.)
+                    //int nCmd_GroupC, int nCmd_GroupC_Or_1, int nCmd_GroupC_Or_2, // Possible combination of 3 groups.(Kor: 3∞≥¿« ±◊∑Ï¿ª ¡∂«’∞°¥…«œ¥Ÿ.)
                                             float[] afData, COjwDesignerHeader CHeader,
                                             bool bSecondDrawingMode,
                                             out int nGroupA, out int nGroupB, out int nGroupC,
@@ -8121,7 +11553,7 @@ namespace OpenJigWare
                         for (int i = 0; i < OjwDispAll.GetCount(); i++)
                         {
 #if false
-                            //                     #region EtcGrouping // Ïïû Îí§Î°ú 2Í∞úÍπåÏßÄ Í∞ôÏùÄ Í∑∏Î£πÏù¥ ÏûàÎã§Î©¥ ÏÑ§ÏÇ¨ Îã§Î•∏ Í∑∏Î£πÏù¥ÎçîÎùºÎèÑ Í∞ôÏùÄ Í∑∏Î£πÏúºÎ°ú Î¨∂Ïñ¥ÏÑú Í∑∏Î¶¨ÎèÑÎ°ù ÌïúÎã§.
+                            //                     #region EtcGrouping // æ’ µ⁄∑Œ 2∞≥±Ó¡ˆ ∞∞¿∫ ±◊∑Ï¿Ã ¿÷¥Ÿ∏È º≥ªÁ ¥Ÿ∏• ±◊∑Ï¿Ã¥ı∂Ûµµ ∞∞¿∫ ±◊∑Ï¿∏∑Œ π≠æÓº≠ ±◊∏Æµµ∑œ «—¥Ÿ.
                             //                     bool bEtcGroup = false;
                             //                     #endregion EtcGrouping
 #endif
@@ -8183,7 +11615,7 @@ namespace OpenJigWare
                         SetScale(fScale);
                         glDraw_Ready();
 
-                        // Display Axis(Kor: Ï∂ï ÌëúÏãú)
+                        // Display Axis(Kor: √‡ «•Ω√)
                         if ((nDrawNum == 3) || (nDrawNum == 4))
                         {
                             Gl.glLoadIdentity();
@@ -8193,17 +11625,17 @@ namespace OpenJigWare
                         }
                         else
                         {
-                            InitPosAngle(); //=> Instead of above coding(Kor: ÏúÑÏùò ÏΩîÎî©ÏúºÎ°ú ÎåÄÏπò)
+                            InitPosAngle(); //=> Instead of above coding(Kor: ¿ß¿« ƒ⁄µ˘¿∏∑Œ ¥Îƒ°)
                         }
                         fInitAngle = null;
                         fInitPos = null;
 
-                        //// The actual part to be drawn(Kor: Ïã§Ï†ú Í∑∏Î†§Ïßà Î∂ÄÎ∂Ñ) ////
+                        //// The actual part to be drawn(Kor: Ω«¡¶ ±◊∑¡¡˙ ∫Œ∫–) ////
                         // => Only to be drawn into the same group so laced unconditionally.
-                        // Kor: => Î¨¥Ï°∞Í±¥ Í∞ôÏùÄ Í∑∏Î£πÏúºÎ°úÎßå ÏóÆÏù¥ÎèÑÎ°ù Í∑∏Î†§Ïïº ÌïúÎã§.
+                        // Kor: => π´¡∂∞« ∞∞¿∫ ±◊∑Ï¿∏∑Œ∏∏ ø´¿Ãµµ∑œ ±◊∑¡æﬂ «—¥Ÿ.
                         if ((nStart > 0) && (nEnd > 0)) 
                         {
-                            // Actually drawing the part to be drawn(Kor: Í∑∏Î†§Ïïº Ìï† Î∂ÄÎ∂ÑÏùÑ Ïã§Ï†úÎ°ú Í∑∏Î¶¨Í∏∞)
+                            // Actually drawing the part to be drawn(Kor: ±◊∑¡æﬂ «“ ∫Œ∫–¿ª Ω«¡¶∑Œ ±◊∏Æ±‚)
                             for (int i = nStart; i <= nEnd; i++)
                             {
                                 CDisp = OjwDispAll.GetData(i);
@@ -8213,7 +11645,7 @@ namespace OpenJigWare
                                     if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
                                         CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
 
-                                    // Limit Check(Kor: Í∞ÅÎèÑÏùò Limit Ï≤¥ÌÅ¨) //
+                                    // Limit Check(Kor: ∞¢µµ¿« Limit √º≈©) //
                                     if (CDisp.nName >= 0)
                                     {
                                         if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
@@ -8282,8 +11714,8 @@ namespace OpenJigWare
                         SwapBuffers();
                         //this.SwapBuffers();
                     }
-                    //this.DrawGLScene();                // Ïû•Î©¥ÏùÑ Í∑∏Î¶∞Îã§
-                    //SwapBuffers(hDC);            // Î≤ÑÌçºÎ•º Ïä§ÏôÄÌïëÌïúÎã§ (ÎçîÎ∏î Î≤ÑÌçºÎßÅ)
+                    //this.DrawGLScene();          // draw the scene
+                    //SwapBuffers(hDC);            // Swap buffer (double buffering)
                     //this.SwapBuffers();
                     //SwapBuffers();
                     //this.Invalidate(false);
@@ -8388,7 +11820,7 @@ namespace OpenJigWare
 
                     float fRatio = _RATIO * m_fScale;
 
-                    //Gl.glViewport(-s.Width / 2, -s.Height / 2, s.Width * 2, s.Height * 2); // Ïù¥Í±∏ ÏÇ¥Î¶¨Î©¥ ÌîºÌÇπÏù¥ ÏïàÎêúÎã§.
+                    //Gl.glViewport(-s.Width / 2, -s.Height / 2, s.Width * 2, s.Height * 2); // ¿Ã∞… ªÏ∏Æ∏È ««≈∑¿Ã æ»µ»¥Ÿ.
                     Gl.glViewport(0, 0, s.Width, s.Height);
                     //Glu.gluLookAt(0, 0, -100, 0, 0, 0, 0, 1, 0);
                     Gl.glMatrixMode(Gl.GL_PROJECTION);
@@ -8406,15 +11838,15 @@ namespace OpenJigWare
                 }
                 #endregion SizeChange
 
-                // Set the lights(Kor: Îπõ ÏÑ§Ï†ï)
+                // Set the lights(Kor: ∫˚ º≥¡§)
                 #region Light
                 private bool m_bEnable_Light = true;
                 public void Enable_Light(bool bEnable) { m_bEnable_Light = bEnable; }
 
-                //private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -300.0f, 1.0f };
-                //private float[] m_light1_position = new float[4] { 10.0f, 20.0f, 1.0f, 1.0f };
-                private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -2000.0f, 1.0f };
-                private float[] m_light1_position = new float[4] { 2000.0f, 1000.0f, 1.0f, 1.0f };
+                private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -10.0f, 1.0f };
+                private float[] m_light1_position = new float[4] { 10.0f, 20.0f, 1.0f, 1.0f };
+                //private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -2000.0f, 1.0f };
+                //private float[] m_light1_position = new float[4] { 2000.0f, 1000.0f, 1.0f, 1.0f };
 
                 private float[] m_light0_direction = new float[3] { -0.7f, 0.2f, 0.7f };
                 private float[] m_light1_direction = new float[3] { -0.5f, -0.5f, 1.0f };
@@ -8427,18 +11859,45 @@ namespace OpenJigWare
             GL_SHININESS {25.6f};
 
 #endif
-                private float[] m_ambient = new float[4] { 0.2f, 0.2f, 0.2f, 1.0f };
-                private float[] m_diffuseLight = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f };
+#if true
+                private float[] m_ambient = new float[4] { 0.5f, 0.5f, 0.5f, 1.0f };
+                //private float[] m_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                private float[] m_diffuseLight = new float[4] { 0.5f, 0.5f, 0.5f, 1.0f };//{ 1.0f, 1.0f, 1.0f, 1.0f };
                 private float[] m_specular = new float[4] { 0.8f, 0.8f, 0.8f, 1.0f };
+#else
+                private float[] m_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                private float[] m_diffuseLight = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
+                private float[] m_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };//{ 0.6f, 0.6f, 0.6f, 1.0f };
+#endif
+                private float[] m_ambient2 = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };//{ 0.25f, 0.25f, 0.25f, 1.0f };
+                private float[] m_diffuseLight2 = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };//{ 0.4f, 0.4f, 0.4f, 1.0f };
+                private float[] m_specular2 = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };//{ 0.8f, 0.8f, 0.8f, 1.0f };
 
-                private float[] m_mat_diffuse = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
-                private float[] m_mat_specular = new float[4] { 0.35f, 0.35f, 0.35f, 1.0f };
-                private float[] m_mat_ambient = new float[4] { 0.5f, 0.5f, 0.5f, 0.5f };
-                private float[] m_mat_shiness = new float[1] { 80.0f };
+#if true
+                // chrome 
+                // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
+                private float[] m_mat_diffuse = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
+                private float[] m_mat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
+                private float[] m_mat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 0.5f };
+                private float[] m_mat_shiness = new float[1] { 0.6f * 128.0f };
+#else
+                // gold //
+                // ambient - 0.24725 0.1995 0.0745 diffuse - 0.75164 0.60648 0.22648 specular - 0.628281 0.555802 0.366065 shininess - 0.4 
+                private float[] m_mat_diffuse = new float[4] { 0.75164f, 0.60648f, 0.22648f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
+                private float[] m_mat_specular = new float[4] { 0.628281f, 0.555802f, 0.366065f, 1.0f };
+                private float[] m_mat_ambient = new float[4] { 0.24725f, 0.1995f, 0.0745f, 0.5f };
+                private float[] m_mat_shiness = new float[1] { 0.4f * 128.0f };
+#endif
+                //private float[] m_mat_diffuse = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
+                //private float[] m_mat_specular = new float[4] { 0.35f, 0.35f, 0.35f, 1.0f };
+                //private float[] m_mat_ambient = new float[4] { 0.5f, 0.5f, 0.5f, 0.5f };
+                //private float[] m_mat_shiness = new float[1] { 80.0f };
 
                 //private int m_nShiness = 128;
-                private float m_fSpot = 85.0f;
-                private float m_fExponent = 3.0f;//2.0f;//1.0f;
+                private float m_fSpot = 85;//85.0f;
+                private float m_fExponent = 3.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
+                private float m_fSpot2 = 85;//85.0f;
+                private float m_fExponent2 = 3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
                 public void SetLight_Position(float fA, float fB, float fC, float fD) { m_light0_position[0] = fA; m_light0_position[1] = fB; m_light0_position[2] = fC; m_light0_position[3] = fD; }
                 public void SetLight_Ambient(float fA, float fB, float fC, float fD) { m_ambient[0] = fA; m_ambient[1] = fB; m_ambient[2] = fC; m_ambient[3] = fD; }
                 public void SetLight_diffuseLight(float fA, float fB, float fC, float fD) { m_diffuseLight[0] = fA; m_diffuseLight[1] = fB; m_diffuseLight[2] = fC; m_diffuseLight[3] = fD; }
@@ -8455,20 +11914,38 @@ namespace OpenJigWare
 
                 private void SetLight2()
                 {
-                    //Gl.glEnable(Gl.GL_LIGHTING);     // Enable lighting(Kor: Ï°∞Î™Ö ÌôúÏÑ±Ìôî)
+                    Gl.glEnable(Gl.GL_LIGHTING);     // Enable lighting(Kor: ¡∂∏Ì »∞º∫»≠)
                     Gl.glEnable(Gl.GL_LIGHT1);
 
                     Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_POSITION, m_light1_position);
-                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_DIFFUSE, m_mat_diffuse);
-                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_SPECULAR, m_mat_specular);
-                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_AMBIENT, m_mat_ambient);
-                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_SPOT_DIRECTION, m_light1_direction);// Direction of light(Kor: ÎπõÏùò Î∞©Ìñ•)
+                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_DIFFUSE, m_diffuseLight2);
+                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_SPECULAR, m_specular2);
+                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_AMBIENT, m_ambient2);
+                    Gl.glLightfv(Gl.GL_LIGHT1, Gl.GL_SPOT_DIRECTION, m_light1_direction);// Direction of light(Kor: ∫˚¿« πÊ«‚)
 
                     // Set the exponent - The higher this value is increasing rapidly in the outer darkness at the center axis.
-                    // Kor: ÏäπÏàò ÏÑ§Ï†ï - Ïù¥ Í∞íÏù¥ Ïª§ÏßàÏàòÎ°ù Ï§ëÏã¨Ï∂ï Î∞©Ìñ•ÏóêÏÑú Ïô∏Í≥ΩÏúºÎ°ú Í∞àÏàòÎ°ù Í∏âÍ≤©Ìûà Ïñ¥ÎëêÏõå ÏßÑÎã§.
-                    Gl.glLightf(Gl.GL_LIGHT1, Gl.GL_SPOT_EXPONENT, m_fExponent);//+ 1); 
+                    // Kor: Ω¬ºˆ º≥¡§ - ¿Ã ∞™¿Ã ƒø¡˙ºˆ∑œ ¡ﬂΩ…√‡ πÊ«‚ø°º≠ ø‹∞˚¿∏∑Œ ∞•ºˆ∑œ ±ﬁ∞›»˜ æÓµŒøˆ ¡¯¥Ÿ.
+                    Gl.glLightf(Gl.GL_LIGHT1, Gl.GL_SPOT_EXPONENT, m_fExponent2);//+ 1); 
 
-                    Gl.glLightf(Gl.GL_LIGHT1, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // Set the spot value(Kor: Ï°∞Î™ÖÍ∞Å ÏÑ§Ï†ï(Ïä§Ìè¨Ìä∏ÎùºÏù¥Ìä∏))
+                    Gl.glLightf(Gl.GL_LIGHT1, Gl.GL_SPOT_CUTOFF, m_fSpot2);//60.0f); // Set the spot value(Kor: ¡∂∏Ì∞¢ º≥¡§(Ω∫∆˜∆Æ∂Û¿Ã∆Æ))
+
+
+#if true
+                    //Gold//
+                    //ambient - 0.24725 0.1995 0.0745 diffuse - 0.75164 0.60648 0.22648 specular - 0.628281 0.555802 0.366065 shininess - 0.4 
+                    //chrome // http://devernay.free.fr/cours/opengl/materials.html
+                    // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
+                    float[] afmat_diffuse = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
+                    float[] afmat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
+                    float[] afmat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                    float[] afmat_shiness = new float[1] { 0.6f * 128.0f };
+
+                    Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afmat_diffuse);
+                    Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_SPECULAR, afmat_specular);
+                    Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, afmat_ambient);
+                    Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_SHININESS, afmat_shiness);
+#endif
+
 #if false
                     Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
                     Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, m_mat_specular);
@@ -8476,9 +11953,11 @@ namespace OpenJigWare
                     Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, m_mat_shiness);
                     //Gl.glMateriali(Gl.GL_FRONT, Gl.GL_SHININESS, m_nShiness);//128); // 1 - 128  
                     Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);
+#else
+                    
 #endif
                 }
-                private bool m_bDisplay_Edge = true;
+                private bool m_bDisplay_Edge = true; //ƒƒ«ª≈Õø° µ˚∂Û ø°¡ˆ∏¶ ªÏ∏Æ∞Ì ¡◊¿Ãµµ∑œ ºˆ¡§«ÿæﬂ «“ µÌ...
                 private bool m_bDetail = true;
                 public void SetDisplay_Edge(bool bEn) { m_bDisplay_Edge = bEn; }
                 public void SetDisplay_Detail(bool bEn) { m_bDetail = bEn; }
@@ -8488,42 +11967,97 @@ namespace OpenJigWare
                     if (m_bEnable_Light == true)
                     {
 #if true
+
+
+
+#if true                        
                         Gl.glEnable(Gl.GL_LIGHTING);     // Enable Light
                         Gl.glEnable(Gl.GL_LIGHT0);
 
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, m_light0_position);
-                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction); // Direction of light(Kor: ÎπõÏùò Î∞©Ìñ•)
-                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // Set the spot value(Kor: Ï°∞Î™ÖÍ∞Å ÏÑ§Ï†ï(Ïä§Ìè¨Ìä∏ÎùºÏù¥Ìä∏))
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction); // Direction of light(Kor: ∫˚¿« πÊ«‚)
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // Set the spot value(Kor: ¡∂∏Ì∞¢ º≥¡§(Ω∫∆˜∆Æ∂Û¿Ã∆Æ))
                         // Set the exponent - The higher this value is increasing rapidly in the outer darkness at the center axis.
-                        // Kor: ÏäπÏàò ÏÑ§Ï†ï - Ïù¥ Í∞íÏù¥ Ïª§ÏßàÏàòÎ°ù Ï§ëÏã¨Ï∂ï Î∞©Ìñ•ÏóêÏÑú Ïô∏Í≥ΩÏúºÎ°ú Í∞àÏàòÎ°ù Í∏âÍ≤©Ìûà Ïñ¥ÎëêÏõå ÏßÑÎã§.
+                        // Kor: Ω¬ºˆ º≥¡§ - ¿Ã ∞™¿Ã ƒø¡˙ºˆ∑œ ¡ﬂΩ…√‡ πÊ«‚ø°º≠ ø‹∞˚¿∏∑Œ ∞•ºˆ∑œ ±ﬁ∞›»˜ æÓµŒøˆ ¡¯¥Ÿ.
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_EXPONENT, m_fExponent);
+
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
+#else
+                        Gl.glEnable(Gl.GL_LIGHTING);     // Enable Light
+                        Gl.glEnable(Gl.GL_LIGHT0);
+
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, m_light0_position);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction); // Direction of light(Kor: ∫˚¿« πÊ«‚)
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // Set the spot value(Kor: ¡∂∏Ì∞¢ º≥¡§(Ω∫∆˜∆Æ∂Û¿Ã∆Æ))
+                        // Set the exponent - The higher this value is increasing rapidly in the outer darkness at the center axis.
+                        // Kor: Ω¬ºˆ º≥¡§ - ¿Ã ∞™¿Ã ƒø¡˙ºˆ∑œ ¡ﬂΩ…√‡ πÊ«‚ø°º≠ ø‹∞˚¿∏∑Œ ∞•ºˆ∑œ ±ﬁ∞›»˜ æÓµŒøˆ ¡¯¥Ÿ.
                         Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_EXPONENT, m_fExponent);
 
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
 
+
+
+                        // æ‡∞£¿« ¡÷∫Ø±§¿ª ≥÷æÓ π∞√º∞° ∫∏¿Ãµµ∑œ «—¥Ÿ.
+                        SetLight_diffuseLight(0.2f, 0.2f, 0.2f, 1.0f);
+                        Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
+
+                        // ¡∂∏Ì º≥¡§
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, m_light0_position);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction);// ∫˚¿« πÊ«‚
+
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_EXPONENT, m_fExponent); // Ω¬ºˆ º≥¡§ - ¿Ã ∞™¿Ã ƒø¡˙ºˆ∑œ ¡ﬂΩ…√‡ πÊ«‚ø°º≠ ø‹∞˚¿∏∑Œ ∞•ºˆ∑œ ±ﬁ∞›»˜ æÓµŒøˆ ¡¯¥Ÿ.
+
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // ¡∂∏Ì∞¢ º≥¡§(Ω∫∆˜∆Æ∂Û¿Ã∆Æ)
+
+
+
+                        //chrome // http://devernay.free.fr/cours/opengl/materials.html
+                        // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
+                        float[] afmat_diffuse = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
+                        float[] afmat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
+                        float[] afmat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                        float[] afmat_shiness = new float[1] { 0.6f * 128.0f };
+
+                        Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, afmat_diffuse);
+                        Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, afmat_specular);
+                        Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, afmat_ambient);
+                        Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, afmat_shiness);
+#endif
+
+
+
+
+
+
 #if false
-                        // The light weakens with distance.(Kor: Í±∞Î¶¨Ïóê Îî∞Î•∏ ÎπõÏùò ÏïΩÌôî)
+                        // The light weakens with distance.(Kor: ∞≈∏Æø° µ˚∏• ∫˚¿« æ‡»≠)
                         float fValue = 1.0f;
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_CONSTANT_ATTENUATION, ref fValue);
                         fValue = 2.0f; Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_LINEAR_ATTENUATION, ref fValue);
                         fValue = 3.0f; Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_QUADRATIC_ATTENUATION, ref fValue);
 #endif
-                        // Material properties are set to follow glColor value(Kor: Ïû¨Ïßà ÏÜçÏÑ±Ïù¥ glColor Í∞íÏùÑ Îî∞Î•¥Í≤åÎÅî ÏÑ§Ï†ï)
+                        // Material properties are set to follow glColor value(Kor: ¿Á¡˙ º”º∫¿Ã glColor ∞™¿ª µ˚∏£∞‘≤˚ º≥¡§)
                         if (IsPerspectiveMode() == true)
                         {
                             Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
-
+                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // ¡ﬂø‰.. ¿Ã∞… «ÿæﬂ π‡æ∆¡¯¥Ÿ.
                             Gl.glEnable(Gl.GL_COLOR_MATERIAL);   // Enable Material color tracking
 
                                 // Front material ambient and diffuse colors track glColor
                             //Gl.glColorMaterial(Gl.GL_FRONT, Gl.GL_AMBIENT_AND_DIFFUSE);
                             //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
-                            // Enable color tracking(Kor: ÏÉâÏÉÅ Ìä∏ÎûòÌÇπÏùÑ ÏÇ¨Ïö©ÌïòÍ≤åÎÅî ÏÑ§Ï†ï)
+                            // Enable color tracking(Kor: ªˆªÛ ∆Æ∑°≈∑¿ª ªÁøÎ«œ∞‘≤˚ º≥¡§)
                             //Gl.glEnable(Gl.GL_COLOR_MATERIAL);
 
-                            //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: Í≤πÏπòÎäî Îí∑Î©¥ÏùÑ Í∑∏Î¶¨ÏßÄ ÏïäÏùå)
-                            Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: ÍπäÏù¥ Î≤ÑÌçº ÌôúÏÑ±Ìôî - Ïà®Í≤®ÏßÑ Î©¥ ÏßÄÏö∞Í∏∞)
+                            //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: ∞„ƒ°¥¬ µﬁ∏È¿ª ±◊∏Æ¡ˆ æ ¿Ω)
+                            Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: ±Ì¿Ã πˆ∆€ »∞º∫»≠ - º˚∞‹¡¯ ∏È ¡ˆøÏ±‚)
 
 
                             //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
@@ -8539,18 +12073,18 @@ namespace OpenJigWare
                             Gl.glShadeModel(Gl.GL_SMOOTH);							    // Enable Smooth Shading                                                     
 //#endif
 
-
                             //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
                         }
                         else
                         {
                             Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
-                            //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
-                            // Enable color tracking(Kor: ÏÉâÏÉÅ Ìä∏ÎûòÌÇπÏùÑ ÏÇ¨Ïö©ÌïòÍ≤åÎÅî ÏÑ§Ï†ï)
+                            //Gl.glColorMaterial(Gl.GL_FRONT, Gl.GL_AMBIENT);
+                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // ¡ﬂø‰.. ¿Ã∞… «ÿæﬂ π‡æ∆¡¯¥Ÿ.
+                            // Enable color tracking(Kor: ªˆªÛ ∆Æ∑°≈∑¿ª ªÁøÎ«œ∞‘≤˚ º≥¡§)
                             Gl.glEnable(Gl.GL_COLOR_MATERIAL);
 
-                            //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: Í≤πÏπòÎäî Îí∑Î©¥ÏùÑ Í∑∏Î¶¨ÏßÄ ÏïäÏùå)
-                            Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: ÍπäÏù¥ Î≤ÑÌçº ÌôúÏÑ±Ìôî - Ïà®Í≤®ÏßÑ Î©¥ ÏßÄÏö∞Í∏∞)
+                            //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: ∞„ƒ°¥¬ µﬁ∏È¿ª ±◊∏Æ¡ˆ æ ¿Ω)
+                            Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: ±Ì¿Ã πˆ∆€ »∞º∫»≠ - º˚∞‹¡¯ ∏È ¡ˆøÏ±‚)
 
 
                             //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
@@ -8584,16 +12118,17 @@ namespace OpenJigWare
                          
                         if (IsPerspectiveMode() == true)
                         {
-#if false
+#if true
                             // Set Alpha Environment
-                            //Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO); 
-                            Gl.glEnable(Gl.GL_BLEND);
+                             Gl.glEnable(Gl.GL_BLEND);
                             Gl.glEnable(Gl.GL_ALPHA_TEST);
                             //Gl.glAlphaFunc(Gl.GL_LESS, 1.0f);
-                            Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
+                            //Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO);
+                            Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO);
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
-                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> Ïù¥Í±∏ÌïòÎ©¥ Í≤âÏùò Ïú§Í≥ΩÏù¥ Í≤ÄÏñ¥ÏßÑÎã§.
-                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> Ïù¥Í±¥ Î≥ÑÎ°ú...
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> ¿Ã∞…«œ∏È ∞—¿« ¿±∞˚¿Ã ∞ÀæÓ¡¯¥Ÿ.
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> ¿Ã∞« ∫∞∑Œ...
 
                             // 20150527
                             //Gl.glEnable(Gl.GL_CULL_FACE);   
@@ -8608,9 +12143,10 @@ namespace OpenJigWare
                             //Gl.glAlphaFunc(Gl.GL_LESS, 1.0f);
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
-                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
-                            Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> Ïù¥Í±∏ÌïòÎ©¥ Í≤âÏùò Ïú§Í≥ΩÏù¥ Í≤ÄÏñ¥ÏßÑÎã§.
-                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> Ïù¥Í±¥ Î≥ÑÎ°ú...
+                            Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> ¿Ã∞…«œ∏È ∞—¿« ¿±∞˚¿Ã ∞ÀæÓ¡¯¥Ÿ.
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); 
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> ¿Ã∞« ∫∞∑Œ...
 
                             // 20150527
                             //Gl.glEnable(Gl.GL_CULL_FACE);   
@@ -8621,12 +12157,26 @@ namespace OpenJigWare
 #endif
 
 #if true //20150116
+#if true
                             Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
                             Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, m_mat_specular);
                             //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, m_mat_ambient);
                             Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, m_mat_shiness);
                             //Gl.glMateriali(Gl.GL_FRONT, Gl.GL_SHININESS, m_nShiness);//128); // 1 - 128  
                             Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);
+#else
+                            //chrome // http://devernay.free.fr/cours/opengl/materials.html
+                            // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
+                            float[] afmat_diffuse = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
+                            float[] afmat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
+                            float[] afmat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                            float[] afmat_shiness = new float[1] { 0.6f * 128.0f };
+
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, afmat_diffuse);
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, afmat_specular);
+                            Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, afmat_ambient);
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, afmat_shiness);
+#endif
 #else
                             GL_FRONT_AND_BACK
                         //Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
@@ -8641,8 +12191,9 @@ namespace OpenJigWare
                             Gl.glEnable(Gl.GL_ALPHA_TEST);
                         
                             Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
-                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> Ïù¥Í±∏ÌïòÎ©¥ Í≤âÏùò Ïú§Í≥ΩÏù¥ Í≤ÄÏñ¥ÏßÑÎã§.
-                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> Ïù¥Í±¥ Î≥ÑÎ°ú...
+                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> ¿Ã∞…«œ∏È ∞—¿« ¿±∞˚¿Ã ∞ÀæÓ¡¯¥Ÿ.
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA);
+                            //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> ¿Ã∞« ∫∞∑Œ...
 
                             // 20150527
                             //Gl.glEnable(Gl.GL_CULL_FACE);   
@@ -8650,6 +12201,59 @@ namespace OpenJigWare
 
                             //Gl.glEdgeFlag(Gl.GL_FALSE );
                             Gl.glEdgeFlag((m_bDisplay_Edge == true) ? Gl.GL_TRUE : Gl.GL_FALSE);//Gl.GL_TRUE); // 1
+
+
+                            //float[] afEmission = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                            //float[] afEmission = new float[4] { 0.15f, 0.15f, 0.15f, 1.0f };
+                            //Gl.glMaterialfv(Gl.GL_FRONT_AND_BACK, Gl.GL_EMISSION, afEmission); // πﬂ±§√º º±æ
+#if false
+                            float[] afmat_diffuse = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
+                            float[] afmat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
+                            float[] afmat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                            float[] afmat_shiness = new float[1] { 0.6f * 128.0f };
+
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, afmat_diffuse);
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, afmat_specular);
+                            Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, afmat_ambient);
+                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, afmat_shiness);
+#endif
+
+
+
+
+#if false
+                            // æ‡∞£¿« ¡÷∫Ø±§¿ª ≥÷æÓ π∞√º∞° ∫∏¿Ãµµ∑œ «—¥Ÿ.
+                            //SetLight_diffuseLight(0.2f, 0.2f, 0.2f, 1.0f);
+                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
+
+                            // ¡∂∏Ì º≥¡§
+                            Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, m_light0_position);
+                            Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
+                            Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
+                            Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
+                            Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction);// ∫˚¿« πÊ«‚
+
+                            Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_EXPONENT, m_fExponent); // Ω¬ºˆ º≥¡§ - ¿Ã ∞™¿Ã ƒø¡˙ºˆ∑œ ¡ﬂΩ…√‡ πÊ«‚ø°º≠ ø‹∞˚¿∏∑Œ ∞•ºˆ∑œ ±ﬁ∞›»˜ æÓµŒøˆ ¡¯¥Ÿ.
+
+                            Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // ¡∂∏Ì∞¢ º≥¡§(Ω∫∆˜∆Æ∂Û¿Ã∆Æ)
+
+#if true //20150116
+                Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
+                Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, m_mat_specular);
+                //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, m_mat_ambient);
+                Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, m_mat_shiness);
+                //Gl.glMateriali(Gl.GL_FRONT, Gl.GL_SHININESS, m_nShiness);//128); // 1 - 128  
+                Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);
+#endif
+#endif
+
+
+
+
+
+
+
+
                         }
 
 
@@ -8673,10 +12277,10 @@ namespace OpenJigWare
                         //Gl.glEnable(Gl.GL_AUTO_NORMAL);
 
 
-                        //// Ï°∞Î™ÖÏùÑ ÏÇ¨Ïö©ÌïòÍ≤å ÎÅî ÏÑ§Ï†ïn
-                        //Gl.glShadeModel(Gl.GL_SMOOTH);	//Íµ¨Î°ú ÏÖ∞Ïù¥Îî©
-                        //Gl.glShadeModel(Gl.GL_FLAT);	//Íµ¨Î°ú ÏÖ∞Ïù¥Îî©
-                        Gl.glEnable(Gl.GL_LIGHTING);     //Ï°∞Î™Ö ÌôúÏÑ±Ìôî
+                        //// ¡∂∏Ì¿ª ªÁøÎ«œ∞‘ ≤˚ º≥¡§n
+                        //Gl.glShadeModel(Gl.GL_SMOOTH);	//±∏∑Œ ºŒ¿Ãµ˘
+                        //Gl.glShadeModel(Gl.GL_FLAT);	//±∏∑Œ ºŒ¿Ãµ˘
+                        Gl.glEnable(Gl.GL_LIGHTING);     //¡∂∏Ì »∞º∫»≠
                         Gl.glEnable(Gl.GL_LIGHT0);
 
                         ////Gl.glDepthFunc(Gl.GL_ALWAYS);								// The Type Of Depth Testing To Do
@@ -8684,22 +12288,22 @@ namespace OpenJigWare
                         //Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_FASTEST);	// Really Nice Perspective Calculations
 
 
-                        //Gl.glFrontFace(Gl.GL_CCW);       // Î∞òÏãúÍ≥Ñ Î∞©Ìñ•Ïùò ÏôÄÏù∏Îî© Ï†ÅÏö©
+                        //Gl.glFrontFace(Gl.GL_CCW);       // π›Ω√∞Ë πÊ«‚¿« øÕ¿Œµ˘ ¿˚øÎ
 
-                        // ÏïΩÍ∞ÑÏùò Ï£ºÎ≥ÄÍ¥ëÏùÑ ÎÑ£Ïñ¥ Î¨ºÏ≤¥Í∞Ä Î≥¥Ïù¥ÎèÑÎ°ù ÌïúÎã§.
+                        // æ‡∞£¿« ¡÷∫Ø±§¿ª ≥÷æÓ π∞√º∞° ∫∏¿Ãµµ∑œ «—¥Ÿ.
                         //SetLight_diffuseLight(0.2f, 0.2f, 0.2f, 1.0f);
                         Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_diffuseLight);
 
-                        // Ï°∞Î™Ö ÏÑ§Ï†ï
+                        // ¡∂∏Ì º≥¡§
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, m_light0_position);
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_DIFFUSE, m_diffuseLight);
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPECULAR, m_specular);
                         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_AMBIENT, m_ambient);
-                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction);// ÎπõÏùò Î∞©Ìñ•
+                        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_SPOT_DIRECTION, m_light0_direction);// ∫˚¿« πÊ«‚
 
-                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_EXPONENT, m_fExponent); // ÏäπÏàò ÏÑ§Ï†ï - Ïù¥ Í∞íÏù¥ Ïª§ÏßàÏàòÎ°ù Ï§ëÏã¨Ï∂ï Î∞©Ìñ•ÏóêÏÑú Ïô∏Í≥ΩÏúºÎ°ú Í∞àÏàòÎ°ù Í∏âÍ≤©Ìûà Ïñ¥ÎëêÏõå ÏßÑÎã§.
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_EXPONENT, m_fExponent); // Ω¬ºˆ º≥¡§ - ¿Ã ∞™¿Ã ƒø¡˙ºˆ∑œ ¡ﬂΩ…√‡ πÊ«‚ø°º≠ ø‹∞˚¿∏∑Œ ∞•ºˆ∑œ ±ﬁ∞›»˜ æÓµŒøˆ ¡¯¥Ÿ.
 
-                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // Ï°∞Î™ÖÍ∞Å ÏÑ§Ï†ï(Ïä§Ìè¨Ìä∏ÎùºÏù¥Ìä∏)
+                        Gl.glLightf(Gl.GL_LIGHT0, Gl.GL_SPOT_CUTOFF, m_fSpot);//60.0f); // ¡∂∏Ì∞¢ º≥¡§(Ω∫∆˜∆Æ∂Û¿Ã∆Æ)
 
 #if false //20150116
                 Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
@@ -8711,12 +12315,12 @@ namespace OpenJigWare
 #endif
 
 
-                        //float[] Emission = new float[4] { 0.3f, 0.3f, 0.3f, 0.5f };//Î∞úÍ¥ëÏÉâ(R,G,B,A)
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_EMISSION, Emission);// Î∞úÍ¥ëÏ≤¥ ÏÑ†Ïñ∏
+                        //float[] Emission = new float[4] { 0.3f, 0.3f, 0.3f, 0.5f };//πﬂ±§ªˆ(R,G,B,A)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_EMISSION, Emission);// πﬂ±§√º º±æ
 
                         Gl.glLightModeli(Gl.GL_LIGHT_MODEL_TWO_SIDE, Gl.GL_TRUE);
 
-                        // Ïû¨Ïßà ÏÜçÏÑ±Ïù¥ glColor Í∞íÏùÑ Îî∞Î•¥Í≤åÎÅî ÏÑ§Ï†ï
+                        // ¿Á¡˙ º”º∫¿Ã glColor ∞™¿ª µ˚∏£∞‘≤˚ º≥¡§
                         Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
 
 
@@ -8724,12 +12328,12 @@ namespace OpenJigWare
                         //Gl.glBindTexture(Gl.GL_TEXTURE_2D, g_Texture[pObject->materialID]);
 
 
-                        // ÏÉâÏÉÅ Ìä∏ÎûòÌÇπÏùÑ ÏÇ¨Ïö©ÌïòÍ≤åÎÅî ÏÑ§Ï†ï
+                        // ªˆªÛ ∆Æ∑°≈∑¿ª ªÁøÎ«œ∞‘≤˚ º≥¡§
                         Gl.glEnable(Gl.GL_COLOR_MATERIAL);
 
-                        //Gl.glEnable(Gl.GL_CULL_FACE);    // Í≤πÏπòÎäî Îí∑Î©¥ÏùÑ Í∑∏Î¶¨ÏßÄ ÏïäÏùå
-                        //Gl.glFrontFace(Gl.GL_CCW);       // ÏãúÍ≥Ñ Î∞©Ìñ•Ïùò ÏôÄÏù∏Îî© Ï†ÅÏö©
-                        Gl.glEnable(Gl.GL_DEPTH_TEST);	//ÍπäÏù¥ Î≤ÑÌçº ÌôúÏÑ±Ìôî - Ïà®Í≤®ÏßÑ Î©¥ ÏßÄÏö∞Í∏∞
+                        //Gl.glEnable(Gl.GL_CULL_FACE);    // ∞„ƒ°¥¬ µﬁ∏È¿ª ±◊∏Æ¡ˆ æ ¿Ω
+                        //Gl.glFrontFace(Gl.GL_CCW);       // Ω√∞Ë πÊ«‚¿« øÕ¿Œµ˘ ¿˚øÎ
+                        Gl.glEnable(Gl.GL_DEPTH_TEST);	//±Ì¿Ã πˆ∆€ »∞º∫»≠ - º˚∞‹¡¯ ∏È ¡ˆøÏ±‚
                         //float [] fcolor = new float[4] {0.1f, 0.1f, 0.1f, 0.1f};
                         //Gl.glEnable(Gl.GL_FOG);
 
@@ -8742,21 +12346,21 @@ namespace OpenJigWare
                 float[] ambLight = new float[4] { 0.5f, 0.5f, 0.5f, 0.5f };
                 float[] specular = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f };
                 float[] specref = new float[4] { 1.0f, 1.0f, 1.0f, 1.0f }; 
-                float [] lightPos = new float[4] {0.0f, 100.0f, 0.0f, 1.0f}; //Ï°∞Î™ÖÏùò ÏúÑÏπòÎ•º ÏÑ§Ï†ïÌïúÎã§. 
+                float [] lightPos = new float[4] {0.0f, 100.0f, 0.0f, 1.0f}; //¡∂∏Ì¿« ¿ßƒ°∏¶ º≥¡§«—¥Ÿ. 
 
-                Gl.glEnable(GL.GL_LIGHTING); //Ï°∞Î™ÖÏùÑ ÏÇ¨Ïö©ÌïòÎèÑÎ°ù ÌïúÎã§. 
-                Gl.glLightModelfv(GL.GL_LIGHT_MODEL_AMBIENT, ambLight); //Ï†ÄÏû•Îêú Í∞íÏúºÎ°ú Ï£ºÎ≥ÄÍ¥ëÏùÑ ÏÑ§Ï†ïÌïúÎã§. 
+                Gl.glEnable(GL.GL_LIGHTING); //¡∂∏Ì¿ª ªÁøÎ«œµµ∑œ «—¥Ÿ. 
+                Gl.glLightModelfv(GL.GL_LIGHT_MODEL_AMBIENT, ambLight); //¿˙¿Âµ» ∞™¿∏∑Œ ¡÷∫Ø±§¿ª º≥¡§«—¥Ÿ. 
                 Gl.glLightfv(GL.GL_LIGHT0, Gl.GL_DIFFUSE, ambLight);
                 Gl.glLightfv(GL.GL_LIGHT0, Gl.GL_SPECULAR, specular);
-                Gl.glLightfv(GL.GL_LIGHT0, Gl.GL_POSITION, lightPos); //Ï°∞Î™Ö ÏúÑÏπò ÏÑ§Ï†ï 
-                Gl.glEnable(GL.GL_COLOR_MATERIAL); //Ïû¨ÏßàÏóê ÏòÅÌñ•ÏùÑ Î∞õÎèÑÎ°ù ÌïúÎã§. 
+                Gl.glLightfv(GL.GL_LIGHT0, Gl.GL_POSITION, lightPos); //¡∂∏Ì ¿ßƒ° º≥¡§ 
+                Gl.glEnable(GL.GL_COLOR_MATERIAL); //¿Á¡˙ø° øµ«‚¿ª πﬁµµ∑œ «—¥Ÿ. 
 
-                Gl.glColorMaterial(GL.GL_FRONT, Gl.GL_AMBIENT_AND_DIFFUSE); //Ïû¨Ïßà ÏÉâÏÉÅÏùÑ Ïò§Î∏åÏ†ùÌä∏ÏôÄ ÌÖçÏä§Ï≥ê ÏÑπÏùÑ Ìï®Íªò ÏÇ¨Ïö©ÌïúÎã§. 
+                Gl.glColorMaterial(GL.GL_FRONT, Gl.GL_AMBIENT_AND_DIFFUSE); //¿Á¡˙ ªˆªÛ¿ª ø¿∫Í¡ß∆ÆøÕ ≈ÿΩ∫√ƒ ºΩ¿ª «‘≤≤ ªÁøÎ«—¥Ÿ. 
 
                 Gl.glMaterialfv(GL.GL_FRONT, Gl.GL_SPECULAR, specref);
                 Gl.glMateriali(GL.GL_FRONT, Gl.GL_SHININESS, 70);
 
-                Gl.glEnable(GL.GL_LIGHT0); //0Î≤à Ï°∞Î™Ö ÏÇ¨Ïö© 
+                Gl.glEnable(GL.GL_LIGHT0); //0π¯ ¡∂∏Ì ªÁøÎ 
 #if _GL_FLAT
                     Gl.glShadeModel(Gl.GL_FLAT);							    // Enable Flat Shading
 #else
@@ -8774,15 +12378,15 @@ namespace OpenJigWare
                         Gl.glDisable(Gl.GL_LIGHTING);
                         Gl.glDisable(Gl.GL_LIGHT0);
 
-                        // Enable color tracking(Kor: ÏÉâÏÉÅ Ìä∏ÎûòÌÇπÏùÑ ÏÇ¨Ïö©ÌïòÍ≤åÎÅî ÏÑ§Ï†ï)
+                        // Enable color tracking(Kor: ªˆªÛ ∆Æ∑°≈∑¿ª ªÁøÎ«œ∞‘≤˚ º≥¡§)
                         Gl.glEnable(Gl.GL_COLOR_MATERIAL);
                     }
                 }
                 #endregion Light
 
-                #endregion There are basic functions for initialization.(Kor: OpenGL ÏùÑ Ï≤òÏùå Ïã§ÌñâÏãú Ï¥àÍ∏∞Ìôî ÌïòÎäî Ìï®ÏàòÎì± OpenGL Í∏∞Î≥∏Ï†Å Íµ¨ÌòÑ Ìï®Ïàò)
+                #endregion There are basic functions for initialization.(Kor: OpenGL ¿ª √≥¿Ω Ω««‡Ω√ √ ±‚»≠ «œ¥¬ «‘ºˆµÓ OpenGL ±‚∫ª¿˚ ±∏«ˆ «‘ºˆ)
 
-                #region OpenGL: Rotate, move, reset, etc. The basic control functions(Kor: OpenGL ÌöåÏ†Ñ, Ïù¥Îèô, Ï¥àÍ∏∞ÌôîÎì± Í∏∞Î≥∏Ï†úÏñ¥Ìï®Ïàò)
+                #region OpenGL: Rotate, move, reset, etc. The basic control functions(Kor: OpenGL »∏¿¸, ¿Ãµø, √ ±‚»≠µÓ ±‚∫ª¡¶æÓ«‘ºˆ)
                 private float[] m_afCalcAngle = new float[3] { 0.0f, 0.0f, 0.0f };
                 private float[] m_afCalcPos = new float[3] { 0.0f, 0.0f, 0.0f };
                 //public float[] m_afCalcPos_Event = new float[16];// { 0.0f, 0.0f, 0.0f };
@@ -8816,7 +12420,7 @@ namespace OpenJigWare
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
                     //SetLight();
-                    // Î°úÎ¥áÏùò ÏõÄÏßÅÏûÑ Íµ¨ÌòÑ -> Ïù¥Í±∏ ÏßÄÎ©¥ ÏõÄÏßÅÏûÑÏúºÎ°ú Ïù¥Îèô
+                    // ∑Œ∫ø¿« øÚ¡˜¿” ±∏«ˆ -> ¿Ã∞… ¡ˆ∏È øÚ¡˜¿”¿∏∑Œ ¿Ãµø
                     //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                     //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
@@ -8836,7 +12440,7 @@ namespace OpenJigWare
                     OjwRotation(m_fPan, m_fTilt, m_fSwing);
                     OjwTranslate(m_fX, m_fY, m_fZ);
 
-                    // Î°úÎ¥áÏùò ÏõÄÏßÅÏûÑ Íµ¨ÌòÑ -> Ïù¥Í±∏ ÏßÄÎ©¥ ÏõÄÏßÅÏûÑÏúºÎ°ú Ïù¥Îèô
+                    // ∑Œ∫ø¿« øÚ¡˜¿” ±∏«ˆ -> ¿Ã∞… ¡ˆ∏È øÚ¡˜¿”¿∏∑Œ ¿Ãµø
                     //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                     //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
@@ -8871,7 +12475,7 @@ namespace OpenJigWare
                 #endregion
 
                 // Simply function to calculate only the result of the rotation
-                // Kor: Îã®ÏàúÌûà ÌöåÏ†ÑÏùò Í≤∞Í≥ºÍ∞íÎßå ÎÇ¥ Ï£ºÎäî(Í≥ÑÏÇ∞Ìï¥ Ï£ºÎäî) Ìï®Ïàò
+                // Kor: ¥‹º¯»˜ »∏¿¸¿« ∞·∞˙∞™∏∏ ≥ª ¡÷¥¬(∞ËªÍ«ÿ ¡÷¥¬) «‘ºˆ
                 #region Rotation
                 public void Rotation(float ax, float ay, float az, ref float x, ref float y, ref float z)
                 {
@@ -8884,7 +12488,7 @@ namespace OpenJigWare
                     float ay2 = ay * 0.01745f;
                     float az2 = az * 0.01745f;
 
-                    //    ‚ÜíX(Left), ‚ÜëY(Up), ‚óèZ(Front)
+                    //    °ÊX(Left), °ËY(Up), °‹Z(Front)
                     // Rotation(Z)(Roll)
                     /*
                      cos, -sin, 0, 0
@@ -8940,7 +12544,7 @@ namespace OpenJigWare
                 }
                 #endregion Rotation
 
-                #endregion OpenGL: Rotate, move, reset, etc. The basic control functions(Kor: OpenGL ÌöåÏ†Ñ, Ïù¥Îèô, Ï¥àÍ∏∞ÌôîÎì± Í∏∞Î≥∏Ï†úÏñ¥Ìï®Ïàò)
+                #endregion OpenGL: Rotate, move, reset, etc. The basic control functions(Kor: OpenGL »∏¿¸, ¿Ãµø, √ ±‚»≠µÓ ±‚∫ª¡¶æÓ«‘ºˆ)
 
                 #region Class Control
                 private bool m_bEmptyBody = false;
@@ -8957,14 +12561,14 @@ namespace OpenJigWare
                     m_nAseMulti = ((nMulti < 1) ? 1 : nMulti);
                 }
 
-                private const int _CNT_SECOND_COLOR = 10;
+                private const int _CNT_SECOND_COLOR = 100;
                 private int m_nSecondColor_Num = 0;
                 private bool[] m_abSecondColor = new bool[_CNT_SECOND_COLOR];
                 private Color[] m_acSecondColor = new Color[_CNT_SECOND_COLOR];
                 private int[] m_anSecondColor_GroupA = new int[_CNT_SECOND_COLOR];
                 private int[] m_anSecondColor_GroupB = new int[_CNT_SECOND_COLOR];
                 private int[] m_anSecondColor_GroupC = new int[_CNT_SECOND_COLOR];
-                // save up to 10(Kor: 10Í∞ú ÍπåÏßÄÎßå Ï†ÄÏû•)
+                // save up to 10(Kor: 100∞≥ ±Ó¡ˆ∏∏ ¿˙¿Â)
                 public bool SetColor_Second(int nNum, int nGroupA, int nGroupB, int nGroupC, Color cColor)
                 {
                     if ((nNum < 0) || (nNum >= _CNT_SECOND_COLOR)) return false;
@@ -9039,15 +12643,26 @@ namespace OpenJigWare
                 private float m_fTrackValue = 0.0f;
                 private int m_nSelectedMotor = -1;
                 private int m_nSelectedInverseKinematics = -1;
-                public void SelectMotor(int nAxis) { m_nSelectedMotor = nAxis; m_nSelectedInverseKinematics = -1; } // -1ÏùÑ ÎÑ£ÏúºÎ©¥ ÏÑ†ÌÉù ÏïàÌï®
-                public void SelectInverseKinematics(int nNum) { m_nSelectedInverseKinematics = nNum; m_nSelectedMotor = -1; } // -1ÏùÑ ÎÑ£ÏúºÎ©¥ ÏÑ†ÌÉù ÏïàÌï®
+
+                private bool m_bSyncSelectedMotor = false;
+                public void SelectMotor_Sync_With_Mouse(bool bSync) { m_bSyncSelectedMotor = bSync; } // ∏∂øÏΩ∫∞° ≈¨∏Øµ«∏È ±‚¡∏ selectedmotor ∏¶ «ÿ¡¶«“ ∞Õ¿Œ¡ˆ ...
+                public void SelectMotor(int nAxis)
+                {
+                    m_nSelected_InverseKinematicsNumber = 255;
+                    //m_nSelectedInverseKinematics = -1;
+                    m_nSelectedMotor = nAxis; 
+                    //m_anSelectedGroup[0] = nGroupA;
+                    m_anSelectedGroup[1] = m_nSelectedMotor;// nGroupB;
+                    //m_anSelectedGroup[2] = nGroupC;
+                } // -1¿ª ≥÷¿∏∏È º±≈√ æ»«‘
+                public void SelectInverseKinematics(int nNum) { m_nSelectedInverseKinematics = nNum; m_nSelectedMotor = -1; } // -1¿ª ≥÷¿∏∏È º±≈√ æ»«‘
                 public void OjwDraw_Class(COjwDisp OjwDisp)
                 {                    
                     // 0x 1111 1111(Formular group)   1111 1111(group A) 1 1111 1111(group B(0~255:motor, 256~511:etc group))  111 1111(group C(0~127))
                     //uint nObjectName = (uint)OjwDisp.nPickGroup_A * 256 * 256 + (uint)OjwDisp.nPickGroup_B * 256 + (uint)OjwDisp.nPickGroup_C;
                     //uint unObjectName = (uint)(OjwDisp.nInverseKinematicsNumber & 0xff) * 256 * 256 * 256 + (uint)(OjwDisp.nPickGroup_A & 0xff) * 256 * 256 + ((uint)OjwDisp.nPickGroup_B & 0x1ff) * 128 + ((uint)OjwDisp.nPickGroup_C & 0x7f);
                     #region Kor
-                    // 0x 1111 1111(ÏàòÏãùÍ∑∏Î£π)   1111 1111(Í∑∏Î£π A) 1 1111 1111(Í∑∏Î£π B(0~255:Î™®ÌÑ∞, 256~511:Í∏∞ÌÉÄÍ∑∏Î£π))  111 1111(Í∑∏Î£π C(0~127))
+                    // 0x 1111 1111(ºˆΩƒ±◊∑Ï)   1111 1111(±◊∑Ï A) 1 1111 1111(±◊∑Ï B(0~255:∏≈Õ, 256~511:±‚≈∏±◊∑Ï))  111 1111(±◊∑Ï C(0~127))
                     //uint nObjectName = (uint)OjwDisp.nPickGroup_A * 256 * 256 + (uint)OjwDisp.nPickGroup_B * 256 + (uint)OjwDisp.nPickGroup_C;
                     //uint unObjectName = (uint)(OjwDisp.nInverseKinematicsNumber & 0xff) * 256 * 256 * 256 + (uint)(OjwDisp.nPickGroup_A & 0xff) * 256 * 256 + ((uint)OjwDisp.nPickGroup_B & 0x1ff) * 128 + ((uint)OjwDisp.nPickGroup_C & 0x7f);
                     #endregion Kor
@@ -9069,13 +12684,37 @@ namespace OpenJigWare
                     bool bPicked = false;
                     //if (m_bPickColor == true)
                     //{
-                        if(
-                            (((nGroupA + nGroupB) > 0) &&
+                    
+                    bool bSelectObject_DrawClass = SelectObject_Check(m_nDrawClass_Pos);
+                    bool bMouseClick = (((nGroupA + nGroupB) > 0) &&
                         (OjwDisp.nPickGroup_A == nGroupA) &&
                         (OjwDisp.nPickGroup_B == nGroupB)
-                        ) 
-                            ||
-                            ((SelectObject_Check(m_nDrawClass_Pos) == true) && (SelectObject_Enable() == true))
+                        ) ? true : false;
+
+                    if (bMouseClick == true)
+                    {
+                        if (
+                                (m_bSyncSelectedMotor == true) 
+                                && 
+                                (
+                                    ((m_nSelectedInverseKinematics < 0) && (m_nSelectedMotor >= 0))
+                                    ||
+                                    ((m_nSelectedInverseKinematics >= 0) && (m_nSelectedInverseKinematics != 255))
+                                )
+                            )
+                        {
+                            bMouseClick = false;
+                        }
+                    }
+
+                        if(
+                        //    (((nGroupA + nGroupB) > 0) &&
+                        //(OjwDisp.nPickGroup_A == nGroupA) &&
+                        //(OjwDisp.nPickGroup_B == nGroupB)
+                        //) 
+                        //    ||
+                            ((bMouseClick == true) && (m_bMousePickEnable == true)) ||
+                            ((bSelectObject_DrawClass == true) && (SelectObject_Enable() == true))
                             ||
                             ((m_nSelectedInverseKinematics < 0) && ((m_nSelectedMotor >= 0) && (OjwDisp.nPickGroup_B == m_nSelectedMotor)))
                             ||
@@ -9086,10 +12725,15 @@ namespace OpenJigWare
                             if (m_bPickAlpha) fAlpha = m_fPickAlpha;
                             bPicked = true;
 
-
+                            //if ((bSelectObject_DrawClass == true) && (SelectObject_Enable() == true))
+                            //{
+                            //    m_nSelectedMotor = 
+                            //}
+                            //else 
+                            
 
                             // ojw5014
-                            m_nSelectedItem = m_nDrawClass_Pos; // Ïù¥Í±∞ ÌïúÎ≤à Ï∂îÍ∞ÄÌï¥ Î≥¥Ïûê. ÌÅ¥Î¶≠Ìï¥ÎèÑ ÏÑ†ÌÉù ÎêòÍ≤å...
+                            m_nSelectedItem = m_nDrawClass_Pos; // ¿Ã∞≈ «—π¯ √ﬂ∞°«ÿ ∫∏¿⁄. ≈¨∏Ø«ÿµµ º±≈√ µ«∞‘...
                         }                        
                     //}
 
@@ -9205,36 +12849,36 @@ namespace OpenJigWare
                             Axis_Z(true, Color.Blue, 1.0f, fThick, fLength);
                         }
                     }
-                    else if (OjwDisp.nAxisMoveType == 10) // Ìä∏Îûô Ï†ÑÏö© ( Í∞ÅÎèÑ ÌöåÏ†Ñ )
+                    else if (OjwDisp.nAxisMoveType == 10) // ∆Æ∑¢ ¿¸øÎ ( ∞¢µµ »∏¿¸ )
                     {
                         fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
                     }
-                    else if (OjwDisp.nAxisMoveType == 11) // Ìä∏Îûô Ï†ÑÏö© ( RPM ÌöåÏ†Ñ )
+                    else if (OjwDisp.nAxisMoveType == 11) // ∆Æ∑¢ ¿¸øÎ ( RPM »∏¿¸ )
                     {
                         fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
                         fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
                     }
-                    else if (OjwDisp.nAxisMoveType == 12) // Ìä∏Îûô stack('?') Ï†ÑÏö© ( Í∞ÅÎèÑ ÌöåÏ†Ñ ÏúÑ )
+                    else if (OjwDisp.nAxisMoveType == 12) // ∆Æ∑¢ stack('?') ¿¸øÎ ( ∞¢µµ »∏¿¸ ¿ß )
                     {
                         fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
-                        nTrackMode = 1; // ÌöåÏ†Ñ
+                        nTrackMode = 1; // »∏¿¸
                     }
-                    else if (OjwDisp.nAxisMoveType == 13) // Ìä∏Îûô stack('?') Ï†ÑÏö© ( Í∞ÅÎèÑ ÌöåÏ†Ñ ÏïÑÎûò )
+                    else if (OjwDisp.nAxisMoveType == 13) // ∆Æ∑¢ stack('?') ¿¸øÎ ( ∞¢µµ »∏¿¸ æ∆∑° )
                     {
                         fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
-                        nTrackMode = 2; // ÌöåÏ†Ñ
+                        nTrackMode = 2; // »∏¿¸
                     }
-                    else if (OjwDisp.nAxisMoveType == 14) // Ìä∏Îûô stack('?') Ï†ÑÏö© ( RPM ÌöåÏ†Ñ ÏúÑ )
+                    else if (OjwDisp.nAxisMoveType == 14) // ∆Æ∑¢ stack('?') ¿¸øÎ ( RPM »∏¿¸ ¿ß )
                     {
                         fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
                         fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
-                        nTrackMode = 1; // ÌöåÏ†Ñ
+                        nTrackMode = 1; // »∏¿¸
                     }
-                    else if (OjwDisp.nAxisMoveType == 15) // Ìä∏Îûô stack('?') Ï†ÑÏö© ( RPM ÌöåÏ†Ñ ÏïÑÎûò )
+                    else if (OjwDisp.nAxisMoveType == 15) // ∆Æ∑¢ stack('?') ¿¸øÎ ( RPM »∏¿¸ æ∆∑° )
                     {
                         fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
                         fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
-                        nTrackMode = 2; // ÌöåÏ†Ñ
+                        nTrackMode = 2; // »∏¿¸
                     }
                     else // CW & CCW
                     {
@@ -9360,7 +13004,7 @@ namespace OpenJigWare
                             m_aSTrack[m_nTrackBall].fX = OjwDisp.fWidth_Or_Radius;
                             m_aSTrack[m_nTrackBall].fY = OjwDisp.fHeight_Or_Depth;
                             m_aSTrack[m_nTrackBall].fR = OjwDisp.fDepth_Or_Cnt;
-                            m_aSTrack[m_nTrackBall].nConnectedAxis = OjwDisp.nName; // Ïã§Ï†ú Î™®ÌÑ∞Î•º Ïó∞Í≤∞ÌïòÎäî Í±∞Îùº Î∞òÎìúÏãú OjwDisp.nAxisMoveType = -1 Ïù¥Ïñ¥Ïïº ÌïúÎã§.
+                            m_aSTrack[m_nTrackBall].nConnectedAxis = OjwDisp.nName; // Ω«¡¶ ∏≈Õ∏¶ ø¨∞·«œ¥¬ ∞≈∂Û π›µÂΩ√ OjwDisp.nAxisMoveType = -1 ¿ÃæÓæﬂ «—¥Ÿ.
                             m_aSTrack[m_nTrackBall].fCenter_X = OjwDisp.afTrans[3].x;
                             m_aSTrack[m_nTrackBall].fCenter_Y = OjwDisp.afTrans[3].y;
                             m_aSTrack[m_nTrackBall].nMode = nTrackMode;
@@ -9396,7 +13040,7 @@ namespace OpenJigWare
                             m_aSTrack[m_nTrackBall].fY = OjwDisp.fHeight_Or_Depth;
                             m_aSTrack[m_nTrackBall].fR = OjwDisp.fDepth_Or_Cnt;
 
-                            m_aSTrack[m_nTrackBall].nConnectedAxis = OjwDisp.nName; // Ïã§Ï†ú Î™®ÌÑ∞Î•º Ïó∞Í≤∞ÌïòÎäî Í±∞Îùº Î∞òÎìúÏãú OjwDisp.nAxisMoveType = -1 Ïù¥Ïñ¥Ïïº ÌïúÎã§.
+                            m_aSTrack[m_nTrackBall].nConnectedAxis = OjwDisp.nName; // Ω«¡¶ ∏≈Õ∏¶ ø¨∞·«œ¥¬ ∞≈∂Û π›µÂΩ√ OjwDisp.nAxisMoveType = -1 ¿ÃæÓæﬂ «—¥Ÿ.
                             m_aSTrack[m_nTrackBall].fCenter_X = OjwDisp.afTrans[3].x;
                             m_aSTrack[m_nTrackBall].fCenter_Y = OjwDisp.afTrans[3].y;
                             m_aSTrack[m_nTrackBall].nMode = nTrackMode;
@@ -9420,13 +13064,13 @@ namespace OpenJigWare
                                 }
                             }
 #endif
-                            // Rotation Ï†ÅÏö©
+                            // Rotation ¿˚øÎ
                             //float fX, fY, fR;
-                            //int nConnectedAxis; // Ïó∞Í≤∞Îêú Î™®ÌÑ∞ Î≤àÌò∏
-                            //float fAxis_X;      // ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê(X)
-                            //float fAxis_Y;      // ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê(Y)
-                            //int nMode;          // Mode(0 : Î≥ÄÌôîÏóÜÏùå, 1 : ÌöåÏ†Ñ, 2 : Ï∂ï Ïù¥Îèô(fAxis_X Í∞ÅÎèÑ Ïó∞Í¥Ä - ÎÇòÏ§ëÏóê Íµ¨ÌòÑÌïòÏûê. ÏßÄÍ∏à Î∞îÎπ†)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
-                            //float fDir = 0;           // Î∞©Ìñ•(0 : Ï†ï, 1 : Î∞òÎåÄ)
+                            //int nConnectedAxis; // ø¨∞·µ» ∏≈Õ π¯»£
+                            //float fAxis_X;      // »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°(X)
+                            //float fAxis_Y;      // »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°(Y)
+                            //int nMode;          // Mode(0 : ∫Ø»≠æ¯¿Ω, 1 : »∏¿¸, 2 : √‡ ¿Ãµø(fAxis_X ∞¢µµ ø¨∞¸ - ≥™¡ﬂø° ±∏«ˆ«œ¿⁄. ¡ˆ±› πŸ∫¸)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                            //float fDir = 0;           // πÊ«‚(0 : ¡§, 1 : π›¥Î)
 #if false
                             float [] afValue = new float[m_nTrackBall * 3];
                             int j = 0;
@@ -9435,7 +13079,7 @@ namespace OpenJigWare
                                 afValue[j++] = m_aSTrack[i].fX;
                                 afValue[j++] = m_aSTrack[i].fY;
                                 afValue[j++] = m_aSTrack[i].fR; 
-                                //afValue[j++] = OjwDisp.afRot[3].pan; // testÏö© 2Î≤à Î™®ÌÑ∞ Ïó∞Í≤∞
+                                //afValue[j++] = OjwDisp.afRot[3].pan; // testøÎ 2π¯ ∏≈Õ ø¨∞·
                                 //afValue[j++] = OjwDisp.afTrans[3].x;
                                 //afValue[j++] = OjwDisp.afTrans[3].y;
                                 //afValue[j++] = OjwDisp.afTrans[3].x;
@@ -9458,7 +13102,7 @@ namespace OpenJigWare
                                 aSValue[i].fY = m_aSTrack[i].fY;
                                 aSValue[i].fR = m_aSTrack[i].fR;
 
-                                aSValue[i].nConnectedAxis = m_aSTrack[i].nConnectedAxis; // Ïã§Ï†ú Î™®ÌÑ∞Î•º Ïó∞Í≤∞ÌïòÎäî Í±∞Îùº Î∞òÎìúÏãú OjwDisp.nAxisMoveType = -1 Ïù¥Ïñ¥Ïïº ÌïúÎã§.
+                                aSValue[i].nConnectedAxis = m_aSTrack[i].nConnectedAxis; // Ω«¡¶ ∏≈Õ∏¶ ø¨∞·«œ¥¬ ∞≈∂Û π›µÂΩ√ OjwDisp.nAxisMoveType = -1 ¿ÃæÓæﬂ «—¥Ÿ.
                                 aSValue[i].fCenter_X = m_aSTrack[i].fCenter_X;
                                 aSValue[i].fCenter_Y = m_aSTrack[i].fCenter_Y;
                                 aSValue[i].nMode = m_aSTrack[i].nMode;
@@ -9482,7 +13126,7 @@ namespace OpenJigWare
                             OjwAse_Outside(bFilled, cColor, fAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z, OjwDisp.strDispObject);
                         //}
                     }
-                    //if (nTrackBall == m_nTrackBall) // Ïó∞ÏÜçÎêú Ìä∏ÎûôÏù¥ ÏïÑÎãàÎùºÎ©¥...
+                    //if (nTrackBall == m_nTrackBall) // ø¨º”µ» ∆Æ∑¢¿Ã æ∆¥œ∂Û∏È...
                     //{
                     //    m_nTrackBall = 0;
                     //}
@@ -9920,7 +13564,7 @@ namespace OpenJigWare
                 private const int _SWING = 2;
                 public bool TextBox_To_CodeString(TextBox txtData, out COjwDisp[] pCDisp)
                 {
-                    // Draw the values of the txtData.(Kor: txtData Ïùò Í∞íÎì§ÏùÑ Í∑∏Î¶º)
+                    // Draw the values of the txtData.(Kor: txtData ¿« ∞™µÈ¿ª ±◊∏≤)
                     bool bRet = false;
                     bool bRet2 = false;
                     String strData;
@@ -9946,7 +13590,7 @@ namespace OpenJigWare
                             strData = CConvert.RemoveChar(strData, '[');
                             strData = CConvert.RemoveChar(strData, ']');
 
-                            // Actual interpretation(Kor: Ïã§Ï†ú Ìï¥ÏÑù)
+                            // Actual interpretation(Kor: Ω«¡¶ «ÿºÆ)
                             //if (strData != "")
                             //{
                                 //bRet2 = StringLine_To_Class(strData, out pCDisp[nLine]);
@@ -9966,7 +13610,7 @@ namespace OpenJigWare
                 public String TextBox_To_CodeString(TextBox txtData)
                 {
                     String strMessage = "";
-                    // Draw the values of the txtData.(Kor: txtData Ïùò Í∞íÎì§ÏùÑ Í∑∏Î¶º)
+                    // Draw the values of the txtData.(Kor: txtData ¿« ∞™µÈ¿ª ±◊∏≤)
                     bool bRet = false;
                     String strData;
                     String strTmp;
@@ -9989,7 +13633,7 @@ namespace OpenJigWare
                             strData = CConvert.RemoveChar(strData, '[');
                             strData = CConvert.RemoveChar(strData, ']');
 
-                            // Actual interpretation(Kor: Ïã§Ï†ú Ìï¥ÏÑù)
+                            // Actual interpretation(Kor: Ω«¡¶ «ÿºÆ)
                             bRet = StringLine_To_Class(strData, out CDisp);
                             if (CDisp.nAxisMoveType >= 0)
                             {
@@ -9997,7 +13641,7 @@ namespace OpenJigWare
                                 strTmpCaption += ((CDisp.nAxisMoveType == 0) ? "[P]," : "P,");
                                 strTmpCaption += ((CDisp.nAxisMoveType == 1) ? "[T]," : "T,");
                                 strTmpCaption += ((CDisp.nAxisMoveType == 2) ? "[S]" : "S");
-                                //strTmpCaption += ") - Ï∂ïÎ≤àÌò∏ : Axis" + CConvert.IntToStr(CDisp.nName) + ((CDisp.nName < 0) ? "<ÎèôÏûë Ï∂ï ÏÑ§Ï†ïÏóê Ïù¥ÏÉÅÎ∞úÍ≤¨(-). ÌôïÏù∏ÏöîÎßù>" : "");
+                                //strTmpCaption += ") - √‡π¯»£ : Axis" + CConvert.IntToStr(CDisp.nName) + ((CDisp.nName < 0) ? "<µø¿€ √‡ º≥¡§ø° ¿ÃªÛπﬂ∞ﬂ(-). »Æ¿Œø‰∏¡>" : "");
                                 strTmpCaption += ") - Axis Number : Axis" + CConvert.IntToStr(CDisp.nName) + ((CDisp.nName < 0) ? "<Found over operation axis settings(-). Check it.>" : "");
                                 if (strCaption.IndexOf(strTmpCaption, 0) < 0) strCaption += strTmpCaption;
                                 if (CDisp.strCaption.IndexOf(strTmpCaption, 0) < 0) CDisp.strCaption += strTmpCaption;
@@ -10164,8 +13808,8 @@ namespace OpenJigWare
                 #endregion Class Control
             
                 #region Picking
-                private bool m_bMateMode = false; // ÌîΩÌÇπÏãú mate Í∏∞Îä• ÌôúÏÑ±Ìôî
-                public void SetPickingMode_Mate(bool bEn) { m_bMateMode = bEn; } // Ïù¥Í±∏ ÏÖã ÌïòÎ©¥ Í∏∞Ï°¥ ÌÅ¥Î¶≠ Í∏∞Îä•Ïù¥ ÎßâÌûàÍ≥† Mate Î•º ÏúÑÌïú ÌÅ¥Î¶≠Ïù¥ ÎêúÎã§.
+                private bool m_bMateMode = false; // «»≈∑Ω√ mate ±‚¥… »∞º∫»≠
+                public void SetPickingMode_Mate(bool bEn) { m_bMateMode = bEn; } // ¿Ã∞… º¬ «œ∏È ±‚¡∏ ≈¨∏Ø ±‚¥…¿Ã ∏∑»˜∞Ì Mate ∏¶ ¿ß«— ≈¨∏Ø¿Ã µ»¥Ÿ.
 
                 private bool m_bPickMode = false;
                 private const int _PICK_BUFFER_SIZE = 64;
@@ -10174,10 +13818,10 @@ namespace OpenJigWare
                 {
                     m_bPickMode = true;
 
-                    m_unObjectName = 0; // Init variables for picking group(Kor: ÌîΩÌÇπ Í∑∏Î£πÌïë Î≥ÄÏàò Ï¥àÍ∏∞Ìôî)
+                    m_unObjectName = 0; // Init variables for picking group(Kor: «»≈∑ ±◊∑Ï«Œ ∫Øºˆ √ ±‚»≠)
                     int[] viewport = new int[4];
 
-                    // select buffer(Kor: ÏÑ†ÌÉù Î≤ÑÌçº ÏÑ§Ï†ï)
+                    // select buffer(Kor: º±≈√ πˆ∆€ º≥¡§)
                     Gl.glSelectBuffer(_PICK_BUFFER_SIZE, m_puiPick);
 #if false
                     viewport[0] = 0;// (int)(-m_nWidth / 2 * m_fScale);
@@ -10185,29 +13829,29 @@ namespace OpenJigWare
                     viewport[2] = (int)(m_nWidth * 2);
                     viewport[3] = (int)(m_nHeight * 2);
 #else
-                    // get the view port(Kor: Î∑∞Ìè¨Ìä∏ ÏñªÍ∏∞)
+                    // get the view port(Kor: ∫‰∆˜∆Æ æÚ±‚)
                     Gl.glGetIntegerv(Gl.GL_VIEWPORT, viewport);
 #endif
 
 
-                    // Init Names(Kor: Ïù¥Î¶Ñ Ï¥àÍ∏∞Ìôî)
+                    // Init Names(Kor: ¿Ã∏ß √ ±‚»≠)
                     InitNames();
 
-                    // Switch to the projection. And storage arrays(Kor: Ìà¨ÏòÅÏúºÎ°ú Ï†ÑÌôòÌïòÍ≥† Î∞∞Ïó¥ÏùÑ Ï†ÄÏû•)
+                    // Switch to the projection. And storage arrays(Kor: ≈ıøµ¿∏∑Œ ¿¸»Ø«œ∞Ì πËø≠¿ª ¿˙¿Â)
                     Gl.glMatrixMode(Gl.GL_PROJECTION);
                     Gl.glPushMatrix();
 
-                    // Switch to the rendering mode(Kor: Î†åÎçîÎßÅ Î™®Îìú Î≥ÄÍ≤Ω)
+                    // Switch to the rendering mode(Kor: ∑ª¥ı∏µ ∏µÂ ∫Ø∞Ê)
                     Gl.glRenderMode(Gl.GL_SELECT);
 
                     // Making the size of the unit cube clipping region in which the mouse pointer [x, y], the horizontal and vertical expansion by two pixels.
-                    // Kor: ÎßàÏö∞Ïä§ Ìè¨Ïù∏ÌÑ∞Í∞Ä ÏûàÎäî x,y Ïóê Îã®ÏúÑ ÌÅ¨Í∏∞Ïùò Ïú°Î©¥Ï≤¥ ÌÅ¥Î¶¨Ìïë ÏòÅÏó≠ÏùÑ ÎßåÎì§Í≥†, ÏàòÌèâ ÏàòÏßÅ Î∞©Ìñ•ÏúºÎ°ú Îëê ÌîΩÏÖÄÏî© ÌôïÏû•ÌïúÎã§.
+                    // Kor: ∏∂øÏΩ∫ ∆˜¿Œ≈Õ∞° ¿÷¥¬ x,y ø° ¥‹¿ß ≈©±‚¿« ¿∞∏È√º ≈¨∏Æ«Œ øµø™¿ª ∏∏µÈ∞Ì, ºˆ∆Ú ºˆ¡˜ πÊ«‚¿∏∑Œ µŒ «»ºøæø »Æ¿Â«—¥Ÿ.
                     Gl.glLoadIdentity();
                     //Gl.gluPickMatrix(nX, viewport[3] - nY, 2, 2, viewport);
                     //Glu.gluPickMatrix((double)nX, (double)(viewport[3] - nY), 1.0, 1.0, viewport);
                     Glu.gluPickMatrix((double)nX, (double)(viewport[3] - nY), 1.0, 1.0, viewport);
 
-                    // Application of projection matrices(Kor: Ìà¨ÏòÅ ÌñâÎ†¨Ïùò Ï†ÅÏö©)
+                    // Application of projection matrices(Kor: ≈ıøµ «‡∑ƒ¿« ¿˚øÎ)
 #if false
             int nRatio = 100;
             //Gl.gluPerspective(65.0f, aspect_ratio, 0, -nRatio);
@@ -10219,7 +13863,7 @@ namespace OpenJigWare
                     Ortho((float)m_nWidth, (float)m_nHeight, fRatio);
                     Gl.glDepthRange(-fRatio, fRatio);
 #endif
-                    // In the case of Perspective projection(Kor: ÏõêÍ∑ºÌà¨ÏòÅÏùò Í≤ΩÏö∞)
+                    // In the case of Perspective projection(Kor: ø¯±Ÿ≈ıøµ¿« ∞ÊøÏ)
                     /*
                     float fAspect = (float)viewport[2] / (float)viewport[3];
                     Gl.gluPerspective(45.0f, fAspect, 1.0, 425.0);
@@ -10228,7 +13872,7 @@ namespace OpenJigWare
 
                     Gl.glMatrixMode(Gl.GL_MODELVIEW);
 
-                    // Should begin rendering the scene.(Kor: Ïù¥ÌõÑ Ïû•Î©¥ Î†åÎçîÎßÅÏùÑ ÏãúÏûëÌï¥Ïïº ÌïúÎã§.)
+                    // Should begin rendering the scene.(Kor: ¿Ã»ƒ ¿Â∏È ∑ª¥ı∏µ¿ª Ω√¿€«ÿæﬂ «—¥Ÿ.)
 
                     // Initialize
                     viewport = null;
@@ -10236,15 +13880,15 @@ namespace OpenJigWare
 
                 public uint Picking_Check()
                 {
-                    int nHits = Gl.glRenderMode(Gl.GL_RENDER); // get the hit counts(Kor: ÌûàÌä∏ Ïàò ÏàòÏßë)
-                    // If one of the hit once, outputs information(Kor: ÌïúÎ≤àÏùò ÌûàÌä∏Ïùº Í≤ΩÏö∞, Ï†ïÎ≥¥Î•º Ï∂úÎ†•)
+                    int nHits = Gl.glRenderMode(Gl.GL_RENDER); // get the hit counts(Kor: »˜∆Æ ºˆ ºˆ¡˝)
+                    // If one of the hit once, outputs information(Kor: «—π¯¿« »˜∆Æ¿œ ∞ÊøÏ, ¡§∫∏∏¶ √‚∑¬)
                     if (nHits > 0)
                     {
-                        // m_puiPick[0] // the number of collisions with object(Kor: Object ÏôÄÏùò Ï∂©ÎèåÌöüÏàò)
-                        // m_puiPick[1] // Min means a value of the object collided with the collision point and the set area.(Kor: ÏÑ§Ï†ïÎêú Í≥µÍ∞ÑÍ≥º Ï∂©ÎèåÌïú object ÏôÄÏùò Ï∂©Îèå ÏßÄÏ†êÏùò MinÍ∞íÏùÑ ÏùòÎØ∏ÌïúÎã§.)
-                        // m_puiPick[2] // Max means a value of the object collided with the collision point and the set area.(Kor: ÏÑ§Ï†ïÎêú Í≥µÍ∞ÑÍ≥º Ï∂©ÎèåÌïú object ÏôÄÏùò Ï∂©Îèå ÏßÄÏ†êÏùò MaxÍ∞íÏùÑ ÏùòÎØ∏ÌïúÎã§.)
-                        // m_puiPick[3 ...] The total number of records [m_puiPick[0]](Kor: m_puiPick[0] Ïóê Í∏∞Î°ùÎêú Ïàò ÎßåÌÅº...)
-                        // => repeat all(Kor: Ïù¥Í≤å Î∞òÎ≥µ)
+                        // m_puiPick[0] // the number of collisions with object(Kor: Object øÕ¿« √Êµπ»Ωºˆ)
+                        // m_puiPick[1] // Min means a value of the object collided with the collision point and the set area.(Kor: º≥¡§µ» ∞¯∞£∞˙ √Êµπ«— object øÕ¿« √Êµπ ¡ˆ¡°¿« Min∞™¿ª ¿«πÃ«—¥Ÿ.)
+                        // m_puiPick[2] // Max means a value of the object collided with the collision point and the set area.(Kor: º≥¡§µ» ∞¯∞£∞˙ √Êµπ«— object øÕ¿« √Êµπ ¡ˆ¡°¿« Max∞™¿ª ¿«πÃ«—¥Ÿ.)
+                        // m_puiPick[3 ...] The total number of records [m_puiPick[0]](Kor: m_puiPick[0] ø° ±‚∑œµ» ºˆ ∏∏≈≠...)
+                        // => repeat all(Kor: ¿Ã∞‘ π›∫π)
 
                         //uint nNearID = (uint)m_puiPick[3];
                         //uint nNearDepth = (uint)m_puiPick[1];
@@ -10261,7 +13905,7 @@ namespace OpenJigWare
                                 //nNearID = m_puiPick[i * 4 + 3];
                             }
                         }
-                        m_unObjectName = (uint)m_puiPick[nPos * 4 + 3];// nNearID;// m_puiPick[3]; // ÏÑ†ÌÉùÎêú ObjectÏùò ID
+                        m_unObjectName = (uint)m_puiPick[nPos * 4 + 3];// nNearID;// m_puiPick[3]; // º±≈√µ» Object¿« ID
                         return (uint)m_puiPick[nPos * 4 + 3];//nNearID;// m_puiPick[3];
 #else
                         int nObj = 0;
@@ -10312,7 +13956,7 @@ namespace OpenJigWare
                             }
 #endif
                         }
-                        m_unObjectName = (uint)m_puiPick[nObj];// nNearID;// m_puiPick[3]; // Selected Object's ID(Kor: ÏÑ†ÌÉùÎêú ObjectÏùò ID)
+                        m_unObjectName = (uint)m_puiPick[nObj];// nNearID;// m_puiPick[3]; // Selected Object's ID(Kor: º±≈√µ» Object¿« ID)
                         return m_unObjectName;
 #endif
                     }
@@ -10321,11 +13965,11 @@ namespace OpenJigWare
 
                 public void Picking_End()
                 {
-                    // Projection matrix recovery(Kor: Ìà¨ÏòÅÌñâÎ†¨ Î≥µÍµ¨)
+                    // Projection matrix recovery(Kor: ≈ıøµ«‡∑ƒ ∫π±∏)
                     Gl.glMatrixMode(Gl.GL_PROJECTION);
                     Gl.glPopMatrix();
                     //Gl.glFlush();
-                    // Switch to normal rendering mode(Kor: Î≥¥ÌÜµÏùò Î†åÎçîÎßÅ Î™®ÎìúÎ°ú Ï†ÑÌôò)
+                    // Switch to normal rendering mode(Kor: ∫∏≈Î¿« ∑ª¥ı∏µ ∏µÂ∑Œ ¿¸»Ø)
                     Gl.glMatrixMode(Gl.GL_MODELVIEW);
                     m_bPickMode = false;
                     m_bPickMouseClick = false;
@@ -10356,9 +14000,9 @@ namespace OpenJigWare
                 public bool GetPickingData(out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber)
                 {
                     // 0x 1111 1111(Formular group)   1111 1111(group A) 1 1111 1111(group B(0~255:motor, 256~511:etc group))  111 1111(group C(0~127))
-                    // Kor: 0x 1111 1111(ÏàòÏãùÍ∑∏Î£π)   1111 1111(Í∑∏Î£π A) 1 1111 1111(Í∑∏Î£π B(0~255:Î™®ÌÑ∞, 256~511:Í∏∞ÌÉÄÍ∑∏Î£π))  111 1111(Í∑∏Î£π C(0~127))
-                    nInverseKinematicsNumber = (int)((m_unObjectName >> 24) & 0xff); // High byte group number formula(Kor: ÏÉÅÏúÑ Î∞îÏù¥Ìä∏Îäî ÏàòÏãùÍ∑∏Î£πÎ≤àÌò∏)
-                    nGroupA = (int)((m_unObjectName >> 16) & 0xff); // High byte group number formula(Kor: ÏÉÅÏúÑ Î∞îÏù¥Ìä∏Îäî ÏàòÏãùÍ∑∏Î£πÎ≤àÌò∏)
+                    // Kor: 0x 1111 1111(ºˆΩƒ±◊∑Ï)   1111 1111(±◊∑Ï A) 1 1111 1111(±◊∑Ï B(0~255:∏≈Õ, 256~511:±‚≈∏±◊∑Ï))  111 1111(±◊∑Ï C(0~127))
+                    nInverseKinematicsNumber = (int)((m_unObjectName >> 24) & 0xff); // High byte group number formula(Kor: ªÛ¿ß πŸ¿Ã∆Æ¥¬ ºˆΩƒ±◊∑Ïπ¯»£)
+                    nGroupA = (int)((m_unObjectName >> 16) & 0xff); // High byte group number formula(Kor: ªÛ¿ß πŸ¿Ã∆Æ¥¬ ºˆΩƒ±◊∑Ïπ¯»£)
                     //nGroupB = (int)((m_unObjectName >> 8) & 0xff);
                     //nGroupC = (int)(m_unObjectName & 0xff);
                     nGroupB = (int)((m_unObjectName >> 7) & 0x1ff);
@@ -10405,8 +14049,8 @@ namespace OpenJigWare
                 }
                 #endregion Push / Pop
 
-                #region Collection functions of OpenGL actually draw(Kor: OpenGLÏùÑ Ïã§Ï†úÎ°ú Í∑∏Î¶¨Îäî Ìï®Ïàò Î™®Ïùå)
-                // Box which rotates around the center of the upper surface(Kor: ÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî ÏÉÅÏûê)
+                #region Collection functions of OpenGL actually draw(Kor: OpenGL¿ª Ω«¡¶∑Œ ±◊∏Æ¥¬ «‘ºˆ ∏¿Ω)
+                // Box which rotates around the center of the upper surface(Kor: ¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ ªÛ¿⁄)
                 #region OjwBox_Text
                 //public void OjwPolygon(int a, int b, int c, int d)
                 //{
@@ -10420,7 +14064,7 @@ namespace OpenJigWare
                 //    Gl.glVertex3fv(vertices[a]
                 //}
                 public void OjwBox_Text(bool bFill, Color color,
-                                    float fW, float fH, float fD            // put the size(Kor: Size Í∏∞ÏûÖ)
+                                    float fW, float fH, float fD            // put the size(Kor: Size ±‚¿‘)
                                 )
                 {
                     m_fColor[0] = ((float)(color.R) / 255.0f);  // R
@@ -10433,16 +14077,16 @@ namespace OpenJigWare
                     float fY2 = -fH;
                     float fZ1 = -fD / 2.0f;
                     float fZ2 = fD / 2.0f;
-                    // x2 -> direction : right(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : Ïò§Î•∏Ï™Ω)
-                    // Y2 -> direction : Up(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÏúÑÏ™Ω)
-                    // Z2 -> direction : The inside of the screen(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÌôîÎ©¥Ïùò ÏïàÏ™Ω)
-                    // Criteria screen : See picture below(Kor: Í∏∞Ï§ÄÌôîÎ©¥ : Î∞ë Í∑∏Î¶º Ï∞∏Ï°∞)
+                    // x2 -> direction : right(Kor: ¡ı∫–πÊ«‚ : ø¿∏•¬ )
+                    // Y2 -> direction : Up(Kor: ¡ı∫–πÊ«‚ : ¿ß¬ )
+                    // Z2 -> direction : The inside of the screen(Kor: ¡ı∫–πÊ«‚ : »≠∏È¿« æ»¬ )
+                    // Criteria screen : See picture below(Kor: ±‚¡ÿ»≠∏È : πÿ ±◊∏≤ ¬¸¡∂)
                     // 0, 0, 0 -> State in the middle of the screen as a starting point and went inside by a factor of 5
-                    // Kor: 0, 0, 0 -> ÌôîÎ©¥Ïùò Í∞ÄÏö¥Îç∞Î•º ÏãúÏûëÏ†êÏúºÎ°ú ÌïòÍ≥† ÏïàÏ™ΩÏúºÎ°ú 5ÎßåÌÅº Îì§Ïñ¥Í∞Ñ ÏÉÅÌÉú
+                    // Kor: 0, 0, 0 -> »≠∏È¿« ∞°øÓµ•∏¶ Ω√¿€¡°¿∏∑Œ «œ∞Ì æ»¬ ¿∏∑Œ 5∏∏≈≠ µÈæÓ∞£ ªÛ≈¬
                     
                     /*
                         000000000
-                      0 0 ‚òÖ  0 0
+                      0 0 °⁄  0 0
                     000000000   0
                     0   0   0   0
                     0   000000000  
@@ -10559,7 +14203,7 @@ namespace OpenJigWare
                     InitVirtualClass();
                     Prop_Update_VirtualObject();
 
-                    // Event Î∞úÏÉù
+                    // Event πﬂª˝
                     Event_ItemAdd.RunEvent();
                 }
 
@@ -10715,10 +14359,10 @@ namespace OpenJigWare
                 }
                 #endregion OpenNurbs
 
-                // Box which rotates around the center of the upper surface(Kor: ÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî ÏÉÅÏûê)
+                // Box which rotates around the center of the upper surface(Kor: ¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ ªÛ¿⁄)
                 #region OjwBox
                 public void OjwBox(bool bFill, Color color, float fAlpha,
-                                    float fW, float fH, float fD            // Input the Size(Kor: Size Í∏∞ÏûÖ)
+                                    float fW, float fH, float fD            // Input the Size(Kor: Size ±‚¿‘)
                                 )
                 {
                     int nLoopCount = ((bFill == true) ? 2 : 1);
@@ -10754,15 +14398,15 @@ namespace OpenJigWare
                         float fZ1 = -fD / 2.0f;
                         float fZ2 = fD / 2.0f;
 #endif
-                        // x2 -> direction : right(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : Ïò§Î•∏Ï™Ω)
-                        // Y2 -> direction : Up(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÏúÑÏ™Ω)
-                        // Z2 -> direction : The inside of the screen(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÌôîÎ©¥Ïùò ÏïàÏ™Ω)
-                        // Criteria screen : See picture below(Kor: Í∏∞Ï§ÄÌôîÎ©¥ : Î∞ë Í∑∏Î¶º Ï∞∏Ï°∞)
+                        // x2 -> direction : right(Kor: ¡ı∫–πÊ«‚ : ø¿∏•¬ )
+                        // Y2 -> direction : Up(Kor: ¡ı∫–πÊ«‚ : ¿ß¬ )
+                        // Z2 -> direction : The inside of the screen(Kor: ¡ı∫–πÊ«‚ : »≠∏È¿« æ»¬ )
+                        // Criteria screen : See picture below(Kor: ±‚¡ÿ»≠∏È : πÿ ±◊∏≤ ¬¸¡∂)
                         // 0, 0, 0 -> State in the middle of the screen as a starting point and went inside by a factor of 5
-                        // Kor: 0, 0, 0 -> ÌôîÎ©¥Ïùò Í∞ÄÏö¥Îç∞Î•º ÏãúÏûëÏ†êÏúºÎ°ú ÌïòÍ≥† ÏïàÏ™ΩÏúºÎ°ú 5ÎßåÌÅº Îì§Ïñ¥Í∞Ñ ÏÉÅÌÉú
+                        // Kor: 0, 0, 0 -> »≠∏È¿« ∞°øÓµ•∏¶ Ω√¿€¡°¿∏∑Œ «œ∞Ì æ»¬ ¿∏∑Œ 5∏∏≈≠ µÈæÓ∞£ ªÛ≈¬
                         /*
                             000000000
-                          0 0 ‚òÖ  0 0
+                          0 0 °⁄  0 0
                         000000000   0
                         0   0   0   0
                         0   000000000  
@@ -10882,7 +14526,7 @@ namespace OpenJigWare
                 #endregion OjwBox;
 
                 // Box which rotates around the center of the upper surface(Making remotely moving box by offset)
-                // Kor: ÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî ÏÉÅÏûê(ÏõêÍ≤© ÏÉÅÏûê ÎßåÎì§Í∏∞)
+                // Kor: ¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ ªÛ¿⁄(ø¯∞› ªÛ¿⁄ ∏∏µÈ±‚)
                 #region OjwBox_Outside
                 public void OjwBox_Outside(bool bFill, Color color, float fAlpha,
                                     float fW, float fH, float fD,            
@@ -10913,15 +14557,15 @@ namespace OpenJigWare
                         float fY2 = -fH;
                         float fZ1 = -fD / 2.0f;
                         float fZ2 = fD / 2.0f;
-                        // x2 -> direction : right(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : Ïò§Î•∏Ï™Ω)
-                        // Y2 -> direction : Up(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÏúÑÏ™Ω)
-                        // Z2 -> direction : The inside of the screen(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÌôîÎ©¥Ïùò ÏïàÏ™Ω)
-                        // Criteria screen : See picture below(Kor: Í∏∞Ï§ÄÌôîÎ©¥ : Î∞ë Í∑∏Î¶º Ï∞∏Ï°∞)
+                        // x2 -> direction : right(Kor: ¡ı∫–πÊ«‚ : ø¿∏•¬ )
+                        // Y2 -> direction : Up(Kor: ¡ı∫–πÊ«‚ : ¿ß¬ )
+                        // Z2 -> direction : The inside of the screen(Kor: ¡ı∫–πÊ«‚ : »≠∏È¿« æ»¬ )
+                        // Criteria screen : See picture below(Kor: ±‚¡ÿ»≠∏È : πÿ ±◊∏≤ ¬¸¡∂)
                         // 0, 0, 0 -> State in the middle of the screen as a starting point and went inside by a factor of 5
-                        // Kor: 0, 0, 0 -> ÌôîÎ©¥Ïùò Í∞ÄÏö¥Îç∞Î•º ÏãúÏûëÏ†êÏúºÎ°ú ÌïòÍ≥† ÏïàÏ™ΩÏúºÎ°ú 5ÎßåÌÅº Îì§Ïñ¥Í∞Ñ ÏÉÅÌÉú
+                        // Kor: 0, 0, 0 -> »≠∏È¿« ∞°øÓµ•∏¶ Ω√¿€¡°¿∏∑Œ «œ∞Ì æ»¬ ¿∏∑Œ 5∏∏≈≠ µÈæÓ∞£ ªÛ≈¬
                         /*
                             000000000
-                          0 0 ‚òÖ  0 0
+                          0 0 °⁄  0 0
                         000000000   0
                         0   0   0   0
                         0   000000000  
@@ -10995,7 +14639,7 @@ namespace OpenJigWare
 
                         Gl.glBegin(uiType);
 
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: π∞√º ∆Øº∫«“¥Á)
 
 #if true
 
@@ -11008,7 +14652,7 @@ namespace OpenJigWare
 
                         Gl.glEnd();// end drawing the cube	
                         Gl.glBegin(uiType);
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: π∞√º ∆Øº∫«“¥Á)
 
                         // Back Face
                         Gl.glTexCoord2f(1.0f, 0.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Bottom Right Of The Texture and Quad
@@ -11019,7 +14663,7 @@ namespace OpenJigWare
 
                         Gl.glEnd();// end drawing the cube	
                         Gl.glBegin(uiType);
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: π∞√º ∆Øº∫«“¥Á)
 
                         // Top Face
                         Gl.glTexCoord2f(0.0f, 1.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Top Left Of The Texture and Quad
@@ -11030,7 +14674,7 @@ namespace OpenJigWare
 
                         Gl.glEnd();// end drawing the cube	
                         Gl.glBegin(uiType);
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: π∞√º ∆Øº∫«“¥Á)
 
                         // Bottom Face
                         Gl.glTexCoord2f(1.0f, 1.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Top Right Of The Texture and Quad
@@ -11041,7 +14685,7 @@ namespace OpenJigWare
 
                         Gl.glEnd();// end drawing the cube	
                         Gl.glBegin(uiType);
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: π∞√º ∆Øº∫«“¥Á)
 
                         // Right Face
                         Gl.glTexCoord2f(1.0f, 0.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Bottom Right Of The Texture and Quad
@@ -11052,7 +14696,7 @@ namespace OpenJigWare
 
                         Gl.glEnd();// end drawing the cube	
                         Gl.glBegin(uiType);
-                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ)
+                        //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject); // Object attributes assigned(Kor: π∞√º ∆Øº∫«“¥Á)
 
                         // Left Face
                         Gl.glTexCoord2f(0.0f, 0.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;				// Bottom Left Of The Texture and Quad
@@ -11168,7 +14812,7 @@ namespace OpenJigWare
                         float fBlock_Depth = fD;
                         InitPosAngle();
 
-                        // Î°úÎ¥áÏùò ÏõÄÏßÅÏûÑ Íµ¨ÌòÑ
+                        // ∑Œ∫ø¿« øÚ¡˜¿” ±∏«ˆ
                         OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                         OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
                         float fGap = -20.0f;
@@ -11225,7 +14869,7 @@ namespace OpenJigWare
                         //fAngle_End = (fAngle_End + 360) % 360;
                         //float fMax = Math.Abs(fAngle_End - fAngle_Start);
 
-                        // ÏõêÌò∏Ïùò Í∏∏Ïù¥ = 2 * pi * r * (Í∞ÅÎèÑ / 360)
+                        // ø¯»£¿« ±Ê¿Ã = 2 * pi * r * (∞¢µµ / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fDistance * 360.0f) / (2.0f * (float)Math.PI * fRadius);
                         int nCnt = (int)Math.Round(Math.Abs((fAngle_End - fAngle_Start) / fDegree));//(360.0f - fAngle);
@@ -11311,7 +14955,7 @@ namespace OpenJigWare
                 public void OjwTrack2(float fAngleMove, bool bFill, Color color, float fAlpha,
                     string strTrackFile,
                     float fTrack_W, float fTrack_H, float fTrack_D, float fTrack_Distance,
-                    //int nConnectedAxis, float fAxis_X, float fAxis_Y, int nMode,// Ïó∞Í≤∞Îêú Î™®ÌÑ∞, ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê, Mode(0 : ÌöåÏ†Ñ, 1 : Ï∂ï Ïù¥Îèô(fAxis_X Í∞ÅÎèÑ Ïó∞Í¥Ä)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    //int nConnectedAxis, float fAxis_X, float fAxis_Y, int nMode,// ø¨∞·µ» ∏≈Õ, »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°, Mode(0 : »∏¿¸, 1 : √‡ ¿Ãµø(fAxis_X ∞¢µµ ø¨∞¸)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
                     
                     float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
                     float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ,              // Translation(Offset)    
@@ -11325,12 +14969,12 @@ namespace OpenJigWare
                     int nCnt = afValue.Length / nArg;
                     float fX, fY, fR;
                     
-                    // Rotation Ï†ÅÏö©
-                    //int nConnectedAxis; // Ïó∞Í≤∞Îêú Î™®ÌÑ∞ Î≤àÌò∏
-                    //float fAxis_X;      // ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê(X)
-                    //float fAxis_Y;      // ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê(Y)
-                    //int nMode;          // Mode(0 : Î≥ÄÌôîÏóÜÏùå, 1 : ÌöåÏ†Ñ, 2 : Ï∂ï Ïù¥Îèô(fAxis_X Í∞ÅÎèÑ Ïó∞Í¥Ä - ÎÇòÏ§ëÏóê Íµ¨ÌòÑÌïòÏûê. ÏßÄÍ∏à Î∞îÎπ†)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
-                    //float fDir = 0;           // Î∞©Ìñ•(0 : Ï†ï, 1 : Î∞òÎåÄ)
+                    // Rotation ¿˚øÎ
+                    //int nConnectedAxis; // ø¨∞·µ» ∏≈Õ π¯»£
+                    //float fAxis_X;      // »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°(X)
+                    //float fAxis_Y;      // »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°(Y)
+                    //int nMode;          // Mode(0 : ∫Ø»≠æ¯¿Ω, 1 : »∏¿¸, 2 : √‡ ¿Ãµø(fAxis_X ∞¢µµ ø¨∞¸ - ≥™¡ﬂø° ±∏«ˆ«œ¿⁄. ¡ˆ±› πŸ∫¸)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    //float fDir = 0;           // πÊ«‚(0 : ¡§, 1 : π›¥Î)
                     //for (int nNum = 0; nNum < nCnt; nNum++)
                     //{
                     //    fX = afValue[nArg * nNum + 0];
@@ -11355,7 +14999,7 @@ namespace OpenJigWare
                         }
                     }
 
-                    // Í∏∞Ï§Ä Ïõê Í∑∏Î†§Î≥¥Ïûê
+                    // ±‚¡ÿ ø¯ ±◊∑¡∫∏¿⁄
                     ////////////////////////////
                     float fX1, fY1, fR1;
                     float fX2, fY2, fR2;
@@ -11409,13 +15053,13 @@ namespace OpenJigWare
 
 
 
-                        // ÏãúÏûë ÏúÑÏπò Í∞ÅÎèÑÎ•º Í±∞Î¶¨Î°ú ÌôòÏÇ∞Ìï¥ÏÑú Íµ¨ÌïòÍ∏∞
-                        float fAngleTest = fAngleMove % fTrack_Distance; // Î™®ÌÑ∞ ÌöåÏ†Ñ 5ÎèÑ
+                        // Ω√¿€ ¿ßƒ° ∞¢µµ∏¶ ∞≈∏Æ∑Œ »ØªÍ«ÿº≠ ±∏«œ±‚
+                        float fAngleTest = fAngleMove % fTrack_Distance; // ∏≈Õ »∏¿¸ 5µµ
                         float fStartPos = -fAngleTest * (2.0f * (float)Math.PI * fR1) / 360.0f;
 
-                        // Í∏∞Ï§ÄÏúÑÏπò ÌëúÏãú - ÎÇòÏ§ëÏóê ÏÇ≠Ï†ú
+                        // ±‚¡ÿ¿ßƒ° «•Ω√ - ≥™¡ﬂø° ªË¡¶
                         //OjwBall_Outside(bFill, aclrTestColor[nNum], fAlpha, fR / 10, 50, 0, 0, 0, 0, 0, 0);
-                        float fPos = fStartPos;// -fTrack_Distance; // ÏãúÏûëÏúÑÏπò Ï°∞Ï†ïÏù¥ Í∞ÄÎä•
+                        float fPos = fStartPos;// -fTrack_Distance; // Ω√¿€¿ßƒ° ¡∂¡§¿Ã ∞°¥…
                         if (nCnt > 1)
                         {
                             while (fPos <= fLength_Out)
@@ -11444,7 +15088,7 @@ namespace OpenJigWare
                         OjwRotation(0, 0, -fAngle);
                         OjwTranslate(-fX, -fY, 0);
 
-                        // Í±∞Î¶¨Ïò§Ï∞®
+                        // ∞≈∏Æø¿¬˜
                         float fDiff = fLength_Out - (fPos - fTrack_Distance);
 
                         // Rotation
@@ -11452,7 +15096,7 @@ namespace OpenJigWare
                         //OjwTranslate(0, fR, 0);
                         //float fPos_X, fPos_Y;
                         float fAngleDiff = (-fDiff * 360.0f) / (2.0f * (float)Math.PI * fR1);
-                        // ÏõêÌò∏Ïùò Í∏∏Ïù¥ = 2 * pi * r * (Í∞ÅÎèÑ / 360)
+                        // ø¯»£¿« ±Ê¿Ã = 2 * pi * r * (∞¢µµ / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * fR1);
                         float fTmp = (fAngle - fAngle2 + 360.0f) % 360.0f;
@@ -11502,7 +15146,7 @@ namespace OpenJigWare
                         }
                         else
                         {
-                            // Í∞ÅÎèÑÎ•º Î∞òÏúºÎ°ú ÎÇòÎàà Î∂ÄÎ∂ÑÏóê ÏàòÏßÅ ÏàòÏÑ†Ïù¥ ÎÇ¥Î†§ÏßÑÎã§.
+                            // ∞¢µµ∏¶ π›¿∏∑Œ ≥™¥´ ∫Œ∫–ø° ºˆ¡˜ ºˆº±¿Ã ≥ª∑¡¡¯¥Ÿ.
                             // 
                             float fR_Height = fR1 - fR1 * (float)Ojw.CMath.Cos(fDegree / 2.0f);
                             float fR_Bottom = fR1 * (float)Ojw.CMath.Sin(fDegree / 2.0f);
@@ -11677,7 +15321,7 @@ namespace OpenJigWare
 #endif
 #if false
                         #region Circle
-                        // ÏõêÌò∏Ïùò Í∏∏Ïù¥ = 2 * pi * r * (Í∞ÅÎèÑ / 360)
+                        // ø¯»£¿« ±Ê¿Ã = 2 * pi * r * (∞¢µµ / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * afValue[nR1]);
                         if (fAngle >= 180.0f)
@@ -11728,7 +15372,7 @@ namespace OpenJigWare
                         #endregion Circle
 #else
                         #region Circle
-                        // ÏõêÌò∏Ïùò Í∏∏Ïù¥ = 2 * pi * r * (Í∞ÅÎèÑ / 360)
+                        // ø¯»£¿« ±Ê¿Ã = 2 * pi * r * (∞¢µµ / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * afValue[nR1]);
                         if (fAngle >= 180.0f)
@@ -11776,7 +15420,7 @@ namespace OpenJigWare
                 public void OjwTrack(float fAngleMove, bool bFill, Color color, float fAlpha,
                     string strTrackFile,
                     float fTrack_W, float fTrack_H, float fTrack_D, float fTrack_Distance,
-                    //int nConnectedAxis, float fAxis_X, float fAxis_Y, int nMode,// Ïó∞Í≤∞Îêú Î™®ÌÑ∞, ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê, Mode(0 : ÌöåÏ†Ñ, 1 : Ï∂ï Ïù¥Îèô(fAxis_X Í∞ÅÎèÑ Ïó∞Í¥Ä)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    //int nConnectedAxis, float fAxis_X, float fAxis_Y, int nMode,// ø¨∞·µ» ∏≈Õ, »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°, Mode(0 : »∏¿¸, 1 : √‡ ¿Ãµø(fAxis_X ∞¢µµ ø¨∞¸)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
 
                     float fTrack_OffsetPan, float fTrack_OffsetTilt, float fTrack_OffsetSwing,    // Ratation(Offset)
                     float fTrack_OffsetX, float fTrack_OffsetY, float fTrack_OffsetZ,              // Translation(Offset)    
@@ -11794,12 +15438,12 @@ namespace OpenJigWare
                     if (fTrack_Distance == 0) fTrack_Distance = 0.001f;
                     int nCnt = aSValue.Length;
 #if true
-                    // Rotation Ï†ÅÏö©
-                    int nConnectedAxis; // Ïó∞Í≤∞Îêú Î™®ÌÑ∞ Î≤àÌò∏
-                    float fAxis_X;      // ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê(X)
-                    float fAxis_Y;      // ÌöåÏ†Ñ Ìï¥Ïïº Ìï† Ï¢åÌëú Í∏∞Ï§Ä Ï†ê(Y)
-                    int nMode;          // Mode(0 : Î≥ÄÌôîÏóÜÏùå, 1 : ÌöåÏ†Ñ, 2 : Ï∂ï Ïù¥Îèô(fAxis_X Í∞ÅÎèÑ Ïó∞Í¥Ä - ÎÇòÏ§ëÏóê Íµ¨ÌòÑÌïòÏûê. ÏßÄÍ∏à Î∞îÎπ†)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
-                    float fDir = 0;           // Î∞©Ìñ•(0 : Ï†ï, 1 : Î∞òÎåÄ)
+                    // Rotation ¿˚øÎ
+                    int nConnectedAxis; // ø¨∞·µ» ∏≈Õ π¯»£
+                    float fAxis_X;      // »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°(X)
+                    float fAxis_Y;      // »∏¿¸ «ÿæﬂ «“ ¡¬«• ±‚¡ÿ ¡°(Y)
+                    int nMode;          // Mode(0 : ∫Ø»≠æ¯¿Ω, 1 : »∏¿¸, 2 : √‡ ¿Ãµø(fAxis_X ∞¢µµ ø¨∞¸ - ≥™¡ﬂø° ±∏«ˆ«œ¿⁄. ¡ˆ±› πŸ∫¸)) //float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Ratation(Offset)
+                    float fDir = 0;           // πÊ«‚(0 : ¡§, 1 : π›¥Î)
                     for (int nNum = 0; nNum < nCnt; nNum++)
                     {
                         //fR = aSValue[nNum].fR;
@@ -11809,7 +15453,7 @@ namespace OpenJigWare
                         fAxis_Y = aSValue[nNum].fCenter_Y;
                         nMode = aSValue[nNum].nMode;
                         fDir = ((aSValue[nNum].nDir == 0) ? 1.0f : -1.0f);
-                        if (nMode == 1) // ÏúÑÎ°ú Íµ¥Í≥° ÌóàÏö©
+                        if (nMode == 1) // ¿ß∑Œ ±º∞Ó «„øÎ
                         {
                             //float fCurv = -GetData(nConnectedAxis) * fDir;
                             //if (fCurv > 0)
@@ -11835,7 +15479,7 @@ namespace OpenJigWare
             
                             //}
                         }
-                        else if (nMode == 2) // ÏïÑÎûòÎ°ú Íµ¥Í≥° ÌóàÏö©
+                        else if (nMode == 2) // æ∆∑°∑Œ ±º∞Ó «„øÎ
                         {
                             float x = aSValue[nNum].fX;
                             float y = aSValue[nNum].fY;
@@ -11874,7 +15518,7 @@ namespace OpenJigWare
                     }
                     if (fTrack_W < 0) fTrack_W = -fTrack_W;
 #if true
-                    // Í∂§Ï†ÅÍ≤ÄÏÇ¨
+                    // ±À¿˚∞ÀªÁ
                     //int nNum_Prev;
                     int nCnt2 = 0;
                     bool[] abChanged = new bool[nCnt];
@@ -11958,7 +15602,7 @@ namespace OpenJigWare
                         }
                     }
 
-                    // Í∏∞Ï§Ä Ïõê Í∑∏Î†§Î≥¥Ïûê
+                    // ±‚¡ÿ ø¯ ±◊∑¡∫∏¿⁄
                     ////////////////////////////
 #if false
                     //if (nCnt == 1)
@@ -12007,15 +15651,15 @@ namespace OpenJigWare
                         float fAngleGap = (float)Ojw.CMath.ATan2(fLength, (fR1 - fR)); //(float)Ojw.CMath.ATan2(fLength_Out, (fR1 - fR));
                         OjwRotation(0, 0, fAngleGap);
                         
-                        // ÏãúÏûë ÏúÑÏπò Í∞ÅÎèÑÎ•º Í±∞Î¶¨Î°ú ÌôòÏÇ∞Ìï¥ÏÑú Íµ¨ÌïòÍ∏∞
-                        //float fAngleTest = fAngleMove % fTrack_Distance; // Î™®ÌÑ∞ ÌöåÏ†Ñ ?ÎèÑ
+                        // Ω√¿€ ¿ßƒ° ∞¢µµ∏¶ ∞≈∏Æ∑Œ »ØªÍ«ÿº≠ ±∏«œ±‚
+                        //float fAngleTest = fAngleMove % fTrack_Distance; // ∏≈Õ »∏¿¸ ?µµ
                         //float fStartPos = -fAngleTest * (2.0f * (float)Math.PI * fR1) / 360.0f;
-                        float fAngleTest = fAngleMove * (2.0f * (float)Math.PI * fR1) / 360.0f; // Î™®ÌÑ∞ ÌöåÏ†Ñ ?ÎèÑ
+                        float fAngleTest = fAngleMove * (2.0f * (float)Math.PI * fR1) / 360.0f; // ∏≈Õ »∏¿¸ ?µµ
                         float fStartPos = (fAngleTest % fTrack_Distance) * -1;// ((fAngleMove >= 0) ? -1 : 1);
                         //Ojw.CMessage.Write("Pos={0} -> {1} -> {2}", fAngleMove, fAngleTest, fStartPos);
-                        // Í∏∞Ï§ÄÏúÑÏπò ÌëúÏãú - ÎÇòÏ§ëÏóê ÏÇ≠Ï†ú
+                        // ±‚¡ÿ¿ßƒ° «•Ω√ - ≥™¡ﬂø° ªË¡¶
                         //OjwBall_Outside(bFill, aclrTestColor[nNum], fAlpha, fR / 10, 50, 0, 0, 0, 0, 0, 0);
-                        float fPos = fStartPos;// -fTrack_Distance; // ÏãúÏûëÏúÑÏπò Ï°∞Ï†ïÏù¥ Í∞ÄÎä•
+                        float fPos = fStartPos;// -fTrack_Distance; // Ω√¿€¿ßƒ° ¡∂¡§¿Ã ∞°¥…
                         if (nCnt > 1)
                         {
                             while (fPos <= fLength_Out)
@@ -12044,7 +15688,7 @@ namespace OpenJigWare
                         OjwRotation(0, 0, -fAngle);
                         OjwTranslate(-fX, -fY, 0);
 
-                        // Í±∞Î¶¨Ïò§Ï∞®
+                        // ∞≈∏Æø¿¬˜
                         float fDiff = fLength_Out - (fPos - fTrack_Distance);
 
                         // Rotation
@@ -12052,7 +15696,7 @@ namespace OpenJigWare
                         //OjwTranslate(0, fR, 0);
                         //float fPos_X, fPos_Y;
                         float fAngleDiff = (-fDiff * 360.0f) / (2.0f * (float)Math.PI * fR1);
-                        // ÏõêÌò∏Ïùò Í∏∏Ïù¥ = 2 * pi * r * (Í∞ÅÎèÑ / 360)
+                        // ø¯»£¿« ±Ê¿Ã = 2 * pi * r * (∞¢µµ / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * fR1);
                         float fTmp = (fAngle - fAngle2 + 360.0f) % 360.0f;
@@ -12113,7 +15757,7 @@ namespace OpenJigWare
                         else
 #endif
                         {
-                            // Í∞ÅÎèÑÎ•º Î∞òÏúºÎ°ú ÎÇòÎàà Î∂ÄÎ∂ÑÏóê ÏàòÏßÅ ÏàòÏÑ†Ïù¥ ÎÇ¥Î†§ÏßÑÎã§.
+                            // ∞¢µµ∏¶ π›¿∏∑Œ ≥™¥´ ∫Œ∫–ø° ºˆ¡˜ ºˆº±¿Ã ≥ª∑¡¡¯¥Ÿ.
                             // 
                             float fR_Height = fR1 - fR1 * (float)Ojw.CMath.Cos(fDegree / 2.0f);
                             float fR_Bottom = fR1 * (float)Ojw.CMath.Sin(fDegree / 2.0f);
@@ -12173,7 +15817,7 @@ namespace OpenJigWare
                 #endregion OjwBox_Outside
 
                 // Case which rotates around the center of the upper surface
-                // Kor: ÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî '„Ñ∑' ÏûêÌòï ÏÉÅÏûê
+                // Kor: ¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ '§ß' ¿⁄«¸ ªÛ¿⁄
                 #region OjwCase
                 public void OjwCase(bool bFill, Color color, float fAlpha, bool bRound, bool bInverseType, float fAspectGap,
                                     float fW, float fH, float fD, float fThickness,            
@@ -12204,15 +15848,15 @@ namespace OpenJigWare
 
 
                         float fT = fThickness;
-                        // x2 -> direction : right(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : Ïò§Î•∏Ï™Ω)
-                        // Y2 -> direction : Up(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÏúÑÏ™Ω)
-                        // Z2 -> direction : The inside of the screen(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÌôîÎ©¥Ïùò ÏïàÏ™Ω)
-                        // Criteria screen : See picture below(Kor: Í∏∞Ï§ÄÌôîÎ©¥ : Î∞ë Í∑∏Î¶º Ï∞∏Ï°∞)
+                        // x2 -> direction : right(Kor: ¡ı∫–πÊ«‚ : ø¿∏•¬ )
+                        // Y2 -> direction : Up(Kor: ¡ı∫–πÊ«‚ : ¿ß¬ )
+                        // Z2 -> direction : The inside of the screen(Kor: ¡ı∫–πÊ«‚ : »≠∏È¿« æ»¬ )
+                        // Criteria screen : See picture below(Kor: ±‚¡ÿ»≠∏È : πÿ ±◊∏≤ ¬¸¡∂)
                         // 0, 0, 0 -> State in the middle of the screen as a starting point and went inside by a factor of 5
-                        // Kor: 0, 0, 0 -> ÌôîÎ©¥Ïùò Í∞ÄÏö¥Îç∞Î•º ÏãúÏûëÏ†êÏúºÎ°ú ÌïòÍ≥† ÏïàÏ™ΩÏúºÎ°ú 5ÎßåÌÅº Îì§Ïñ¥Í∞Ñ ÏÉÅÌÉú
+                        // Kor: 0, 0, 0 -> »≠∏È¿« ∞°øÓµ•∏¶ Ω√¿€¡°¿∏∑Œ «œ∞Ì æ»¬ ¿∏∑Œ 5∏∏≈≠ µÈæÓ∞£ ªÛ≈¬
                         /*
                             000000000
-                          0 0 ‚òÖ  0 0
+                          0 0 °⁄  0 0
                         000000000   0
                         0   0   0   0
                         0   000000000  
@@ -12427,7 +16071,7 @@ namespace OpenJigWare
                 #endregion OjwCase
 
                 // half-Case which rotates around the center of the upper surface
-                // Kor: ÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî '„Ñ∑' ÏûêÌòï ÏÉÅÏûê Î∞òÏ™Ω
+                // Kor: ¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ '§ß' ¿⁄«¸ ªÛ¿⁄ π›¬ 
                 #region OjwCase_half
                 public void OjwCase_half(bool bFill, Color color, float fAlpha, bool bRound, bool bInverseType, float fAspectGap,
                                     float fW, float fH, float fD, float fThickness,
@@ -12574,7 +16218,7 @@ namespace OpenJigWare
                 }
                 #endregion OjwCase_half
 
-                // Circle which rotates around the center of the upper surfaceÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî Circle
+                // Circle which rotates around the center of the upper surface¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ Circle
                 #region OjwCircle
                 public void OjwCircle(bool bFill, Color color, float fAlpha, float fR, float fD, int nSolidCnt)
                 {
@@ -12611,24 +16255,24 @@ namespace OpenJigWare
                         // GLU_LINE -> Wire Frame
                         // GLU_FILL -> Solid
                         // GLU_POINT -> Point
-                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: ÏÑ†ÏúºÎ°ú Ïô∏Î∂ÄÎ™®ÏÑúÎ¶¨ÎßåÏùÑ Í∑∏Î¶º)
+                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: º±¿∏∑Œ ø‹∫Œ∏º≠∏Æ∏∏¿ª ±◊∏≤)
                         Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? ((nLoop == 0) ? Glu.GLU_FILL : Glu.GLU_SILHOUETTE) : Glu.GLU_LINE);
 
-                        // GLU_NONE -> Do not generate normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ± ÏïàÌï®)
-                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: Î©¥Ïù¥ ÍπéÏù∏ Í≤ÉÏ≤òÎüº Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
-                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: Î¨ºÏ≤¥Ïùò Î™®ÏÑúÎ¶¨Í∞Ä Î∂ÄÎìúÎüΩÍ≤å Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
+                        // GLU_NONE -> Do not generate normal vector(Kor: π˝º±∫§≈Õ ª˝º∫ æ»«‘)
+                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: ∏È¿Ã ±¿Œ ∞Õ√≥∑≥ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
+                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: π∞√º¿« ∏º≠∏Æ∞° ∫ŒµÂ∑¥∞‘ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
                         Glu.gluQuadricNormals(quadObj, Glu.GLU_SMOOTH);
 
-                        // Specifies the direction of the normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏßÄÏ†ï)
-                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏïàÏ™ΩÏúºÎ°ú)
-                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ Î∞îÍπ•Ï™ΩÏúºÎ°ú)
+                        // Specifies the direction of the normal vector(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª ¡ˆ¡§)
+                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª æ»¬ ¿∏∑Œ)
+                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª πŸ±˘¬ ¿∏∑Œ)
                         Glu.gluQuadricOrientation(quadObj, Glu.GLU_INSIDE);
                         Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
 
                         Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
                         Glu.gluCylinder(quadObj, fR, fR, fD, nSolidCnt, 2);
 #if false
-                        // ÏãúÏûëÏõêÏùò Î∞òÏßÄÎ¶Ñ(ÎèÑÏö∞ÎÑõ Î™®ÏñëÏù¥ Í∞ÄÎä• - Ïù¥ Í∞íÏù¥ ÌÅ¥ÏàòÎ°ù Íµ¨Î©çÏù¥ ÎÑìÏñ¥Ïßê), Ïô∏Í≥ΩÏõêÏùò Î∞òÏßÄÎ¶Ñ, ÏõêÏùÑ Ïù¥Î£®Îäî ÏÑ†Ïùò Í∞ØÏàò
+                        // Ω√¿€ø¯¿« π›¡ˆ∏ß(µµøÏ≥” ∏æÁ¿Ã ∞°¥… - ¿Ã ∞™¿Ã ≈¨ºˆ∑œ ±∏∏€¿Ã ≥–æÓ¡¸), ø‹∞˚ø¯¿« π›¡ˆ∏ß, ø¯¿ª ¿Ã∑Á¥¬ º±¿« ∞πºˆ
                         //Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
 #endif
                         Gl.glTranslated(0, 0, fD);
@@ -12644,17 +16288,17 @@ namespace OpenJigWare
                         // GLU_LINE -> Wire Frame
                         // GLU_FILL -> Solid
                         // GLU_POINT -> Point
-                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: ÏÑ†ÏúºÎ°ú Ïô∏Î∂ÄÎ™®ÏÑúÎ¶¨ÎßåÏùÑ Í∑∏Î¶º)
+                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: º±¿∏∑Œ ø‹∫Œ∏º≠∏Æ∏∏¿ª ±◊∏≤)
                         Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? ((nLoop == 0) ? Glu.GLU_FILL : Glu.GLU_SILHOUETTE) : Glu.GLU_LINE);
 
-                        // GLU_NONE -> Do not generate normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ± ÏïàÌï®)
-                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: Î©¥Ïù¥ ÍπéÏù∏ Í≤ÉÏ≤òÎüº Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
-                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: Î¨ºÏ≤¥Ïùò Î™®ÏÑúÎ¶¨Í∞Ä Î∂ÄÎìúÎüΩÍ≤å Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
+                        // GLU_NONE -> Do not generate normal vector(Kor: π˝º±∫§≈Õ ª˝º∫ æ»«‘)
+                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: ∏È¿Ã ±¿Œ ∞Õ√≥∑≥ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
+                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: π∞√º¿« ∏º≠∏Æ∞° ∫ŒµÂ∑¥∞‘ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
                         Glu.gluQuadricNormals(quadObj, Glu.GLU_SMOOTH);
 
-                        // Specifies the direction of the normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏßÄÏ†ï)
-                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏïàÏ™ΩÏúºÎ°ú)
-                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ Î∞îÍπ•Ï™ΩÏúºÎ°ú)
+                        // Specifies the direction of the normal vector(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª ¡ˆ¡§)
+                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª æ»¬ ¿∏∑Œ)
+                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª πŸ±˘¬ ¿∏∑Œ)
                         //Glu.gluQuadricOrientation(quadObj, Glu.GLU_INSIDE);
 
                         OjwRotation(180.0f, 0.0f, 0.0f);
@@ -12678,7 +16322,7 @@ namespace OpenJigWare
                 }
                 #endregion OjwCircle
 
-                // A cylinder which rotates around the center of the upper surface(Kor: ÏúóÎ©¥Ïùò Ï§ëÏã¨ÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌöåÏ†ÑÌïòÎäî ÏõêÍ∏∞Îë•)
+                // A cylinder which rotates around the center of the upper surface(Kor: ¿≠∏È¿« ¡ﬂΩ…¿ª ±‚¡ÿ¿∏∑Œ »∏¿¸«œ¥¬ ø¯±‚µ’)
                 #region OjwCircle_Outside
                 public void OjwCircle_Outside(bool bFill, Color color, float fAlpha, float fR, float fD, int nSolidCnt,
                                     float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Rotate(Offset)
@@ -12723,20 +16367,20 @@ namespace OpenJigWare
                         // GLU_LINE -> Wire Frame
                         // GLU_FILL -> Solid
                         // GLU_POINT -> Point
-                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: ÏÑ†ÏúºÎ°ú Ïô∏Î∂ÄÎ™®ÏÑúÎ¶¨ÎßåÏùÑ Í∑∏Î¶º)
+                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: º±¿∏∑Œ ø‹∫Œ∏º≠∏Æ∏∏¿ª ±◊∏≤)
                         //Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? Glu.GLU_FILL : Glu.GLU_LINE);
                         Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? ((nLoop == 0) ? Glu.GLU_FILL : Glu.GLU_SILHOUETTE) : Glu.GLU_LINE);
 
-                        // GLU_NONE -> Do not generate normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ± ÏïàÌï®)
-                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: Î©¥Ïù¥ ÍπéÏù∏ Í≤ÉÏ≤òÎüº Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
-                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: Î¨ºÏ≤¥Ïùò Î™®ÏÑúÎ¶¨Í∞Ä Î∂ÄÎìúÎüΩÍ≤å Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
+                        // GLU_NONE -> Do not generate normal vector(Kor: π˝º±∫§≈Õ ª˝º∫ æ»«‘)
+                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: ∏È¿Ã ±¿Œ ∞Õ√≥∑≥ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
+                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: π∞√º¿« ∏º≠∏Æ∞° ∫ŒµÂ∑¥∞‘ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
                         Glu.gluQuadricNormals(quadObj, Glu.GLU_SMOOTH);
 
-                        // Specifies the direction of the normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏßÄÏ†ï)
-                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏïàÏ™ΩÏúºÎ°ú)
-                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ Î∞îÍπ•Ï™ΩÏúºÎ°ú)
+                        // Specifies the direction of the normal vector(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª ¡ˆ¡§)
+                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª æ»¬ ¿∏∑Œ)
+                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª πŸ±˘¬ ¿∏∑Œ)
                         Glu.gluQuadricOrientation(quadObj, Glu.GLU_INSIDE);
-                        // The radius of the circle(The higher the number, the hole is widened)(Kor: ÏãúÏûëÏõêÏùò Î∞òÏßÄÎ¶Ñ(ÎèÑÏö∞ÎÑõ Î™®ÏñëÏù¥ Í∞ÄÎä• - Ïù¥ Í∞íÏù¥ ÌÅ¥ÏàòÎ°ù Íµ¨Î©çÏù¥ ÎÑìÏñ¥Ïßê), Ïô∏Í≥ΩÏõêÏùò Î∞òÏßÄÎ¶Ñ, ÏõêÏùÑ Ïù¥Î£®Îäî ÏÑ†Ïùò Í∞ØÏàò)
+                        // The radius of the circle(The higher the number, the hole is widened)(Kor: Ω√¿€ø¯¿« π›¡ˆ∏ß(µµøÏ≥” ∏æÁ¿Ã ∞°¥… - ¿Ã ∞™¿Ã ≈¨ºˆ∑œ ±∏∏€¿Ã ≥–æÓ¡¸), ø‹∞˚ø¯¿« π›¡ˆ∏ß, ø¯¿ª ¿Ã∑Á¥¬ º±¿« ∞πºˆ)
                         Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
 
                         Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
@@ -12758,23 +16402,23 @@ namespace OpenJigWare
                         // GLU_LINE -> Wire Frame
                         // GLU_FILL -> Solid
                         // GLU_POINT -> Point
-                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: ÏÑ†ÏúºÎ°ú Ïô∏Î∂ÄÎ™®ÏÑúÎ¶¨ÎßåÏùÑ Í∑∏Î¶º)
+                        // GLU_SILHOUETTE -> Only the outer edges with a line figure(Kor: º±¿∏∑Œ ø‹∫Œ∏º≠∏Æ∏∏¿ª ±◊∏≤)
                         //Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? Glu.GLU_FILL : Glu.GLU_LINE);
                         Glu.gluQuadricDrawStyle(quadObj, (bFill == true) ? ((nLoop == 0) ? Glu.GLU_FILL : Glu.GLU_SILHOUETTE) : Glu.GLU_LINE);
 
-                        // GLU_NONE -> Do not generate normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ± ÏïàÌï®)
-                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: Î©¥Ïù¥ ÍπéÏù∏ Í≤ÉÏ≤òÎüº Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
-                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: Î¨ºÏ≤¥Ïùò Î™®ÏÑúÎ¶¨Í∞Ä Î∂ÄÎìúÎüΩÍ≤å Î≥¥Ïù¥ÎèÑÎ°ù Î≤ïÏÑ†Î≤°ÌÑ∞ ÏÉùÏÑ±)
+                        // GLU_NONE -> Do not generate normal vector(Kor: π˝º±∫§≈Õ ª˝º∫ æ»«‘)
+                        // GLU_FLAT -> The surface normal vector to produce it seem shorn(Kor: ∏È¿Ã ±¿Œ ∞Õ√≥∑≥ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
+                        // GLU_SMOOTH -> The normal vector of the corner to create an object looks smooth(Kor: π∞√º¿« ∏º≠∏Æ∞° ∫ŒµÂ∑¥∞‘ ∫∏¿Ãµµ∑œ π˝º±∫§≈Õ ª˝º∫)
                         Glu.gluQuadricNormals(quadObj, Glu.GLU_SMOOTH);
 
 
-                        // Specifies the direction of the normal vector(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏßÄÏ†ï)
-                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ ÏïàÏ™ΩÏúºÎ°ú)
-                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: Î≤ïÏÑ†Î≤°ÌÑ∞Ïùò Î∞©Ìñ•ÏùÑ Î∞îÍπ•Ï™ΩÏúºÎ°ú)
+                        // Specifies the direction of the normal vector(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª ¡ˆ¡§)
+                        // GLU_INSIDE -> Makes the direction of the normal vector to the inside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª æ»¬ ¿∏∑Œ)
+                        // GLU_OUTSIDE -> Makes the direction of the normal vector to the outside.(Kor: π˝º±∫§≈Õ¿« πÊ«‚¿ª πŸ±˘¬ ¿∏∑Œ)
                         //Glu.gluQuadricOrientation(quadObj, Glu.GLU_OUTSIDE);
                         
 
-                        // The radius of the circle(The higher the number, the hole is widened)(Kor: ÏãúÏûëÏõêÏùò Î∞òÏßÄÎ¶Ñ(ÎèÑÏö∞ÎÑõ Î™®ÏñëÏù¥ Í∞ÄÎä• - Ïù¥ Í∞íÏù¥ ÌÅ¥ÏàòÎ°ù Íµ¨Î©çÏù¥ ÎÑìÏñ¥Ïßê), Ïô∏Í≥ΩÏõêÏùò Î∞òÏßÄÎ¶Ñ, ÏõêÏùÑ Ïù¥Î£®Îäî ÏÑ†Ïùò Í∞ØÏàò)
+                        // The radius of the circle(The higher the number, the hole is widened)(Kor: Ω√¿€ø¯¿« π›¡ˆ∏ß(µµøÏ≥” ∏æÁ¿Ã ∞°¥… - ¿Ã ∞™¿Ã ≈¨ºˆ∑œ ±∏∏€¿Ã ≥–æÓ¡¸), ø‹∞˚ø¯¿« π›¡ˆ∏ß, ø¯¿ª ¿Ã∑Á¥¬ º±¿« ∞πºˆ)
 
                         OjwRotation(180.0f, 0.0f, 0.0f);
                         Glu.gluDisk(quadObj, 0, fR, nSolidCnt, 1);
@@ -12798,7 +16442,7 @@ namespace OpenJigWare
                 }
                 #endregion OjwCircle_Outside
 
-                // Ball to the middle of the center(Kor: Í∞ÄÏö¥Îç∞Î•º Ï§ëÏã¨ÏúºÎ°ú ÌïòÎäî Í≥µ)
+                // Ball to the middle of the center(Kor: ∞°øÓµ•∏¶ ¡ﬂΩ…¿∏∑Œ «œ¥¬ ∞¯)
                 #region OjwBall
                 public void OjwBall(bool bFill, Color color, float fAlpha, float fR, int nSolidCnt)
                 {
@@ -12824,7 +16468,7 @@ namespace OpenJigWare
                 }
                 #endregion OjwBall
            
-                // Ball to the middle of the center(Kor: Í∞ÄÏö¥Îç∞Î•º Ï§ëÏã¨ÏúºÎ°ú ÌïòÎäî Í≥µ)
+                // Ball to the middle of the center(Kor: ∞°øÓµ•∏¶ ¡ﬂΩ…¿∏∑Œ «œ¥¬ ∞¯)
                 #region OjwBall_Outside
                 public void OjwBall_Outside(bool bFill, Color color, float fAlpha, float fR, int nSolidCnt,
                                     float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Rotate(Offset)
@@ -12852,7 +16496,7 @@ namespace OpenJigWare
                 }
                 #endregion OjwBall_Outside
 
-                // Cone to the center of the bottom of the center(Kor: Î∞ëÎ©¥Ïùò Í∞ÄÏö¥Îç∞Î•º Ï§ëÏã¨ÏúºÎ°ú ÌïòÎäî ÏõêÎøî)
+                // Cone to the center of the bottom of the center(Kor: πÿ∏È¿« ∞°øÓµ•∏¶ ¡ﬂΩ…¿∏∑Œ «œ¥¬ ø¯ª‘)
                 #region OjwCone_Outside
                 public void OjwCone_Outside(bool bFill, Color color, float fAlpha, float fR, float fHeight, int nSolidCnt,
                                     float fOffsetPan, float fOffsetTilt, float fOffsetSwing,    // Rotate(Offset)
@@ -12927,7 +16571,7 @@ namespace OpenJigWare
                 }
                 #endregion OjwCone_Outside
 
-                // Axis to set up a collection of functions for display(Kor: ÎîîÏä§ÌîåÎ†àÏù¥Ïö© Ï∂ï ÏÑ§Ï†ï Í¥ÄÎ†® Ìï®Ïàò Î™®Ïùå)
+                // Axis to set up a collection of functions for display(Kor: µΩ∫«√∑π¿ÃøÎ √‡ º≥¡§ ∞¸∑√ «‘ºˆ ∏¿Ω)
                 #region Axis-All
                 public void Axis(bool bFill, Color cX, float fAlphaX, Color cY, float fAlphaY, Color cZ, float fAlphaZ, float fThick, float fLength)
                 {
@@ -13083,7 +16727,7 @@ namespace OpenJigWare
                                     float fW, float fH, float fD,            
                                     float fOffsetPan, float fOffsetTilt, float fOffsetSwing,   // rotate(offset)
                                     float fOffsetX, float fOffsetY, float fOffsetZ, // translate(offset)
-                                    String strIndex_Ase  // File Index name(Kor: ÌååÏùº Ïù∏Îç±Ïã± Ïù¥Î¶Ñ)
+                                    String strIndex_Ase  // File Index name(Kor: ∆ƒ¿œ ¿Œµ¶ΩÃ ¿Ã∏ß)
                                 )
                 {
                     if (strIndex_Ase.Length == 0) return;
@@ -13110,7 +16754,7 @@ namespace OpenJigWare
 #if _STL_CW
                     Gl.glFrontFace((bStl == true) ? Gl.GL_CW : Gl.GL_CCW);
 #else
-                    Gl.glFrontFace(Gl.GL_CCW); // 20150528 ÏàòÏ†ï - Ïù¥Í≤å ÎßûÎã§.
+                    Gl.glFrontFace(Gl.GL_CCW); // 20150528 ºˆ¡§ - ¿Ã∞‘ ∏¬¥Ÿ.
                     //Gl.glFrontFace((bStl == true) ? Gl.GL_CCW : Gl.GL_CCW);
 #endif
 #if true // 1
@@ -13179,7 +16823,7 @@ namespace OpenJigWare
                     //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
                     //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_LINE : Gl.GL_LINE));
 #endif
-                    int uiType = Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
+                    int uiType = Gl.GL_TRIANGLES;// Gl.GL_POLYGON;// Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
 
                     Gl.glColor4fv(m_fColor);
 
@@ -13242,8 +16886,8 @@ namespace OpenJigWare
 #else
                     if (IsPerspectiveMode() == true)
                     {
-                        //Gl.glEdgeFlag(Gl.GL_TRUE); -> ÏÉÅÍ¥ÄÏóÜÏùå
-                        //Gl.glFrontFace(Gl.GL_CW); -> Í¥ÄÍ≥ÑÏóÜÏùå
+                        //Gl.glEdgeFlag(Gl.GL_TRUE); -> ªÛ∞¸æ¯¿Ω
+                        //Gl.glFrontFace(Gl.GL_CW); -> ∞¸∞Ëæ¯¿Ω
                     }
                     if (bStl == true)
                     {
@@ -13337,7 +16981,7 @@ namespace OpenJigWare
                 }
                 #endregion File(by Name)
                 #endregion OjwAse_Outside
-                // Copy Data Modeling(Kor: Î™®Îç∏ÎßÅÎç∞Ïù¥ÌÉÄ Î≥µÏÇ¨)
+                // Copy Data Modeling(Kor: ∏µ®∏µµ•¿Ã≈∏ ∫πªÁ)
                 public void OjwFileOpen_3D_OBJ(int nCnt_Obj, int nCnt_Ase, COjwAse[] pObjAse)
                 {
                     m_nCnt_Obj = nCnt_Obj;
@@ -13348,7 +16992,7 @@ namespace OpenJigWare
                 }
                 // ASE 3D Modeling data #0
                 #region Ojw3D_ASE_0
-                public int m_nCnt_Obj_Ase = 0; // The number of loading ASE file(Kor: ASE ÌååÏùºÏùò Î°úÎî© Í∞ØÏàò)
+                public int m_nCnt_Obj_Ase = 0; // The number of loading ASE file(Kor: ASE ∆ƒ¿œ¿« ∑Œµ˘ ∞πºˆ)
                 public int m_nCnt_Obj = 0;
                 public int m_nCnt_Ase = 0;
                 public void OjwFileOpen_3D_OBJ(String strFileName)
@@ -13479,10 +17123,10 @@ namespace OpenJigWare
                         long lHeaderSize = fs_Ascii.Length;
                         byte[] byteData = new byte[lHeaderSize];
                         
-                        #region Moved by opening the file into memory(Kor: ÌååÏùºÏùÑ Ïó¥Ïñ¥ÏÑú Î©îÎ™®Î¶¨Î°ú ÏòÆÍπÄ)
+                        #region Moved by opening the file into memory(Kor: ∆ƒ¿œ¿ª ø≠æÓº≠ ∏ﬁ∏∏Æ∑Œ ø≈±Ë)
                         fs_Ascii.Read(byteData, 0, (int)lHeaderSize);//byteData.Length); // for Check 11 bytes in header
                         fs_Ascii.Close();
-                        #endregion Moved by opening the file into memory(Kor: ÌååÏùºÏùÑ Ïó¥Ïñ¥ÏÑú Î©îÎ™®Î¶¨Î°ú ÏòÆÍπÄ)
+                        #endregion Moved by opening the file into memory(Kor: ∆ƒ¿œ¿ª ø≠æÓº≠ ∏ﬁ∏∏Æ∑Œ ø≈±Ë)
                         if (Encoding.ASCII.GetString(byteData, 0, 80).IndexOf("solid ascii") >= 0)
                         {
                             Ojw.CMessage.Write("solid ascii");
@@ -13690,7 +17334,7 @@ namespace OpenJigWare
                                 {
                                     if (nTemp == 0)
                                     {
-                                        // read in the order of [x, z, y](Kor: x, z, yÏùò ÏàúÏúºÎ°ú ÏùΩÏùå)
+                                        // read in the order of [x, z, y](Kor: x, z, y¿« º¯¿∏∑Œ ¿–¿Ω)
                                         str = str.Trim();
                                         int nPos0 = str.IndexOf(' ');
                                         int nPos1 = str.IndexOf('\t') - nPos0;
@@ -13705,7 +17349,7 @@ namespace OpenJigWare
                                         afPos2[1] = CConvert.StrToFloat(str);
 
 
-                                        // put the actual data.(Kor: Ïã§Ï†úÏùò Îç∞Ïù¥ÌÉÄÎ•º ÎÑ£Ïûê.)
+                                        // put the actual data.(Kor: Ω«¡¶¿« µ•¿Ã≈∏∏¶ ≥÷¿⁄.)
                                         //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afPos2[0] - afPos[0], afPos2[1] - afPos[1], afPos2[2] - afPos[2]);
                                         m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add((afPos2[0] - afPos[0]), (afPos2[1] - afPos[2]), -(afPos2[2] - afPos[1]));
                                     }
@@ -13724,7 +17368,7 @@ namespace OpenJigWare
                                 {
                                     if (nTemp == 0)
                                     {
-                                        // read in the order of [x, z, y](Kor: x, z, yÏùò ÏàúÏúºÎ°ú ÏùΩÏùå)
+                                        // read in the order of [x, z, y](Kor: x, z, y¿« º¯¿∏∑Œ ¿–¿Ω)
                                         str = str.Trim();
                                         int nPos0 = str.IndexOf(' ');
                                         int nPos1 = str.IndexOf(":") - nPos0;
@@ -13749,7 +17393,7 @@ namespace OpenJigWare
                                         //str = str.Substring(nPos1 + 1, str.Length - (nPos1 + 1));
                                         //int C = CConvert.StrToInt(str);
 
-                                        // put the actual data.(Kor: Ïã§Ï†úÏùò Îç∞Ïù¥ÌÉÄÎ•º ÎÑ£Ïûê.)
+                                        // put the actual data.(Kor: Ω«¡¶¿« µ•¿Ã≈∏∏¶ ≥÷¿⁄.)
                                         m_lstOjwAse[m_nCnt_Obj_Ase - 1].Face_Add(A - (int)afPos[0], B - (int)afPos[1], C - (int)afPos[2]);
                                     }
 
@@ -13773,9 +17417,9 @@ namespace OpenJigWare
                 }
 #if false       
         public void OjwBox_Outside(bool bFill, Color color,
-                            float fW, float fH, float fD,            // Size Í∏∞ÏûÖ
-                            float fOffsetPan, float fOffsetTilt, float fOffsetSwing,   // ÌöåÏ†ÑÌï† Ï∂ï
-                            float fOffsetX, float fOffsetY, float fOffsetZ // ÏûÑÏùòÏùò Í∑∏Î†§Ïßà ÏúÑÏπò
+                            float fW, float fH, float fD,            // Size ±‚¿‘
+                            float fOffsetPan, float fOffsetTilt, float fOffsetSwing,   // »∏¿¸«“ √‡
+                            float fOffsetX, float fOffsetY, float fOffsetZ // ¿”¿«¿« ±◊∑¡¡˙ ¿ßƒ°
                         )
         {
             m_fColor[0] = ((float)(color.R) / 255.0f);  // R
@@ -13794,21 +17438,21 @@ namespace OpenJigWare
             float fY2 = -fH * m_fScale; // / 2.0f;
             float fZ1 = -fD * m_fScale / 2.0f;
             float fZ2 = fD * m_fScale / 2.0f;
-            // x2 -> direction : right(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : Ïò§Î•∏Ï™Ω)
-            // Y2 -> direction : Up(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÏúÑÏ™Ω)
-            // Z2 -> direction : The inside of the screen(Kor: Ï¶ùÎ∂ÑÎ∞©Ìñ• : ÌôîÎ©¥Ïùò ÏïàÏ™Ω)
-            // Criteria screen : See picture below(Kor: Í∏∞Ï§ÄÌôîÎ©¥ : Î∞ë Í∑∏Î¶º Ï∞∏Ï°∞)
+            // x2 -> direction : right(Kor: ¡ı∫–πÊ«‚ : ø¿∏•¬ )
+            // Y2 -> direction : Up(Kor: ¡ı∫–πÊ«‚ : ¿ß¬ )
+            // Z2 -> direction : The inside of the screen(Kor: ¡ı∫–πÊ«‚ : »≠∏È¿« æ»¬ )
+            // Criteria screen : See picture below(Kor: ±‚¡ÿ»≠∏È : πÿ ±◊∏≤ ¬¸¡∂)
             // 0, 0, 0 -> State in the middle of the screen as a starting point and went inside by a factor of 5
-            // Kor: 0, 0, 0 -> ÌôîÎ©¥Ïùò Í∞ÄÏö¥Îç∞Î•º ÏãúÏûëÏ†êÏúºÎ°ú ÌïòÍ≥† ÏïàÏ™ΩÏúºÎ°ú 5ÎßåÌÅº Îì§Ïñ¥Í∞Ñ ÏÉÅÌÉú
+            // Kor: 0, 0, 0 -> »≠∏È¿« ∞°øÓµ•∏¶ Ω√¿€¡°¿∏∑Œ «œ∞Ì æ»¬ ¿∏∑Œ 5∏∏≈≠ µÈæÓ∞£ ªÛ≈¬
             /*
                 000000000
-              0 0 ‚òÖ  0 0
+              0 0 °⁄  0 0
             000000000   0
             0   0   0   0
             0   000000000  
             0 0     0 0
             000000000  
-            ( Ï§ëÏã¨ÏúÑÏπò )
+            ( ¡ﬂΩ…¿ßƒ° )
             */
 
             uint uiType = (bFill == true) ? Gl.GL_QUADS : Gl.GL_LINE_LOOP;//Gl.GL_LINE_LOOP;// Gl.GL_QUADS;//
@@ -13853,10 +17497,10 @@ namespace OpenJigWare
 
             for (i = 0; i < nCnt; i++)
             {
-                // Ï¢åÌëú ÌöåÏ†Ñ
+                // ¡¬«• »∏¿¸
                 Rotation(fOffsetTilt, fOffsetPan, fOffsetSwing, ref aSPos[i].x, ref aSPos[i].y, ref aSPos[i].z);
 
-                // Ï¢åÌëú Ïù¥Îèô
+                // ¡¬«• ¿Ãµø
                 aSPos[i].x += fOffsetX * m_fScale;
                 aSPos[i].y += fOffsetY * m_fScale;
                 aSPos[i].z += fOffsetZ * m_fScale;
@@ -13867,7 +17511,7 @@ namespace OpenJigWare
 
             Gl.glBegin(uiType);
 
-            Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject);//Î¨ºÏ≤¥ ÌäπÏÑ±Ìï†Îãπ
+            Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afObject);//π∞√º ∆Øº∫«“¥Á
 
             // Front Face
             Gl.glTexCoord2f(0.0f, 0.0f); Gl.glVertex3f(aSPos[i].x, aSPos[i].y, aSPos[i].z); i++;			// Bottom Left Of The Texture and Quad
@@ -14083,7 +17727,7 @@ namespace OpenJigWare
                         //    fValue2 = (float)nValue * fValue;
                         //else                                // Position Control
                         fValue2 = (float)(((m_CHeader.pSMotorInfo[nAxis].fMechAngle * ((float)(nValue - (int)m_CHeader.pSMotorInfo[nAxis].nCenter_Evd))) / (float)m_CHeader.pSMotorInfo[nAxis].nMechMove) * fValue);
-                        return fValue2;// At the end, be multiplied by the sign variable.(Kor: ÎßàÏßÄÎßâÏóê Î∂ÄÌò∏Î≥ÄÏàòÎ•º Í≥±Ìï®)
+                        return fValue2;// At the end, be multiplied by the sign variable.(Kor: ∏∂¡ˆ∏∑ø° ∫Œ»£∫Øºˆ∏¶ ∞ˆ«‘)
                     }
                     catch
                     {
@@ -14094,7 +17738,7 @@ namespace OpenJigWare
 
 
 
-                #endregion Collection functions of OpenGL actually draw(Kor: OpenGLÏùÑ Ïã§Ï†úÎ°ú Í∑∏Î¶¨Îäî Ìï®Ïàò Î™®Ïùå)
+                #endregion Collection functions of OpenGL actually draw(Kor: OpenGL¿ª Ω«¡¶∑Œ ±◊∏Æ¥¬ «‘ºˆ ∏¿Ω)
 
                 public COjwDispAll OjwDispAll = new COjwDispAll();
                 public COjwDispAll OjwDispAll_User = new COjwDispAll();
@@ -14126,7 +17770,7 @@ namespace OpenJigWare
                         strTmpCaption += ((CDisp.nAxisMoveType == 0) ? "[P]," : "P,");
                         strTmpCaption += ((CDisp.nAxisMoveType == 1) ? "[T]," : "T,");
                         strTmpCaption += ((CDisp.nAxisMoveType == 2) ? "[S]" : "S");
-                        //strTmpCaption += ") - Ï∂ïÎ≤àÌò∏ : Axis" + Ojw.CConvert.IntToStr(CDisp.nName) + ((CDisp.nName < 0) ? "<ÎèôÏûë Ï∂ï ÏÑ§Ï†ïÏóê Ïù¥ÏÉÅÎ∞úÍ≤¨(-). ÌôïÏù∏ÏöîÎßù>" : "");
+                        //strTmpCaption += ") - √‡π¯»£ : Axis" + Ojw.CConvert.IntToStr(CDisp.nName) + ((CDisp.nName < 0) ? "<µø¿€ √‡ º≥¡§ø° ¿ÃªÛπﬂ∞ﬂ(-). »Æ¿Œø‰∏¡>" : "");
                         strTmpCaption += ") - Axis Number : Axis" + CConvert.IntToStr(CDisp.nName) + ((CDisp.nName < 0) ? "<Found over operation axis settings(-). Check it.>" : "");
                                 
                         return strTmpCaption;
@@ -14153,7 +17797,7 @@ namespace OpenJigWare
 
                     strResult += strData + "\r\n";
 #if false
-                    //// Ï¥àÍ∏∞Ìôî
+                    //// √ ±‚»≠
                     //User_Clear();
 
                     ////InterPret_DrawMessage(false);
@@ -14180,11 +17824,11 @@ namespace OpenJigWare
 
                 #region Set
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
+                // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
                 public void User_Set_AxisName(int nValue) { m_CDisp.nName = nValue; }
                 public void User_Set_Color(Color cValue) { m_CDisp.cColor = cValue; }
-                public void User_Set_Model(String strValue) { m_CDisp.strDispObject = strValue; CheckObjectModelFile(strValue); } // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù - ÏÇ¨Í∞ÅÌòï, ÏõêÌòï, Íµ¨, ...)
-                public void User_Set_Fill(bool bValue) { m_CDisp.bFilled = bValue; }    // Determining the populate the attributes of the picture(Kor: Í∑∏Î¶ºÏùò ÏÜçÏùÑ Ï±ÑÏö∏ÏßÄÎ•º Í≤∞Ï†ï)
+                public void User_Set_Model(String strValue) { m_CDisp.strDispObject = strValue; CheckObjectModelFile(strValue); } // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ - ªÁ∞¢«¸, ø¯«¸, ±∏, ...)
+                public void User_Set_Fill(bool bValue) { m_CDisp.bFilled = bValue; }    // Determining the populate the attributes of the picture(Kor: ±◊∏≤¿« º”¿ª √§øÔ¡ˆ∏¶ ∞·¡§)
                 public void User_Set_Texture(int nValue) { m_CDisp.nTexture = nValue; }
                 public void User_Set_Init(bool bValue) { m_CDisp.bInit = bValue; }
 
@@ -14220,7 +17864,7 @@ namespace OpenJigWare
 
                 #region Get
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
+                // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
                 public int User_Get_AxisName() { return m_CDisp.nName; }
                 public Color User_Get_Color() { return m_CDisp.cColor; }
                 public String User_Get_DispObject() { return m_CDisp.strDispObject; }
@@ -14282,7 +17926,7 @@ namespace OpenJigWare
                 public void SetHeader_SInitPos(SVector3D_t SValue) { m_CHeader.SInitPos = SValue; }
                 public void SetHeader_strComment(String strValue) { m_CHeader.strComment = strValue; }
                 public void SetHeader_strDrawModel(String strValue) { m_CHeader.strDrawModel = strValue; }
-                public void AddHeader_strDrawModel(String strValue) 
+                public void AddHeader_strDrawModel(String strValue)
                 {
 #if false
                     String str = CConvert.RemoveChar((String)m_CHeader.strDrawModel.Clone(), ' ');
@@ -14294,7 +17938,7 @@ namespace OpenJigWare
 #else
                     String strDraw = String.Empty;
                     foreach (String strItem in m_rtxtDraw.Lines) strDraw += strItem + "\r\n";
-                    strDraw += strValue; // ÎßàÏßÄÎßâ Ï§ÑÏóê Ï∂îÍ∞Ä
+                    strDraw += strValue; // ∏∂¡ˆ∏∑ ¡Ÿø° √ﬂ∞°
                     m_CHeader.strDrawModel = strDraw;
 #endif
                 }
@@ -14353,8 +17997,8 @@ namespace OpenJigWare
                     return CompileDesign(m_CHeader.strDrawModel, out m_CHeader.nMotorCnt, out strError);
                 }
                 private string m_strAseFilePath = "\\";
-                public void SetAseFile_Path(String strPath) 
-                { 
+                public void SetAseFile_Path(String strPath)
+                {
                     m_strAseFilePath = ("\\" + strPath.Trim('\\') + "\\");
                 }//("\\" + strPath.Trim('\\') + "\\"); }
                 public string GetAseFile_Path() { return m_strAseFilePath; }
@@ -14414,34 +18058,34 @@ namespace OpenJigWare
                                 bDuplication = false;
                                 for (int j = 0; j < nName_Cnt; j++)
                                 {
-                                    if (pCDisp[i].nName == pnName_List[j]) bDuplication = true; // Find duplicates(Kor: Ï§ëÎ≥µ Î∞úÍ≤¨)                            
+                                    if (pCDisp[i].nName == pnName_List[j]) bDuplication = true; // Find duplicates(Kor: ¡ﬂ∫π πﬂ∞ﬂ)                            
                                 }
                                 if (bDuplication == false)
                                 {
                                     Array.Resize<int>(ref pnName_List, nName_Cnt + 1);
                                     pnName_List[nName_Cnt++] = pCDisp[i].nName;
                                 }
-                                if (pCDisp[i].nName > nName_Max) nName_Max = pCDisp[i].nName;    // Check the number of the entire motor.(Kor: Ï†ÑÏ≤¥ Î™®ÌÑ∞Ïùò Í∞ØÏàòÎ•º ÌååÏïÖ)
+                                if (pCDisp[i].nName > nName_Max) nName_Max = pCDisp[i].nName;    // Check the number of the entire motor.(Kor: ¿¸√º ∏≈Õ¿« ∞πºˆ∏¶ ∆ƒæ«)
                             }
                             OjwDispAll.AddData(pCDisp[i]);
                         }
-                        if (nName_Cnt != (nName_Max + 1)) bInsufficient = true;                 // The number of motor error(The number of motor inconsistency)(Kor: Î™®ÌÑ∞Ïùò Í∞ØÏàòÍ∞Ä Î™®ÏûêÎûå (Î™®ÌÑ∞Ïùò Max Number ÏôÄ Í∞ØÏàòÍ∞Ä Î∂àÏùºÏπò))
+                        if (nName_Cnt != (nName_Max + 1)) bInsufficient = true;                 // The number of motor error(The number of motor inconsistency)(Kor: ∏≈Õ¿« ∞πºˆ∞° ∏¿⁄∂˜ (∏≈Õ¿« Max Number øÕ ∞πºˆ∞° ∫“¿œƒ°))
 
                         //// 
                         nMotorCount = nName_Cnt;
                         //if ((bInsufficient == true) || (bDuplication == true))
                         if (bInsufficient == true)
                         {
-                            //bRet = false; // Î™®ÌÑ∞Í∞úÏàò ÎßûÏßÄ ÏïäÏùÑ Í≤ΩÏö∞ ÏóêÎü¨
-                            //strError = "[Warning] Î™®ÌÑ∞Ïùò Î≤àÌò∏ ÌôïÏù∏ÏöîÎßù" + ((bInsufficient == true) ? ", Í∞ØÏàò Î™®ÏûêÎ¶Ñ" : "") + ((bDuplication == true) ? ", Î™®ÌÑ∞ Î≤àÌò∏ Ï§ëÎ≥µ Î∞úÍ≤¨" : "");
-                            //strError = "[Warning] Î™®ÌÑ∞Ïùò Î≤àÌò∏ ÌôïÏù∏ÏöîÎßù" + ((bInsufficient == true) ? ", Í∞ØÏàò Î™®ÏûêÎ¶Ñ" : "");
+                            //bRet = false; // ∏≈Õ∞≥ºˆ ∏¬¡ˆ æ ¿ª ∞ÊøÏ ø°∑Ø
+                            //strError = "[Warning] ∏≈Õ¿« π¯»£ »Æ¿Œø‰∏¡" + ((bInsufficient == true) ? ", ∞πºˆ ∏¿⁄∏ß" : "") + ((bDuplication == true) ? ", ∏≈Õ π¯»£ ¡ﬂ∫π πﬂ∞ﬂ" : "");
+                            //strError = "[Warning] ∏≈Õ¿« π¯»£ »Æ¿Œø‰∏¡" + ((bInsufficient == true) ? ", ∞πºˆ ∏¿⁄∏ß" : "");
                             strError = "[Warning] Check the motor ID" + ((bInsufficient == true) ? ", The number of the motor is not consistent." : "");
                         }
                         else strError = "The number of motor coincide.";
-                        //else strError = "Î™®ÌÑ∞ Í∞ØÏàò Ïù¥ÏÉÅÏóÜÏùå";
+                        //else strError = "∏≈Õ ∞πºˆ ¿ÃªÛæ¯¿Ω";
 
                         m_strNoLoaded_ModelingFile = String.Empty;
-                        // Ïª¥ÌååÏùº Ïö¥ÏòÅÏãú Ïπ¥Ïö¥ÌÑ∞ Ï¶ùÍ∞Ä
+                        // ƒƒ∆ƒ¿œ øÓøµΩ√ ƒ´øÓ≈Õ ¡ı∞°
                         m_nSeq_Compile_Back = m_nSeq_Compile;
                         m_nSeq_Compile++;
                     }
@@ -14450,7 +18094,7 @@ namespace OpenJigWare
                     return bRet;
                 }
                 //}
-            #endregion CsGL Class / The actual drawing and initialization functions are all based here.(Kor: CsGL Class / Ïã§Ï†ú Í∑∏Î¶¨Í∏∞ Î∞è Ï¥àÍ∏∞Ìôî(Ï¶â, Main) Ìï®Ïàò Î™®Ïùå)
+            #endregion CsGL Class / The actual drawing and initialization functions are all based here.(Kor: CsGL Class / Ω«¡¶ ±◊∏Æ±‚ π◊ √ ±‚»≠(¡Ô, Main) «‘ºˆ ∏¿Ω)
 
             public void SetFunctionNumber(int nNum)
             {
@@ -14528,12 +18172,12 @@ namespace OpenJigWare
 
                         byte[] byteData = new byte[fs.Length];
 
-                        #region Moved by opening the file into memory(Kor: ÌååÏùºÏùÑ Ïó¥Ïñ¥ÏÑú Î©îÎ™®Î¶¨Î°ú ÏòÆÍπÄ)
+                        #region Moved by opening the file into memory(Kor: ∆ƒ¿œ¿ª ø≠æÓº≠ ∏ﬁ∏∏Æ∑Œ ø≈±Ë)
                         fs.Read(byteData, 0, byteData.Length);
                         fs.Close();
-                        #endregion Moved by opening the file into memory(Kor: ÌååÏùºÏùÑ Ïó¥Ïñ¥ÏÑú Î©îÎ™®Î¶¨Î°ú ÏòÆÍπÄ)
+                        #endregion Moved by opening the file into memory(Kor: ∆ƒ¿œ¿ª ø≠æÓº≠ ∏ﬁ∏∏Æ∑Œ ø≈±Ë)
 
-                        int nPos = 6;   // for header 'HMT1.1' (Kor: ÏïûÏùò 6Í∞úÎäî 'HMT1.1' Ïóê Ìï†Îãπ)
+                        int nPos = 6;   // for header 'HMT1.1' (Kor: æ’¿« 6∞≥¥¬ 'HMT1.1' ø° «“¥Á)
 
                         #region Model type ( 2 Bytes )
                         m_pnModelNumber[i] = (int)(short)(BitConverter.ToInt16(byteData, nPos));
@@ -14584,7 +18228,7 @@ namespace OpenJigWare
                     return false;
                 }
 
-                #region Find information as stored procedure(Kor: Ï†ÄÏû•Îêú ÏàúÏÑúÎåÄÎ°ú Ï†ïÎ≥¥Ï∞æÍ∏∞)
+                #region Find information as stored procedure(Kor: ¿˙¿Âµ» º¯º≠¥Î∑Œ ¡§∫∏√£±‚)
                 public String Get_FileName(int nIndex)
                 {
                     if (IsValid(nIndex) == true)
@@ -14609,9 +18253,9 @@ namespace OpenJigWare
                     }
                     return null;
                 }
-                #endregion Find information as stored procedure(Kor: Ï†ÄÏû•Îêú ÏàúÏÑúÎåÄÎ°ú Ï†ïÎ≥¥Ï∞æÍ∏∞)
+                #endregion Find information as stored procedure(Kor: ¿˙¿Âµ» º¯º≠¥Î∑Œ ¡§∫∏√£±‚)
 
-                #region Find information to Model Number(Kor: Model NumberÎ°ú Ï†ïÎ≥¥Ï∞æÍ∏∞)
+                #region Find information to Model Number(Kor: Model Number∑Œ ¡§∫∏√£±‚)
                 public String Get_FileName_by_Model_Number(int nModelNumber)
                 {
                     int nCnt = Get_Size();
@@ -14640,9 +18284,9 @@ namespace OpenJigWare
                     }
                     return null;
                 }
-                #endregion Find information to Model Number(Kor: Model NumberÎ°ú Ï†ïÎ≥¥Ï∞æÍ∏∞)
+                #endregion Find information to Model Number(Kor: Model Number∑Œ ¡§∫∏√£±‚)
 
-                #region Find information to Model Name(Kor: Model NameÏúºÎ°ú Ï†ïÎ≥¥Ï∞æÍ∏∞)
+                #region Find information to Model Name(Kor: Model Name¿∏∑Œ ¡§∫∏√£±‚)
                 public String Get_FileName_by_Model_Name(String strModelName)
                 {
                     int nCnt = Get_Size();
@@ -14671,7 +18315,7 @@ namespace OpenJigWare
                     }
                     return -1;
                 }
-                #endregion Find information to Model Name(Kor: Model NameÏúºÎ°ú Ï†ïÎ≥¥Ï∞æÍ∏∞)
+                #endregion Find information to Model Name(Kor: Model Name¿∏∑Œ ¡§∫∏√£±‚)
 
                 #endregion use
                 //public void Add(
@@ -14679,960 +18323,1035 @@ namespace OpenJigWare
 
             #region Designer class(COjwDesignerHeader)
 
-                #region Version - Version Designer History header file(Kor: ÎîîÏûêÏù¥ÎÑà Ìó§Îçî ÌååÏùºÏùò Î≤ÑÏ†Ñ Í∏∞Î°ù)
-                public static String _STR_EXT = "ojw"; // OpenJigWare File
+            #region Version - Version Designer History header file(Kor: µ¿⁄¿Ã≥  «Ï¥ı ∆ƒ¿œ¿« πˆ¿¸ ±‚∑œ)
+            public static String _STR_EXT = "ojw"; // OpenJigWare File
 
-                //public static String _STR_EXT_VERSION = "01.00.00";
-                //public static String _STR_EXT_VERSION = "01.01.00";
-                public static String _STR_EXT_VERSION = "01.02.00"; // Center_Evd, MechMove Ïùò Í∞í 16ÎπÑÌä∏ÏóêÏÑú 32ÎπÑÌä∏Î°ú Î≥ÄÍ≤Ω
-                #endregion Version - Version Designer History header file(Kor: ÎîîÏûêÏù¥ÎÑà Ìó§Îçî ÌååÏùºÏùò Î≤ÑÏ†Ñ Í∏∞Î°ù)
+            //public static String _STR_EXT_VERSION = "01.00.00";
+            //public static String _STR_EXT_VERSION = "01.01.00";
+            public static String _STR_EXT_VERSION = "01.02.00"; // Center_Evd, MechMove ¿« ∞™ 16∫Ò∆Æø°º≠ 32∫Ò∆Æ∑Œ ∫Ø∞Ê
+            #endregion Version - Version Designer History header file(Kor: µ¿⁄¿Ã≥  «Ï¥ı ∆ƒ¿œ¿« πˆ¿¸ ±‚∑œ)
 
-                public String m_strVersion = "";
-                public static int _CNT_FILEOPEN = 0;
-                public int Get_File_List(String strPath, out COjwFileList CFileList)
+            public String m_strVersion = "";
+            public static int _CNT_FILEOPEN = 0;
+            public int Get_File_List(String strPath, out COjwFileList CFileList)
+            {
+                int nRet = 0;
+                CFileList = null;
+                try
                 {
-                    int nRet = 0;
-                    CFileList = null;
-                    try
+                    CFileList = new COjwFileList();
+                    DirectoryInfo dirInfo = new DirectoryInfo(strPath);
+                    if (dirInfo.Exists == true)
                     {
-                        CFileList = new COjwFileList();
-                        DirectoryInfo dirInfo = new DirectoryInfo(strPath);
-                        if (dirInfo.Exists == true)
+                        //int nCnt = 0;
+                        //int i = 0;
+                        CFileList.Init();
+                        foreach (FileInfo fileInfo in dirInfo.GetFiles("*.ojw"))
                         {
-                            //int nCnt = 0;
-                            //int i = 0;
-                            CFileList.Init();
-                            foreach (FileInfo fileInfo in dirInfo.GetFiles("*.ojw"))
-                            {
-                                CFileList.Add(fileInfo);
-                            }
-                            nRet = CFileList.Get_Size();
+                            CFileList.Add(fileInfo);
                         }
-                        return nRet;
+                        nRet = CFileList.Get_Size();
                     }
-                    catch
-                    {
-                        return nRet;
-                    }
+                    return nRet;
                 }
-                bool m_bFileOpening = false;
-                private int m_nSeq_FileOpened = 0;
-                //private int m_nSeq_FileOpened_Back = 0;
-                public bool FileOpen(String strFileName)
+                catch
                 {
-                    bool bRet = FileOpen(strFileName, out m_CHeader);
-                    if (bRet == true)
-                    {
-                        int nMotorCount = 0;
-                        String strError = "";
-
-                        #region Compile
-                        // Forward
-                        CheckForward();
-                        // Inverse
-                        CheckInverse();
-                        #endregion Compile
-
-                        m_rtxtDraw.Text = GetHeader_strDrawModel();
-                        int nWidth = (IsGridInit() == true) ? GetWidth_GridItem() : 70;
-                        GridMotionEditor_Init(nWidth, 999);
-                        StringListToGrid(); // ÌòÑÏû¨Îäî ÏÇ¨Ïö© ÏïàÌïòÏßÄÎßå Í∑∏ÎûòÎèÑ ÏùºÎã® ÎÑ£Í≥† Í≥ÑÏÜç ÌÖåÏä§Ìä∏...
-                                                
-                        //if (m_cmbDh.Items.Count < 512)
-                        //{
-                        //    m_cmbDh.Items.Clear();
-                        //    for (int j = 0; j < 512; j++)
-                        //    {
-                        //        m_cmbDh.Items.Add(j.ToString());
-                        //    }
-                        //}
-                        m_cmbDh.SelectedIndex = 0;
-                        cmbDhRefresh(m_cmbDh.SelectedIndex);
-
-                        m_nSeq_FileOpened++;
-
-                        return CompileDesign(m_CHeader.strDrawModel, out nMotorCount, out strError);
-
-                    }
-                    return false;
+                    return nRet;
                 }
-                private int m_nCnt_Forward = 0;
-                private int m_nCnt_Inverse = 0;
-                public void GetCount_Kinematics(out int Forward, out int Inverse)
+            }
+            bool m_bFileOpening = false;
+            private int m_nSeq_FileOpened = 0;
+            //private int m_nSeq_FileOpened_Back = 0;
+            private string m_strDesignFileName = String.Empty;
+            public string GetFileName() { return m_strDesignFileName; }
+            public bool FileOpen(String strFileName)
+            {
+                bool bRet = FileOpen(strFileName, out m_CHeader);
+                if (bRet == true)
                 {
-                    Forward = m_nCnt_Forward;
-                    Inverse = m_nCnt_Inverse;
-                }
-                public void CheckForward()
-                {
-                    int nPos = 0;
-                    m_nCnt_Forward = 0;
-                    foreach (String strItem in m_CHeader.pstrKinematics)
+                    m_bModelOpened = true;
+
+                    int nMotorCount = m_CHeader.nMotorCnt;
+                    String strError = "";
+
+                    #region Compile
+                    // Forward
+                    CheckForward();
+                    // Inverse
+                    CheckInverse();
+                    #endregion Compile
+
+                    m_rtxtDraw.Text = GetHeader_strDrawModel();
+                    int nWidth = (IsGridInit() == true) ? GetWidth_GridItem() : 70;
+                    GridMotionEditor_Init(nWidth, 999);
+                    StringListToGrid(); // «ˆ¿Á¥¬ ªÁøÎ æ»«œ¡ˆ∏∏ ±◊∑°µµ ¿œ¥‹ ≥÷∞Ì ∞Ëº” ≈◊Ω∫∆Æ...
+
+                    //if (m_cmbDh.Items.Count < 512)
+                    //{
+                    //    m_cmbDh.Items.Clear();
+                    //    for (int j = 0; j < 512; j++)
+                    //    {
+                    //        m_cmbDh.Items.Add(j.ToString());
+                    //    }
+                    //}
+                    m_cmbDh.SelectedIndex = 0;
+                    cmbDhRefresh(m_cmbDh.SelectedIndex);
+
+                    m_nSeq_FileOpened++;
+
+                    if (m_CMotor != null)
                     {
-                        if (strItem != null)
+                        for (int i = 0; i < nMotorCount; i++)
                         {
-                            if (strItem.Length > 0)
-                            {
-                                CKinematics.CForward.MakeDhParam(strItem, out m_CHeader.pDhParamAll[nPos]);
-                                m_nCnt_Forward++;
-                            }
+                            m_CMotor.SetParam_Axis(i, m_CHeader.pSMotorInfo[i].nMotorID, m_CHeader.pSMotorInfo[i].nMotorDir, m_CHeader.pSMotorInfo[i].fLimit_Up, m_CHeader.pSMotorInfo[i].fLimit_Down, (float)m_CHeader.pSMotorInfo[i].nCenter_Evd, (float)m_CHeader.pSMotorInfo[i].nMechMove, m_CHeader.pSMotorInfo[i].fMechAngle);
                         }
-                        nPos++;
                     }
-                }
-                public void CheckInverse()
-                {
-                    int nPos = 0;
-                    int nCnt_InverseKinematics = 0;
-                    m_nCnt_Inverse = 0;
-                    foreach (String strItem in m_CHeader.pstrInverseKinematics)
+
+                    if (m_bProb_Virtual == true)
                     {
-                        if (strItem != null)
+                        Prop_Set_Main_BackColor(m_CHeader.cBackColor);
+                        Prop_Update_VirtualObject();
+                    }
+                    SetBackColor(m_CHeader.cBackColor);
+                    SetAngle_Display(m_CHeader.SInitAngle.pan, m_CHeader.SInitAngle.tilt, m_CHeader.SInitAngle.swing);
+                    SetPos_Display(m_CHeader.SInitPos.x, m_CHeader.SInitPos.y, m_CHeader.SInitPos.z);
+                    SetScale(m_CHeader.fInitScale);
+
+                    m_strDesignFileName = strFileName;
+
+                    return CompileDesign(m_CHeader.strDrawModel, out nMotorCount, out strError);
+                }
+                return false;
+            }
+            public bool FileOpen()
+            {
+                OpenFileDialog ofdDesign = new OpenFileDialog();
+
+                //SetAseFile_Path("ase"); // set ase file path
+
+                ofdDesign.FileName = "*." + _STR_EXT;
+                ofdDesign.InitialDirectory = m_strDesignerFilePath;
+                ofdDesign.Filter = "Design File(*." + _STR_EXT + ")|*." + _STR_EXT;
+
+                ofdDesign.DefaultExt = _STR_EXT;
+                if (ofdDesign.ShowDialog() == DialogResult.OK)
+                {
+                    String fileName = ofdDesign.FileName;
+                    if (FileOpen(fileName) == false)
+                    {
+                        Ojw.CMessage.Write_Error("It's not a our Modeling File.");
+                    }
+                    else
+                    {
+                        Ojw.CMessage.Write("Design File - " + fileName + "(v" + m_strVersion + ")");
+                        if (IsDrawRText() == true)
                         {
-                            if (strItem.Length > 0)
-                            {
-                                CKinematics.CInverse.Compile(strItem, out m_CHeader.pSOjwCode[nPos]);
-                                m_nCnt_Inverse++;
-                            }
+                            //Ojw.CMessage.Write2(m_rtxtDraw, m_CHeader.strDrawModel);
+                            m_rtxtDraw.Text = GetHeader_strDrawModel();
+                            StringListToGrid();
                         }
-                        if (m_CHeader.pSOjwCode[nPos].nMotor_Max > 0) nCnt_InverseKinematics++;
-                        nPos++;
+                        #region DH
+                        //cmbDhRefresh(0);
+                        #endregion DH
+
+                        //cmbVersion.SelectedIndex = m_C3d.m_strVersion - 11;
+                        float[] afData = new float[3];
+                        GetPos_Display(out afData[0], out afData[1], out afData[2]);
+                        //int i = 0;
+                        //txtDisplay_X.Text = Ojw.CConvert.FloatToStr(afData[i++]);
+                        //txtDisplay_Y.Text = Ojw.CConvert.FloatToStr(afData[i++]);
+                        //txtDisplay_Z.Text = Ojw.CConvert.FloatToStr(afData[i++]);
+                        GetAngle_Display(out afData[0], out afData[1], out afData[2]);
+                        //i = 0;                                    
+
+                        m_strDesignerFilePath = Ojw.CFile.GetPath(fileName);
+                        return true;
                     }
-                    m_nCnt_InverseKinematics = nCnt_InverseKinematics;
                 }
-                private int m_nCnt_InverseKinematics = 0;
-                public void FileSave(String strFileName, COjwDesignerHeader CHeader)
+                return false;
+            }
+            private int m_nCnt_Forward = 0;
+            private int m_nCnt_Inverse = 0;
+            public void GetCount_Kinematics(out int Forward, out int Inverse)
+            {
+                Forward = m_nCnt_Forward;
+                Inverse = m_nCnt_Inverse;
+            }
+            public void CheckForward()
+            {
+                int nPos = 0;
+                m_nCnt_Forward = 0;
+                foreach (String strItem in m_CHeader.pstrKinematics)
                 {
-                    //int nVersion = 
-                    if (strFileName == "")
+                    if (strItem != null)
                     {
-                        Ojw.CMessage.Write_Error("File Save Error - Null FileName");
+                        if (strItem.Length > 0)
+                        {
+                            CKinematics.CForward.MakeDhParam(strItem, out m_CHeader.pDhParamAll[nPos]);
+                            m_nCnt_Forward++;
+                        }
+                    }
+                    nPos++;
+                }
+            }
+            public void CheckInverse()
+            {
+                int nPos = 0;
+                int nCnt_InverseKinematics = 0;
+                m_nCnt_Inverse = 0;
+                foreach (String strItem in m_CHeader.pstrInverseKinematics)
+                {
+                    if (strItem != null)
+                    {
+                        if (strItem.Length > 0)
+                        {
+                            CKinematics.CInverse.Compile(strItem, out m_CHeader.pSOjwCode[nPos]);
+                            m_nCnt_Inverse++;
+                        }
+                    }
+                    if (m_CHeader.pSOjwCode[nPos].nMotor_Max > 0) nCnt_InverseKinematics++;
+                    nPos++;
+                }
+                m_nCnt_InverseKinematics = nCnt_InverseKinematics;
+            }
+            private int m_nCnt_InverseKinematics = 0;
+            public void FileSave(String strFileName, COjwDesignerHeader CHeader)
+            {
+                //int nVersion = 
+                if (strFileName == "")
+                {
+                    Ojw.CMessage.Write_Error("File Save Error - Null FileName");
+                    return;
+                }
+
+                FileInfo f = new FileInfo(strFileName);
+                FileStream fs = f.Create();
+
+                try
+                {
+                    int i, j;
+                    byte[] byteData, byteData2;
+
+                    String strVerstion = _STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper(); // save a new released version(Kor: √÷Ω≈πˆ¿¸ ¿˙¿Â)
+                    // Empty the stream buffer.(Kor: Ω∫∆Æ∏≤ πˆ∆€∏¶ ∫ÒøÓ¥Ÿ.)
+                    fs.Flush();
+
+                    #region Set a identification code(Kor: Ωƒ∫∞ƒ⁄µÂ ∫Œø©) // OJW1.0.0 ( 11 Bytes )
+                    if ((_STR_EXT.Length != 3) || (_STR_EXT_VERSION.Length != 8))
+                    {
+                        Ojw.CMessage.Write_Error("Incorrect File Version");
+                        fs.Close();
                         return;
                     }
+                    for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) fs.WriteByte((byte)(strVerstion[i]));
 
-                    FileInfo f = new FileInfo(strFileName);
-                    FileStream fs = f.Create();
+                    #endregion Set a identification code(Kor: Ωƒ∫∞ƒ⁄µÂ ∫Œø©) // OJW1.0.0 ( 11 Bytes )
 
-                    try
+                    #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+                    byteData = BitConverter.GetBytes((int)CHeader.nDefaultFunctionNumber);
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+
+                    #region Model number ( 2 Bytes )
+                    byteData = BitConverter.GetBytes((short)CHeader.nModelNum);
+                    fs.Write(byteData, 0, 2);
+                    byteData = null;
+                    #endregion Model number ( 2 Bytes )
+
+                    #region Title  ( 21 Bytes )
+                    // Name
+                    //byteData = Encoding.Default.GetBytes(m_CHeader.strModelName);
+                    byteData = Encoding.Default.GetBytes(CHeader.strModelName);
+                    for (i = 0; i < 20; i++)
                     {
-                        int i, j;
-                        byte[] byteData, byteData2;
+                        if (i < byteData.Length) fs.WriteByte(byteData[i]);
+                        else fs.WriteByte(0);
+                    }
+                    // Additional terminating null character(Kor: ≥Œ ¡æ∑·πÆ¿⁄ √ﬂ∞°)
+                    fs.WriteByte(0);
+                    byteData = null;
+                    #endregion Title ( 21 Bytes )
 
-                        String strVerstion = _STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper(); // save a new released version(Kor: ÏµúÏã†Î≤ÑÏ†Ñ Ï†ÄÏû•)
-                        // Empty the stream buffer.(Kor: Ïä§Ìä∏Î¶º Î≤ÑÌçºÎ•º ÎπÑÏö¥Îã§.)
-                        fs.Flush();
+                    #region BackColor - Screen Background Color ( 4 Bytes )
+                    byteData = BitConverter.GetBytes((int)GetBackColor().ToArgb());
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion BackColor - Screen Background Color ( 4 Bytes )
 
-                        #region Set a identification code(Kor: ÏãùÎ≥ÑÏΩîÎìú Î∂ÄÏó¨) // OJW1.0.0 ( 11 Bytes )
-                        if ((_STR_EXT.Length != 3) || (_STR_EXT_VERSION.Length != 8))
-                        {
-                            Ojw.CMessage.Write_Error("Incorrect File Version");
-                            fs.Close();
-                            return;
-                        }
-                        for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) fs.WriteByte((byte)(strVerstion[i]));
+                    #region Number of motors ( 2 Bytes )
+                    byteData = BitConverter.GetBytes((short)CHeader.nMotorCnt);
+                    fs.Write(byteData, 0, 2);
+                    byteData = null;
+                    #endregion Number of motors ( 2 Bytes )
 
-                        #endregion Set a identification code(Kor: ÏãùÎ≥ÑÏΩîÎìú Î∂ÄÏó¨) // OJW1.0.0 ( 11 Bytes )
+                    #region The initial angle
+                    #region The initial angle - Pan ( 4 Bytes )
+                    byteData = BitConverter.GetBytes((float)GetPan());
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial angle - Pan ( 4 Bytes )
 
-                        #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
-                        byteData = BitConverter.GetBytes((int)CHeader.nDefaultFunctionNumber);
-                        fs.Write(byteData, 0, 4);
-                        byteData = null;
-                        #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+                    #region The initial angle - Tilt ( 4 Bytes )
+                    byteData = BitConverter.GetBytes((float)GetTilt());
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial angle - Tilt ( 4 Bytes )
 
-                        #region Model number ( 2 Bytes )
-                        byteData = BitConverter.GetBytes((short)CHeader.nModelNum);
+                    #region The initial angle - Swing ( 4 Bytes )
+                    byteData = BitConverter.GetBytes((float)GetSwing());
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial angle - Swing ( 4 Bytes )
+                    #endregion The initial angle
+
+                    #region The initial position
+                    float fX, fY, fZ;
+                    GetPos_Display(out fX, out fY, out fZ);
+                    #region The initial position - x ( 4 Bytes )
+                    byteData = BitConverter.GetBytes(fX);
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial position - x ( 4 Bytes )
+
+                    #region The initial position - y ( 4 Bytes )
+                    byteData = BitConverter.GetBytes(fY);
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial position - y ( 4 Bytes )
+
+                    #region The initial position - z ( 4 Bytes )
+                    byteData = BitConverter.GetBytes(fZ);
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial position - z ( 4 Bytes )
+                    #endregion The initial position
+
+                    #region The initial Scale - 100% = 1.0 ( 4 Bytes )
+                    byteData = BitConverter.GetBytes((float)GetScale());
+                    fs.Write(byteData, 0, 4);
+                    byteData = null;
+                    #endregion The initial Scale - 100% = 1.0 ( 4 Bytes )
+
+
+                    #region 2 Wheel Counter ( 1 Bytes )
+
+                    fs.WriteByte((byte)(CHeader.nWheelCounter_2 & 0xff));
+                    #endregion 2 Wheel Counter ( 1 Bytes )
+
+                    #region 3 Wheel Counter ( 1 Bytes )
+                    fs.WriteByte((byte)(CHeader.nWheelCounter_3 & 0xff));
+                    #endregion 3 Wheel Counter ( 1 Bytes )
+
+                    #region 4 Wheel Counter ( 1 Bytes )
+                    fs.WriteByte((byte)(CHeader.nWheelCounter_4 & 0xff));
+                    #endregion 4 Wheel Counter ( 1 Bytes )
+
+                    for (i = 0; i < 256; i++)
+                    {
+                        #region Axis Info
+
+                        #region Motor ID ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nMotorID));
                         fs.Write(byteData, 0, 2);
                         byteData = null;
-                        #endregion Model number ( 2 Bytes )
+                        #endregion Motor ID ( 2 Bytes )
 
-                        #region Title  ( 21 Bytes )
-                        // Name
-                        //byteData = Encoding.Default.GetBytes(m_CHeader.strModelName);
-                        byteData = Encoding.Default.GetBytes(CHeader.strModelName);
-                        for (i = 0; i < 20; i++)
+                        #region [Motor Direction] Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nMotorDir));
+                        fs.Write(byteData, 0, 2);
+                        byteData = null;
+                        #endregion [Motor Direction] Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+
+                        #region Max Angle(+) ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fLimit_Up);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Max Angle(+) ( 4 Bytes )
+                        #region Min Angle(-) ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fLimit_Down);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Min Angle(-) ( 4 Bytes )
+
+                        #region Center Position - Evd ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nCenter_Evd);
+                        //fs.Write(byteData, 0, 2);  -> "01.02.00" ø°º≠ 4πŸ¿Ã∆Æ∑Œ ∫Ø∞Ê
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Center Position - Evd ( 2 Bytes )
+
+                        #region Mech Move - maximum Evd value( 2 Bytes )
+                        byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nMechMove);
+                        //fs.Write(byteData, 0, 2);  -> "01.02.00" ø°º≠ 4πŸ¿Ã∆Æ∑Œ ∫Ø∞Ê
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Mech Move - maximum Evd value ( 2 Bytes )
+                        #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: √÷¥Îƒ° ∆ﬁΩ∫ø° «ÿ¥Á«œ¥¬ ∞¢µµ∞™ (∫–¡÷∞¢))]( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fMechAngle);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: √÷¥Îƒ° ∆ﬁΩ∫ø° «ÿ¥Á«œ¥¬ ∞¢µµ∞™ (∫–¡÷∞¢))]( 4 Bytes )
+
+                        #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: µ•¿Ã≈∏¿« √ ±‚¿⁄ºº∏¶ ¿”¿«¿« ¿⁄ºº∑Œ «œ±‚ ¿ß«ÿ ªÁøÎ( 4 Bytes ))
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInitAngle);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInitAngle2);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: µ•¿Ã≈∏¿« √ ±‚¿⁄ºº∏¶ ¿”¿«¿« ¿⁄ºº∑Œ «œ±‚ ¿ß«ÿ ªÁøÎ( 4 Bytes ))
+
+                        #region Interference axis number(Kor: ∞£º∑ √‡ π¯»£) ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nInterference_Axis));
+                        fs.Write(byteData, 0, 2);
+                        byteData = null;
+                        #endregion Interference axis number(Kor: ∞£º∑ √‡ π¯»£) ( 2 Bytes )
+                        #region Axis Width ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fW);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Axis Width ( 4 Bytes )
+                        #region Interference axis Width ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInterference_W);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Interference axis Width ( 4 Bytes )
+
+                        #region Axis Side(Right) ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fPos_Right);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Axis Side(Right) ( 4 Bytes )
+                        #region Axis Side(Left) ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fPos_Left);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Axis Side(Left) ( 4 Bytes )
+                        #region Interference axis Front ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInterference_Pos_Front);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Interference axis Front ( 4 Bytes )
+                        #region Interference axis Rear ( 4 Bytes )
+                        byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInterference_Pos_Rear);
+                        fs.Write(byteData, 0, 4);
+                        byteData = null;
+                        #endregion Interference axis Rear ( 4 Bytes )
+
+                        #region NickName  ( 32 Bytes )
+                        if (m_CHeader.pSMotorInfo[i].strNickName != null) byteData = Encoding.Default.GetBytes(m_CHeader.pSMotorInfo[i].strNickName);
+                        else
                         {
-                            if (i < byteData.Length) fs.WriteByte(byteData[i]);
+                            byteData = new byte[32];
+                            Array.Clear(byteData, 0, 32);
+                        }
+                        for (j = 0; j < 31; j++)
+                        {
+                            if (j < byteData.Length) fs.WriteByte(byteData[j]);
                             else fs.WriteByte(0);
                         }
-                        // Additional terminating null character(Kor: ÎÑê Ï¢ÖÎ£åÎ¨∏Ïûê Ï∂îÍ∞Ä)
+                        // Additional terminating null character(Kor: ≥Œ ¡æ∑·πÆ¿⁄ √ﬂ∞°)
                         fs.WriteByte(0);
                         byteData = null;
-                        #endregion Title ( 21 Bytes )
+                        #endregion NickName  ( 32 Bytes )
 
-                        #region BackColor - Screen Background Color ( 4 Bytes )
-                        byteData = BitConverter.GetBytes((int)GetBackColor().ToArgb());
-                        fs.Write(byteData, 0, 4);
-                        byteData = null;
-                        #endregion BackColor - Screen Background Color ( 4 Bytes )
-
-                        #region Number of motors ( 2 Bytes )
-                        byteData = BitConverter.GetBytes((short)CHeader.nMotorCnt);
+                        #region Group Number ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nGroupNumber);
                         fs.Write(byteData, 0, 2);
                         byteData = null;
-                        #endregion Number of motors ( 2 Bytes )
+                        #endregion Group Number ( 2 Bytes )
 
-                        #region The initial angle
-                        #region The initial angle - Pan ( 4 Bytes )
-                        byteData = BitConverter.GetBytes((float)GetPan());
-                        fs.Write(byteData, 0, 4);
+                        #region Mirror axis number ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nAxis_Mirror));
+                        fs.Write(byteData, 0, 2);
                         byteData = null;
-                        #endregion The initial angle - Pan ( 4 Bytes )
+                        #endregion Mirror axis number ( 2 Bytes )
 
-                        #region The initial angle - Tilt ( 4 Bytes )
-                        byteData = BitConverter.GetBytes((float)GetTilt());
-                        fs.Write(byteData, 0, 4);
+                        #region motor control type ( 2 Bytes )
+                        byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nMotorControlType));
+                        fs.Write(byteData, 0, 2);
                         byteData = null;
-                        #endregion The initial angle - Tilt ( 4 Bytes )
+                        #endregion motor control type ( 2 Bytes )
 
-                        #region The initial angle - Swing ( 4 Bytes )
-                        byteData = BitConverter.GetBytes((float)GetSwing());
-                        fs.Write(byteData, 0, 4);
+                        #endregion Axis Info
+                    }
+                    #region Set the separation code(Kor: ±∏∫– ƒ⁄µÂ ∫Œø©) // HE - Header End ( 2 Bytes )
+                    fs.WriteByte((byte)('H'));  // Header 
+                    fs.WriteByte((byte)('E'));  // End
+                    #endregion Set the separation code(Kor: ±∏∫– ƒ⁄µÂ ∫Œø©) // HE - Header End ( 2 Bytes )
+
+                    for (i = 0; i < 512; i++)
+                    {
+                        #region V1.4
+
+                        #region Secret
+                        fs.WriteByte((byte)(m_CHeader.pnSecret[i] & 0xff));
+                        #endregion Secret
+                        #region Type - Wheel or not
+                        fs.WriteByte((byte)(m_CHeader.pnType[i] & 0xff));
+                        #endregion Type - Wheel or not
+
+                        #endregion V1.4
+
+                        #region Char - GroupName
+                        byteData = Encoding.Default.GetBytes(m_CHeader.pstrGroupName[i]); // The name of the group that are listed in the string(Kor: Ω∫∆Æ∏µ¿∏∑Œ ¿˚«Ù¿÷¥¬ «ÿ¥Á ±◊∑Ï¿« ¿Ã∏ß)
+                        #region Char Size - Forward ( 2 Bytes )
+                        byteData2 = BitConverter.GetBytes((short)(byteData.Length));
+                        fs.Write(byteData2, 0, 2);
+                        byteData2 = null;
+                        #endregion Char Size - Forward ( 2 Bytes )
+                        for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
                         byteData = null;
-                        #endregion The initial angle - Swing ( 4 Bytes )
-                        #endregion The initial angle
+                        #endregion Char - GroupName
 
-                        #region The initial position
-                        float fX, fY, fZ;
-                        GetPos_Display(out fX, out fY, out fZ);
-                        #region The initial position - x ( 4 Bytes )
-                        byteData = BitConverter.GetBytes(fX);
-                        fs.Write(byteData, 0, 4);
+                        #region Kinematics/InverseKinematics String
+                        #region Char - Forward
+
+                        bool bSecret = (m_CHeader.pnSecret[i] > 0) ? true : false;
+                        if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i]);
+                        else
+                        {
+                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i]);
+                            byteData = CEncryption.Encryption(bSecret, byteData);
+                        }
+
+                        #region Char Size - Forward ( 2 Bytes )
+                        byteData2 = BitConverter.GetBytes((short)(byteData.Length));
+                        fs.Write(byteData2, 0, 2);
+                        byteData2 = null;
+                        #endregion Char Size - Forward ( 2 Bytes )
+                        for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
                         byteData = null;
-                        #endregion The initial position - x ( 4 Bytes )
+                        #endregion Char - Forward
 
-                        #region The initial position - y ( 4 Bytes )
-                        byteData = BitConverter.GetBytes(fY);
-                        fs.Write(byteData, 0, 4);
+                        #region Char - Inverse
+                        if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i]);
+                        else
+                        {
+                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i]);
+                            byteData = CEncryption.Encryption(bSecret, byteData);
+                        }
+                        #region Char Size - Inverse ( 2 Bytes )
+                        byteData2 = BitConverter.GetBytes((short)(byteData.Length));
+                        fs.Write(byteData2, 0, 2);
+                        byteData2 = null;
+                        #endregion Char Size - Inverse ( 2 Bytes )
+                        for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
                         byteData = null;
-                        #endregion The initial position - y ( 4 Bytes )
+                        #endregion Char - Inverse
+                        #endregion Kinematics/InverseKinematics String
+                    }
+                    #region Set the separation code(Kor: ±∏∫– ƒ⁄µÂ ∫Œø©) // KE - Kinematics End ( 2 Bytes )
+                    fs.WriteByte((byte)('K'));  // Kinematics 
+                    fs.WriteByte((byte)('E'));  // End
+                    #endregion Set the separation code(Kor: ±∏∫– ƒ⁄µÂ ∫Œø©) // HE - Kinematics End ( 2 Bytes )
 
-                        #region The initial position - z ( 4 Bytes )
-                        byteData = BitConverter.GetBytes(fZ);
-                        fs.Write(byteData, 0, 4);
+                    #region actual design string(Kor: Ω« µ¿⁄¿Œ Ω∫∆Æ∏µ)
+
+                    #region Char - actual design string(Kor: Ω« µ¿⁄¿Œ Ω∫∆Æ∏µ)
+                    byteData = Encoding.Default.GetBytes(CHeader.strDrawModel);
+                    #region Char Size - actual design string(Kor: Ω« µ¿⁄¿Œ Ω∫∆Æ∏µ) ( 2 Bytes )
+                    byteData2 = BitConverter.GetBytes((ushort)(byteData.Length));
+                    fs.Write(byteData2, 0, 2);
+                    byteData2 = null;
+                    #endregion Char Size - actual design string(Kor: Ω« µ¿⁄¿Œ Ω∫∆Æ∏µ) ( 2 Bytes )
+
+                    for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
+                    byteData = null;
+                    #endregion Char - actual design string(Kor: Ω« µ¿⁄¿Œ Ω∫∆Æ∏µ)
+                    #endregion actual design string(Kor: Ω« µ¿⁄¿Œ Ω∫∆Æ∏µ)
+
+                    #region Comment String
+                    #region Char - Comment
+                    if (CHeader.strComment == null)
+                    {
+                        #region Char Size - Comment ( 2 Bytes )
+                        byteData2 = BitConverter.GetBytes((short)(0));
+                        fs.Write(byteData2, 0, 2);
+                        byteData2 = null;
+                        #endregion Char Size - Comment ( 2 Bytes )
+                    }
+                    else
+                    {
+                        byteData = Encoding.Default.GetBytes(CHeader.strComment);
+                        #region Char Size - Comment ( 2 Bytes )
+                        byteData2 = BitConverter.GetBytes((short)(byteData.Length));
+                        fs.Write(byteData2, 0, 2);
+                        byteData2 = null;
+                        #endregion Char Size - Comment ( 2 Bytes )
+                        for (j = 0; j < CHeader.strComment.Length; j++) fs.WriteByte(byteData[j]);
                         byteData = null;
-                        #endregion The initial position - z ( 4 Bytes )
-                        #endregion The initial position
+                    }
+                    #endregion Char - Comment
+                    #endregion Comment String
 
-                        #region The initial Scale - 100% = 1.0 ( 4 Bytes )
-                        byteData = BitConverter.GetBytes((float)GetScale());
-                        fs.Write(byteData, 0, 4);
-                        byteData = null;
-                        #endregion The initial Scale - 100% = 1.0 ( 4 Bytes )
+                    #region Set the separation code(Kor: ±∏∫– ƒ⁄µÂ ∫Œø©) // FE - File End ( 2 Bytes )
+                    fs.WriteByte((byte)('F'));  // File 
+                    fs.WriteByte((byte)('E'));  // End
+                    #endregion Set the separation code(Kor: ±∏∫– ƒ⁄µÂ ∫Œø©) // HE - File End ( 2 Bytes )
 
+                    fs.Close();
 
-                        #region 2 Wheel Counter ( 1 Bytes )
+                    //if (m_bAutoSaved == false) Modify(false);
 
-                        fs.WriteByte((byte)(CHeader.nWheelCounter_2 & 0xff));
-                        #endregion 2 Wheel Counter ( 1 Bytes )
+                    byteData = null;
+                    byteData2 = null;
 
-                        #region 3 Wheel Counter ( 1 Bytes )
-                        fs.WriteByte((byte)(CHeader.nWheelCounter_3 & 0xff));
-                        #endregion 3 Wheel Counter ( 1 Bytes )
+                    //////////////////////////////
+                    // Memory available for Dh(Kor: Dh ∏¶ ¿ß«— ∏ﬁ∏∏Æ »Æ∫∏)
+                    m_CHeader.pDhParamAll = new CDhParamAll[512];
+                    int nCnt_InverseKinematics = 0;
+                    for (i = 0; i < 512; i++)
+                    {
+                        if (m_CHeader.pstrKinematics[i] != null)
+                        {
+                            if (m_CHeader.pstrKinematics[i].Length > 0)
+                            {
+                                // Forward
+                                Ojw.CKinematics.CForward.MakeDhParam(m_CHeader.pstrKinematics[i], out m_CHeader.pDhParamAll[i]);
+                                // Inverse
+                                bool bError = Ojw.CKinematics.CInverse.Compile(m_CHeader.pstrInverseKinematics[i], out m_CHeader.pSOjwCode[i]);
 
-                        #region 4 Wheel Counter ( 1 Bytes )
-                        fs.WriteByte((byte)(CHeader.nWheelCounter_4 & 0xff));
-                        #endregion 4 Wheel Counter ( 1 Bytes )
+                                /////////////
+                                if (m_CHeader.pSOjwCode[i].nMotor_Max > 0) nCnt_InverseKinematics++;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    //Message("File save error");
+                    fs.Close();
+                }
+            }
+            public bool FileOpen(String strFileName, out COjwDesignerHeader CHeader)
+            {
+                m_bFileOpening = true;
+                _CNT_FILEOPEN++;
+                bool bFileOpened = true;
+                CHeader = null;
+                m_strVersion = "";
+                try
+                {
+                    int i;//, j;
+
+                    FileInfo f = new FileInfo(strFileName);
+                    FileStream fs = f.OpenRead();
+
+                    byte[] byteData = new byte[fs.Length];
+                    string strFileName2 = "";
+                    string strData = "";
+
+                    #region Moved by opening the file into memory(Kor: ∆ƒ¿œ¿ª ø≠æÓº≠ ∏ﬁ∏∏Æ∑Œ ø≈±Ë)
+                    fs.Read(byteData, 0, byteData.Length);
+                    strFileName2 = f.Name;
+                    fs.Close();
+                    #endregion Moved by opening the file into memory(Kor: ∆ƒ¿œ¿ª ø≠æÓº≠ ∏ﬁ∏∏Æ∑Œ ø≈±Ë)
+
+                    #region separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
+                    String strTmp = String.Empty;
+                    for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
+                    //strTmp = strTmp.ToUpper();
+
+                    strData = (_STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper());
+                    #endregion separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
+                    COjwDesignerHeader CDesignHeder = new COjwDesignerHeader();
+                    #region OjwVersion
+#if _DHF_FILE
+                    if ((strTmp[0] == 'D') & (strTmp[1] == 'H') & (strTmp[2] == 'F'))
+                    {
+                        m_strVersion += (char)byteData[3];
+                        m_strVersion += (char)byteData[4];
+                        m_strVersion += (char)byteData[5];
+
+                        // In version 1.1, there is a second position(Kor: 1.1 πˆ¿¸ø°º≠¥¬ 2π¯¬∞ ¿⁄ºº∞° æ¯¥Ÿ.)
+                        bool bNoSecondPos = false;
+                        bool bNoAxisMirror = false;
+                        int nVersion = 11;
+
+                        if (strTmp.Substring(0, 6) == "DHF1.1") nVersion = 11;
+                        else if (strTmp.Substring(0, 6) == "DHF1.2") nVersion = 12;
+                        else if (strTmp.Substring(0, 6) == "DHF1.3") nVersion = 13;
+                        else if (strTmp.Substring(0, 6) == "DHF1.4") nVersion = 14;
+
+                        CDesignHeder.strVersion = strTmp.Substring(0, 6);
+                        CDesignHeder.nVersion = nVersion;
+
+                        if (nVersion < 12)
+                        {
+                            bNoSecondPos = true;
+                            bNoAxisMirror = true;
+                        }
+                        else if (nVersion == 12)
+                        {
+                            bNoAxisMirror = true;
+                        }
+                        //else
+                        //{
+                        //}
+
+                        //if (bMessage == true) OjwMessage("[" + strData + " Binary File Data(" + strTmp + ")] Opened");
+                        int nPos = 6;   // 'HMT1.1'
+
+                        #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+                        CDesignHeder.nDefaultFunctionNumber = -1;// no use it in DHF
+                        #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+
+                        #region Model type ( 2 Bytes )
+                        CDesignHeder.nModelNum = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Model type ( 2 Bytes )
+
+                        #region Title ( 21 Bytes )
+                        CDesignHeder.strModelName = Encoding.Default.GetString(byteData, nPos, 21);
+                        nPos += 21;
+                        #endregion Title ( 21 Bytes )
+
+                        #region BackColor - Background color ( 4 Bytes)
+                        CDesignHeder.cBackColor = Color.FromArgb(BitConverter.ToInt32(byteData, nPos));
+                        nPos += 4;
+                        #endregion BackColor - Background color ( 4 Bytes)
+
+                        #region Number of the motor ( 2 Bytes )
+                        CDesignHeder.nMotorCnt = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Number of the motor ( 2 Bytes )
+                        #region initial angle
+                        #region initial angle - Pan ( 4 Bytes )
+                        CDesignHeder.SInitAngle.pan = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion initial angle - Pan ( 4 Bytes )
+                        #region initial angle - Tilt ( 4 Bytes )
+                        CDesignHeder.SInitAngle.tilt = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion initial angle - Tilt ( 4 Bytes )
+                        #region initial angle - Swing ( 4 Bytes )
+                        CDesignHeder.SInitAngle.swing = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion initial angle - Swing ( 4 Bytes )
+                        #endregion initial angle
+                        #region Init position
+                        #region Init position - x ( 4 Bytes )
+                        CDesignHeder.SInitPos.x = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init position - x ( 4 Bytes )
+                        #region Init position - y ( 4 Bytes )
+                        CDesignHeder.SInitPos.y = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init position - y ( 4 Bytes )
+                        #region Init position - z ( 4 Bytes )
+                        CDesignHeder.SInitPos.z = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init position - z ( 4 Bytes )
+                        #endregion Init position
+
+                        #region Init Scale - 100% = 1.0 ( 4 Bytes )
+                        CDesignHeder.fInitScale = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init Scale - 100% = 1.0 ( 4 Bytes )
+
+                        if (nVersion >= 14)
+                        {
+                            #region 2 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_2 = (int)byteData[nPos++];
+                            #endregion 2 Wheel Counter ( 1 Bytes )
+
+                            #region 3 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_3 = (int)byteData[nPos++];
+                            #endregion 3 Wheel Counter ( 1 Bytes )
+
+                            #region 4 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_4 = (int)byteData[nPos++];
+                            #endregion 4 Wheel Counter ( 1 Bytes )
+                        }
 
                         for (i = 0; i < 256; i++)
                         {
-                            #region Axis Info
+                            #region Axis MotorInfo
 
-                            #region Motor ID ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nMotorID));
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
-                            #endregion Motor ID ( 2 Bytes )
+                            #region Motor ID ( 2 Byte )
+                            CDesignHeder.pSMotorInfo[i].nMotorID = (int)(short)BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Motor ID ( 2 Byte )
 
-                            #region [Motor Direction] Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nMotorDir));
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
-                            #endregion [Motor Direction] Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+                            #region Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nMotorDir = (int)(short)BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
 
-                            #region Max Angle(+) ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fLimit_Up);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Max Angle(+) ( 4 Bytes )
-                            #region Min Angle(-) ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fLimit_Down);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Min Angle(-) ( 4 Bytes )
+                            #region Max Angle (+) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fLimit_Up = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Max Angle (+) ( 4 Bytes )
+
+                            #region Min Angle (-) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fLimit_Down = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Min Angle (-) ( 4 Bytes )
 
                             #region Center Position - Evd ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nCenter_Evd);
-                            //fs.Write(byteData, 0, 2);  -> "01.02.00" ÏóêÏÑú 4Î∞îÏù¥Ìä∏Î°ú Î≥ÄÍ≤Ω
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
+                            CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
                             #endregion Center Position - Evd ( 2 Bytes )
 
-                            #region Mech Move - maximum Evd value( 2 Bytes )
-                            byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nMechMove);
-                            //fs.Write(byteData, 0, 2);  -> "01.02.00" ÏóêÏÑú 4Î∞îÏù¥Ìä∏Î°ú Î≥ÄÍ≤Ω
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Mech Move - maximum Evd value ( 2 Bytes )
-                            #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Ïóê Ìï¥ÎãπÌïòÎäî Í∞ÅÎèÑÍ∞í (Î∂ÑÏ£ºÍ∞Å))]( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fMechAngle);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Ïóê Ìï¥ÎãπÌïòÎäî Í∞ÅÎèÑÍ∞í (Î∂ÑÏ£ºÍ∞Å))]( 4 Bytes )
+                            #region Mech Move - Maximum pulse Evd ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Mech Move - Maximum pulse Evd ( 2 Bytes )
 
-                            #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: Îç∞Ïù¥ÌÉÄÏùò Ï¥àÍ∏∞ÏûêÏÑ∏Î•º ÏûÑÏùòÏùò ÏûêÏÑ∏Î°ú ÌïòÍ∏∞ ÏúÑÌï¥ ÏÇ¨Ïö©( 4 Bytes ))
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInitAngle);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInitAngle2);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: Îç∞Ïù¥ÌÉÄÏùò Ï¥àÍ∏∞ÏûêÏÑ∏Î•º ÏûÑÏùòÏùò ÏûêÏÑ∏Î°ú ÌïòÍ∏∞ ÏúÑÌï¥ ÏÇ¨Ïö©( 4 Bytes ))
+                            #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: √÷¥Îƒ° ∆ﬁΩ∫ø° «ÿ¥Á«œ¥¬ ∞¢µµ∞™ (∫–¡÷∞¢))]( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fMechAngle = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: √÷¥Îƒ° ∆ﬁΩ∫ø° «ÿ¥Á«œ¥¬ ∞¢µµ∞™ (∫–¡÷∞¢))]( 4 Bytes )
 
-                            #region Interference axis number(Kor: Í∞ÑÏÑ≠ Ï∂ï Î≤àÌò∏) ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nInterference_Axis));
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
-                            #endregion Interference axis number(Kor: Í∞ÑÏÑ≠ Ï∂ï Î≤àÌò∏) ( 2 Bytes )
-                            #region Axis Width ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fW);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Axis Width ( 4 Bytes )
+                            #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: µ•¿Ã≈∏¿« √ ±‚¿⁄ºº∏¶ ¿”¿«¿« ¿⁄ºº∑Œ «œ±‚ ¿ß«ÿ ªÁøÎ( 4 Bytes ))
+                            CDesignHeder.pSMotorInfo[i].fInitAngle = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            if (bNoSecondPos == false)
+                            {
+                                CDesignHeder.pSMotorInfo[i].fInitAngle2 = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                            }
+                            #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: µ•¿Ã≈∏¿« √ ±‚¿⁄ºº∏¶ ¿”¿«¿« ¿⁄ºº∑Œ «œ±‚ ¿ß«ÿ ªÁøÎ( 4 Bytes ))
+
+                            #region Interference axis number(Kor: ∞£º∑ √‡ π¯»£) ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nInterference_Axis = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Interference axis number(Kor: ∞£º∑ √‡ π¯»£) ( 2 Bytes )
+
+                            #region axis Width ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fW = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion axis Width ( 4 Bytes )
+
                             #region Interference axis Width ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInterference_W);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
+                            CDesignHeder.pSMotorInfo[i].fInterference_W = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
                             #endregion Interference axis Width ( 4 Bytes )
 
-                            #region Axis Side(Right) ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fPos_Right);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Axis Side(Right) ( 4 Bytes )
-                            #region Axis Side(Left) ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fPos_Left);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Axis Side(Left) ( 4 Bytes )
-                            #region Interference axis Front ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInterference_Pos_Front);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Interference axis Front ( 4 Bytes )
-                            #region Interference axis Rear ( 4 Bytes )
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fInterference_Pos_Rear);
-                            fs.Write(byteData, 0, 4);
-                            byteData = null;
-                            #endregion Interference axis Rear ( 4 Bytes )
+                            #region axis Side ( Right ) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fPos_Right = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion axis Side ( Right ) ( 4 Bytes )
 
-                            #region NickName  ( 32 Bytes )
-                            if (m_CHeader.pSMotorInfo[i].strNickName != null) byteData = Encoding.Default.GetBytes(m_CHeader.pSMotorInfo[i].strNickName);
-                            else
-                            {
-                                byteData = new byte[32];
-                                Array.Clear(byteData, 0, 32);
-                            }
-                            for (j = 0; j < 31; j++)
-                            {
-                                if (j < byteData.Length) fs.WriteByte(byteData[j]);
-                                else fs.WriteByte(0);
-                            }
-                            // Additional terminating null character(Kor: ÎÑê Ï¢ÖÎ£åÎ¨∏Ïûê Ï∂îÍ∞Ä)
-                            fs.WriteByte(0);
-                            byteData = null;
-                            #endregion NickName  ( 32 Bytes )
+                            #region axis Side ( Left) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fPos_Left = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion axis Side ( Left) ( 4 Bytes )
+
+                            #region Interference axis ( Front ) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fInterference_Pos_Front = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Interference axis ( Front ) ( 4 Bytes )
+
+                            #region Interference axis ( Rear ) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fInterference_Pos_Rear = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Interference axis ( Rear ) ( 4 Bytes )
+
+                            #region NickName ( 32 Bytes )
+                            CDesignHeder.pSMotorInfo[i].strNickName = Encoding.Default.GetString(byteData, nPos, 32);
+                            nPos += 32;
+                            #endregion NickName ( 32 Bytes )
 
                             #region Group Number ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((int)m_CHeader.pSMotorInfo[i].nGroupNumber);
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
+                            CDesignHeder.pSMotorInfo[i].nGroupNumber = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
                             #endregion Group Number ( 2 Bytes )
 
-                            #region Mirror axis number ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nAxis_Mirror));
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
-                            #endregion Mirror axis number ( 2 Bytes )
+                            #region mirroring axis number ( 2 Bytes )
+                            if (bNoAxisMirror == false)
+                            {
+                                CDesignHeder.pSMotorInfo[i].nAxis_Mirror = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                            }
+                            #endregion mirroring axis number ( 2 Bytes )
+                            #region V1.4
+                            #region Motor control type ( 2 Bytes )
+                            if (nVersion >= 14)
+                            {
+                                CDesignHeder.pSMotorInfo[i].nMotorControlType = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                            }
+                            #endregion mirroring axis number ( 2 Bytes )
+                            #endregion V1.4
 
-                            #region motor control type ( 2 Bytes )
-                            byteData = BitConverter.GetBytes((short)(m_CHeader.pSMotorInfo[i].nMotorControlType));
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
-                            #endregion motor control type ( 2 Bytes )
-
-                            #endregion Axis Info
+                            #endregion Axis MotorInfo
                         }
-                        #region Set the separation code(Kor: Íµ¨Î∂Ñ ÏΩîÎìú Î∂ÄÏó¨) // HE - Header End ( 2 Bytes )
-                        fs.WriteByte((byte)('H'));  // Header 
-                        fs.WriteByte((byte)('E'));  // End
-                        #endregion Set the separation code(Kor: Íµ¨Î∂Ñ ÏΩîÎìú Î∂ÄÏó¨) // HE - Header End ( 2 Bytes )
 
+                        #region set the separation code [ HE - Header End ( 2 Bytes ) ]
+                        strData = "";
+                        strData += (char)(byteData[nPos++]);
+                        strData += (char)(byteData[nPos++]);
+                        if (strData != "HE") bFileOpened = false;
+                        #endregion set the separation code [ HE - Header End ( 2 Bytes ) ]
+
+                        int nSize_GroupName;
+                        int nSize_0;
+                        int nSize_1;
                         for (i = 0; i < 512; i++)
                         {
                             #region V1.4
-                            
-                            #region Secret
-                            fs.WriteByte((byte)(m_CHeader.pnSecret[i] & 0xff));
-                            #endregion Secret
-                            #region Type - Wheel or not
-                            fs.WriteByte((byte)(m_CHeader.pnType[i] & 0xff));
-                            #endregion Type - Wheel or not
-                            
-                            #endregion V1.4
-
-                            #region Char - GroupName
-                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrGroupName[i]); // The name of the group that are listed in the string(Kor: Ïä§Ìä∏ÎßÅÏúºÎ°ú Ï†ÅÌòÄÏûàÎäî Ìï¥Îãπ Í∑∏Î£πÏùò Ïù¥Î¶Ñ)
-                            #region Char Size - Forward ( 2 Bytes )
-                            byteData2 = BitConverter.GetBytes((short)(byteData.Length));
-                            fs.Write(byteData2, 0, 2);
-                            byteData2 = null;
-                            #endregion Char Size - Forward ( 2 Bytes )
-                            for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
-                            byteData = null;
-                            #endregion Char - GroupName
-
-                            #region Kinematics/InverseKinematics String
-                            #region Char - Forward
-                            
-                            bool bSecret = (m_CHeader.pnSecret[i] > 0) ? true : false;
-                            if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i]);
-                            else
-                            {
-                                byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i]);
-                                byteData = CEncryption.Encryption(bSecret, byteData);
-                            }             
-                           
-                            #region Char Size - Forward ( 2 Bytes )
-                            byteData2 = BitConverter.GetBytes((short)(byteData.Length));
-                            fs.Write(byteData2, 0, 2);
-                            byteData2 = null;
-                            #endregion Char Size - Forward ( 2 Bytes )
-                            for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
-                            byteData = null;
-                            #endregion Char - Forward
-
-                            #region Char - Inverse
-                            if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i]);
-                            else
-                            {
-                                byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i]);
-                                byteData = CEncryption.Encryption(bSecret, byteData);
-                            }
-                            #region Char Size - Inverse ( 2 Bytes )
-                            byteData2 = BitConverter.GetBytes((short)(byteData.Length));
-                            fs.Write(byteData2, 0, 2);
-                            byteData2 = null;
-                            #endregion Char Size - Inverse ( 2 Bytes )
-                            for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
-                            byteData = null;
-                            #endregion Char - Inverse
-                            #endregion Kinematics/InverseKinematics String
-                        }
-                        #region Set the separation code(Kor: Íµ¨Î∂Ñ ÏΩîÎìú Î∂ÄÏó¨) // KE - Kinematics End ( 2 Bytes )
-                        fs.WriteByte((byte)('K'));  // Kinematics 
-                        fs.WriteByte((byte)('E'));  // End
-                        #endregion Set the separation code(Kor: Íµ¨Î∂Ñ ÏΩîÎìú Î∂ÄÏó¨) // HE - Kinematics End ( 2 Bytes )
-
-                        #region actual design string(Kor: Ïã§ ÎîîÏûêÏù∏ Ïä§Ìä∏ÎßÅ)
-
-                        #region Char - actual design string(Kor: Ïã§ ÎîîÏûêÏù∏ Ïä§Ìä∏ÎßÅ)
-                        byteData = Encoding.Default.GetBytes(CHeader.strDrawModel);
-                        #region Char Size - actual design string(Kor: Ïã§ ÎîîÏûêÏù∏ Ïä§Ìä∏ÎßÅ) ( 2 Bytes )
-                        byteData2 = BitConverter.GetBytes((ushort)(byteData.Length));
-                        fs.Write(byteData2, 0, 2);
-                        byteData2 = null;
-                        #endregion Char Size - actual design string(Kor: Ïã§ ÎîîÏûêÏù∏ Ïä§Ìä∏ÎßÅ) ( 2 Bytes )
-
-                        for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]);
-                        byteData = null;
-                        #endregion Char - actual design string(Kor: Ïã§ ÎîîÏûêÏù∏ Ïä§Ìä∏ÎßÅ)
-                        #endregion actual design string(Kor: Ïã§ ÎîîÏûêÏù∏ Ïä§Ìä∏ÎßÅ)
-
-                        #region Comment String
-                        #region Char - Comment
-                        if (CHeader.strComment == null)
-                        {
-                            #region Char Size - Comment ( 2 Bytes )
-                            byteData2 = BitConverter.GetBytes((short)(0));
-                            fs.Write(byteData2, 0, 2);
-                            byteData2 = null;
-                            #endregion Char Size - Comment ( 2 Bytes )
-                        }
-                        else
-                        {
-                            byteData = Encoding.Default.GetBytes(CHeader.strComment);
-                            #region Char Size - Comment ( 2 Bytes )
-                            byteData2 = BitConverter.GetBytes((short)(byteData.Length));
-                            fs.Write(byteData2, 0, 2);
-                            byteData2 = null;
-                            #endregion Char Size - Comment ( 2 Bytes )
-                            for (j = 0; j < CHeader.strComment.Length; j++) fs.WriteByte(byteData[j]);
-                            byteData = null;
-                        }
-                        #endregion Char - Comment
-                        #endregion Comment String
-
-                        #region Set the separation code(Kor: Íµ¨Î∂Ñ ÏΩîÎìú Î∂ÄÏó¨) // FE - File End ( 2 Bytes )
-                        fs.WriteByte((byte)('F'));  // File 
-                        fs.WriteByte((byte)('E'));  // End
-                        #endregion Set the separation code(Kor: Íµ¨Î∂Ñ ÏΩîÎìú Î∂ÄÏó¨) // HE - File End ( 2 Bytes )
-
-                        fs.Close();
-
-                        //if (m_bAutoSaved == false) Modify(false);
-
-                        byteData = null;
-                        byteData2 = null;
-
-                        //////////////////////////////
-                        // Memory available for Dh(Kor: Dh Î•º ÏúÑÌïú Î©îÎ™®Î¶¨ ÌôïÎ≥¥)
-                        m_CHeader.pDhParamAll = new CDhParamAll[512];
-                        int nCnt_InverseKinematics = 0;
-                        for (i = 0; i < 512; i++)
-                        {
-                            if (m_CHeader.pstrKinematics[i] != null)
-                            {
-                                if (m_CHeader.pstrKinematics[i].Length > 0)
-                                {
-                                    // Forward
-                                    Ojw.CKinematics.CForward.MakeDhParam(m_CHeader.pstrKinematics[i], out m_CHeader.pDhParamAll[i]);
-                                    // Inverse
-                                    bool bError = Ojw.CKinematics.CInverse.Compile(m_CHeader.pstrInverseKinematics[i], out m_CHeader.pSOjwCode[i]);
-
-                                    /////////////
-                                    if (m_CHeader.pSOjwCode[i].nMotor_Max > 0) nCnt_InverseKinematics++;
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        //Message("File save error");
-                        fs.Close();
-                    }
-                }
-                public bool FileOpen(String strFileName, out COjwDesignerHeader CHeader)
-                {
-                    m_bFileOpening = true;
-                    _CNT_FILEOPEN++;
-                    bool bFileOpened = true;
-                    CHeader = null;
-                    m_strVersion = "";
-                    try
-                    {
-                        int i;//, j;
-
-                        FileInfo f = new FileInfo(strFileName);
-                        FileStream fs = f.OpenRead();
-
-                        byte[] byteData = new byte[fs.Length];
-                        string strFileName2 = "";
-                        string strData = "";
-
-                        #region Moved by opening the file into memory(Kor: ÌååÏùºÏùÑ Ïó¥Ïñ¥ÏÑú Î©îÎ™®Î¶¨Î°ú ÏòÆÍπÄ)
-                        fs.Read(byteData, 0, byteData.Length);
-                        strFileName2 = f.Name;
-                        fs.Close();
-                        #endregion Moved by opening the file into memory(Kor: ÌååÏùºÏùÑ Ïó¥Ïñ¥ÏÑú Î©îÎ™®Î¶¨Î°ú ÏòÆÍπÄ)
-
-                        #region separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
-                        String strTmp = String.Empty;
-                        for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
-                        //strTmp = strTmp.ToUpper();
-
-                        strData = (_STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper());
-                        #endregion separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
-                        COjwDesignerHeader CDesignHeder = new COjwDesignerHeader();
-                        #region OjwVersion
-#if _DHF_FILE
-                        if ((strTmp[0] == 'D') & (strTmp[1] == 'H') & (strTmp[2] == 'F'))
-                        {
-                            m_strVersion += (char)byteData[3];
-                            m_strVersion += (char)byteData[4];
-                            m_strVersion += (char)byteData[5];
-
-                            // In version 1.1, there is a second position(Kor: 1.1 Î≤ÑÏ†ÑÏóêÏÑúÎäî 2Î≤àÏß∏ ÏûêÏÑ∏Í∞Ä ÏóÜÎã§.)
-                            bool bNoSecondPos = false;
-                            bool bNoAxisMirror = false;
-                            int nVersion = 11;
-
-                            if (strTmp.Substring(0, 6) == "DHF1.1") nVersion = 11;
-                            else if (strTmp.Substring(0, 6) == "DHF1.2") nVersion = 12;
-                            else if (strTmp.Substring(0, 6) == "DHF1.3") nVersion = 13;
-                            else if (strTmp.Substring(0, 6) == "DHF1.4") nVersion = 14;
-
-                            CDesignHeder.strVersion = strTmp.Substring(0, 6);
-                            CDesignHeder.nVersion = nVersion;
-
-                            if (nVersion < 12)
-                            {
-                                bNoSecondPos = true;
-                                bNoAxisMirror = true;
-                            }
-                            else if (nVersion == 12)
-                            {
-                                bNoAxisMirror = true;
-                            }
-                            //else
-                            //{
-                            //}
-
-                            //if (bMessage == true) OjwMessage("[" + strData + " Binary File Data(" + strTmp + ")] Opened");
-                            int nPos = 6;   // 'HMT1.1'
-
-                            #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
-                            CDesignHeder.nDefaultFunctionNumber = -1;// no use it in DHF
-                            #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
-
-                            #region Model type ( 2 Bytes )
-                            CDesignHeder.nModelNum = (int)(short)(BitConverter.ToInt16(byteData, nPos));
-                            nPos += 2;
-                            #endregion Model type ( 2 Bytes )
-
-                            #region Title ( 21 Bytes )
-                            CDesignHeder.strModelName = Encoding.Default.GetString(byteData, nPos, 21);
-                            nPos += 21;
-                            #endregion Title ( 21 Bytes )
-
-                            #region BackColor - Background color ( 4 Bytes)
-                            CDesignHeder.cBackColor = Color.FromArgb(BitConverter.ToInt32(byteData, nPos));
-                            nPos += 4;
-                            #endregion BackColor - Background color ( 4 Bytes)
-
-                            #region Number of the motor ( 2 Bytes )
-                            CDesignHeder.nMotorCnt = (int)(short)(BitConverter.ToInt16(byteData, nPos));
-                            nPos += 2;
-                            #endregion Number of the motor ( 2 Bytes )
-                            #region initial angle
-                            #region initial angle - Pan ( 4 Bytes )
-                            CDesignHeder.SInitAngle.pan = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion initial angle - Pan ( 4 Bytes )
-                            #region initial angle - Tilt ( 4 Bytes )
-                            CDesignHeder.SInitAngle.tilt = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion initial angle - Tilt ( 4 Bytes )
-                            #region initial angle - Swing ( 4 Bytes )
-                            CDesignHeder.SInitAngle.swing = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion initial angle - Swing ( 4 Bytes )
-                            #endregion initial angle
-                            #region Init position
-                            #region Init position - x ( 4 Bytes )
-                            CDesignHeder.SInitPos.x = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion Init position - x ( 4 Bytes )
-                            #region Init position - y ( 4 Bytes )
-                            CDesignHeder.SInitPos.y = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion Init position - y ( 4 Bytes )
-                            #region Init position - z ( 4 Bytes )
-                            CDesignHeder.SInitPos.z = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion Init position - z ( 4 Bytes )
-                            #endregion Init position
-
-                            #region Init Scale - 100% = 1.0 ( 4 Bytes )
-                            CDesignHeder.fInitScale = BitConverter.ToSingle(byteData, nPos);
-                            nPos += 4;
-                            #endregion Init Scale - 100% = 1.0 ( 4 Bytes )
-
                             if (nVersion >= 14)
                             {
-                                #region 2 Wheel Counter ( 1 Bytes )
-                                CDesignHeder.nWheelCounter_2 = (int)byteData[nPos++];
-                                #endregion 2 Wheel Counter ( 1 Bytes )
-
-                                #region 3 Wheel Counter ( 1 Bytes )
-                                CDesignHeder.nWheelCounter_3 = (int)byteData[nPos++];
-                                #endregion 3 Wheel Counter ( 1 Bytes )
-
-                                #region 4 Wheel Counter ( 1 Bytes )
-                                CDesignHeder.nWheelCounter_4 = (int)byteData[nPos++];
-                                #endregion 4 Wheel Counter ( 1 Bytes )
+                                #region Secret Mode
+                                // Verify that the encryption code -> If this is the encryption code is set to '1'.
+                                // Kor: // æœ»£»≠ ƒ⁄µÂ¿Œ¡ˆ »Æ¿Œ -> æœ»£»≠ ƒ⁄µÂ∂Û∏È '1'
+                                CDesignHeder.pnSecret[i] = (int)(byte)(byteData[nPos++]);
+                                #endregion Secret Mode
+                                #region Type
+                                // check formulas Control Type -> If the wheel-type control '1', if the position type control '0'
+                                // Kor: ºˆΩƒ ¡¶æÓ≈∏¿‘ »Æ¿Œ -> πŸƒ˚«¸ ¡¶æÓ∂Û∏È '1', ¿ßƒ°«¸ ¡¶æÓ∂Û∏È '0'
+                                CDesignHeder.pnType[i] = (int)(byte)(byteData[nPos++]);
+                                #endregion Type
                             }
+                            #endregion V1.4
 
-                            for (i = 0; i < 256; i++)
-                            {
-                                #region Axis MotorInfo
+                            #region GroupName String
 
-                                #region Motor ID ( 2 Byte )
-                                CDesignHeder.pSMotorInfo[i].nMotorID = (int)(short)BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Motor ID ( 2 Byte )
-
-                                #region Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nMotorDir = (int)(short)BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
-
-                                #region Max Angle (+) ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fLimit_Up = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion Max Angle (+) ( 4 Bytes )
-
-                                #region Min Angle (-) ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fLimit_Down = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion Min Angle (-) ( 4 Bytes )
-
-                                #region Center Position - Evd ( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Center Position - Evd ( 2 Bytes )
-
-                                #region Mech Move - Maximum pulse Evd ( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Mech Move - Maximum pulse Evd ( 2 Bytes )
-
-                                #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Ïóê Ìï¥ÎãπÌïòÎäî Í∞ÅÎèÑÍ∞í (Î∂ÑÏ£ºÍ∞Å))]( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fMechAngle = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Ïóê Ìï¥ÎãπÌïòÎäî Í∞ÅÎèÑÍ∞í (Î∂ÑÏ£ºÍ∞Å))]( 4 Bytes )
-
-                                #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: Îç∞Ïù¥ÌÉÄÏùò Ï¥àÍ∏∞ÏûêÏÑ∏Î•º ÏûÑÏùòÏùò ÏûêÏÑ∏Î°ú ÌïòÍ∏∞ ÏúÑÌï¥ ÏÇ¨Ïö©( 4 Bytes ))
-                                CDesignHeder.pSMotorInfo[i].fInitAngle = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                if (bNoSecondPos == false)
-                                {
-                                    CDesignHeder.pSMotorInfo[i].fInitAngle2 = BitConverter.ToSingle(byteData, nPos);
-                                    nPos += 4;
-                                }
-                                #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: Îç∞Ïù¥ÌÉÄÏùò Ï¥àÍ∏∞ÏûêÏÑ∏Î•º ÏûÑÏùòÏùò ÏûêÏÑ∏Î°ú ÌïòÍ∏∞ ÏúÑÌï¥ ÏÇ¨Ïö©( 4 Bytes ))
-
-                                #region Interference axis number(Kor: Í∞ÑÏÑ≠ Ï∂ï Î≤àÌò∏) ( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nInterference_Axis = BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Interference axis number(Kor: Í∞ÑÏÑ≠ Ï∂ï Î≤àÌò∏) ( 2 Bytes )
-
-                                #region axis Width ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fW = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion axis Width ( 4 Bytes )
-
-                                #region Interference axis Width ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fInterference_W = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion Interference axis Width ( 4 Bytes )
-
-                                #region axis Side ( Right ) ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fPos_Right = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion axis Side ( Right ) ( 4 Bytes )
-
-                                #region axis Side ( Left) ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fPos_Left = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion axis Side ( Left) ( 4 Bytes )
-
-                                #region Interference axis ( Front ) ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fInterference_Pos_Front = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion Interference axis ( Front ) ( 4 Bytes )
-
-                                #region Interference axis ( Rear ) ( 4 Bytes )
-                                CDesignHeder.pSMotorInfo[i].fInterference_Pos_Rear = BitConverter.ToSingle(byteData, nPos);
-                                nPos += 4;
-                                #endregion Interference axis ( Rear ) ( 4 Bytes )
-
-                                #region NickName ( 32 Bytes )
-                                CDesignHeder.pSMotorInfo[i].strNickName = Encoding.Default.GetString(byteData, nPos, 32);
-                                nPos += 32;
-                                #endregion NickName ( 32 Bytes )
-
-                                #region Group Number ( 2 Bytes )
-                                CDesignHeder.pSMotorInfo[i].nGroupNumber = BitConverter.ToInt16(byteData, nPos);
-                                nPos += 2;
-                                #endregion Group Number ( 2 Bytes )
-
-                                #region mirroring axis number ( 2 Bytes )
-                                if (bNoAxisMirror == false)
-                                {
-                                    CDesignHeder.pSMotorInfo[i].nAxis_Mirror = BitConverter.ToInt16(byteData, nPos);
-                                    nPos += 2;
-                                }
-                                #endregion mirroring axis number ( 2 Bytes )
-                                #region V1.4
-                                #region Motor control type ( 2 Bytes )
-                                if (nVersion >= 14)
-                                {
-                                    CDesignHeder.pSMotorInfo[i].nMotorControlType = BitConverter.ToInt16(byteData, nPos);
-                                    nPos += 2;
-                                }
-                                #endregion mirroring axis number ( 2 Bytes )
-                                #endregion V1.4
-
-                                #endregion Axis MotorInfo
-                            }
-
-                            #region set the separation code [ HE - Header End ( 2 Bytes ) ]
-                            strData = "";
-                            strData += (char)(byteData[nPos++]);
-                            strData += (char)(byteData[nPos++]);
-                            if (strData != "HE") bFileOpened = false;
-                            #endregion set the separation code [ HE - Header End ( 2 Bytes ) ]
-
-                            int nSize_GroupName;
-                            int nSize_0;
-                            int nSize_1;
-                            for (i = 0; i < 512; i++)
-                            {
-                                #region V1.4
-                                if (nVersion >= 14)
-                                {
-                                    #region Secret Mode
-                                    // Verify that the encryption code -> If this is the encryption code is set to '1'.
-                                    // Kor: // ÏïîÌò∏Ìôî ÏΩîÎìúÏù∏ÏßÄ ÌôïÏù∏ -> ÏïîÌò∏Ìôî ÏΩîÎìúÎùºÎ©¥ '1'
-                                    CDesignHeder.pnSecret[i] = (int)(byte)(byteData[nPos++]); 
-                                    #endregion Secret Mode
-                                    #region Type
-                                    // check formulas Control Type -> If the wheel-type control '1', if the position type control '0'
-                                    // Kor: ÏàòÏãù Ï†úÏñ¥ÌÉÄÏûÖ ÌôïÏù∏ -> Î∞îÌÄ¥Ìòï Ï†úÏñ¥ÎùºÎ©¥ '1', ÏúÑÏπòÌòï Ï†úÏñ¥ÎùºÎ©¥ '0'
-                                    CDesignHeder.pnType[i] = (int)(byte)(byteData[nPos++]); 
-                                    #endregion Type
-                                }
-                                #endregion V1.4
-
-                                #region GroupName String
-
-                                #region Size - Kinematics ( 2 Bytes )
-                                nSize_GroupName = (int)(short)(BitConverter.ToInt16(byteData, nPos));
-                                nPos += 2;
-                                #endregion Size - Kinematics ( 2 Bytes )
-
-                                #region String - Kinematics
-                                CDesignHeder.pstrGroupName[i] = Encoding.Default.GetString(byteData, nPos, nSize_GroupName);
-                                nPos += nSize_GroupName;
-                                #endregion String - Kinematics
-
-                                #endregion GroupName String
-
-                                #region Kinematics/InverseKinematics String
-                                #region Size - Kinematics ( 2 Bytes )
-                                nSize_0 = (int)(short)(BitConverter.ToInt16(byteData, nPos));
-                                nPos += 2;
-                                #endregion Size - Kinematics ( 2 Bytes )
-
-                                #region String - Kinematics
-                                //CDesignHeder.pstrKinematics[i] = "";
-                                //for (int j = 0; j < nSize_0; j++) CDesignHeder.pstrKinematics[i] += (char)(byteData[nPos++]);
-                                CDesignHeder.pstrKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_0);
-                                // Since then loads the data may be encrypted.(Kor: ÏïîÌò∏Ìôî Îç∞Ïù¥ÌÑ∞Ïùº ÏàòÎèÑ ÏûàÏúºÎØÄÎ°ú Î°úÎî©)
-                                CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption = new byte[nSize_0];
-                                Array.Copy(byteData, nPos, CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption, 0, nSize_0);
-
-                                nPos += nSize_0;
-                                #endregion String - Kinematics
-
-                                #region Size - InverseKinematics ( 2 Bytes )
-                                nSize_1 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
-                                nPos += 2;
-                                #endregion Size - InverseKinematics ( 2 Bytes )
-
-                                #region String - InverseKinematics
-                                CDesignHeder.pstrInverseKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_1);
-                                // Since then loads the data may be encrypted.(Kor: ÏïîÌò∏Ìôî Îç∞Ïù¥ÌÑ∞Ïùº ÏàòÎèÑ ÏûàÏúºÎØÄÎ°ú Î°úÎî©)
-                                CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption = new byte[nSize_1];
-                                Array.Copy(byteData, nPos, CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption, 0, nSize_1);
-
-                                nPos += nSize_1;
-                                #endregion String - InverseKinematics
-                                #endregion Kinematics/InverseKinematics String
-                            }
-
-                            #region set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
-                            strData = "";
-                            strData += (char)(byteData[nPos++]);
-                            strData += (char)(byteData[nPos++]);
-                            if (strData != "KE") bFileOpened = false;
-                            #endregion set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
-
-                            #region Actual design string
-                            #region Size - Actual design string ( 2 Bytes )
-                            nSize_0 = (int)(ushort)(BitConverter.ToUInt16(byteData, nPos));
+                            #region Size - Kinematics ( 2 Bytes )
+                            nSize_GroupName = (int)(short)(BitConverter.ToInt16(byteData, nPos));
                             nPos += 2;
-                            #endregion Size - Actual design string ( 2 Bytes )
+                            #endregion Size - Kinematics ( 2 Bytes )
 
-                            #region String - Actual design string
-                            //CDesignHeder.strDrawModel = "";
-                            CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);//CConvert.RemoveChar(Encoding.Default.GetString(byteData, nPos, nSize_0), '\r');
-                            nPos += nSize_0;
-                            // Dhf -> Ojw(Convert)
-                            String[] pstrLine = CDesignHeder.strDrawModel.Split('\n');
-                            int nCnt = 0;
-                            StringBuilder sbAll = new StringBuilder();
-                            sbAll.Clear();
-                            foreach (string strLine in pstrLine)
-                            {
-                                String[] pstrTmp = strLine.Split(',');
-                                //if (pstrTmp.Length > 10)
-                                //{
-                                    nCnt = 0;
-                                    bool bCaption = false;
-                                    int nModelPosition = 2;
-                                    foreach (string strItem in pstrTmp)
-                                    {
-                                        if (strItem.IndexOf("//") >= 0)
-                                        {
-                                            bCaption = true;
-                                        }
-                                        else if (bCaption == false)
-                                        {
-                                            if (nCnt++ == nModelPosition)
-                                            {
-                                                sbAll.Append("1.0,");
-                                                int nData = CConvert.StrToInt(strItem);
-                                                if (nData >= 0x1000) sbAll.Append(CConvert.IntToStr(nData - 0x1000));
-                                                else sbAll.Append("#" + CConvert.RemoveChar(strItem, ' '));                                                
-                                            }
-                                        }
-                                        if (nCnt != (nModelPosition + 1)) { sbAll.Append(CConvert.RemoveChar(strItem, ' ')); }
-                                        else nCnt++;
-                                        // ojw5014 - ,(ÏΩ§Îßà) Î∂ôÎäîÍ±∞ Ìï¥Í≤∞Ìï† Í≤É.
-                                        if (strItem.IndexOf('\r') < 0) sbAll.Append(',');
-                                        else sbAll.Append("\n");
-                                    }
-                                //}
-                            }
-                            CDesignHeder.strDrawModel = sbAll.ToString();
-                            // Set a new version
-                            CDesignHeder.strVersion = _STR_EXT.ToUpper() + C3d._STR_EXT_VERSION.ToUpper();
-                            #endregion String - Actual design string
-                            #endregion Actual design string
+                            #region String - Kinematics
+                            CDesignHeder.pstrGroupName[i] = Encoding.Default.GetString(byteData, nPos, nSize_GroupName);
+                            nPos += nSize_GroupName;
+                            #endregion String - Kinematics
 
+                            #endregion GroupName String
 
-                            #region Comment
-                            #region Size - Comment ( 2 Bytes )
-                            nSize_0 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            #region Kinematics/InverseKinematics String
+                            #region Size - Kinematics ( 2 Bytes )
+                            nSize_0 = (int)(short)(BitConverter.ToInt16(byteData, nPos));
                             nPos += 2;
-                            #endregion Size - Comment ( 2 Bytes )
+                            #endregion Size - Kinematics ( 2 Bytes )
 
-                            #region String - Comment
-                            CDesignHeder.strComment = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                            #region String - Kinematics
+                            //CDesignHeder.pstrKinematics[i] = "";
+                            //for (int j = 0; j < nSize_0; j++) CDesignHeder.pstrKinematics[i] += (char)(byteData[nPos++]);
+                            CDesignHeder.pstrKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                            // Since then loads the data may be encrypted.(Kor: æœ»£»≠ µ•¿Ã≈Õ¿œ ºˆµµ ¿÷¿∏π«∑Œ ∑Œµ˘)
+                            CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption = new byte[nSize_0];
+                            Array.Copy(byteData, nPos, CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption, 0, nSize_0);
+
                             nPos += nSize_0;
-                            #endregion String - Comment
-                            #endregion Comment
+                            #endregion String - Kinematics
 
-                            #region set the separation code [ FE - File End ( 2 Bytes ) ]
-                            strData = "";
-                            strData += (char)(byteData[nPos++]);
-                            strData += (char)(byteData[nPos++]);
-                            if (strData != "FE") bFileOpened = false;
-                            #endregion set the separation code [ FE - File End ( 2 Bytes ) ]
+                            #region Size - InverseKinematics ( 2 Bytes )
+                            nSize_1 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Size - InverseKinematics ( 2 Bytes )
 
-                            //fs.Close();
-                            //bFileOpened = true;
+                            #region String - InverseKinematics
+                            CDesignHeder.pstrInverseKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_1);
+                            // Since then loads the data may be encrypted.(Kor: æœ»£»≠ µ•¿Ã≈Õ¿œ ºˆµµ ¿÷¿∏π«∑Œ ∑Œµ˘)
+                            CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption = new byte[nSize_1];
+                            Array.Copy(byteData, nPos, CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption, 0, nSize_1);
 
-                    
+                            nPos += nSize_1;
+                            #endregion String - InverseKinematics
+                            #endregion Kinematics/InverseKinematics String
                         }
-                        else
+
+                        #region set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
+                        strData = "";
+                        strData += (char)(byteData[nPos++]);
+                        strData += (char)(byteData[nPos++]);
+                        if (strData != "KE") bFileOpened = false;
+                        #endregion set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
+
+                        #region Actual design string
+                        #region Size - Actual design string ( 2 Bytes )
+                        nSize_0 = (int)(ushort)(BitConverter.ToUInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Size - Actual design string ( 2 Bytes )
+
+                        #region String - Actual design string
+                        //CDesignHeder.strDrawModel = "";
+                        CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);//CConvert.RemoveChar(Encoding.Default.GetString(byteData, nPos, nSize_0), '\r');
+                        nPos += nSize_0;
+                        // Dhf -> Ojw(Convert)
+                        String[] pstrLine = CDesignHeder.strDrawModel.Split('\n');
+                        int nCnt = 0;
+                        StringBuilder sbAll = new StringBuilder();
+
+#if _USING_DOTNET_3_5
+                            sbAll.Remove(0, sbAll.Length);
+#else
+                        sbAll.Clear(); // Dotnet 4.0 ¿ÃªÛø°º≠∏∏ ªÁøÎ
+#endif
+                        foreach (string strLine in pstrLine)
+                        {
+                            String[] pstrTmp = strLine.Split(',');
+                            //if (pstrTmp.Length > 10)
+                            //{
+                            nCnt = 0;
+                            bool bCaption = false;
+                            int nModelPosition = 2;
+                            foreach (string strItem in pstrTmp)
+                            {
+                                if (strItem.IndexOf("//") >= 0)
+                                {
+                                    bCaption = true;
+                                }
+                                else if (bCaption == false)
+                                {
+                                    if (nCnt++ == nModelPosition)
+                                    {
+                                        sbAll.Append("1.0,");
+                                        int nData = CConvert.StrToInt(strItem);
+                                        if (nData >= 0x1000) sbAll.Append(CConvert.IntToStr(nData - 0x1000));
+                                        else sbAll.Append("#" + CConvert.RemoveChar(strItem, ' '));
+                                    }
+                                }
+                                if (nCnt != (nModelPosition + 1)) { sbAll.Append(CConvert.RemoveChar(strItem, ' ')); }
+                                else nCnt++;
+                                // ojw5014 - ,(ƒﬁ∏∂) ∫Ÿ¥¬∞≈ «ÿ∞·«“ ∞Õ.
+                                if (strItem.IndexOf('\r') < 0) sbAll.Append(',');
+                                else sbAll.Append("\n");
+                            }
+                            //}
+                        }
+                        CDesignHeder.strDrawModel = sbAll.ToString();
+                        // Set a new version
+                        CDesignHeder.strVersion = _STR_EXT.ToUpper() + C3d._STR_EXT_VERSION.ToUpper();
+                        #endregion String - Actual design string
+                        #endregion Actual design string
+
+
+                        #region Comment
+                        #region Size - Comment ( 2 Bytes )
+                        nSize_0 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Size - Comment ( 2 Bytes )
+
+                        #region String - Comment
+                        CDesignHeder.strComment = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                        nPos += nSize_0;
+                        #endregion String - Comment
+                        #endregion Comment
+
+                        #region set the separation code [ FE - File End ( 2 Bytes ) ]
+                        strData = "";
+                        strData += (char)(byteData[nPos++]);
+                        strData += (char)(byteData[nPos++]);
+                        if (strData != "FE") bFileOpened = false;
+                        #endregion set the separation code [ FE - File End ( 2 Bytes ) ]
+
+                        //fs.Close();
+                        //bFileOpened = true;
+
+
+                    }
+                    else
 #endif // _DHF_FILE
 #if true
                         if ((strTmp[0] == 'O') & (strTmp[1] == 'J') & (strTmp[2] == 'W'))//(strTmp == strData) 
                         {
                             int nVersion = 0;// 010000; // 01.00.00
-                            for (i = 3; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) 
+                            for (i = 3; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++)
                             {
                                 m_strVersion += (char)byteData[i];
                                 if ((char)byteData[i] != '.')
@@ -15640,11 +19359,11 @@ namespace OpenJigWare
                                     nVersion = nVersion * 10 + (int)(byteData[i] - 0x30);
                                 }
                             }
-                            
+
                             CDesignHeder.strVersion = strTmp;
                             CDesignHeder.nVersion = nVersion;
 
-                            int nPos = (_STR_EXT.Length + _STR_EXT_VERSION.Length);   // ÏïûÏùò (_STR_EXT.Length + _STR_EXT_VERSION.Length)Í∞úÎäî 'OJW01.00.00' Ïóê Ìï†Îãπ
+                            int nPos = (_STR_EXT.Length + _STR_EXT_VERSION.Length);   // æ’¿« (_STR_EXT.Length + _STR_EXT_VERSION.Length)∞≥¥¬ 'OJW01.00.00' ø° «“¥Á
 
                             #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
                             if (nVersion > 010000)
@@ -15752,10 +19471,10 @@ namespace OpenJigWare
                                     nPos += 2;
                                     #endregion Center Position - Evd ( 2 Bytes )
 
-                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Í∞í Evd)( 2 Bytes )
+                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: √÷¥Îƒ° ∆ﬁΩ∫∞™ Evd)( 2 Bytes )
                                     CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
                                     nPos += 2;
-                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Í∞í Evd)( 2 Bytes )
+                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: √÷¥Îƒ° ∆ﬁΩ∫∞™ Evd)( 2 Bytes )
                                 }
                                 else
                                 {
@@ -15764,29 +19483,29 @@ namespace OpenJigWare
                                     nPos += 4;
                                     #endregion Center Position - Evd ( 4 Bytes )
 
-                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Í∞í Evd)( 4 Bytes )
+                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: √÷¥Îƒ° ∆ﬁΩ∫∞™ Evd)( 4 Bytes )
                                     CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt32(byteData, nPos);
                                     nPos += 4;
-                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Í∞í Evd)( 4 Bytes )
+                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: √÷¥Îƒ° ∆ﬁΩ∫∞™ Evd)( 4 Bytes )
                                 }
-                                #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Ïóê Ìï¥ÎãπÌïòÎäî Í∞ÅÎèÑÍ∞í (Î∂ÑÏ£ºÍ∞Å))]( 4 Bytes )
+                                #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: √÷¥Îƒ° ∆ﬁΩ∫ø° «ÿ¥Á«œ¥¬ ∞¢µµ∞™ (∫–¡÷∞¢))]( 4 Bytes )
                                 CDesignHeder.pSMotorInfo[i].fMechAngle = BitConverter.ToSingle(byteData, nPos);
                                 nPos += 4;
-                                #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: ÏµúÎåÄÏπò ÌéÑÏä§Ïóê Ìï¥ÎãπÌïòÎäî Í∞ÅÎèÑÍ∞í (Î∂ÑÏ£ºÍ∞Å))]( 4 Bytes )
+                                #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: √÷¥Îƒ° ∆ﬁΩ∫ø° «ÿ¥Á«œ¥¬ ∞¢µµ∞™ (∫–¡÷∞¢))]( 4 Bytes )
 
-                                #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: Îç∞Ïù¥ÌÉÄÏùò Ï¥àÍ∏∞ÏûêÏÑ∏Î•º ÏûÑÏùòÏùò ÏûêÏÑ∏Î°ú ÌïòÍ∏∞ ÏúÑÌï¥ ÏÇ¨Ïö©( 4 Bytes ))
+                                #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: µ•¿Ã≈∏¿« √ ±‚¿⁄ºº∏¶ ¿”¿«¿« ¿⁄ºº∑Œ «œ±‚ ¿ß«ÿ ªÁøÎ( 4 Bytes ))
                                 // First Posture
                                 CDesignHeder.pSMotorInfo[i].fInitAngle = BitConverter.ToSingle(byteData, nPos);
                                 nPos += 4;
                                 // Second Posture
                                 CDesignHeder.pSMotorInfo[i].fInitAngle2 = BitConverter.ToSingle(byteData, nPos);
                                 nPos += 4;
-                                #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: Îç∞Ïù¥ÌÉÄÏùò Ï¥àÍ∏∞ÏûêÏÑ∏Î•º ÏûÑÏùòÏùò ÏûêÏÑ∏Î°ú ÌïòÍ∏∞ ÏúÑÌï¥ ÏÇ¨Ïö©( 4 Bytes ))
+                                #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: µ•¿Ã≈∏¿« √ ±‚¿⁄ºº∏¶ ¿”¿«¿« ¿⁄ºº∑Œ «œ±‚ ¿ß«ÿ ªÁøÎ( 4 Bytes ))
 
-                                #region Interference axis number(Kor: Í∞ÑÏÑ≠ Ï∂ï Î≤àÌò∏) ( 2 Bytes )
+                                #region Interference axis number(Kor: ∞£º∑ √‡ π¯»£) ( 2 Bytes )
                                 CDesignHeder.pSMotorInfo[i].nInterference_Axis = BitConverter.ToInt16(byteData, nPos);
                                 nPos += 2;
-                                #endregion Interference axis number(Kor: Í∞ÑÏÑ≠ Ï∂ï Î≤àÌò∏) ( 2 Bytes )
+                                #endregion Interference axis number(Kor: ∞£º∑ √‡ π¯»£) ( 2 Bytes )
 
                                 #region axis Width ( 4 Bytes )
                                 CDesignHeder.pSMotorInfo[i].fW = BitConverter.ToSingle(byteData, nPos);
@@ -15857,13 +19576,13 @@ namespace OpenJigWare
                                 #region V1.0.0
                                 #region Secret Mode
                                 // Verify that the encryption code -> If this is the encryption code is set to '1'.
-                                // Kor: // ÏïîÌò∏Ìôî ÏΩîÎìúÏù∏ÏßÄ ÌôïÏù∏ -> ÏïîÌò∏Ìôî ÏΩîÎìúÎùºÎ©¥ '1'
-                                CDesignHeder.pnSecret[i] = (int)(byte)(byteData[nPos++]); 
+                                // Kor: // æœ»£»≠ ƒ⁄µÂ¿Œ¡ˆ »Æ¿Œ -> æœ»£»≠ ƒ⁄µÂ∂Û∏È '1'
+                                CDesignHeder.pnSecret[i] = (int)(byte)(byteData[nPos++]);
                                 #endregion Secret Mode
                                 #region Type
                                 // check formulas Control Type -> If the wheel-type control '1', if the position type control '0'
-                                    // Kor: ÏàòÏãù Ï†úÏñ¥ÌÉÄÏûÖ ÌôïÏù∏ -> Î∞îÌÄ¥Ìòï Ï†úÏñ¥ÎùºÎ©¥ '1', ÏúÑÏπòÌòï Ï†úÏñ¥ÎùºÎ©¥ '0'
-                                    CDesignHeder.pnType[i] = (int)(byte)(byteData[nPos++]);
+                                // Kor: ºˆΩƒ ¡¶æÓ≈∏¿‘ »Æ¿Œ -> πŸƒ˚«¸ ¡¶æÓ∂Û∏È '1', ¿ßƒ°«¸ ¡¶æÓ∂Û∏È '0'
+                                CDesignHeder.pnType[i] = (int)(byte)(byteData[nPos++]);
                                 #endregion Type
                                 #endregion V1.0.0
 
@@ -15891,7 +19610,7 @@ namespace OpenJigWare
                                 //CDesignHeder.pstrKinematics[i] = "";
                                 //for (int j = 0; j < nSize_0; j++) CDesignHeder.pstrKinematics[i] += (char)(byteData[nPos++]);
                                 CDesignHeder.pstrKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_0);
-                                // Since then loads the data may be encrypted.(Kor: ÏïîÌò∏Ìôî Îç∞Ïù¥ÌÑ∞Ïùº ÏàòÎèÑ ÏûàÏúºÎØÄÎ°ú Î°úÎî©)
+                                // Since then loads the data may be encrypted.(Kor: æœ»£»≠ µ•¿Ã≈Õ¿œ ºˆµµ ¿÷¿∏π«∑Œ ∑Œµ˘)
                                 CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption = new byte[nSize_0];
                                 Array.Copy(byteData, nPos, CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption, 0, nSize_0);
 
@@ -15905,7 +19624,7 @@ namespace OpenJigWare
 
                                 #region String - InverseKinematics
                                 CDesignHeder.pstrInverseKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_1);
-                                // Since then loads the data may be encrypted.(Kor: ÏïîÌò∏Ìôî Îç∞Ïù¥ÌÑ∞Ïùº ÏàòÎèÑ ÏûàÏúºÎØÄÎ°ú Î°úÎî©)
+                                // Since then loads the data may be encrypted.(Kor: æœ»£»≠ µ•¿Ã≈Õ¿œ ºˆµµ ¿÷¿∏π«∑Œ ∑Œµ˘)
                                 CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption = new byte[nSize_1];
                                 Array.Copy(byteData, nPos, CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption, 0, nSize_1);
 
@@ -15930,7 +19649,7 @@ namespace OpenJigWare
                             #region String - Actual design string
                             //CDesignHeder.strDrawModel = "";
                             CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);
-                                                        
+
                             nPos += nSize_0;
                             #endregion String - Actual design string
                             #endregion Actual design string
@@ -15959,38 +19678,46 @@ namespace OpenJigWare
                         }
                         else bFileOpened = false;
 #endif
-                        #endregion OjwVersion
-                        ////////////////////////////////////////////////////////////////////////////
+                    #endregion OjwVersion
+                    ////////////////////////////////////////////////////////////////////////////
 
-                        if (bFileOpened == true)
+                    if (bFileOpened == true)
+                    {
+                        CHeader = CDesignHeder;
+                        CHeader.pDhParamAll = new CDhParamAll[512];
+
+                        CDesignHeder = null;
+
+                        m_bFileOpening = false;
+
+                        InitToolsMotorVar();
+
+                        // Event Running
+                        Event_FileOpen.RunEvent();
+
+                        int nAxis = 0;
+                        foreach (SMotorInfo_t SMotInfo in CHeader.pSMotorInfo)
                         {
-                            CHeader = CDesignHeder;
-                            CHeader.pDhParamAll = new CDhParamAll[512];
-
-                            CDesignHeder = null;
-
-                            m_bFileOpening = false;
-
-                            InitToolsMotorVar();
-
-                            // Event Running
-                            Event_FileOpen.RunEvent();
-                            return true;
+                            if (m_CGridMotionEditor != null) m_CGridMotionEditor.Clear_SetType(0); // Default
+                            SetData(nAxis++, SMotInfo.fInitAngle);
                         }
 
-                        m_strVersion = "";
-                        CDesignHeder = null;
-                        m_bFileOpening = false;
-                        return false;
+                        return true;
                     }
-                    catch
-                    {
-                        m_strVersion = "";
-                        m_bFileOpening = false;
-                        return false;
-                    }
+
+                    m_strVersion = "";
+                    CDesignHeder = null;
+                    m_bFileOpening = false;
+                    return false;
                 }
-                //}
+                catch
+                {
+                    m_strVersion = "";
+                    m_bFileOpening = false;
+                    return false;
+                }
+            }
+            //}
             #endregion Designer class(COjwDesignerHeader)
 
 
@@ -16002,24 +19729,24 @@ namespace OpenJigWare
 
                 public int nDefaultFunctionNumber = -1;
 
-                public int nModelNum = 0;                               // The name of the actual model with the at least 1(Kor: 1 Ïù¥ÏÉÅÏùò Í∞íÏùÑ Í∞ÄÏßÄÎäî Ïã§Ï†úÏ†ÅÏù∏ Î™®Îç∏Ïùò Ïù¥Î¶Ñ)
+                public int nModelNum = 0;                               // The name of the actual model with the at least 1(Kor: 1 ¿ÃªÛ¿« ∞™¿ª ∞°¡ˆ¥¬ Ω«¡¶¿˚¿Œ ∏µ®¿« ¿Ã∏ß)
                 public String strModelNum = String.Empty;               // 
                 public string strModelName = "";
 
-                public SAngle3D_t SInitAngle = new SAngle3D_t();        // The default angle facing the screen(Kor: ÌôîÎ©¥ÏùÑ Î∞îÎùºÎ≥¥Îäî Í∏∞Î≥∏ Í∞ÅÎèÑ)
-                public SVector3D_t SInitPos = new SVector3D_t();        // The default position of the object present in the screen(Kor: ÌôîÎ©¥ÎÇ¥Ïóê Ï°¥Ïû¨ÌïòÎäî Ïò§Î∏åÏ†ùÌä∏Ïùò Í∏∞Î≥∏ ÏúÑÏπò)
+                public SAngle3D_t SInitAngle = new SAngle3D_t();        // The default angle facing the screen(Kor: »≠∏È¿ª πŸ∂Û∫∏¥¬ ±‚∫ª ∞¢µµ)
+                public SVector3D_t SInitPos = new SVector3D_t();        // The default position of the object present in the screen(Kor: »≠∏È≥ªø° ¡∏¿Á«œ¥¬ ø¿∫Í¡ß∆Æ¿« ±‚∫ª ¿ßƒ°)
 
-                public float fInitScale = 0.35f;                        // Size ratio in the initial screen(Kor: Ï¥àÍ∏∞ ÌôîÎ©¥Ïùò ÌÅ¨Í∏∞ ÎπÑÏú®)
+                public float fInitScale = 0.35f;                        // Size ratio in the initial screen(Kor: √ ±‚ »≠∏È¿« ≈©±‚ ∫Ò¿≤)
 
-                public bool bDisplay_Light = true;                      // To use the light(Kor: ÎπõÏùÑ ÏÇ¨Ïö©Ìï† Í≤ÉÏù∏ÏßÄ...)
-                public bool bDisplay_Invisible = false;                 // Transparent material, regardless of whether the ball(Kor: Ïû¨ÏßàÍ≥º ÏÉÅÍ¥ÄÏóÜÏù¥ Ìà¨Î™ÖÌïòÍ≤å Î≥º Í≤ÉÏù∏ÏßÄ...)
-                public bool bDisplay_Axis = false;                      // Look what the reference axis(Kor: Í∏∞Ï§ÄÏ∂ïÏùÑ Î≥¥Ïùº Í±¥ÏßÄ)
+                public bool bDisplay_Light = true;                      // To use the light(Kor: ∫˚¿ª ªÁøÎ«“ ∞Õ¿Œ¡ˆ...)
+                public bool bDisplay_Invisible = false;                 // Transparent material, regardless of whether the ball(Kor: ¿Á¡˙∞˙ ªÛ∞¸æ¯¿Ã ≈ı∏Ì«œ∞‘ ∫º ∞Õ¿Œ¡ˆ...)
+                public bool bDisplay_Axis = false;                      // Look what the reference axis(Kor: ±‚¡ÿ√‡¿ª ∫∏¿œ ∞«¡ˆ)
 
-                public Color cBackColor = Color.FromArgb(-5658199);     // backgroud color(Kor: Î∞∞Í≤Ω ÏÉâ)
+                public Color cBackColor = Color.FromArgb(-5658199);     // backgroud color(Kor: πË∞Ê ªˆ)
 
-                public SMotorInfo_t[] pSMotorInfo = new SMotorInfo_t[256];          // This limit is necessary because it reflects axes up to 256 axes(Kor: Î¶¨ÎØ∏Ìä∏Í∞Ä ÌïÑÏöîÌïú Ï∂ïÏùÄ ÏµúÎåÄ 256Ï∂ï Ïù¥ÎØÄÎ°ú Ïù¥Î•º Î∞òÏòÅ)
+                public SMotorInfo_t[] pSMotorInfo = new SMotorInfo_t[256];          // This limit is necessary because it reflects axes up to 256 axes(Kor: ∏ÆπÃ∆Æ∞° « ø‰«— √‡¿∫ √÷¥Î 256√‡ ¿Ãπ«∑Œ ¿Ã∏¶ π›øµ)
 
-                public string[] pstrGroupName = new string[512];          // Group name(Kor: ÏßÄÏ†ïÌïú Í∑∏Î£πÏùò Ïù¥Î¶Ñ)
+                public string[] pstrGroupName = new string[512];          // Group name(Kor: ¡ˆ¡§«— ±◊∑Ï¿« ¿Ã∏ß)
                 public CDhParamAll[] pDhParamAll = new CDhParamAll[512]; // (0~255 Group)DH Param
                 public int[] pnSecret = new int[512];                   // 0: Normal, 1: Secret Letter
                 public int[] pnType = new int[512];                     // 0: Normal, 1: Wheel Control Type
@@ -16030,19 +19757,19 @@ namespace OpenJigWare
 
                 public SOjwCode_t[] pSOjwCode = new SOjwCode_t[512];
 
-                public string strDrawModel;                                 // String that contains the actual data model(Kor: Ïã§Ï†ú Î™®Îç∏ Îç∞Ïù¥ÌÉÄÍ∞Ä Îì§Ïñ¥ÏûàÎäî Ïä§Ìä∏ÎßÅ)
+                public string strDrawModel;                                 // String that contains the actual data model(Kor: Ω«¡¶ ∏µ® µ•¿Ã≈∏∞° µÈæÓ¿÷¥¬ Ω∫∆Æ∏µ)
                 // The number of motors in internal (However, be sure to order 0,1,2, ... must be created in order)
-                // Kor: ÎÇ¥Î∂ÄÏóê Îì§Ïñ¥ÏûàÎäî Î™®ÌÑ∞Ïùò Í∞ØÏàò ( Îã®, Î∞òÎìúÏãú ÏàúÏÑúÎåÄÎ°ú 0,1,2,... ÏàúÏúºÎ°ú ÏûëÏÑ±Ìï¥Ïïº ÌïúÎã§. )
-                public int nMotorCnt;                                   
+                // Kor: ≥ª∫Œø° µÈæÓ¿÷¥¬ ∏≈Õ¿« ∞πºˆ ( ¥‹, π›µÂΩ√ º¯º≠¥Î∑Œ 0,1,2,... º¯¿∏∑Œ ¿€º∫«ÿæﬂ «—¥Ÿ. )
+                public int nMotorCnt;
 
-                public string strComment;                               // comment(Kor: Î∂ÄÍ∞ÄÏÑ§Î™Ö)
+                public string strComment;                               // comment(Kor: ∫Œ∞°º≥∏Ì)
 
-                public int nWheelCounter_2 = 0;                         // The number of 2-wheel wheels(Kor: 2Î•ú ÎîîÎ∞îÏù¥Ïä§Ïùò Í∞úÏàò)
-                public int nWheelCounter_3 = 0;                         // The number of 3-wheel wheels(Kor: 3Î•ú ÎîîÎ∞îÏù¥Ïä§Ïùò Í∞úÏàò)
-                public int nWheelCounter_4 = 0;                         // The number of 4-wheel wheels(Kor: 4Î•ú ÎîîÎ∞îÏù¥Ïä§Ïùò Í∞úÏàò)
+                public int nWheelCounter_2 = 0;                         // The number of 2-wheel wheels(Kor: 2∑˚ µπŸ¿ÃΩ∫¿« ∞≥ºˆ)
+                public int nWheelCounter_3 = 0;                         // The number of 3-wheel wheels(Kor: 3∑˚ µπŸ¿ÃΩ∫¿« ∞≥ºˆ)
+                public int nWheelCounter_4 = 0;                         // The number of 4-wheel wheels(Kor: 4∑˚ µπŸ¿ÃΩ∫¿« ∞≥ºˆ)
 
-                public COjwDesignerHeader() // ÏÉùÏÑ±Ïûê
-                {                    
+                public COjwDesignerHeader() // ª˝º∫¿⁄
+                {
                     SInitAngle.pan = -10.0f;
                     SInitAngle.tilt = 10.0f;
                     SInitAngle.swing = 0.0f;
@@ -16056,7 +19783,7 @@ namespace OpenJigWare
                     {
                         pSMotorInfo[i].nInterference_Axis = -1;
 
-                        // Alloc memory(Kor: Î©îÎ™®Î¶¨ ÌôïÎ≥¥)
+                        // Alloc memory(Kor: ∏ﬁ∏∏Æ »Æ∫∏)
                         pDhParamAll[i] = new CDhParamAll();
                         pDhParamAll[i].DeleteAll();
 
@@ -16085,7 +19812,7 @@ namespace OpenJigWare
                 }
             }
             #endregion Designer header class(COjwDesignerHeader)
-            
+
             public class COjwDisp
             {
                 public COjwDisp()
@@ -16103,21 +19830,21 @@ namespace OpenJigWare
                     }
                 }
 
-                // Only use variables inside the class(Kor: ÌÅ¥ÎûòÏä§ ÎÇ¥Î∂ÄÏóêÏÑúÎßå ÏÇ¨Ïö©Ìï† Î≥ÄÏàò)
+                // Only use variables inside the class(Kor: ≈¨∑°Ω∫ ≥ª∫Œø°º≠∏∏ ªÁøÎ«“ ∫Øºˆ)
                 private Color color = Color.White;
                 public float fAlpha = 1.0f;
                 private float[] afColor = new float[3];
 
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
+                // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
                 public int nName = -1;
-                //public int nDispModel = 0;      // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù - ÏÇ¨Í∞ÅÌòï, ÏõêÌòï, Íµ¨, ...)
-                public string strDispObject = "#0"; // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù) - User ASE/OBJ
-                public bool bFilled = true;     // Determining the populate the attributes of the picture(Kor: Í∑∏Î¶ºÏùò ÏÜçÏùÑ Ï±ÑÏö∏ÏßÄÎ•º Í≤∞Ï†ï)
+                //public int nDispModel = 0;      // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ - ªÁ∞¢«¸, ø¯«¸, ±∏, ...)
+                public string strDispObject = "#0"; // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ) - User ASE/OBJ
+                public bool bFilled = true;     // Determining the populate the attributes of the picture(Kor: ±◊∏≤¿« º”¿ª √§øÔ¡ˆ∏¶ ∞·¡§)
 
                 // 
                 #region Color Set / Get
-                public float fColor_R // To fill in colors(Kor: ÏÜçÏùÑ Ï±ÑÏö∏ ÏÉâÏÉÅ)
+                public float fColor_R // To fill in colors(Kor: º”¿ª √§øÔ ªˆªÛ)
                 {
                     get { return afColor[0]; }
                     set
@@ -16157,15 +19884,15 @@ namespace OpenJigWare
                 }
                 #endregion Color Set / Get
 
-                public int nTexture = 0; // The index of the texture loading - reserve(Kor: ÌÖçÏä§Ï≥êÏùò Î°úÎî© Ïù∏Îç±Ïä§( ÏïÑÏßÅ ÏïàÏîÄ ))
+                public int nTexture = 0; // The index of the texture loading - reserve(Kor: ≈ÿΩ∫√ƒ¿« ∑Œµ˘ ¿Œµ¶Ω∫( æ∆¡˜ æ»æ∏ ))
 
-                public bool bInit = false; // Determine whether to re-initialize the position(Kor: ÏúÑÏπòÎ•º Îã§Ïãú Ï¥àÍ∏∞Ìôî Ìï†ÏßÄÎ•º Í≤∞Ï†ï)
+                public bool bInit = false; // Determine whether to re-initialize the position(Kor: ¿ßƒ°∏¶ ¥ŸΩ√ √ ±‚»≠ «“¡ˆ∏¶ ∞·¡§)
 
                 public float fWidth_Or_Radius = 10.0f; // Width / radius
                 public float fHeight_Or_Depth = 4.0f; // Height / depth
                 public float fDepth_Or_Cnt = 10.0f;    // Depth / line count
                 public float fThickness = 4.0f;       // thickness
-                public float fGap = 0.0f; // If you need to draw a [case] - do not need the another things.(Kor: case Î•º Í∑∏Î¶¨Í±∞ÎÇò Ìï† Í≤ΩÏö∞ ÌïÑÏöî - ÎÇòÎ®∏ÏßÑ ÌïÑÏöî ÏóÜÎã§.)
+                public float fGap = 0.0f; // If you need to draw a [case] - do not need the another things.(Kor: case ∏¶ ±◊∏Æ∞≈≥™ «“ ∞ÊøÏ « ø‰ - ≥™∏”¡¯ « ø‰ æ¯¥Ÿ.)
 
                 public string strCaption = ""; // comment
 
@@ -16174,17 +19901,17 @@ namespace OpenJigWare
                 public SAngle3D_t SOffset_Rot = new SAngle3D_t();
 
                 // translation / Rotation
-                public SVector3D_t[] afTrans = new SVector3D_t[5]; // [3] - T/R : 1st sub-screen conversion(Kor: 1Ï∞® ÏÑúÎ∏åÌôîÎ©¥ Î≥ÄÌôò), [4] - T/R : 2st sub-screen conversion(Kor: 2Ï∞® ÏÑúÎ∏åÌôîÎ©¥ Î≥ÄÌôò)
+                public SVector3D_t[] afTrans = new SVector3D_t[5]; // [3] - T/R : 1st sub-screen conversion(Kor: 1¬˜ º≠∫Í»≠∏È ∫Ø»Ø), [4] - T/R : 2st sub-screen conversion(Kor: 2¬˜ º≠∫Í»≠∏È ∫Ø»Ø)
                 public SAngle3D_t[] afRot = new SAngle3D_t[5];
 
-                // Determining the actual rotation axis(Kor: Ïã§ ÌöåÏ†Ñ Ï∂ï Í≤∞Ï†ï)[0 ~ 2(Pan, Tilt, Swing), 3~5(x,y,z), 6(cw), 7(ccw)]
+                // Determining the actual rotation axis(Kor: Ω« »∏¿¸ √‡ ∞·¡§)[0 ~ 2(Pan, Tilt, Swing), 3~5(x,y,z), 6(cw), 7(ccw)]
                 public int nAxisMoveType;
                 public int nDir;       // direction - 0 : forward, 1 : inverse
                 public float fAngle; // actual angle value
                 public float fAngle_Offset; // angle Offset
 
                 public int nMotorType;  // Motor control type - 0 : Position Control, 1 : Speed Control
-                public int nMotorControl_MousePoint; // Direction of the mouse-drag application(Kor: ÎßàÏö∞Ïä§ ÎìúÎûòÍ∑∏ ÏãúÏùò Î∞©Ìñ• Ï†ÅÏö©) : 0 - x+, 1 - x-, 2 - y+, 3 - y-
+                public int nMotorControl_MousePoint; // Direction of the mouse-drag application(Kor: ∏∂øÏΩ∫ µÂ∑°±◊ Ω√¿« πÊ«‚ ¿˚øÎ) : 0 - x+, 1 - x-, 2 - y+, 3 - y-
 
                 //////////////////////////////
                 #region Picking Var
@@ -16211,7 +19938,7 @@ namespace OpenJigWare
                     //tmpPoints.Clear();
                     //tmpPoints.Add(new SVector3D_t(0, 0, 0));
                     //tmpPoints.Add(new SVector3D_t(10, 0, 0));
-                    SetData(-1, Color.White, 1.0f, "#0", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);                    
+                    SetData(-1, Color.White, 1.0f, "#0", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
                     pSVector = null;
                     pSAngle = null;
                     Points.Clear();
@@ -16244,11 +19971,11 @@ namespace OpenJigWare
                     cColor = cColorData;
                     fAlpha = fAlphaData;
                     // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                    // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
+                    // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
                     nName = nAxisName;
-                    //nDispModel = nModel; // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù - ÏÇ¨Í∞ÅÌòï, ÏõêÌòï, Íµ¨, ...)
+                    //nDispModel = nModel; // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ - ªÁ∞¢«¸, ø¯«¸, ±∏, ...)
                     strDispObject = strDrawObject;
-                    bFilled = bFill;   // Determining the populate the attributes of the picture(Kor: Í∑∏Î¶ºÏùò ÏÜçÏùÑ Ï±ÑÏö∏ÏßÄÎ•º Í≤∞Ï†ï)
+                    bFilled = bFill;   // Determining the populate the attributes of the picture(Kor: ±◊∏≤¿« º”¿ª √§øÔ¡ˆ∏¶ ∞·¡§)
 
                     nTexture = nTextureData;
 
@@ -16300,72 +20027,72 @@ namespace OpenJigWare
                 }
                 #region Set
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
-                public void         SetData_AxisName(int nValue) { nName = nValue; }     
-                public void         SetData_Color(Color cValue) { cColor = cValue; }
-                public void         SetData_DispObject(String strValue) { strDispObject = strValue; } // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù - ÏÇ¨Í∞ÅÌòï, ÏõêÌòï, Íµ¨, ...)
-                public void         SetData_Fill(bool bValue) { bFilled = bValue; } // Determining the populate the attributes of the picture(Kor: Í∑∏Î¶ºÏùò ÏÜçÏùÑ Ï±ÑÏö∏ÏßÄÎ•º Í≤∞Ï†ï)
-                public void         SetData_Texture(int nValue) { nTexture = nValue; } 
-                public void         SetData_Init(bool bValue) { bInit = bValue; }
-                
-                public void         SetData_Width_Or_Radius(float fValue) { fWidth_Or_Radius = fValue; } 
-                public void         SetData_Height_Or_Depth(float fValue) { fHeight_Or_Depth = fValue; } 
-                public void         SetData_Depth_Or_Cnt(float fValue) { fDepth_Or_Cnt = fValue; } 
-                public void         SetData_Thickness(float fValue) { fThickness = fValue; } 
-                public void         SetData_Gap(float fValue) { fGap = fValue; }
-                public void         SetData_Caption(String strValue) { strCaption = strValue; }
-                public void         SetData_Axis(int nValue) { nAxisMoveType = nValue; } 
-                public void         SetData_Dir(int nValue) { nDir = nValue; } 
-                public void         SetData_Angle(float fValue) { fAngle = fValue; } 
-                public void         SetData_Angle_Offset(float fValue) { fAngle_Offset = fValue; }
-                public void         SetData_Offset_Translation(float fX, float fY, float fZ) { SOffset_Trans.x = fX; SOffset_Trans.y = fY; SOffset_Trans.z = fZ; }
-                public void         SetData_Offset_Rotation(float fPan, float fTilt, float fSwing) { SOffset_Rot.pan = fPan; SOffset_Rot.tilt = fTilt; SOffset_Rot.swing = fSwing; }
-                public void         SetData_Translation(int nIndex, float fX, float fY, float fZ) { if ((nIndex >= 0) && (nIndex < afTrans.Length)) { afTrans[nIndex].x = fX; afTrans[nIndex].y = fY; afTrans[nIndex].z = fZ; } }
-                public void         SetData_Rotation(int nIndex, float fPan, float fTilt, float fSwing) { if ((nIndex >= 0) && (nIndex < afRot.Length)) { afRot[nIndex].pan = fPan; afRot[nIndex].tilt = fTilt; afRot[nIndex].swing = fSwing; } }
-                public void         SetData_nPickGroup_A(int nValue) { nPickGroup_A = nValue; } 
-                public void         SetData_nPickGroup_B(int nValue) { nPickGroup_B = nValue; } 
-                public void         SetData_nPickGroup_C(int nValue) { nPickGroup_C = nValue; } 
-                public void         SetData_nInverseKinematicsNumber(int nValue) { nInverseKinematicsNumber = nValue; } 
-                public void         SetData_fScale_Serve0(float fValue) { fScale_Serve0 = fValue; } 
-                public void         SetData_fScale_Serve1(float fValue) { fScale_Serve1 = fValue; } 
-                public void         SetData_nMotorType(int nValue) { nMotorType = nValue; } 
-                public void         SetData_nMotorControl_MousePoint(int nValue) { nMotorControl_MousePoint = nValue; } 
-                public void         SetData_strPickGroup_Comment(String strValue) { strPickGroup_Comment = strValue; }
+                // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
+                public void SetData_AxisName(int nValue) { nName = nValue; }
+                public void SetData_Color(Color cValue) { cColor = cValue; }
+                public void SetData_DispObject(String strValue) { strDispObject = strValue; } // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ - ªÁ∞¢«¸, ø¯«¸, ±∏, ...)
+                public void SetData_Fill(bool bValue) { bFilled = bValue; } // Determining the populate the attributes of the picture(Kor: ±◊∏≤¿« º”¿ª √§øÔ¡ˆ∏¶ ∞·¡§)
+                public void SetData_Texture(int nValue) { nTexture = nValue; }
+                public void SetData_Init(bool bValue) { bInit = bValue; }
+
+                public void SetData_Width_Or_Radius(float fValue) { fWidth_Or_Radius = fValue; }
+                public void SetData_Height_Or_Depth(float fValue) { fHeight_Or_Depth = fValue; }
+                public void SetData_Depth_Or_Cnt(float fValue) { fDepth_Or_Cnt = fValue; }
+                public void SetData_Thickness(float fValue) { fThickness = fValue; }
+                public void SetData_Gap(float fValue) { fGap = fValue; }
+                public void SetData_Caption(String strValue) { strCaption = strValue; }
+                public void SetData_Axis(int nValue) { nAxisMoveType = nValue; }
+                public void SetData_Dir(int nValue) { nDir = nValue; }
+                public void SetData_Angle(float fValue) { fAngle = fValue; }
+                public void SetData_Angle_Offset(float fValue) { fAngle_Offset = fValue; }
+                public void SetData_Offset_Translation(float fX, float fY, float fZ) { SOffset_Trans.x = fX; SOffset_Trans.y = fY; SOffset_Trans.z = fZ; }
+                public void SetData_Offset_Rotation(float fPan, float fTilt, float fSwing) { SOffset_Rot.pan = fPan; SOffset_Rot.tilt = fTilt; SOffset_Rot.swing = fSwing; }
+                public void SetData_Translation(int nIndex, float fX, float fY, float fZ) { if ((nIndex >= 0) && (nIndex < afTrans.Length)) { afTrans[nIndex].x = fX; afTrans[nIndex].y = fY; afTrans[nIndex].z = fZ; } }
+                public void SetData_Rotation(int nIndex, float fPan, float fTilt, float fSwing) { if ((nIndex >= 0) && (nIndex < afRot.Length)) { afRot[nIndex].pan = fPan; afRot[nIndex].tilt = fTilt; afRot[nIndex].swing = fSwing; } }
+                public void SetData_nPickGroup_A(int nValue) { nPickGroup_A = nValue; }
+                public void SetData_nPickGroup_B(int nValue) { nPickGroup_B = nValue; }
+                public void SetData_nPickGroup_C(int nValue) { nPickGroup_C = nValue; }
+                public void SetData_nInverseKinematicsNumber(int nValue) { nInverseKinematicsNumber = nValue; }
+                public void SetData_fScale_Serve0(float fValue) { fScale_Serve0 = fValue; }
+                public void SetData_fScale_Serve1(float fValue) { fScale_Serve1 = fValue; }
+                public void SetData_nMotorType(int nValue) { nMotorType = nValue; }
+                public void SetData_nMotorControl_MousePoint(int nValue) { nMotorControl_MousePoint = nValue; }
+                public void SetData_strPickGroup_Comment(String strValue) { strPickGroup_Comment = strValue; }
                 #endregion Set
 
                 #region Get
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
-                public int          GetData_AxisName() { return nName; }     
-                public Color        GetData_Color() { return cColor; }
-                public String       GetData_DispObject() { return strDispObject; } // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù - ÏÇ¨Í∞ÅÌòï, ÏõêÌòï, Íµ¨, ...)
-                public bool         GetData_Fill() { return bFilled; } // Determining the populate the attributes of the picture(Kor: Í∑∏Î¶ºÏùò ÏÜçÏùÑ Ï±ÑÏö∏ÏßÄÎ•º Í≤∞Ï†ï)
-                public int          GetData_Texture() { return nTexture; }
-                public bool         GetData_Init() { return bInit; }
+                // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
+                public int GetData_AxisName() { return nName; }
+                public Color GetData_Color() { return cColor; }
+                public String GetData_DispObject() { return strDispObject; } // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ - ªÁ∞¢«¸, ø¯«¸, ±∏, ...)
+                public bool GetData_Fill() { return bFilled; } // Determining the populate the attributes of the picture(Kor: ±◊∏≤¿« º”¿ª √§øÔ¡ˆ∏¶ ∞·¡§)
+                public int GetData_Texture() { return nTexture; }
+                public bool GetData_Init() { return bInit; }
 
-                public float        GetData_Width_Or_Radius() { return fWidth_Or_Radius; }
-                public float        GetData_Height_Or_Depth() { return fHeight_Or_Depth; }
-                public float        GetData_Depth_Or_Cnt() { return fDepth_Or_Cnt; }
-                public float        GetData_Thickness() { return fThickness; }
-                public float        GetData_Gap() { return fGap; }
-                public String       GetData_Caption() { return strCaption; }
-                public int          GetData_Axis() { return nAxisMoveType; }
-                public int          GetData_Dir() { return nDir; }
-                public float        GetData_Angle() { return fAngle; }
-                public float        GetData_Angle_Offset() { return fAngle_Offset; }
-                public SVector3D_t  GetData_Offset_Translation() { return SOffset_Trans; }
-                public SAngle3D_t   GetData_Offset_Rotation() { return SOffset_Rot; }
-                public SVector3D_t  GetData_Translation(int nIndex) { return afTrans[nIndex % afTrans.Length]; }
-                public SAngle3D_t   GetData_Rotation(int nIndex) { return afRot[nIndex % afRot.Length]; }
-                public int          GetData_nPickGroup_A() { return nPickGroup_A; }
-                public int          GetData_nPickGroup_B() { return nPickGroup_B; }
-                public int          GetData_nPickGroup_C() { return nPickGroup_C; }
-                public int          GetData_nInverseKinematicsNumber() { return nInverseKinematicsNumber; }
-                public float        GetData_fScale_Serve0() { return fScale_Serve0; }
-                public float        GetData_fScale_Serve1() { return fScale_Serve1; }
-                public int          GetData_nMotorType() { return nMotorType; }
-                public int          GetData_nMotorControl_MousePoint() { return nMotorControl_MousePoint; }
-                public String       GetData_strPickGroup_Comment() { return strPickGroup_Comment; }
+                public float GetData_Width_Or_Radius() { return fWidth_Or_Radius; }
+                public float GetData_Height_Or_Depth() { return fHeight_Or_Depth; }
+                public float GetData_Depth_Or_Cnt() { return fDepth_Or_Cnt; }
+                public float GetData_Thickness() { return fThickness; }
+                public float GetData_Gap() { return fGap; }
+                public String GetData_Caption() { return strCaption; }
+                public int GetData_Axis() { return nAxisMoveType; }
+                public int GetData_Dir() { return nDir; }
+                public float GetData_Angle() { return fAngle; }
+                public float GetData_Angle_Offset() { return fAngle_Offset; }
+                public SVector3D_t GetData_Offset_Translation() { return SOffset_Trans; }
+                public SAngle3D_t GetData_Offset_Rotation() { return SOffset_Rot; }
+                public SVector3D_t GetData_Translation(int nIndex) { return afTrans[nIndex % afTrans.Length]; }
+                public SAngle3D_t GetData_Rotation(int nIndex) { return afRot[nIndex % afRot.Length]; }
+                public int GetData_nPickGroup_A() { return nPickGroup_A; }
+                public int GetData_nPickGroup_B() { return nPickGroup_B; }
+                public int GetData_nPickGroup_C() { return nPickGroup_C; }
+                public int GetData_nInverseKinematicsNumber() { return nInverseKinematicsNumber; }
+                public float GetData_fScale_Serve0() { return fScale_Serve0; }
+                public float GetData_fScale_Serve1() { return fScale_Serve1; }
+                public int GetData_nMotorType() { return nMotorType; }
+                public int GetData_nMotorControl_MousePoint() { return nMotorControl_MousePoint; }
+                public String GetData_strPickGroup_Comment() { return strPickGroup_Comment; }
                 #endregion Get
 
                 public COjwDisp Clone()
@@ -16374,10 +20101,10 @@ namespace OpenJigWare
                     obj.cColor = this.cColor;
                     obj.fAlpha = this.fAlpha;
                     // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
-                    // Kor: ÎÇ¥Î∂ÄÏ†Å Ìï∏Îì§ÏùÑ Í≤∞Ï†ï, Îã®, 0Î≥¥Îã§ ÏûëÏúºÎ©¥(-) ID ÏóÜÏùå. => Ï¶â, OpenGL Ïùò ÌîΩÌÇπ Ïãú Ïù¥Î¶ÑÏùÑ Í≤∞Ï†ï
+                    // Kor: ≥ª∫Œ¿˚ «⁄µÈ¿ª ∞·¡§, ¥‹, 0∫∏¥Ÿ ¿€¿∏∏È(-) ID æ¯¿Ω. => ¡Ô, OpenGL ¿« «»≈∑ Ω√ ¿Ã∏ß¿ª ∞·¡§
                     obj.nName = this.nName;
-                    obj.strDispObject = (String)this.strDispObject.Clone(); // Recording the type of data to be drawn Modeling(Kor: Í∑∏Î†§Ïßà Î™®Îç∏ÎßÅ Îç∞Ïù¥ÌÉÄÏùò Ï¢ÖÎ•òÎ•º Í∏∞Î°ù - ÏÇ¨Í∞ÅÌòï, ÏõêÌòï, Íµ¨, ...)
-                    obj.bFilled = this.bFilled;   // Determining the populate the attributes of the picture(Kor: Í∑∏Î¶ºÏùò ÏÜçÏùÑ Ï±ÑÏö∏ÏßÄÎ•º Í≤∞Ï†ï)
+                    obj.strDispObject = (String)this.strDispObject.Clone(); // Recording the type of data to be drawn Modeling(Kor: ±◊∑¡¡˙ ∏µ®∏µ µ•¿Ã≈∏¿« ¡æ∑˘∏¶ ±‚∑œ - ªÁ∞¢«¸, ø¯«¸, ±∏, ...)
+                    obj.bFilled = this.bFilled;   // Determining the populate the attributes of the picture(Kor: ±◊∏≤¿« º”¿ª √§øÔ¡ˆ∏¶ ∞·¡§)
 
                     obj.nTexture = this.nTexture;
 
@@ -16424,13 +20151,13 @@ namespace OpenJigWare
 
                     obj.nMotorType = this.nMotorType;
                     obj.nMotorControl_MousePoint = this.nMotorControl_MousePoint;
-                    
+
                     obj.Points.Clear();
                     for (int i = 0; i < this.Points.Count; i++)
                     {
                         obj.Points.Add(this.Points[i]);
                     }
-                    
+
                     return obj;
                 }
             }
@@ -16454,7 +20181,7 @@ namespace OpenJigWare
                 public bool SetData(int nIndex, COjwDisp OjwDisp)
                 {
                     if ((nIndex >= lstOjwDisp.Count) || (nIndex < 0)) return false;
-                    
+
                     lstOjwDisp[nIndex].SetData(OjwDisp);
                     return true;
                 }
@@ -16514,7 +20241,7 @@ namespace OpenJigWare
                     return strComment;
                 }
 #else
-                #region Ïó¨Í∏∞ÍπåÏßÄ
+                #region ø©±‚±Ó¡ˆ
                 private COjwDisp[] pOjwDisp;
                 public int GetCount() { return (pOjwDisp == null) ? 0 : pOjwDisp.Length; }
 
@@ -16567,7 +20294,7 @@ namespace OpenJigWare
                     }
                     return strComment;
                 }
-                #endregion Ïó¨Í∏∞ÍπåÏßÄ
+                #endregion ø©±‚±Ó¡ˆ
 
                 
 
@@ -16651,7 +20378,7 @@ namespace OpenJigWare
                         SVec3D[m_nCnt - 1].y = fY;
                         SVec3D[m_nCnt - 1].z = fZ;
 #else
-                        m_lstSVec3D.Add(new SVector3D_t(fX, fY, fZ));                        
+                        m_lstSVec3D.Add(new SVector3D_t(fX, fY, fZ));
                         m_nCnt = m_lstSVec3D.Count;
 #endif
                     }
@@ -16664,10 +20391,10 @@ namespace OpenJigWare
                 public SVector3D_t Data_Get(int nIndex)
                 {
                     //if ((nIndex >= 0) && (nIndex < m_nCnt))
-                        return m_lstSVec3D[nIndex];
+                    return m_lstSVec3D[nIndex];
                     //return m_lstSVec3D[0];
                 }
-                public SVector3D_t [] Data_Get()
+                public SVector3D_t[] Data_Get()
                 {
                     return m_lstSVec3D.ToArray();
                 }

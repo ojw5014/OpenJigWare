@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -157,7 +158,11 @@ namespace OpenJigWare
                 }
                 StringBuilder strb = new StringBuilder();
                 //strb.Remove(0, strb.Length);
-                strb.Clear();
+#if _USING_DOTNET_3_5
+                strb.Remove(0, strb.Length);
+#else
+                strb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
                 //////strb.Append(strPath).Append(System.DateTime.Today.ToString(@"yyyyMMdd"));
                 ////strb.Append(strPath).Append(System.DateTime.Today.ToString(@"yyyy")).Append(@"\");
                 ////strb.Append(CConvert.FillString(CConvert.IntToStr(CTimer.GetMonth()), "0", 2, false)).Append(@"\");
@@ -179,7 +184,12 @@ namespace OpenJigWare
             public static string MakeKey(bool bSeparation, bool bYear4, bool bMonth2, bool bDay2, bool bTime)
             {
                 StringBuilder strb = new StringBuilder();
-                strb.Clear();
+                
+#if _USING_DOTNET_3_5
+                strb.Remove(0, strb.Length);
+#else
+                strb.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
 
                 /*CConvert.FillString(CConvert.IntToStr(CTimer.GetYear()), "0", 4, false) + "-" +
                                CConvert.FillString(CConvert.IntToStr(CTimer.GetMonth()), "0", 2, false) + "-" +
