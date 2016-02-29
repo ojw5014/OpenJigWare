@@ -70,8 +70,14 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.01.63";
+        public const string strVersion = "01.01.64";
         public const string strHistory = (String)(
+                "[V01.01.64]\r\n" +
+                "InitData() 함수 내에서 strDispObject 의 초기값 #0 을 #7로 변경\r\n" +
+                "GetMouseMode(): 4~6, 7~9, 10~12, 13~15 [Offset(Trans,Rot), Position(Trans1,Rot1) 기능 추가, 실시간 변경을 위해 OjwDraw() 함수를 MouseMove 이벤트에 추가\r\n" +
+                "Drag and Drop feature 추가\r\n" +
+                "Drag and Drop 으로 3D Modeling File(stl, ase, obj) file copy or Load feature 추가\r\n" +
+                "========================================\r\n" + // NoReleased            
                 "[V01.01.63]\r\n" +
                 "BinaryFileOpen() 함수 추가\r\n" +
                 "PlayFrame() 에서 LED 등의 기능이상부분 버그 처리(debugging advise - JhoYoung-Choi : tajo27@naver.com\r\n" + 
@@ -84,7 +90,7 @@ namespace OpenJigWare
                 "CTimer 의 Class Get() 함수 return value 가 double 로 되어 있는 것을 long 으로 수정\r\n" +
                 "COjwMotor class 내의 m_nRxIndex 의 초기값을 255로 해 두어야 하는데 0으로 해놓은 오타 덕에 초기 1번의 데이터 Get 이 Error 를 일으키는 문제 해결\r\n" +
                 "내부의 CTimer static 메모리를 사용하는 부분을 전부 클래스 변수로 전환\r\n" +
-                "========================================\r\n" + // NoReleased            
+                "========================================\r\n" + // Released            
                 "[V01.01.62]" + "\r\n" +
                 "selectmotor 함수에 외견상 선택뿐 아니라 실제 모터선택도 같이 되도록 수정" + "\r\n" +
                 "Motion Tool Upgrade" + "\r\n" +
@@ -421,6 +427,11 @@ namespace OpenJigWare
                 frmTool_Designer.SizeChanged += new EventHandler(frmTool_Designer_SizeChanged);
                 frmTool_Designer.Load += new EventHandler(frmTool_Designer_Load);
                 frmTool_Designer.FormClosed += new FormClosedEventHandler(frmTool_Designer_FormClosed);
+
+                frmTool_Designer.DragEnter += new DragEventHandler(frmTool_Designer_DragEnter);
+                frmTool_Designer.DragDrop += new DragEventHandler(frmTool_Designer_DragDrop);
+
+                frmTool_Designer.AllowDrop = true;
                 #endregion Main Form
                                 
                 #region Panel(3D)
@@ -1317,8 +1328,75 @@ namespace OpenJigWare
                 frmTool_Designer.Show();
             }
 
-            
+            private void frmTool_Designer_DragDrop(object sender, DragEventArgs e)
+            {
+                string[] file_name_array = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+                int nCnt_Ojw = 0;
+                int nCnt_Virtual = 0;
+                foreach (string strItem in file_name_array)
+                {
+                    #region Design File
+                    if (nCnt_Ojw == 0)
+                    {
+                        if (strItem.ToLower().IndexOf(".ojw") > 0)
+                        {
+                            if (m_C3d_Designer.FileOpen(strItem) == true) // 모델링 파일이 잘 로드 되었다면 
+                            {
+                                Ojw.CMessage.Write("3d Modeling File Opened");
 
+                                float[] afData = new float[3];
+                                m_C3d_Designer.GetPos_Display(out afData[0], out afData[1], out afData[2]);
+                                m_C3d_Designer.GetAngle_Display(out afData[0], out afData[1], out afData[2]);
+
+                                m_C3d_Designer.m_strDesignerFilePath = Ojw.CFile.GetPath(strItem);
+                                if (m_C3d_Designer.m_strDesignerFilePath == null) m_C3d_Designer.m_strDesignerFilePath = Application.StartupPath;
+
+                                // File Restore
+                                //m_C3d.FileRestore();
+
+
+                                nCnt_Ojw++;
+                            }
+                        }
+                    }
+                    #endregion Design File
+                    #region 3d file
+                    if (nCnt_Virtual == 0)
+                    {
+                        string strFileName = Ojw.CFile.GetName(strItem).ToLower();
+                        if (
+                            (strFileName.IndexOf(".stl") > 0) ||
+                            (strFileName.IndexOf(".ase") > 0) ||
+                            (strFileName.IndexOf(".obj") > 0))
+                        {
+                            String strFilePath = Application.StartupPath.Trim('\\') + m_C3d_Designer.GetAseFile_Path() + strFileName;
+                            bool bFile = Ojw.CFile.IsFile(strFilePath);//bool bLoaded = (m_C3d_Designer.OjwAse_GetIndex(strFileName) >= 0) ? true : false;
+                            if (bFile == true)
+                            {
+                                DialogResult dlgRet = MessageBox.Show("Do you want to overwrite the 3d file?.\r\n\r\nIs it Ok?", "File Overwrite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                                if (dlgRet != DialogResult.OK)
+                                {
+                                    //bFile = false;
+                                }
+                                else
+                                {
+                                    File.Copy(strItem, strFilePath, bFile);
+                                }
+                            }
+                            else
+                            {
+                                File.Copy(strItem, strFilePath);
+                            }
+                            m_C3d_Designer.Prop_Set_DispObject(strFileName);
+                            m_C3d_Designer.Prop_Update_VirtualObject();
+                            nCnt_Virtual++;
+                        }
+                    }
+                    #endregion Design File
+                }
+            }
+            private void frmTool_Designer_DragEnter(object sender, DragEventArgs e) { if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy; }
+                  
             #region Quick Button(For Virtual Object)
             private float m_fValue_Width = 1.0f;
             private float m_fValue_Height = 1.0f;

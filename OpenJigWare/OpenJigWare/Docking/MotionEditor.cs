@@ -43,6 +43,10 @@ namespace OpenJigWare.Docking
         
         private bool m_bOneShotMp3Command = false;
 
+        // 파일의 경로
+        private String m_strWorkDirectory_Dmt = String.Empty;
+        private String m_strWorkDirectory_Mp3 = String.Empty;
+
         private void frmMotionEditor_Load(object sender, EventArgs e)
         {
             m_strTitle = String.Format("{0} - Open Jig Ware Ver [{1}]", m_strTitle, SVersion_T.strVersion);
@@ -130,6 +134,14 @@ namespace OpenJigWare.Docking
                 txtID_1.Text = m_CFile.GetData_String(i++);
                 txtID_2.Text = m_CFile.GetData_String(i++);
 
+                //m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(m_CFile.GetData_String(i++));
+                //m_strWorkDirectory_Mp3 = Ojw.CFile.GetPath(m_CFile.GetData_String(i++));
+                m_strWorkDirectory_Dmt = m_CFile.GetData_String(i++);
+                m_strWorkDirectory_Mp3 = m_CFile.GetData_String(i++);
+
+                if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
+                if (m_strWorkDirectory_Mp3 == null) m_strWorkDirectory_Mp3 = Application.StartupPath;
+                //////////////////////////////////////////////////
                 if (txtID_FR.Text == txtID_FL.Text)
                 {
                     txtID_FR.Text = "0";
@@ -416,6 +428,9 @@ namespace OpenJigWare.Docking
             m_CFile.SetData_String(i++, txtID_0.Text);
             m_CFile.SetData_String(i++, txtID_1.Text);
             m_CFile.SetData_String(i++, txtID_2.Text);
+            
+            m_CFile.SetData_String(i++, m_strWorkDirectory_Dmt);
+            m_CFile.SetData_String(i++, m_strWorkDirectory_Mp3);
 
             m_CFile.Save(Application.StartupPath + _STR_FILENAME);
         }
@@ -1500,9 +1515,9 @@ namespace OpenJigWare.Docking
             else fileName = strFilePath;
             /////////////////////////////////////////
             sdDialog.Dispose();
-            
-            m_strWorkDirectory = Ojw.CFile.GetPath(fileName);
-            if (m_strWorkDirectory == null) m_strWorkDirectory = Application.StartupPath;
+
+            //m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(fileName);
+            //if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
             return fileName;
         }
         private const int _V_10 = 0;
@@ -1543,7 +1558,6 @@ namespace OpenJigWare.Docking
             lbModify.ForeColor = (bModify == true) ? Color.Red : Color.Green;
             lbModify.Text = (bModify == true) ? "수정중..." : "완료";
         }
-        private String m_strWorkDirectory = String.Empty;
         private void btnMotionFileOpen_Click(object sender, EventArgs e)
         {
             if (m_bModify == true)
@@ -1559,13 +1573,13 @@ namespace OpenJigWare.Docking
             ofdMotion.FileName = "*.dmt";
             ofdMotion.Filter = "모션 파일(*.dmt)|*.dmt";
             ofdMotion.DefaultExt = "dmt";
-            SetDirectory(ofdMotion, m_strWorkDirectory);
+            SetDirectory(ofdMotion, m_strWorkDirectory_Dmt);
             if (ofdMotion.ShowDialog() == DialogResult.OK)
             {
                 String fileName = ofdMotion.FileName;
-                //m_strWorkDirectory = Directory.GetCurrentDirectory();
-                m_strWorkDirectory = Ojw.CFile.GetPath(fileName);
-                if (m_strWorkDirectory == null) m_strWorkDirectory = Application.StartupPath;
+                //m_strWorkDirectory_Dmt = Directory.GetCurrentDirectory();
+                m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(fileName);
+                if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
 
                 txtFileName.Text = fileName;
                 if (m_C3d.DataFileOpen(fileName, null) == false)
@@ -1583,7 +1597,7 @@ namespace OpenJigWare.Docking
                 }
             }
 
-            m_strWorkDirectory = Directory.GetCurrentDirectory();
+            //m_strWorkDirectory_Dmt = Directory.GetCurrentDirectory();
             //WriteRegistry_Path(m_strWorkDirectory);
             ofdMotion.Dispose();
         }
@@ -1781,6 +1795,35 @@ namespace OpenJigWare.Docking
 
         #region Mp3
         public bool m_bScreen = true;
+        private bool CheckAudioExist(String strData)
+        {
+            string strFilter = ".wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
+            string[] pstrFilter;
+            pstrFilter = strFilter.Split(',');
+            return CheckFileExist(strData, pstrFilter);
+        }
+
+        private bool CheckMovieExist(String strData)
+        {
+            string strFilter = ".avi,.asf,.asx,.wpl,.wm,.wmx,.wmd,.wmz,.wmv,.wav,.mpeg,.mpg,.mpe,.m1v,.m2v,.mod,.mp2,.mpv2,.mp2v,.mpa,.mp4";
+            string[] pstrFilter;
+            pstrFilter = strFilter.Split(',');
+            return CheckFileExist(strData, pstrFilter);
+        }
+
+        private bool CheckFileExist(String strData, string[] pstrFilter)
+        {
+            bool bFind = false;
+            foreach (string strItem in pstrFilter)
+            {
+                if (strData.IndexOf(strItem) == (strData.Length - 4))
+                {
+                    bFind = true;
+                    break;
+                }
+            }
+            return bFind;
+        }
         private void btnMp3Open_Click(object sender, EventArgs e)
         {
             m_dMp3_Max = 0;
@@ -1788,8 +1831,21 @@ namespace OpenJigWare.Docking
 
             OpenFileDialog ofdMp3 = new OpenFileDialog();
             ofdMp3.FileName = null;
+#if false
+            // 동영상
+            // avi,asf,asx,wpl,wm,wmx,wmd,wmz,wmv,wav,mpeg,mpg,mpe,m1v,m2v,mod,mp2,mpv2,mp2v,mpa,mp4
+            strFilter = ".avi,.asf,.asx,.wpl,.wm,.wmx,.wmd,.wmz,.wmv,.wav,.mpeg,.mpg,.mpe,.m1v,.m2v,.mod,.mp2,.mpv2,.mp2v,.mpa,.mp4";
+            // 오디오
+            // wma,wax,cda,mp3,m3u,mid,midi,rmi,air,aifc,aiff,au,snd
+            strFilter += ",.wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
+
+            ofdMp3.FileName = "*.dmt";
+            ofdMp3.Filter = "Audio 파일(*.dmt)|*.dmt";
+#endif
+            //ofdMp3.Filter = "AVI|*.avi|asf|*.asf|asx|*.asx|wpl|*.wpl|wm|*.wm|wmx|*.wmx|wmd|*.wmd|wmz|*.wmz|wmv|*.wmv|wav|*.wav|mpeg|*.mpeg|mpg|*.mpg|mpe|*.mpe|m1v|*.m1v|m2v|*.m2v|mod|*.mod|mp2|*.mp2|mpv2|*.mpv2|mp2v|*.mp2v|mpa|*.mpa|mp4|*.mp4|wma|*.wma|wax|*.wax|cda|*.cda|mp3|*.mp3|m3u|*.m3u|mid|*.mid|midi|*.midi|rmi|*.rmi|air|*.air|aifc|*.aifc|aiff|*.aiff|au|*.au|snd|*.snd";
+            ofdMp3.Filter = "Media Files(*.avi,*.asf,*.asx,*.wpl,*.wm,*.wmx,*.wmd,*.wmz,*.wmv,*.wav,*.mpeg,*.mpg,*.mpe,*.m1v,*.m2v,*.mod,*.mp2,*.mpv2,*.mp2v,*.mpa,*.mp4,*.wma,*.wax,*.cda,*.mp3,*.m3u,*.mid,*.midi,*.rmi,*.air,*.aifc,*.aiff,*.au,*.snd)|*.avi;*.asf;*.asx;*.wpl;*.wm;*.wmx;*.wmd;*.wmz;*.wmv;*.wav;*.mpeg;*.mpg;*.mpe;*.m1v;*.m2v;*.mod;*.mp2;*.mpv2;*.mp2v;*.mpa;*.mp4;*.wma;*.wax;*.cda;*.mp3;*.m3u;*.mid;*.midi;*.rmi;*.air;*.aifc;*.aiff;*.au;*.snd";
             ofdMp3.DefaultExt = "mp3";
-            ofdMp3.InitialDirectory = Application.StartupPath + "\\music\\";
+            ofdMp3.InitialDirectory = m_strWorkDirectory_Mp3;//Application.StartupPath + "\\music\\";
             if (ofdMp3.ShowDialog() == DialogResult.OK)
             {
                 String fileName = ofdMp3.FileName;
@@ -1821,6 +1877,9 @@ namespace OpenJigWare.Docking
                 mpPlayer.Ctlcontrols.stop();
                 mpPlayer.settings.volume = 100;
                 chkMp3.Checked = true;
+
+                m_strWorkDirectory_Mp3 = Ojw.CFile.GetPath(fileName);
+                if (m_strWorkDirectory_Mp3 == null) m_strWorkDirectory_Mp3 = Application.StartupPath;
 
                 //tmrMp3.Enabled = true;
             }
@@ -1860,33 +1919,7 @@ namespace OpenJigWare.Docking
             m_nMp3Minutes = (int)(nTime / 60);
             m_nMp3MilliSeconds = (int)(dTime * 100.0) % 100;
         }
-        private bool CheckAudioExist(String strData)
-        {
-            string strFilter = ".wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
-            string[] pstrFilter;
-            pstrFilter = strFilter.Split(',');
-            return CheckFileExist(strData, pstrFilter);
-        }
-        private bool CheckMovieExist(String strData)
-        {
-            string strFilter = ".avi,.asf,.asx,.wpl,.wm,.wmx,.wmd,.wmz,.wmv,.wav,.mpeg,.mpg,.mpe,.m1v,.m2v,.mod,.mp2,.mpv2,.mp2v,.mpa";
-            string[] pstrFilter;
-            pstrFilter = strFilter.Split(',');
-            return CheckFileExist(strData, pstrFilter);
-        }
-        private bool CheckFileExist(String strData, String[] pstrFilter)
-        {
-            bool bFind = false;
-            foreach (string strItem in pstrFilter)
-            {
-                if (strData.IndexOf(strItem) == (strData.Length - 4))
-                {
-                    bFind = true;
-                    break;
-                }
-            }
-            return bFind;
-        }
+        
         private void InitMp3()
         {
             SetPlayTime(); // 진행시간 표시를 위해 시간 값 초기화
@@ -2840,6 +2873,116 @@ namespace OpenJigWare.Docking
             m_C3d.SetSimulation_Smooth(chkSmooth.Checked);
         }
 
-        
+        private void frmMotionEditor_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] file_name_array = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+            int nCnt_Ojw = 0;
+            int nCnt_Dmt = 0;
+            int nCnt_Media = 0;
+            foreach (string strItem in file_name_array)
+            {
+                #region Media File
+                if (nCnt_Media == 0)
+                {
+                    if ((CheckMovieExist(strItem) == true) || (CheckAudioExist(strItem) == true))
+                    {
+                        lbMp3File.Text = Ojw.CFile.GetTitle(strItem);
+                        String strExe = Ojw.CFile.GetExe(strItem);
+
+                        if ((strExe.ToUpper() != "MP3") && (strExe.ToUpper() != "WAV")) m_bScreen = true;
+                        else m_bScreen = false;
+                        InitMp3();
+
+                        mpPlayer.URL = strItem;
+                        mpPlayer.settings.volume = 0;
+                        mpPlayer.Ctlcontrols.play();
+                        Ojw.CTimer CTmr = new Ojw.CTimer();
+                        CTmr.Set();
+                        //while (m_dMp3_Max <= 0)
+                        while (true)
+                        {
+                            if (mpPlayer.Ctlcontrols.currentItem != null)
+                            {
+                                if (mpPlayer.Ctlcontrols.currentItem.duration > 0)
+                                    break;
+                            }
+                            if (CTmr.Get() > 5000) break;
+                            Application.DoEvents();
+                        }
+                        mpPlayer.Ctlcontrols.stop();
+                        mpPlayer.settings.volume = 100;
+                        chkMp3.Checked = true;
+
+                        m_strWorkDirectory_Mp3 = Ojw.CFile.GetPath(strItem);
+                        if (m_strWorkDirectory_Mp3 == null) m_strWorkDirectory_Mp3 = Application.StartupPath;
+
+                        nCnt_Media++;
+                    }
+                }
+                #endregion Media File
+                #region Design File
+                if (nCnt_Ojw == 0)
+                {
+                    if (strItem.ToLower().IndexOf(".ojw") > 0)
+                    {
+                        if (m_C3d.FileOpen(strItem) == true) // 모델링 파일이 잘 로드 되었다면 
+                        {
+                            Ojw.CMessage.Write("3d Modeling File Opened");
+
+                            float[] afData = new float[3];
+                            m_C3d.GetPos_Display(out afData[0], out afData[1], out afData[2]);
+                            m_C3d.GetAngle_Display(out afData[0], out afData[1], out afData[2]);
+
+                            m_C3d.m_strDesignerFilePath = Ojw.CFile.GetPath(strItem);
+                            if (m_C3d.m_strDesignerFilePath == null) m_C3d.m_strDesignerFilePath = Application.StartupPath;
+
+                            // File Restore
+                            //m_C3d.FileRestore();
+
+
+                            nCnt_Ojw++;
+                        }
+                    }
+                }
+                #endregion Design File
+                #region DMT Motion File
+                if (nCnt_Dmt == 0)
+                {
+                    if (strItem.ToLower().IndexOf(".dmt") > 0) // 논리적으로 0이 나올수가 없음.
+                    {
+                        if (m_bModify == true)
+                        {
+                            DialogResult dlgRet = MessageBox.Show("문서를 저장하지 않고 다른파일을 열면 데이터가 사라집니다.\r\n\r\n그래도 파일을 여시겠습니까?", "파일열기", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            if (dlgRet != DialogResult.OK)
+                                return;
+                        }
+                        
+                        txtFileName.Text = strItem;
+                        if (m_C3d.DataFileOpen(strItem, null) == false)
+                        {
+                            MessageBox.Show("Dmt 모션 파일이 아닙니다.");
+                        }
+                        else
+                        {
+                            Modify(false);
+                            Grid_DisplayTime();
+
+                            txtTableName.Text = m_C3d.GetMotionFile_Title();
+                            txtComment.Text = m_C3d.GetMotionFile_Comment();
+                            cmbStartPosition.SelectedIndex = m_C3d.GetMotionFile_StartPosition();
+
+                            m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(strItem);
+                            if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
+                            
+                            nCnt_Dmt++;
+                        }
+                    }
+                }
+                #endregion DMT Motion File
+            }
+        }
+
+        private void frmMotionEditor_DragEnter(object sender, DragEventArgs e) { if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy; }
+                
     }
 }

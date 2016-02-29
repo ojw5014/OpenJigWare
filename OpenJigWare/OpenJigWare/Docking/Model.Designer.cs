@@ -112,6 +112,22 @@
             this.tmrMyo = new System.Windows.Forms.Timer(this.components);
             this.txtScale = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
+            this.btnMouseMode_Disp = new System.Windows.Forms.Button();
+            this.btnMouseMode_Control = new System.Windows.Forms.Button();
+            this.btnOffset_Trans_X = new System.Windows.Forms.Button();
+            this.btnOffset_Trans_Y = new System.Windows.Forms.Button();
+            this.btnOffset_Trans_Z = new System.Windows.Forms.Button();
+            this.btnOffset_Rot_X = new System.Windows.Forms.Button();
+            this.btnOffset_Rot_Y = new System.Windows.Forms.Button();
+            this.btnOffset_Rot_Z = new System.Windows.Forms.Button();
+            this.btnTrans_X = new System.Windows.Forms.Button();
+            this.btnTrans_Y = new System.Windows.Forms.Button();
+            this.btnRot_X = new System.Windows.Forms.Button();
+            this.btnTrans_Z = new System.Windows.Forms.Button();
+            this.btnRot_Y = new System.Windows.Forms.Button();
+            this.btnRot_Z = new System.Windows.Forms.Button();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -131,7 +147,7 @@
             this.tabControl1.Multiline = true;
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(342, 140);
+            this.tabControl1.Size = new System.Drawing.Size(227, 140);
             this.tabControl1.SizeMode = System.Windows.Forms.TabSizeMode.FillToRight;
             this.tabControl1.TabIndex = 114;
             // 
@@ -157,10 +173,10 @@
             this.tabPage1.Controls.Add(this.button1);
             this.tabPage1.Controls.Add(this.btnModel_Default_14);
             this.tabPage1.Controls.Add(this.btnModel_Default_13);
-            this.tabPage1.Location = new System.Drawing.Point(4, 22);
+            this.tabPage1.Location = new System.Drawing.Point(4, 40);
             this.tabPage1.Name = "tabPage1";
-            this.tabPage1.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage1.Size = new System.Drawing.Size(334, 114);
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Size = new System.Drawing.Size(219, 96);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Default";
             // 
@@ -412,8 +428,8 @@
             this.tabPage2.Controls.Add(this.btnModel_Ase_09);
             this.tabPage2.Location = new System.Drawing.Point(4, 40);
             this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage2.Size = new System.Drawing.Size(188, 75);
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(219, 96);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Lite";
             // 
@@ -596,8 +612,8 @@
             this.tabPage3.Controls.Add(this.btnModel_Ase_26);
             this.tabPage3.Location = new System.Drawing.Point(4, 40);
             this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage3.Size = new System.Drawing.Size(188, 75);
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Size = new System.Drawing.Size(219, 96);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Eco";
             // 
@@ -826,7 +842,7 @@
             this.tabPage4.Controls.Add(this.btnModel_Ase_34);
             this.tabPage4.Location = new System.Drawing.Point(4, 40);
             this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Size = new System.Drawing.Size(188, 75);
+            this.tabPage4.Size = new System.Drawing.Size(219, 96);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "Genie";
             // 
@@ -891,8 +907,8 @@
             this.tabPage5.Controls.Add(this.btnModel_Ase_39);
             this.tabPage5.Location = new System.Drawing.Point(4, 40);
             this.tabPage5.Name = "tabPage5";
-            this.tabPage5.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage5.Size = new System.Drawing.Size(188, 75);
+            this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage5.Size = new System.Drawing.Size(219, 96);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Wow";
             // 
@@ -1021,25 +1037,25 @@
             this.txtX.Location = new System.Drawing.Point(8, 180);
             this.txtX.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtX.Name = "txtX";
-            this.txtX.Size = new System.Drawing.Size(46, 21);
+            this.txtX.Size = new System.Drawing.Size(41, 21);
             this.txtX.TabIndex = 116;
             this.txtX.TextChanged += new System.EventHandler(this.txtX_TextChanged);
             // 
             // txtY
             // 
-            this.txtY.Location = new System.Drawing.Point(56, 180);
+            this.txtY.Location = new System.Drawing.Point(48, 180);
             this.txtY.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtY.Name = "txtY";
-            this.txtY.Size = new System.Drawing.Size(46, 21);
+            this.txtY.Size = new System.Drawing.Size(41, 21);
             this.txtY.TabIndex = 116;
             this.txtY.TextChanged += new System.EventHandler(this.txtY_TextChanged);
             // 
             // txtZ
             // 
-            this.txtZ.Location = new System.Drawing.Point(104, 180);
+            this.txtZ.Location = new System.Drawing.Point(88, 180);
             this.txtZ.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtZ.Name = "txtZ";
-            this.txtZ.Size = new System.Drawing.Size(46, 21);
+            this.txtZ.Size = new System.Drawing.Size(41, 21);
             this.txtZ.TabIndex = 116;
             this.txtZ.TextChanged += new System.EventHandler(this.txtZ_TextChanged);
             // 
@@ -1048,25 +1064,25 @@
             this.txtPan.Location = new System.Drawing.Point(8, 225);
             this.txtPan.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtPan.Name = "txtPan";
-            this.txtPan.Size = new System.Drawing.Size(46, 21);
+            this.txtPan.Size = new System.Drawing.Size(41, 21);
             this.txtPan.TabIndex = 116;
             this.txtPan.TextChanged += new System.EventHandler(this.txtPan_TextChanged);
             // 
             // txtTilt
             // 
-            this.txtTilt.Location = new System.Drawing.Point(56, 225);
+            this.txtTilt.Location = new System.Drawing.Point(48, 225);
             this.txtTilt.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtTilt.Name = "txtTilt";
-            this.txtTilt.Size = new System.Drawing.Size(46, 21);
+            this.txtTilt.Size = new System.Drawing.Size(41, 21);
             this.txtTilt.TabIndex = 116;
             this.txtTilt.TextChanged += new System.EventHandler(this.txtTilt_TextChanged);
             // 
             // txtSwing
             // 
-            this.txtSwing.Location = new System.Drawing.Point(104, 225);
+            this.txtSwing.Location = new System.Drawing.Point(88, 225);
             this.txtSwing.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtSwing.Name = "txtSwing";
-            this.txtSwing.Size = new System.Drawing.Size(46, 21);
+            this.txtSwing.Size = new System.Drawing.Size(41, 21);
             this.txtSwing.TabIndex = 116;
             this.txtSwing.TextChanged += new System.EventHandler(this.txtSwing_TextChanged);
             // 
@@ -1106,30 +1122,204 @@
             // 
             // txtScale
             // 
-            this.txtScale.Location = new System.Drawing.Point(104, 248);
+            this.txtScale.Location = new System.Drawing.Point(88, 248);
             this.txtScale.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtScale.Name = "txtScale";
-            this.txtScale.Size = new System.Drawing.Size(46, 21);
+            this.txtScale.Size = new System.Drawing.Size(41, 21);
             this.txtScale.TabIndex = 116;
             this.txtScale.TextChanged += new System.EventHandler(this.txtScale_TextChanged);
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(54, 255);
+            this.label3.Location = new System.Drawing.Point(51, 255);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(37, 12);
             this.label3.TabIndex = 117;
             this.label3.Text = "Scale";
             // 
+            // btnMouseMode_Disp
+            // 
+            this.btnMouseMode_Disp.Location = new System.Drawing.Point(232, 20);
+            this.btnMouseMode_Disp.Name = "btnMouseMode_Disp";
+            this.btnMouseMode_Disp.Size = new System.Drawing.Size(75, 23);
+            this.btnMouseMode_Disp.TabIndex = 119;
+            this.btnMouseMode_Disp.Text = "Disp";
+            this.btnMouseMode_Disp.UseVisualStyleBackColor = true;
+            this.btnMouseMode_Disp.Click += new System.EventHandler(this.btnMouseMode_Disp_Click);
+            // 
+            // btnMouseMode_Control
+            // 
+            this.btnMouseMode_Control.Location = new System.Drawing.Point(232, 43);
+            this.btnMouseMode_Control.Name = "btnMouseMode_Control";
+            this.btnMouseMode_Control.Size = new System.Drawing.Size(75, 23);
+            this.btnMouseMode_Control.TabIndex = 119;
+            this.btnMouseMode_Control.Text = "Control";
+            this.btnMouseMode_Control.UseVisualStyleBackColor = true;
+            this.btnMouseMode_Control.Click += new System.EventHandler(this.btnMouseMode_Control_Click);
+            // 
+            // btnOffset_Trans_X
+            // 
+            this.btnOffset_Trans_X.Location = new System.Drawing.Point(192, 161);
+            this.btnOffset_Trans_X.Name = "btnOffset_Trans_X";
+            this.btnOffset_Trans_X.Size = new System.Drawing.Size(58, 19);
+            this.btnOffset_Trans_X.TabIndex = 119;
+            this.btnOffset_Trans_X.Text = "Trans X";
+            this.btnOffset_Trans_X.UseVisualStyleBackColor = true;
+            this.btnOffset_Trans_X.Click += new System.EventHandler(this.btnOffset_Trans_X_Click);
+            // 
+            // btnOffset_Trans_Y
+            // 
+            this.btnOffset_Trans_Y.Location = new System.Drawing.Point(192, 179);
+            this.btnOffset_Trans_Y.Name = "btnOffset_Trans_Y";
+            this.btnOffset_Trans_Y.Size = new System.Drawing.Size(58, 19);
+            this.btnOffset_Trans_Y.TabIndex = 119;
+            this.btnOffset_Trans_Y.Text = "Trans Y";
+            this.btnOffset_Trans_Y.UseVisualStyleBackColor = true;
+            this.btnOffset_Trans_Y.Click += new System.EventHandler(this.btnOffset_Trans_Y_Click);
+            // 
+            // btnOffset_Trans_Z
+            // 
+            this.btnOffset_Trans_Z.Location = new System.Drawing.Point(192, 197);
+            this.btnOffset_Trans_Z.Name = "btnOffset_Trans_Z";
+            this.btnOffset_Trans_Z.Size = new System.Drawing.Size(58, 19);
+            this.btnOffset_Trans_Z.TabIndex = 119;
+            this.btnOffset_Trans_Z.Text = "Trans Z";
+            this.btnOffset_Trans_Z.UseVisualStyleBackColor = true;
+            this.btnOffset_Trans_Z.Click += new System.EventHandler(this.btnOffset_Trans_Z_Click);
+            // 
+            // btnOffset_Rot_X
+            // 
+            this.btnOffset_Rot_X.Location = new System.Drawing.Point(249, 161);
+            this.btnOffset_Rot_X.Name = "btnOffset_Rot_X";
+            this.btnOffset_Rot_X.Size = new System.Drawing.Size(58, 19);
+            this.btnOffset_Rot_X.TabIndex = 119;
+            this.btnOffset_Rot_X.Text = "Rot X";
+            this.btnOffset_Rot_X.UseVisualStyleBackColor = true;
+            this.btnOffset_Rot_X.Click += new System.EventHandler(this.btnOffset_Rot_X_Click);
+            // 
+            // btnOffset_Rot_Y
+            // 
+            this.btnOffset_Rot_Y.Location = new System.Drawing.Point(249, 179);
+            this.btnOffset_Rot_Y.Name = "btnOffset_Rot_Y";
+            this.btnOffset_Rot_Y.Size = new System.Drawing.Size(58, 19);
+            this.btnOffset_Rot_Y.TabIndex = 119;
+            this.btnOffset_Rot_Y.Text = "Rot Y";
+            this.btnOffset_Rot_Y.UseVisualStyleBackColor = true;
+            this.btnOffset_Rot_Y.Click += new System.EventHandler(this.btnOffset_Rot_Y_Click);
+            // 
+            // btnOffset_Rot_Z
+            // 
+            this.btnOffset_Rot_Z.Location = new System.Drawing.Point(249, 197);
+            this.btnOffset_Rot_Z.Name = "btnOffset_Rot_Z";
+            this.btnOffset_Rot_Z.Size = new System.Drawing.Size(58, 19);
+            this.btnOffset_Rot_Z.TabIndex = 119;
+            this.btnOffset_Rot_Z.Text = "Rot Z";
+            this.btnOffset_Rot_Z.UseVisualStyleBackColor = true;
+            this.btnOffset_Rot_Z.Click += new System.EventHandler(this.btnOffset_Rot_Z_Click);
+            // 
+            // btnTrans_X
+            // 
+            this.btnTrans_X.Location = new System.Drawing.Point(192, 218);
+            this.btnTrans_X.Name = "btnTrans_X";
+            this.btnTrans_X.Size = new System.Drawing.Size(58, 19);
+            this.btnTrans_X.TabIndex = 119;
+            this.btnTrans_X.Text = "Trans X";
+            this.btnTrans_X.UseVisualStyleBackColor = true;
+            this.btnTrans_X.Click += new System.EventHandler(this.btnTrans_X_Click);
+            // 
+            // btnTrans_Y
+            // 
+            this.btnTrans_Y.Location = new System.Drawing.Point(192, 236);
+            this.btnTrans_Y.Name = "btnTrans_Y";
+            this.btnTrans_Y.Size = new System.Drawing.Size(58, 19);
+            this.btnTrans_Y.TabIndex = 119;
+            this.btnTrans_Y.Text = "Trans Y";
+            this.btnTrans_Y.UseVisualStyleBackColor = true;
+            this.btnTrans_Y.Click += new System.EventHandler(this.btnTrans_Y_Click);
+            // 
+            // btnRot_X
+            // 
+            this.btnRot_X.Location = new System.Drawing.Point(249, 218);
+            this.btnRot_X.Name = "btnRot_X";
+            this.btnRot_X.Size = new System.Drawing.Size(58, 19);
+            this.btnRot_X.TabIndex = 119;
+            this.btnRot_X.Text = "Rot X";
+            this.btnRot_X.UseVisualStyleBackColor = true;
+            this.btnRot_X.Click += new System.EventHandler(this.btnRot_X_Click);
+            // 
+            // btnTrans_Z
+            // 
+            this.btnTrans_Z.Location = new System.Drawing.Point(192, 254);
+            this.btnTrans_Z.Name = "btnTrans_Z";
+            this.btnTrans_Z.Size = new System.Drawing.Size(58, 19);
+            this.btnTrans_Z.TabIndex = 119;
+            this.btnTrans_Z.Text = "Trans Z";
+            this.btnTrans_Z.UseVisualStyleBackColor = true;
+            this.btnTrans_Z.Click += new System.EventHandler(this.btnTrans_Z_Click);
+            // 
+            // btnRot_Y
+            // 
+            this.btnRot_Y.Location = new System.Drawing.Point(249, 236);
+            this.btnRot_Y.Name = "btnRot_Y";
+            this.btnRot_Y.Size = new System.Drawing.Size(58, 19);
+            this.btnRot_Y.TabIndex = 119;
+            this.btnRot_Y.Text = "Rot Y";
+            this.btnRot_Y.UseVisualStyleBackColor = true;
+            this.btnRot_Y.Click += new System.EventHandler(this.btnRot_Y_Click);
+            // 
+            // btnRot_Z
+            // 
+            this.btnRot_Z.Location = new System.Drawing.Point(249, 254);
+            this.btnRot_Z.Name = "btnRot_Z";
+            this.btnRot_Z.Size = new System.Drawing.Size(58, 19);
+            this.btnRot_Z.TabIndex = 119;
+            this.btnRot_Z.Text = "Rot Z";
+            this.btnRot_Z.UseVisualStyleBackColor = true;
+            this.btnRot_Z.Click += new System.EventHandler(this.btnRot_Z_Click);
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(141, 179);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(37, 12);
+            this.label4.TabIndex = 117;
+            this.label4.Text = "Offset";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(141, 236);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(50, 12);
+            this.label5.TabIndex = 117;
+            this.label5.Text = "Position";
+            // 
             // frmModel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(356, 303);
+            this.ClientSize = new System.Drawing.Size(316, 303);
+            this.Controls.Add(this.btnRot_Z);
+            this.Controls.Add(this.btnOffset_Rot_Z);
+            this.Controls.Add(this.btnRot_Y);
+            this.Controls.Add(this.btnOffset_Rot_Y);
+            this.Controls.Add(this.btnTrans_Z);
+            this.Controls.Add(this.btnOffset_Trans_Z);
+            this.Controls.Add(this.btnRot_X);
+            this.Controls.Add(this.btnOffset_Rot_X);
+            this.Controls.Add(this.btnTrans_Y);
+            this.Controls.Add(this.btnOffset_Trans_Y);
+            this.Controls.Add(this.btnTrans_X);
+            this.Controls.Add(this.btnOffset_Trans_X);
+            this.Controls.Add(this.btnMouseMode_Control);
+            this.Controls.Add(this.btnMouseMode_Disp);
             this.Controls.Add(this.chkMyo);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtSwing);
             this.Controls.Add(this.txtZ);
@@ -1241,5 +1431,21 @@
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.TextBox txtScale;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Button btnMouseMode_Disp;
+        private System.Windows.Forms.Button btnMouseMode_Control;
+        private System.Windows.Forms.Button btnOffset_Trans_X;
+        private System.Windows.Forms.Button btnOffset_Trans_Y;
+        private System.Windows.Forms.Button btnOffset_Trans_Z;
+        private System.Windows.Forms.Button btnOffset_Rot_X;
+        private System.Windows.Forms.Button btnOffset_Rot_Y;
+        private System.Windows.Forms.Button btnOffset_Rot_Z;
+        private System.Windows.Forms.Button btnTrans_X;
+        private System.Windows.Forms.Button btnTrans_Y;
+        private System.Windows.Forms.Button btnRot_X;
+        private System.Windows.Forms.Button btnTrans_Z;
+        private System.Windows.Forms.Button btnRot_Y;
+        private System.Windows.Forms.Button btnRot_Z;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label5;
     }
 }

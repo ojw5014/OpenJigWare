@@ -7696,12 +7696,181 @@ namespace OpenJigWare
                                 m_fTilt_Robot += (m_nMouse_Y_Left - e.Y);
                                 #endregion Robot Control(Rotation)
                             }
-                            else //if (GetMouseMode() == 3) // 3
+                            else if (GetMouseMode() == 3) // 3
                             {
                                 #region Robot Control(Translation)
                                 m_fX_Robot -= (m_nMouse_X_Left - e.X);
                                 m_fY_Robot += (m_nMouse_Y_Left - e.Y);
                                 #endregion Robot Control(Translation)
+                            }
+                            else if ((GetMouseMode() >= 4) && (GetMouseMode() <= 6))
+                            {
+                                #region Offset Translation X ~ Z
+                                SVector3D_t SVec = Prop_Get_Offset_Trans();
+                                float fValue = (e.Button == MouseButtons.Right) ? 0.1f : 1.0f;
+                                //if (e.Delta < 0) fValue = -fValue;
+                                //Prop_Set_Offset_Trans(m_C3d_Designer.Prop_Get_Width_Or_Radius() + fValue);
+                                //m_C3d_Designer.Prop_Update_VirtualObject();
+                                
+                                double dPos_X = (e.X - m_nMouse_X_Left);
+                                double dPos_Y = (m_nMouse_Y_Left - e.Y);
+                                double dPos_Z = 0;
+                                float fAngle_X, fAngle_Y, fAngle_Z;
+                                GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                                CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                //m_COjwCsgl.Rotation(m_fDisp_Tilt, m_fDisp_Pan, m_fDisp_Swing, ref fPos_X, ref fPos_Y, ref fPos_Z);
+
+                                // 2D -> 3D rotation : rotate (e.X - m_nX) 
+                                // Pan - Rotation(Y)
+                                // Tilt - Rotation(X)
+                                // Swing - Rotation(Z)
+                                #region Kor
+                                // 2차원을 3차원으로 회전 : (e.X - m_nX) 를 회전
+                                // Pan - Y축 회전
+                                // Tilt - X축 회전
+                                // Swing - Z축 회전
+                                #endregion Kor
+
+                                //m_dPos_X += (GetFreeze_X() == true) ? 0.0f : dPos_X;
+                                //m_dPos_Y += (GetFreeze_Y() == true) ? 0.0f : dPos_Y;
+                                //m_dPos_Z += (GetFreeze_Z() == true) ? 0.0f : dPos_Z;
+                                int nDir = GetMouseMode() - 4;
+                                SVec.x += (nDir == 0) ? (float)dPos_X : 0.0f;
+                                SVec.y += (nDir == 1) ? (float)dPos_Y : 0.0f;
+                                SVec.z += (nDir == 2) ? (float)dPos_Z : 0.0f;
+
+
+                                Prop_Set_Offset_Trans(SVec);
+                                Prop_Update_VirtualObject();
+
+
+
+                                //Prop_Set_Offset_Trans(SVec);
+                                //Prop_Update_VirtualObject();
+                                //OjwVirtualDisp.SOffset_Trans = SVec;
+                                //m_CPropAll.SOffset_Trans = SVec;//SOffset_Trans(SVec);
+                                #endregion Offset Translation X ~ Z
+                            }
+                            else if ((GetMouseMode() >= 7) && (GetMouseMode() <= 9))
+                            {
+                                #region Offset Rotation X ~ Z
+                                SAngle3D_t SAngle = Prop_Get_Offset_Rot();
+                                //SVector3D_t SVec = Prop_Get_Offset_Trans();
+                                float fValue = (e.Button == MouseButtons.Right) ? 0.1f : 1.0f;
+
+                                double dPos_X = (e.X - m_nMouse_X_Left);
+                                double dPos_Y = (m_nMouse_Y_Left - e.Y);
+                                double dPos_Z = 0;
+                                float fAngle_X, fAngle_Y, fAngle_Z;
+                                GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                                CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                // 2D -> 3D rotation : rotate (e.X - m_nX) 
+                                // Pan - Rotation(Y)
+                                // Tilt - Rotation(X)
+                                // Swing - Rotation(Z)
+                                #region Kor
+                                // 2차원을 3차원으로 회전 : (e.X - m_nX) 를 회전
+                                // Pan - Y축 회전
+                                // Tilt - X축 회전
+                                // Swing - Z축 회전
+                                #endregion Kor
+
+                                int nDir = GetMouseMode() - 7;
+                                SAngle.tilt += (nDir == 0) ? (float)dPos_X : 0.0f;
+                                SAngle.pan += (nDir == 1) ? (float)dPos_Y : 0.0f;
+                                SAngle.swing += (nDir == 2) ? (float)dPos_Z : 0.0f;
+
+                                Prop_Set_Offset_Rot(SAngle);
+                                Prop_Update_VirtualObject();
+
+                                #endregion Offset Rotation X ~ Z
+                            }
+                            else if ((GetMouseMode() >= 10) && (GetMouseMode() <= 12))
+                            {
+                                #region Offset Translation X ~ Z
+                                SVector3D_t SVec = Prop_Get_Trans_1();
+                                float fValue = (e.Button == MouseButtons.Right) ? 0.1f : 1.0f;
+                                //if (e.Delta < 0) fValue = -fValue;
+                                //Prop_Set_Offset_Trans(m_C3d_Designer.Prop_Get_Width_Or_Radius() + fValue);
+                                //m_C3d_Designer.Prop_Update_VirtualObject();
+
+                                double dPos_X = (e.X - m_nMouse_X_Left);
+                                double dPos_Y = (m_nMouse_Y_Left - e.Y);
+                                double dPos_Z = 0;
+                                float fAngle_X, fAngle_Y, fAngle_Z;
+                                GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                                CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                //m_COjwCsgl.Rotation(m_fDisp_Tilt, m_fDisp_Pan, m_fDisp_Swing, ref fPos_X, ref fPos_Y, ref fPos_Z);
+
+                                // 2D -> 3D rotation : rotate (e.X - m_nX) 
+                                // Pan - Rotation(Y)
+                                // Tilt - Rotation(X)
+                                // Swing - Rotation(Z)
+                                #region Kor
+                                // 2차원을 3차원으로 회전 : (e.X - m_nX) 를 회전
+                                // Pan - Y축 회전
+                                // Tilt - X축 회전
+                                // Swing - Z축 회전
+                                #endregion Kor
+
+                                //m_dPos_X += (GetFreeze_X() == true) ? 0.0f : dPos_X;
+                                //m_dPos_Y += (GetFreeze_Y() == true) ? 0.0f : dPos_Y;
+                                //m_dPos_Z += (GetFreeze_Z() == true) ? 0.0f : dPos_Z;
+                                int nDir = GetMouseMode() - 10;
+                                SVec.x += (nDir == 0) ? (float)dPos_X : 0.0f;
+                                SVec.y += (nDir == 1) ? (float)dPos_Y : 0.0f;
+                                SVec.z += (nDir == 2) ? (float)dPos_Z : 0.0f;
+                                
+                                Prop_Set_Trans_1(SVec);
+                                Prop_Update_VirtualObject();
+
+                                //Prop_Set_Offset_Trans(SVec);
+                                //Prop_Update_VirtualObject();
+                                //OjwVirtualDisp.SOffset_Trans = SVec;
+                                //m_CPropAll.SOffset_Trans = SVec;//SOffset_Trans(SVec);
+                                #endregion Offset Translation X ~ Z
+                            }
+                            else if ((GetMouseMode() >= 13) && (GetMouseMode() <= 15))
+                            {
+                                #region Rotation X ~ Z
+                                SAngle3D_t SAngle = Prop_Get_Rot_1();
+                                //SVector3D_t SVec = Prop_Get_Offset_Trans();
+                                float fValue = (e.Button == MouseButtons.Right) ? 0.1f : 1.0f;
+
+                                double dPos_X = (e.X - m_nMouse_X_Left);
+                                double dPos_Y = (m_nMouse_Y_Left - e.Y);
+                                double dPos_Z = 0;
+                                float fAngle_X, fAngle_Y, fAngle_Z;
+                                GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+                                CMath.CalcRot(0, 0, (double)(-fAngle_Z), ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot(0, (double)(-fAngle_Y), 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                CMath.CalcRot((double)(-fAngle_X), 0, 0, ref dPos_X, ref dPos_Y, ref dPos_Z);
+                                // 2D -> 3D rotation : rotate (e.X - m_nX) 
+                                // Pan - Rotation(Y)
+                                // Tilt - Rotation(X)
+                                // Swing - Rotation(Z)
+                                #region Kor
+                                // 2차원을 3차원으로 회전 : (e.X - m_nX) 를 회전
+                                // Pan - Y축 회전
+                                // Tilt - X축 회전
+                                // Swing - Z축 회전
+                                #endregion Kor
+
+                                int nDir = GetMouseMode() - 13;
+                                SAngle.tilt += (nDir == 0) ? (float)dPos_X : 0.0f;
+                                SAngle.pan += (nDir == 1) ? (float)dPos_Y : 0.0f;
+                                SAngle.swing += (nDir == 2) ? (float)dPos_Z : 0.0f;
+
+                                Prop_Set_Rot_1(SAngle);
+                                Prop_Update_VirtualObject();
+
+                                #endregion Rotation X ~ Z
                             }
 
                             //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
@@ -7744,7 +7913,7 @@ namespace OpenJigWare
                         else
                         {
                         }
-                        //OjwDraw();
+                        OjwDraw();
                     }
                 }
 #if false
@@ -11294,6 +11463,22 @@ namespace OpenJigWare
                                     
                                     m_nDrawClass_Pos = i;
                                     OjwDraw_Class(CDisp);
+
+                                    if (
+                                        (IsVirtualClass() == true) && ((nCnt - 1) == i)
+                                        && 
+                                        (
+                                            ((GetMouseMode() >= 4) && (GetMouseMode() <= 6))    ||  // Offset Trans
+                                            ((GetMouseMode() >= 7) && (GetMouseMode() <= 9))    ||  // Offset Rotation
+                                            ((GetMouseMode() >= 10) && (GetMouseMode() <= 12))  ||  // Trans 1
+                                            ((GetMouseMode() >= 13) && (GetMouseMode() <= 15))      // Rotation 1
+                                        )
+                                    )
+                                    {
+                                        Axis_X(true, Color.Coral, 1.0f, 5, 20);
+                                        Axis_Y(true, Color.Green, 1.0f, 5, 20);
+                                        Axis_Z(true, Color.Blue, 1.0f, 5, 20);
+                                    }
                                 }
                                 if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
                             }
@@ -17102,9 +17287,6 @@ namespace OpenJigWare
                     //this.Cursor = System.Windows.Forms.Cursors.Default;
                 }
                 #region STL
-
-
-
                 public bool OjwFileOpen_3D_STL(String strFileName)
                 {
                     int nTmp = 0;
@@ -18035,6 +18217,7 @@ namespace OpenJigWare
                                         //this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
                                         String strFile = pCDisp[i].strDispObject;
                                         if ((strFile.IndexOf('?') >= 0) || (strFile.IndexOf('/') >= 0))
+                                        //if ((strFile.IndexOf('?') >= 0) || (strFile.IndexOf('/') >= 0) || (strFile.IndexOf('!') >= 0))
                                         {
                                             strFile = strFile.Substring(1);
                                         }
@@ -19815,6 +19998,7 @@ namespace OpenJigWare
 
             public class COjwDisp
             {
+                // 실제 초기화는 InitData() 함수에서 구현
                 public COjwDisp()
                 {
                     cColor = Color.White;
@@ -19839,7 +20023,7 @@ namespace OpenJigWare
                 // Kor: 내부적 핸들을 결정, 단, 0보다 작으면(-) ID 없음. => 즉, OpenGL 의 픽킹 시 이름을 결정
                 public int nName = -1;
                 //public int nDispModel = 0;      // Recording the type of data to be drawn Modeling(Kor: 그려질 모델링 데이타의 종류를 기록 - 사각형, 원형, 구, ...)
-                public string strDispObject = "#0"; // Recording the type of data to be drawn Modeling(Kor: 그려질 모델링 데이타의 종류를 기록) - User ASE/OBJ
+                public string strDispObject = "#0"; // Recording the type of data to be drawn Modeling(Kor: 그려질 모델링 데이타의 종류를 기록) - User ASE/OBJ 
                 public bool bFilled = true;     // Determining the populate the attributes of the picture(Kor: 그림의 속을 채울지를 결정)
 
                 // 
@@ -19938,7 +20122,8 @@ namespace OpenJigWare
                     //tmpPoints.Clear();
                     //tmpPoints.Add(new SVector3D_t(0, 0, 0));
                     //tmpPoints.Add(new SVector3D_t(10, 0, 0));
-                    SetData(-1, Color.White, 1.0f, "#0", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
+                    //SetData(-1, Color.White, 1.0f, "#0", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
+                    SetData(-1, Color.White, 1.0f, "#7", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
                     pSVector = null;
                     pSAngle = null;
                     Points.Clear();

@@ -411,5 +411,89 @@ namespace OpenJigWare.Docking
             txtTilt.Text = Ojw.CConvert.FloatToStr(fTilt);
             txtSwing.Text = Ojw.CConvert.FloatToStr(fSwing);
         }
+
+        private void btnMouseMode_Disp_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(0);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnMouseMode_Control_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(1);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnOffset_Trans_X_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(4);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnOffset_Trans_Y_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(5);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnOffset_Trans_Z_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(6);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnOffset_Rot_X_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(7);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnOffset_Rot_Y_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(8);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnOffset_Rot_Z_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(9);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnTrans_X_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(10);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnTrans_Y_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(11);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnTrans_Z_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(12);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnRot_X_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(13);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnRot_Y_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(14);
+            m_C3d.Prop_Update_VirtualObject();
+        }
+
+        private void btnRot_Z_Click(object sender, EventArgs e)
+        {
+            m_C3d.Prop_Set_Main_MouseControlMode(15);
+            m_C3d.Prop_Update_VirtualObject();
+        }
     }
 }

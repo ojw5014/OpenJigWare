@@ -1471,7 +1471,7 @@ namespace OpenJigWare
                 dgAngle.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
                 dgAngle.MouseDown += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
                 dgAngle.MouseMove += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseMove);
-                dgAngle.MouseUp += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);
+                dgAngle.MouseUp += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);                
 
                 dgAngle.CellLeave += new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);
             }
@@ -1486,7 +1486,7 @@ namespace OpenJigWare
                 dgAngle.MouseDown -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
                 dgAngle.MouseMove -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseMove);
                 dgAngle.MouseUp -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);
-                dgAngle.CellLeave -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);
+                dgAngle.CellLeave -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);                
             }
             public void Events_Remove_KeyDown() { dgAngle.KeyDown -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown); }
             public void Events_Set_KeyDown() { dgAngle.KeyDown += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown); }
@@ -3856,7 +3856,7 @@ namespace OpenJigWare
             {
                 m_bMouseDown = false;
                 m_bMouseMove = false;
-            }
+            }            
             private void dgAngle_MouseDoubleClick(object sender, MouseEventArgs e)
             {
                 OjwGrid_CellMouseDoubleClick(dgAngle, e);

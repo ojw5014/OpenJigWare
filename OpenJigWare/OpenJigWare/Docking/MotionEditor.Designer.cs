@@ -121,6 +121,7 @@
             this.btnGroup1 = new System.Windows.Forms.Button();
             this.btnGroup2 = new System.Windows.Forms.Button();
             this.btnGroup3 = new System.Windows.Forms.Button();
+            this.chkSmooth = new System.Windows.Forms.CheckBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.txtMessage = new System.Windows.Forms.TextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
@@ -202,7 +203,6 @@
             this.label15 = new System.Windows.Forms.Label();
             this.btnOpenDesignFile = new System.Windows.Forms.Button();
             this.mpPlayer = new AxWMPLib.AxWindowsMediaPlayer();
-            this.chkSmooth = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.dgAngle)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -1301,6 +1301,21 @@
             this.btnGroup3.UseVisualStyleBackColor = false;
             this.btnGroup3.Click += new System.EventHandler(this.btnGroup3_Click);
             // 
+            // chkSmooth
+            // 
+            this.chkSmooth.AutoSize = true;
+            this.chkSmooth.BackColor = System.Drawing.Color.Transparent;
+            this.chkSmooth.Checked = true;
+            this.chkSmooth.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkSmooth.Font = new System.Drawing.Font("굴림", 8F, System.Drawing.FontStyle.Bold);
+            this.chkSmooth.Location = new System.Drawing.Point(159, 7);
+            this.chkSmooth.Name = "chkSmooth";
+            this.chkSmooth.Size = new System.Drawing.Size(81, 15);
+            this.chkSmooth.TabIndex = 664;
+            this.chkSmooth.Text = "Full Size";
+            this.chkSmooth.UseVisualStyleBackColor = false;
+            this.chkSmooth.CheckedChanged += new System.EventHandler(this.chkSmooth_CheckedChanged);
+            // 
             // tabPage2
             // 
             this.tabPage2.Controls.Add(this.txtMessage);
@@ -2202,23 +2217,9 @@
             this.mpPlayer.TabIndex = 674;
             this.mpPlayer.Visible = false;
             // 
-            // chkSmooth
-            // 
-            this.chkSmooth.AutoSize = true;
-            this.chkSmooth.BackColor = System.Drawing.Color.Transparent;
-            this.chkSmooth.Checked = true;
-            this.chkSmooth.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkSmooth.Font = new System.Drawing.Font("굴림", 8F, System.Drawing.FontStyle.Bold);
-            this.chkSmooth.Location = new System.Drawing.Point(159, 7);
-            this.chkSmooth.Name = "chkSmooth";
-            this.chkSmooth.Size = new System.Drawing.Size(81, 15);
-            this.chkSmooth.TabIndex = 664;
-            this.chkSmooth.Text = "Full Size";
-            this.chkSmooth.UseVisualStyleBackColor = false;
-            this.chkSmooth.CheckedChanged += new System.EventHandler(this.chkSmooth_CheckedChanged);
-            // 
             // frmMotionEditor
             // 
+            this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackgroundImage = global::OpenJigWare.Properties.Resources.MotionTool;
@@ -2302,6 +2303,8 @@
             this.Text = "MotionEditor";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMotionEditor_FormClosing);
             this.Load += new System.EventHandler(this.frmMotionEditor_Load);
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.frmMotionEditor_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.frmMotionEditor_DragEnter);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.frmMotionEditor_MouseDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.frmMotionEditor_MouseMove);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.frmMotionEditor_MouseUp);

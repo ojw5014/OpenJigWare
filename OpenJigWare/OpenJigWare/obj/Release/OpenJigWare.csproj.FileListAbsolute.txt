@@ -128,6 +128,7 @@ Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWa
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmPlayer.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Microsoft.Contracts.dll
@@ -149,7 +150,6 @@ D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\Ope
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.GenerateResource.Cache
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
-Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\새 폴더\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\새 폴더\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\새 폴더\trunk\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Microsoft.Contracts.dll
