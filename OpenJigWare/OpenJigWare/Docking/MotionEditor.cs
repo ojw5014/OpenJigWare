@@ -117,8 +117,8 @@ namespace OpenJigWare.Docking
             // 오디오
             // wma,wax,cda,mp3,m3u,mid,midi,rmi,air,aifc,aiff,au,snd
             strFilter += ",.wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
-            // 액션파일
-            strFilter += ",.dmt";
+            // 파일
+            strFilter += ",.dmt,.ojw,.dfh";
             pstrFilter = strFilter.Split(',');
             SetListView(strPath, pstrFilter);
             //SetListView(strPath, "*.*");
@@ -4416,7 +4416,7 @@ namespace OpenJigWare.Docking
                     //listviewMotion
                     listviewMotion.Items.Clear();
                     foreach (SDownloadList_t SDown in m_lstDownload) listviewMotion.Items.Add(String.Format("[{0}] {1}", Ojw.CConvert.FillString(Ojw.CConvert.IntToStr(SDown.nIndex), "0", 3, false), SDown.strName));
-                    tcControl.SelectedIndex = 1;
+                    tcControl.SelectedIndex = 2;
                 }
                 else { strMsg = String.Format("Cannot find any files."); MessageBox.Show(strMsg); }
             }
