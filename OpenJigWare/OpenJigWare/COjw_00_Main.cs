@@ -3,7 +3,8 @@
 /* This is a Open Source for Jig tools
  * 
  * made by Jinwook-On (ojw5014@hanmail.net)
- * supported by Daesung-Choi, Ceolhea-yoon, Dongjoon-Chang (Advise)
+ * supported by Daesung-Choi, Dongjoon-Chang (Advise)
+ * supported by Chulhee-yun(Motion Download & Advise)
  * supported by Mohssin (icons)
  * supported by Aram-Lee (all of the keypad images)
  * supported by Donghyeon-Lee (3 dof parallel Delta robot Kinematics function made)
@@ -70,14 +71,24 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.01.64";
+        public const string strVersion = "01.02.00";
         public const string strHistory = (String)(
+                "[V01.02.00]\r\n" +
+                "========================================\r\n" + // Released            
+                "[V01.01.65]\r\n" +
+                "MotionEditor: Append, 탐색기 기능 추가, 디자인 변경(오로카 이미지 추가)\r\n" +
+                "Rps,TrackRps 기능 개선 - 실제 RPS 속도에 맞추어 개선\r\n" +
+                "Motion File Download 기능 추가 완료(Delete, GetFileList, Download, Run)\r\n" +
+                "Security modeling file 인 SSTL 추가, 사용자가 파일을 만들 수는 있으나 복구할 수는 없음.\r\n" + 
+                "OjwFileOpen_3D_STL() 함수 디버깅 - 모델링 데이타 줄 그어지는 문제 해결\r\n" + 
+                "Dotnet Frame work 3.5 -> 4.0 변경(프레임 3.5 재변경시 변경 후 [프로젝트]-[속성]-[빌드]-조건부 컴파일 기호 //_USING_DOTNET_3_5 를 주석해제하면 된다.\r\n" +
+                "========================================\r\n" + // NoReleased            
                 "[V01.01.64]\r\n" +
                 "InitData() 함수 내에서 strDispObject 의 초기값 #0 을 #7로 변경\r\n" +
                 "GetMouseMode(): 4~6, 7~9, 10~12, 13~15 [Offset(Trans,Rot), Position(Trans1,Rot1) 기능 추가, 실시간 변경을 위해 OjwDraw() 함수를 MouseMove 이벤트에 추가\r\n" +
                 "Drag and Drop feature 추가\r\n" +
                 "Drag and Drop 으로 3D Modeling File(stl, ase, obj) file copy or Load feature 추가\r\n" +
-                "========================================\r\n" + // NoReleased            
+                "========================================\r\n" + // Released            
                 "[V01.01.63]\r\n" +
                 "BinaryFileOpen() 함수 추가\r\n" +
                 "PlayFrame() 에서 LED 등의 기능이상부분 버그 처리(debugging advise - JhoYoung-Choi : tajo27@naver.com\r\n" + 
@@ -369,13 +380,20 @@ namespace OpenJigWare
         #endregion MotionTool
         public class CTools_Motion
         {
-            private Docking.frmMotionEditor m_frmMotion = new Docking.frmMotionEditor();
-
+            public Ojw.C3d GetC3d() { return m_frmMotion.GetC3d(); }
+            public Docking.frmMotionEditor m_frmMotion = new Docking.frmMotionEditor();
+            public void Opacity(double dOpacity) { m_frmMotion.Opacity = dOpacity; }
             public void ShowTools() { ShowTools(1.0f); }
+            public Button GetUserButton() { return m_frmMotion.btnUserButton; }
             public void ShowTools(float fScale)
             {
+                m_frmMotion.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
                 m_frmMotion.Show();
+                m_frmMotion.Scale(new SizeF(fScale, fScale));
             }
+            public void SetUserButton(Docking.frmMotionEditor.UserFunction FUser) { m_frmMotion.SetUserButton(FUser); }
+            public void SetIcon(Icon UserIcon) { m_frmMotion.Icon = UserIcon; }
+            public void SetTitleImage(Bitmap bmp, Rectangle rc) { m_frmMotion.SetTitleImage(bmp, rc); }
         }
         #region ModelingTool
         public class CTools
@@ -1338,7 +1356,10 @@ namespace OpenJigWare
                     #region Design File
                     if (nCnt_Ojw == 0)
                     {
-                        if (strItem.ToLower().IndexOf(".ojw") > 0)
+                        if (
+                            (strItem.ToLower().IndexOf(".ojw") > 0) ||
+                            (strItem.ToLower().IndexOf(".dhf") > 0)
+                            )
                         {
                             if (m_C3d_Designer.FileOpen(strItem) == true) // 모델링 파일이 잘 로드 되었다면 
                             {
@@ -1366,7 +1387,9 @@ namespace OpenJigWare
                         string strFileName = Ojw.CFile.GetName(strItem).ToLower();
                         if (
                             (strFileName.IndexOf(".stl") > 0) ||
+                            (strFileName.IndexOf(".sstl") > 0) ||
                             (strFileName.IndexOf(".ase") > 0) ||
+                            (strFileName.IndexOf(".dat") > 0) ||
                             (strFileName.IndexOf(".obj") > 0))
                         {
                             String strFilePath = Application.StartupPath.Trim('\\') + m_C3d_Designer.GetAseFile_Path() + strFileName;
@@ -2375,14 +2398,20 @@ namespace OpenJigWare
 
                 //m_C3d_Designer.OjwDraw();
                 bool bPick;
-                m_C3d_Designer.OjwDraw(out m_nGroupA, out m_nGroupB, out m_nGroupC, out m_nKinematicsNumber, out bPick, out m_bLimit);
+                m_C3d_Designer.OjwDraw();//out m_nGroupA, out m_nGroupB, out m_nGroupC, out m_nKinematicsNumber, out bPick, out m_bLimit);
                 if (m_C3d_Designer.IsMouseDown() == true)
                 {
-                    if (bPick == true)
+                    if (m_C3d_Designer.GetEvent_Pick() == true)
                     {
+                        bPick = true;
+                        m_C3d_Designer.GetEvent_Pick_Data(out m_nGroupA, out m_nGroupB, out m_nGroupC, out m_nKinematicsNumber);
                         ShowData(bPick);
                     }
-                    else m_txtInformation.Text = String.Empty;
+                    //if (bPick == true)
+                    //{
+                    //    ShowData(bPick);
+                    //}
+                    //else m_txtInformation.Text = String.Empty;
                 }
                 if (m_C3d_Designer.IsMouseUp() == true)
                 {

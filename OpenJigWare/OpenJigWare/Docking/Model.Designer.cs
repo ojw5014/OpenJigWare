@@ -128,6 +128,7 @@
             this.btnRot_Z = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
+            this.btnMakeSstl = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -1296,6 +1297,16 @@
             this.label5.TabIndex = 117;
             this.label5.Text = "Position";
             // 
+            // btnMakeSstl
+            // 
+            this.btnMakeSstl.Location = new System.Drawing.Point(231, 114);
+            this.btnMakeSstl.Name = "btnMakeSstl";
+            this.btnMakeSstl.Size = new System.Drawing.Size(75, 41);
+            this.btnMakeSstl.TabIndex = 119;
+            this.btnMakeSstl.Text = "Make SSTL";
+            this.btnMakeSstl.UseVisualStyleBackColor = true;
+            this.btnMakeSstl.Click += new System.EventHandler(this.btnMakeSstl_Click);
+            // 
             // frmModel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -1313,6 +1324,7 @@
             this.Controls.Add(this.btnOffset_Trans_Y);
             this.Controls.Add(this.btnTrans_X);
             this.Controls.Add(this.btnOffset_Trans_X);
+            this.Controls.Add(this.btnMakeSstl);
             this.Controls.Add(this.btnMouseMode_Control);
             this.Controls.Add(this.btnMouseMode_Disp);
             this.Controls.Add(this.chkMyo);
@@ -1447,5 +1459,6 @@
         private System.Windows.Forms.Button btnRot_Z;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Button btnMakeSstl;
     }
 }

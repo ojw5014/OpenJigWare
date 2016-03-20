@@ -1,5 +1,9 @@
 #define _COPY_FLAG
 #define _ENABLE_LED_FONT_COLOR
+
+//#define _RPM_TEST
+//#define _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+
 //#define _ENABLE_LED_FONT_BOLD
 //#define _REMOVE GRIDDRAW
 
@@ -105,6 +109,7 @@ namespace OpenJigWare
             private TextBox m_txtDH_Draw_Color = new TextBox();
             private Button m_btnDhColor = new Button();
             private Button m_btnCheckDH = new Button();
+            private CheckBox m_chkVisible = new CheckBox();
             private TextBox m_txtDH_Caption = new TextBox();
 
             private TextBox m_txtDH_A = new TextBox();
@@ -884,7 +889,15 @@ namespace OpenJigWare
                 // Event
                 m_btnCheckDH.Click += new EventHandler(m_btnKinematics_Click);
                 i++; nItems++;
+
+                m_chkVisible.Text = "Visible skeleton";
+                m_chkVisible.Width = 250;
+                m_chkVisible.Left = gbDh.Width / 2;
+                m_chkVisible.Top = m_btnCheckDH.Bottom + 5;
+                gbDh.Controls.Add(m_chkVisible);
                 
+
+
                 // 구분선
                 m_albTools_Kinematics[nItems].Top = nDefaultTop + i * nGapH;
                 m_albTools_Kinematics[nItems].Text = "< Inverse >";
@@ -1220,6 +1233,8 @@ namespace OpenJigWare
 
             private String MakeDHSkeleton(float fSize, Color cColor, string strString)
             {
+                String strModel_Bar = (m_chkVisible.Checked == true) ? "#8" : "#19";
+                String strModel_Ball = (m_chkVisible.Checked == true) ? "#9" : "#20";
                 String strData = String.Empty;
                 String strDisp = String.Empty;
                 //SetHeader_strDrawModel(String.Empty);
@@ -1286,17 +1301,17 @@ namespace OpenJigWare
                     if (i != 6) continue; // 해석 에러
                     #endregion Items
 
-                    //Prop_Set_DispObject("#20");
+                    //Prop_Set_DispObject(strModel_Ball);
                     //Prop_Set_Width_Or_Radius(fSize);
                     //AddVirtualClassToReal();
-                    User_Set_Model("#20");
+                    User_Set_Model(strModel_Ball);
                     User_Set_Color(cColor);
                     User_Set_Width_Or_Radius(fSize);
                     User_Add();
 
 
-                    //Prop_Set_DispObject("#19");
-                    User_Set_Model("#19");
+                    //Prop_Set_DispObject(strModel_Bar);
+                    User_Set_Model(strModel_Bar);
                     User_Set_Color(cColor);
                     User_Set_Width_Or_Radius(fSize);
                     if (fD < 0)
@@ -1312,10 +1327,10 @@ namespace OpenJigWare
                     User_Add();
 
 
-                    //Prop_Set_DispObject("#20");
+                    //Prop_Set_DispObject(strModel_Ball);
                     //Prop_Set_Width_Or_Radius(fSize);
                     //Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
-                    User_Set_Model("#20");
+                    User_Set_Model(strModel_Ball);
                     User_Set_Color(cColor);
                     User_Set_Width_Or_Radius(fSize);
                     User_Set_Offset_Translation(0, 0, fD);
@@ -1332,7 +1347,7 @@ namespace OpenJigWare
 
                     if ((nDir == 2) || (nDir == 3))
                     {
-                        User_Set_Model("#19");
+                        User_Set_Model(strModel_Bar);
                         User_Set_Color(Color.FromArgb(cColor.R / 2, cColor.G / 2, cColor.B / 2));
                         User_Set_Width_Or_Radius(fSize);
 
@@ -1343,7 +1358,7 @@ namespace OpenJigWare
                         User_Add();
                     }
 
-                    User_Set_Model("#19");
+                    User_Set_Model(strModel_Bar);
                     User_Set_Color(cColor);
                     if (fA < 0)
                     {
@@ -1361,7 +1376,7 @@ namespace OpenJigWare
                     }
                     User_Add();
 
-                    User_Set_Model("#20");
+                    User_Set_Model(strModel_Ball);
                     User_Set_Color(cColor);
 
                     User_Set_Width_Or_Radius(fSize);
@@ -1423,19 +1438,19 @@ namespace OpenJigWare
                 float fMulti = fSize / 10.0f * 2.0f;
                 float fLength = 30 * fMulti;
 
-                User_Set_Model("#20");
+                User_Set_Model(strModel_Ball);
                 User_Set_Color(Color.Red);
                 User_Set_Width_Or_Radius(fSize);
                 User_Set_Offset_Translation(fLength, 0, 0);
                 User_Add();
 
-                User_Set_Model("#20");
+                User_Set_Model(strModel_Ball);
                 User_Set_Color(Color.Green);
                 User_Set_Width_Or_Radius(fSize);
                 User_Set_Offset_Translation(0, fLength, 0);
                 User_Add();
 
-                User_Set_Model("#20");
+                User_Set_Model(strModel_Ball);
                 User_Set_Color(Color.Blue);
                 User_Set_Width_Or_Radius(fSize);
                 User_Set_Offset_Translation(0, 0, fLength);
@@ -2943,15 +2958,25 @@ namespace OpenJigWare
                             {
                                 strFile = strFile.Substring(1);
                             }
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : "");
+#else
                             String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+#endif
                             
                             FileInfo f = new FileInfo(strFileName);
                             if (f.Exists == true)
                             {
                                 if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                     OjwFileOpen_3D_ASE(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
+                                    OjwFileOpen_3D_SSTL(strFileName);
                                 else if (CFile.GetExe(strFileName).ToUpper() == "STL")
                                     OjwFileOpen_3D_STL(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
+                                    OjwFileOpen_3D_Dat(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "OBJ")
+                                    OjwFileOpen_3D_OBJ(strFileName);
                             }
 #else
                             String strFileName = Application.StartupPath + "\\" + GetAseFile_Path() + CDisp.strDispObject + ".ase";
@@ -4262,6 +4287,11 @@ namespace OpenJigWare
             public COjwDesignerHeader m_CHeader = new COjwDesignerHeader();
             private const int _SIZE_MAX_MOT = 256;
             private float[] m_afMot = new float[_SIZE_MAX_MOT];
+            private SAngle3D_t[] m_pSRot = new SAngle3D_t[_SIZE_MAX_MOT];
+            //private CTimer[] m_pSTmrTrack = new CTimer[_SIZE_MAX_MOT];
+            private CTimer m_CTmrDraw = new CTimer();
+            private long m_lTmrTrack = 0;
+            private float[] m_afTrack = new float[_SIZE_MAX_MOT];
             public float CalcLimit(int nMot, float fValue) 
             {
                 try
@@ -4565,10 +4595,20 @@ namespace OpenJigWare
                 // DataFileOpen 과 같으나 MotionEditor 테이블 없이 파일만 로딩
                 public bool BinaryFileOpen(String strFileName, out SMotion_t SMotion) 
                 {
+                    for (int nID = 0; nID < _SIZE_MAX_MOT; nID++)
+                    {
+                        m_pSRot[nID].pan = 0.0f;
+                        m_pSRot[nID].tilt = 0.0f;
+                        m_pSRot[nID].swing = 0.0f;
+                        //m_pSTmrTrack[nID].Set();
+                    }
+
                     //SMotion.nCount = 0;
                     SMotion.strTableName = String.Empty;
-                    SMotion.strFileName = strFileName;                  
- 
+                    SMotion.strFileName = strFileName;
+
+                    SMotion.strVersion = String.Empty;
+                    SMotion.strComment = String.Empty;
                     SMotion.nStartPosition = 0;
                     SMotion.nFrameSize = 0;
                     SMotion.nCommentSize = 0;
@@ -4612,11 +4652,14 @@ namespace OpenJigWare
                         strTmp += (char)byteData[3];
                         strTmp += (char)byteData[4];
                         strTmp += (char)byteData[5];
-                    
+                        SMotion.strVersion = strTmp;
+
+                        int nPos = 6;   // 앞의 6개는 Version ['DMT1.0~2'] 에 할당
+
                         if (strTmp.ToUpper() == _STR_EXT.ToUpper() + _STR_VER_V_10)
                         {
                             #region FileOpen V1.0
-                            int nPos = 6;   // 앞의 6개는 'DMT1.0' 에 할당
+                            //int nPos = 6;   // 앞의 6개는 'DMT1.0' 에 할당
 
                             #region Header
 
@@ -4647,7 +4690,7 @@ namespace OpenJigWare
                             SMotion.nRobotModelNum = (int)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
                             SMotion.nMotorCnt = (int)(byteData[nPos++]);
                             #endregion Size - MotionFrame, Comment, Caption, PlayTime
-
+                            
                             #endregion Header
 
                             // nRobotModelNum 를 읽고 해당 파일을 읽어들인다.
@@ -4711,8 +4754,8 @@ namespace OpenJigWare
                                         if ((sData & 0x800) != 0) sData -= 0x1000;
                                         
                                         SMotion.STable[j].anLed[nAxis] = (int)((nData >> 12) & 0x07);
-                                        SMotion.STable[j].abEn[nAxis] = (bool)(((nData & 0x8000) != 0) ? true : false);
-                                        SMotion.STable[j].abType[nAxis] = (bool)((sData == 0x7ff) ? false : true);
+                                        SMotion.STable[j].abType[nAxis] = (bool)(((nData & 0x8000) != 0) ? true : false);
+                                        SMotion.STable[j].abEn[nAxis] = (bool)((sData == 0x7ff) ? false : true);
 
                                         if (sData == 0x7ff)
                                             SMotion.STable[j].anMot[nAxis] = 0;//0.0f;
@@ -4760,7 +4803,7 @@ namespace OpenJigWare
                                 #endregion 추가한 Frame 위치 및 자세
                             }
                             #endregion 실제 모션
-#if false
+#if true
                             string strData_ME = "";
                             string strData_FE = "";
 
@@ -4770,10 +4813,11 @@ namespace OpenJigWare
 
                             #region Comment Data
                             // Comment
-                            byte[] pstrComment = new byte[nCommentSize];
-                            for (j = 0; j < nCommentSize; j++)
+                            byte[] pstrComment = new byte[SMotion.nCommentSize];
+                            for (j = 0; j < SMotion.nCommentSize; j++)
                                 pstrComment[j] = (byte)(byteData[nPos++]);
                             m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            SMotion.strComment = m_strMotionFile_Comment;
                             pstrComment = null;
                             #endregion Comment Data
 
@@ -4781,7 +4825,7 @@ namespace OpenJigWare
                             int nLineNum = 0;
                             string strLineComment;
                             byte[] byLine = new byte[46];
-                            for (j = 0; j < nCnt_LineComment; j++)
+                            for (j = 0; j < SMotion.nCnt_LineComment; j++)
                             {
                                 nLineNum = (short)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
                                 for (int k = 0; k < 46; k++)
@@ -4804,7 +4848,7 @@ namespace OpenJigWare
                         else if (strTmp.ToUpper() == _STR_EXT.ToUpper() + _STR_VER_V_11)
                         {
                             #region FileOpen V1.1
-                            int nPos = 6;   // 앞의 6개는 'DMT1.0' 에 할당
+                            //int nPos = 6;   // 앞의 6개는 'DMT1.0' 에 할당
 
                             #region Header
 
@@ -4986,7 +5030,7 @@ namespace OpenJigWare
                                 #endregion 추가한 Frame 위치 및 자세
                             }
                             #endregion 실제 모션
-#if false
+#if true
                             string strData_ME = "";
                             string strData_FE = "";
 
@@ -4996,10 +5040,11 @@ namespace OpenJigWare
 
                             #region Comment Data
                             // Comment
-                            byte[] pstrComment = new byte[nCommentSize];
-                            for (j = 0; j < nCommentSize; j++)
+                            byte[] pstrComment = new byte[SMotion.nCommentSize];
+                            for (j = 0; j < SMotion.nCommentSize; j++)
                                 pstrComment[j] = (byte)(byteData[nPos++]);
                             m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            SMotion.strComment = m_strMotionFile_Comment;
                             pstrComment = null;
                             #endregion Comment Data
 
@@ -5007,7 +5052,7 @@ namespace OpenJigWare
                             int nLineNum = 0;
                             string strLineComment;
                             byte[] byLine = new byte[46];
-                            for (j = 0; j < nCnt_LineComment; j++)
+                            for (j = 0; j < SMotion.nCnt_LineComment; j++)
                             {
                                 nLineNum = (short)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
                                 for (int k = 0; k < 46; k++)
@@ -5037,7 +5082,7 @@ namespace OpenJigWare
                         else if (strTmp.ToUpper() == _STR_EXT.ToUpper() + _STR_VER_V_12)
                         {
                             #region FileOpen V1.2
-                            int nPos = 6;   // 앞의 6개는 'DMT1.2' 에 할당
+                            //int nPos = 6;   // 앞의 6개는 'DMT1.2' 에 할당
 
                             #region Header
 
@@ -5205,7 +5250,7 @@ namespace OpenJigWare
                                 #endregion 추가한 Frame 위치 및 자세
                             }
                             #endregion 실제 모션
-#if false
+#if true
                             string strData_ME = "";
                             string strData_FE = "";
 
@@ -5215,10 +5260,11 @@ namespace OpenJigWare
 
                             #region Comment Data
                             // Comment
-                            byte[] pstrComment = new byte[nCommentSize];
-                            for (j = 0; j < nCommentSize; j++)
+                            byte[] pstrComment = new byte[SMotion.nCommentSize];
+                            for (j = 0; j < SMotion.nCommentSize; j++)
                                 pstrComment[j] = (byte)(byteData[nPos++]);
                             m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            SMotion.strComment = m_strMotionFile_Comment;
                             pstrComment = null;
                             #endregion Comment Data
 
@@ -5226,7 +5272,7 @@ namespace OpenJigWare
                             int nLineNum = 0;
                             string strLineComment;
                             byte[] byLine = new byte[46];
-                            for (j = 0; j < nCnt_LineComment; j++)
+                            for (j = 0; j < SMotion.nCnt_LineComment; j++)
                             {
                                 nLineNum = (short)(byteData[nPos] + byteData[nPos + 1] * 256); nPos += 2;
                                 for (int k = 0; k < 46; k++)
@@ -5258,7 +5304,19 @@ namespace OpenJigWare
                         }
                         ////////////////////////////////////////////////////////////////////////////
 
-                        if (bFileOpened == true) return true;
+                        if (bFileOpened == true)
+                        {
+                            #region Comment Data
+                            // Comment
+                            byte[] pstrComment = new byte[SMotion.nCommentSize];
+                            for (j = 0; j < SMotion.nCommentSize; j++)
+                                pstrComment[j] = (byte)(byteData[nPos++]);
+                            m_strMotionFile_Comment = System.Text.Encoding.Default.GetString(pstrComment);
+                            pstrComment = null;
+                            #endregion Comment Data
+
+                            return true;
+                        }
                         return false;
                     }
                     catch
@@ -6512,21 +6570,21 @@ namespace OpenJigWare
                             #endregion V1.0
                         }
                         else if (nFileVersion == _V_11) //#else
-                    {
-                        #region V1.1
-                        String _STR_EXT = "DMT";
-                        String _STR_VER = "1.1";
-                        //bool bOpen = false;
-                        
-                        FileInfo f = new FileInfo(strFileName);
-                        FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
-
-                        try
                         {
-                            // 스트림 버퍼를 비운다.
-                            fs.Flush();
+                            #region V1.1
+                            String _STR_EXT = "DMT";
+                            String _STR_VER = "1.1";
+                            //bool bOpen = false;
+                        
+                            FileInfo f = new FileInfo(strFileName);
+                            FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
 
-                            #region 식별코드 부여(6)
+                            try
+                            {
+                                // 스트림 버퍼를 비운다.
+                                fs.Flush();
+
+                                                            #region 식별코드 부여(6)
                             fs.WriteByte((byte)(char.ToUpper(_STR_EXT[0])));
                             fs.WriteByte((byte)(char.ToUpper(_STR_EXT[1])));
                             fs.WriteByte((byte)(char.ToUpper(_STR_EXT[2])));
@@ -6535,7 +6593,7 @@ namespace OpenJigWare
                             fs.WriteByte((byte)(char.ToUpper(_STR_VER[2])));
                             #endregion 식별코드 부여(6)
 
-                            #region Title - 21 Char
+                                                                        #region Title - 21 Char
                             // Name
                             byte[] byteName = Encoding.Default.GetBytes(m_strMotionFile_TableName);// Encoding.ASCII.GetBytes(txtTableName.Text);
                             for (i = 0; i < 20; i++)
@@ -6547,25 +6605,25 @@ namespace OpenJigWare
                             fs.WriteByte(0);
                             #endregion Title - 21 Char
 
-                            #region 시작자세(1)
+                                                    #region 시작자세(1)
                             // 시작자세
                             int nStartPosition = (int)(m_nMotionFile_StartPosition);
                             //m_nMotionFile_StartPosition = (((cmbStartPosition.Items.Count > nStartPosition) && (nStartPosition > 0)) ? nStartPosition : 0);
                             fs.WriteByte((byte)(m_nMotionFile_StartPosition & 0xff));
                             #endregion 시작자세(1)
 
-                            short sData;
-                            // 프레임 수(모션)
-                            string strLineComment;
+                                short sData;
+                                // 프레임 수(모션)
+                                string strLineComment;
 
-                            #region 모션의 프레임 수(2)
+                                                #region 모션의 프레임 수(2)
                             byte[] byteData = BitConverter.GetBytes((short)nCntLine);
                             fs.Write(byteData, 0, 2);
                             byteData = null;
                             #endregion 모션의 프레임 수(2)
 
-                            // 문자열 수(Comment)
-                            #region Comment 글자 수(2)
+                                // 문자열 수(Comment)
+                                                                #region Comment 글자 수(2)
                             byte[] byteComment = Encoding.Default.GetBytes(m_strMotionFile_Comment);
                             sData = (short)(byteComment.Length);
 
@@ -6576,30 +6634,30 @@ namespace OpenJigWare
                             byteData = null;
                             #endregion Comment 글자 수(2)
 
-                            #region 라인 주석(캡션)의 줄 수(2)
+                                                    #region 라인 주석(캡션)의 줄 수(2)
                             //// Line Comment ////// 라인 주석의 줄 수
                             byteData = BitConverter.GetBytes((short)nCnt_LineComment);
                             fs.Write(byteData, 0, 2);
                             byteData = null;
                             #endregion 라인 주석(캡션)의 줄 수(2)
 
-                            #region 프레임 실행시간 저장(4)
+                                                    #region 프레임 실행시간 저장(4)
                             long lTime = Grid_CalcTimer(m_nLastStreamNum);// / 10;
                             byteData = BitConverter.GetBytes((Int32)lTime);
                             fs.Write(byteData, 0, 4);
                             byteData = null;
                             #endregion 프레임 실행시간 저장(4)
-                            //////////////////////
-                            #region 로봇 모델 번호(타입) 저장(2)
+                                //////////////////////
+                                                #region 로봇 모델 번호(타입) 저장(2)
                             byteData = BitConverter.GetBytes((Int16)m_CHeader.nModelNum);
                             fs.Write(byteData, 0, 2);
                             byteData = null;
                             #endregion 로봇 모델 번호(타입) 저장(2)
-                            #region 모터의 총 갯수 저장(1)
+                                        #region 모터의 총 갯수 저장(1)
                             fs.WriteByte((byte)(m_CHeader.nMotorCnt & 0xff));
                             #endregion 모터의 총 갯수 저장(1)
 
-                            #region 실 프레임 저장
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        #region 실 프레임 저장
                             // Motion
                             float fValue;
                             bool bEn, bCaption;
@@ -6733,17 +6791,17 @@ namespace OpenJigWare
                             }
                             #endregion
 
-                            fs.WriteByte((byte)('M'));
-                            fs.WriteByte((byte)('E'));
+                                fs.WriteByte((byte)('M'));
+                                fs.WriteByte((byte)('E'));
 
-                            #region Comment
+                                                    #region Comment
                             // Comment
                             for (int k = 0; k < byteComment.Length; k++) fs.WriteByte(byteComment[k]);
                             // 널 종료문자
                             if (byteComment.Length > 0) fs.WriteByte(0);
                             #endregion
 
-                            #region Caption 저장
+                                                                                                                                            #region Caption 저장
                             // Caption Size
                             int nSize_Caption = 46;
                             // Caption
@@ -6774,43 +6832,43 @@ namespace OpenJigWare
                             #endregion
 
 
-                            fs.WriteByte((byte)('F'));
-                            fs.WriteByte((byte)('E'));
+                                fs.WriteByte((byte)('F'));
+                                fs.WriteByte((byte)('E'));
 
-                            fs.Close();
-                            f = null;
-                            if (m_bAutoSaved == false) Modify(false);
+                                fs.Close();
+                                f = null;
+                                if (m_bAutoSaved == false) Modify(false);
 
-                            byteName = null;
-                            byteComment = null;
+                                byteName = null;
+                                byteComment = null;
 
-                            bRet = true;
-                        }
-                        catch
+                                bRet = true;
+                            }
+                            catch
+                            {
+                                fs.Close();
+                                f = null;
+
+                                bRet = false;
+                            }
+                            #endregion V1.1
+                        }//#endif
+                        else if (nFileVersion == _V_12)
                         {
-                            fs.Close();
-                            f = null;
-
-                            bRet = false;
-                        }
-                        #endregion V1.1
-                    }//#endif
-                    else if (nFileVersion == _V_12)
-                    {
-                        #region V1.2
-                        String _STR_EXT = "DMT";
-                        String _STR_VER = "1.2";
-                        //bool bOpen = false;
+                            #region V1.2
+                            String _STR_EXT = "DMT";
+                            String _STR_VER = "1.2";
+                            //bool bOpen = false;
                         
-                        FileInfo f = new FileInfo(strFileName);
-                        FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
+                            FileInfo f = new FileInfo(strFileName);
+                            FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
 
-                        try
-                        {
-                            // 스트림 버퍼를 비운다.
-                            fs.Flush();
+                            try
+                            {
+                                // 스트림 버퍼를 비운다.
+                                fs.Flush();
 
-                            #region 식별코드 부여(6)
+                                                            #region 식별코드 부여(6)
                             fs.WriteByte((byte)(char.ToUpper(_STR_EXT[0])));
                             fs.WriteByte((byte)(char.ToUpper(_STR_EXT[1])));
                             fs.WriteByte((byte)(char.ToUpper(_STR_EXT[2])));
@@ -6819,7 +6877,7 @@ namespace OpenJigWare
                             fs.WriteByte((byte)(char.ToUpper(_STR_VER[2])));
                             #endregion 식별코드 부여(6)
 
-                            #region Title - 21 Char
+                                                                        #region Title - 21 Char
                             // Name
                             byte[] byteName = Encoding.Default.GetBytes(m_strMotionFile_TableName);// Encoding.ASCII.GetBytes(txtTableName.Text);
                             for (i = 0; i < 20; i++)
@@ -6831,25 +6889,25 @@ namespace OpenJigWare
                             fs.WriteByte(0);
                             #endregion Title - 21 Char
 
-                            #region 시작자세(1)
+                                                    #region 시작자세(1)
                             // 시작자세
                             int nStartPosition = (int)(m_nMotionFile_StartPosition);
                             //m_nMotionFile_StartPosition = (((cmbStartPosition.Items.Count > nStartPosition) && (nStartPosition > 0)) ? nStartPosition : 0);
                             fs.WriteByte((byte)(m_nMotionFile_StartPosition & 0xff));
                             #endregion 시작자세(1)
 
-                            short sData;
-                            // 프레임 수(모션)
-                            string strLineComment;
+                                short sData;
+                                // 프레임 수(모션)
+                                string strLineComment;
 
-                            #region 모션의 프레임 수(2) - 모션의 프레임만 체크, 캡션은 따로 체크한다.
+                                                #region 모션의 프레임 수(2) - 모션의 프레임만 체크, 캡션은 따로 체크한다.
                             byte[] byteData = BitConverter.GetBytes((short)nCntLine);
                             fs.Write(byteData, 0, 2);
                             byteData = null;
                             #endregion 모션의 프레임 수(2) - 모션의 프레임만 체크, 캡션은 따로 체크한다.
 
-                            // 문자열 수(Comment)
-                            #region Comment 글자 수(2)
+                                // 문자열 수(Comment)
+                                                                #region Comment 글자 수(2)
                             byte[] byteComment = Encoding.Default.GetBytes(m_strMotionFile_Comment);
                             sData = (short)(byteComment.Length);
 
@@ -6860,70 +6918,70 @@ namespace OpenJigWare
                             byteData = null;
                             #endregion Comment 글자 수(2)
 
-                            #region 라인 주석(캡션)의 줄 수(2) - 여기서 연산해야할 최대 프레임 수를 계산한다.
-                            //// Line Comment ////// 라인 주석의 줄 수
-                            nCnt_LineComment = 0;
+                                #region 라인 주석(캡션)의 줄 수(2) - 여기서 연산해야할 최대 프레임 수를 계산한다.
+                                //// Line Comment ////// 라인 주석의 줄 수
+                                nCnt_LineComment = 0;
 
-                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
-                            {
-                                i = anFrameNum[nFrameNum];
-                                //////////////////////////////////
-#if false
-                        strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                                {
+                                    i = anFrameNum[nFrameNum];
+                                    //////////////////////////////////
+    #if false
+                                    strLineComment = m_CGridMotionEditor.GetCaption(i);
                         if (strLineComment.Trim() != "") // 주석
                             nCnt_LineComment++;
-#else
+    #else
 
-                                strLineComment = m_CGridMotionEditor.GetCaption(i);
-                                if (strLineComment.Trim() != "") // 주석
-                                {
-                                    nCnt_LineComment++;
-                                    //nFrameSize++;
+                                    strLineComment = m_CGridMotionEditor.GetCaption(i);
+                                    if (strLineComment.Trim() != "") // 주석
+                                    {
+                                        nCnt_LineComment++;
+                                        //nFrameSize++;
+                                    }
+                                    //else
+                                    //{
+                                    //    sData = (short)COjwConvert.BoolToInt(m_CGridMotionEditor.GetEnable(i)); // En
+                                    //    if (sData != 0) nFrameSize++; // En
+                                    //}
+    #endif
+
                                 }
-                                //else
-                                //{
-                                //    sData = (short)COjwConvert.BoolToInt(m_CGridMotionEditor.GetEnable(i)); // En
-                                //    if (sData != 0) nFrameSize++; // En
-                                //}
-#endif
+                                byteData = BitConverter.GetBytes((short)nCnt_LineComment);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                                #endregion 라인 주석(캡션)의 줄 수(2) - 여기서 연산해야할 최대 프레임 수를 계산한다.
 
-                            }
-                            byteData = BitConverter.GetBytes((short)nCnt_LineComment);
-                            fs.Write(byteData, 0, 2);
-                            byteData = null;
-                            #endregion 라인 주석(캡션)의 줄 수(2) - 여기서 연산해야할 최대 프레임 수를 계산한다.
-
-                            #region 프레임 실행시간 저장(4)
+                                                    #region 프레임 실행시간 저장(4)
                             long lTime = Grid_CalcTimer(m_nLastStreamNum);// / 10;
                             byteData = BitConverter.GetBytes((Int32)lTime);
                             fs.Write(byteData, 0, 4);
                             byteData = null;
                             #endregion 프레임 실행시간 저장(4)
-                            //////////////////////
-                            #region 로봇 모델 번호(타입) 저장(2)
+                                //////////////////////
+                                                #region 로봇 모델 번호(타입) 저장(2)
                             byteData = BitConverter.GetBytes((Int16)m_CHeader.nModelNum);
                             fs.Write(byteData, 0, 2);
                             byteData = null;
                             #endregion 로봇 모델 번호(타입) 저장(2)
-                            #region 모터의 총 갯수 저장(1)
+                                        #region 모터의 총 갯수 저장(1)
                             fs.WriteByte((byte)(m_CHeader.nMotorCnt & 0xff));
                             #endregion 모터의 총 갯수 저장(1)
 
-                            #region 모터의 ID 저장(1)
+                                                    #region 모터의 ID 저장(1)
                             for (i = 0; i < m_CHeader.nMotorCnt; i++)
                             {
                                 fs.WriteByte((byte)(m_CHeader.pSMotorInfo[i].nMotorID & 0xff));
                             }
                             #endregion 모터의 ID 저장(1)
 
-                            #region 모터의 Mirror ID 저장(1)
+                                                    #region 모터의 Mirror ID 저장(1)
                             for (i = 0; i < m_CHeader.nMotorCnt; i++)
                             {
                                 fs.WriteByte((byte)(m_CHeader.pSMotorInfo[i].nAxis_Mirror & 0xff));
                             }
                             #endregion 모터의 Mirror ID 저장(1)
 
-                            #region 실 프레임 저장
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    #region 실 프레임 저장
                             // Motion
                             float fValue;
                             bool bEn, bCaption;
@@ -7085,17 +7143,17 @@ namespace OpenJigWare
                             }
                             #endregion
 
-                            fs.WriteByte((byte)('M'));
-                            fs.WriteByte((byte)('E'));
+                                fs.WriteByte((byte)('M'));
+                                fs.WriteByte((byte)('E'));
 
-                            #region Comment
+                                                    #region Comment
                             // Comment
                             for (int k = 0; k < byteComment.Length; k++) fs.WriteByte(byteComment[k]);
                             // 널 종료문자
                             if (byteComment.Length > 0) fs.WriteByte(0);
                             #endregion
 
-                            #region Caption 저장
+                                                                                                                                            #region Caption 저장
                             // Caption Size
                             int nSize_Caption = 46;
                             // Caption
@@ -7126,28 +7184,28 @@ namespace OpenJigWare
                             #endregion
 
 
-                            fs.WriteByte((byte)('F'));
-                            fs.WriteByte((byte)('E'));
+                                fs.WriteByte((byte)('F'));
+                                fs.WriteByte((byte)('E'));
 
-                            fs.Close();
-                            f = null;
-                            if (m_bAutoSaved == false) Modify(false);
+                                fs.Close();
+                                f = null;
+                                if (m_bAutoSaved == false) Modify(false);
 
-                            byteName = null;
-                            byteComment = null;
+                                byteName = null;
+                                byteComment = null;
 
-                            bRet = true;
+                                bRet = true;
+                            }
+                            catch
+                            {
+                                //Message("파일 저장 에러");
+                                fs.Close();
+                                f = null;
+
+                                bRet = false;
+                            }
+                            #endregion V1.2
                         }
-                        catch
-                        {
-                            //Message("파일 저장 에러");
-                            fs.Close();
-                            f = null;
-
-                            bRet = false;
-                        }
-                        #endregion V1.2
-                    }
                     }
                     catch (Exception ex)
                     {
@@ -7752,6 +7810,7 @@ namespace OpenJigWare
                                 //OjwVirtualDisp.SOffset_Trans = SVec;
                                 //m_CPropAll.SOffset_Trans = SVec;//SOffset_Trans(SVec);
                                 #endregion Offset Translation X ~ Z
+                                OjwDraw();
                             }
                             else if ((GetMouseMode() >= 7) && (GetMouseMode() <= 9))
                             {
@@ -7788,6 +7847,7 @@ namespace OpenJigWare
                                 Prop_Update_VirtualObject();
 
                                 #endregion Offset Rotation X ~ Z
+                                OjwDraw();
                             }
                             else if ((GetMouseMode() >= 10) && (GetMouseMode() <= 12))
                             {
@@ -7835,6 +7895,7 @@ namespace OpenJigWare
                                 //OjwVirtualDisp.SOffset_Trans = SVec;
                                 //m_CPropAll.SOffset_Trans = SVec;//SOffset_Trans(SVec);
                                 #endregion Offset Translation X ~ Z
+                                OjwDraw();
                             }
                             else if ((GetMouseMode() >= 13) && (GetMouseMode() <= 15))
                             {
@@ -7871,6 +7932,7 @@ namespace OpenJigWare
                                 Prop_Update_VirtualObject();
 
                                 #endregion Rotation X ~ Z
+                                OjwDraw();
                             }
 
                             //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
@@ -7913,7 +7975,7 @@ namespace OpenJigWare
                         else
                         {
                         }
-                        OjwDraw();
+                        //OjwDraw();
                     }
                 }
 #if false
@@ -8072,6 +8134,13 @@ namespace OpenJigWare
                 public C3d()//CCsgl()
                     : base()
                 {
+                    // 변수 초기화
+                    for (int i = 0; i < _SIZE_MAX_MOT; i++)
+                    {
+                        m_pSRot[i] = new SAngle3D_t();
+                        //m_pSTmrTrack[i] = new CTimer();
+                    }
+
                     // 디자인 파일 오픈 경로 설정
                     m_strDesignerFilePath = Application.StartupPath + "\\";
 
@@ -8485,7 +8554,7 @@ namespace OpenJigWare
                         m_fColor_Back[2] = ((float)(m_BackColor.B) / 255.0f);  // B
                         Gl.glClearColor(m_fColor_Back[0], m_fColor_Back[1], m_fColor_Back[2], 1.0f);
                         //Gl.glLoadIdentity();
-                    }
+                    }                    
                 }
                 #endregion glDraw_Ready()
                 #region Grid For Draw
@@ -8656,7 +8725,7 @@ namespace OpenJigWare
                 private Button[,] m_pbtnLed;
                 private Button[] m_pbtnType;
                 private Button[] m_pbtnEnable;
-                private int[,] m_pnFlag;
+                public int[,] m_pnFlag;
                 private struct SFlag_t
                 {
                     List<int> nLed;
@@ -10871,15 +10940,18 @@ namespace OpenJigWare
                         for (int j = 0; j < m_CHeader.nMotorCnt; j++)
                         {
                             //nMotPos = j + 1;
+                            int nMax = m_pnFlag.GetLength(0);
+                            if (i < nMax)
+                            {
+                                m_pnFlag[i, j] = (int)(
+                                    0x10 | // Enable
+                                    ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// 위치제어가 아니라면 //0x08 //| // MotorType
+                                    //0x07 // Led
+                                    );
 
-                            m_pnFlag[i, j] = (int)(
-                                0x10 | // Enable
-                                ((m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// 위치제어가 아니라면 //0x08 //| // MotorType
-                                //0x07 // Led
-                                );
-
-                            CheckFlag(i);
-                            m_CGridMotionEditor.GetHandle().Rows[i].Cells[j].Style.ForeColor = Color.Black;
+                                CheckFlag(i);
+                                m_CGridMotionEditor.GetHandle().Rows[i].Cells[j].Style.ForeColor = Color.Black;
+                            }
                         }
                     }
                 }
@@ -11174,6 +11246,24 @@ namespace OpenJigWare
                 private Mutex m_mtxDraw = new Mutex();
                 delegate void Ctrl_Involk(float[] afData, COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit);
 
+                private int m_nSeq_Pick = 0;
+                private int m_nSeq_Pick_Back = 0;
+                public bool GetEvent_Pick()
+                {
+                    if (m_nSeq_Pick_Back != m_nSeq_Pick)
+                    {
+                        m_nSeq_Pick_Back = m_nSeq_Pick;
+                        return true;
+                    }
+                    return false;
+                }
+                public void GetEvent_Pick_Data(out int nGroup, out int nMotor, out int nServeGroup, out int nKinematicsNum)
+                {
+                    nGroup = m_anSelectedGroup[0];
+                    nMotor = m_anSelectedGroup[1];
+                    nServeGroup = m_anSelectedGroup[2];
+                    nKinematicsNum = m_nSelected_InverseKinematicsNumber;
+                }
                 public void OjwDraw(float[] afData, COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
                     if (afData == null) { nGroupA = 0; nGroupB = 0; nGroupC = 0; nInverseKinematicsNumber = 0; bPick = false; bLimit = false; return; }
@@ -11437,6 +11527,10 @@ namespace OpenJigWare
                             if (IsVirtualClass() == true) nCnt++;
 
                             InitPosAngle();
+                            
+                            // 한번 다 그리면 타이머 갱신
+                            m_lTmrTrack = m_CTmrDraw.Get();
+                            m_CTmrDraw.Set(); //m_lTmrTrack = 0;
 
                             #region Main Drawing
                             //for (i = 0; i < OjwDispAll.GetCount(); i++)
@@ -11550,6 +11644,10 @@ namespace OpenJigWare
                                                 }
                                             }
                                         }
+
+
+                                        //////////////
+                                        m_nSeq_Pick++;
                                     }
 
                                 }
@@ -11626,11 +11724,17 @@ namespace OpenJigWare
                                 {
                                     bool bAse = false;
                                     if (
+                                        (pstrItem[i].ToUpper().IndexOf(".SSTL") < 0) &&
                                         (pstrItem[i].ToUpper().IndexOf(".STL") < 0) &&
                                         (pstrItem[i].ToUpper().IndexOf(".ASE") < 0) &&
+                                        (pstrItem[i].ToUpper().IndexOf(".DAT") < 0) &&
                                         (pstrItem[i].ToUpper().IndexOf(".OBJ") < 0)
                                         ) bAse = true;
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                                    strMessage += pstrItem[i] + ((bAse == true) ? ".DAT" : "") + ",";
+#else
                                     strMessage += pstrItem[i] + ((bAse == true) ? ".ASE" : "") + ",";
+#endif
                                     nCnt++;
                                 }
                             }
@@ -11799,7 +11903,7 @@ namespace OpenJigWare
 
                         SetScale(fScale);
                         glDraw_Ready();
-
+                        
                         // Display Axis(Kor: 축 표시)
                         if ((nDrawNum == 3) || (nDrawNum == 4))
                         {
@@ -12816,6 +12920,8 @@ namespace OpenJigWare
                 //CTimer m_CTId_Tilt = new CTimer();
                 //CTimer m_CTId_Swing = new CTimer();
                 //private 
+
+                private float m_fTrackDisplay_Rot_Limit = 360.0f;
                 private float m_fPanDisplay_Rot_Limit = 360.0f;
                 private float m_fTiltDisplay_Rot_Limit = 360.0f;
                 private float m_fSwingDisplay_Rot_Limit = 360.0f;
@@ -12841,6 +12947,7 @@ namespace OpenJigWare
                     //m_anSelectedGroup[2] = nGroupC;
                 } // -1을 넣으면 선택 안함
                 public void SelectInverseKinematics(int nNum) { m_nSelectedInverseKinematics = nNum; m_nSelectedMotor = -1; } // -1을 넣으면 선택 안함
+                private float m_fTest = (float)Math.PI / 2.0f;
                 public void OjwDraw_Class(COjwDisp OjwDisp)
                 {                    
                     // 0x 1111 1111(Formular group)   1111 1111(group A) 1 1111 1111(group B(0~255:motor, 256~511:etc group))  111 1111(group C(0~127))
@@ -13000,7 +13107,7 @@ namespace OpenJigWare
                     SRot.pan = ((OjwDisp.nAxisMoveType == 6) ? OjwDisp.fAngle : 0) * (int)Math.Pow(-1, OjwDisp.nDir);
                     SRot.tilt = ((OjwDisp.nAxisMoveType == 7) ? OjwDisp.fAngle : 0) * (int)Math.Pow(-1, OjwDisp.nDir);
                     SRot.swing = ((OjwDisp.nAxisMoveType == 8) ? OjwDisp.fAngle : 0) * (int)Math.Pow(-1, OjwDisp.nDir);
-
+                    
                     if (OjwDisp.nAxisMoveType < 3)
                     {
                         // val2 = val % 60000
@@ -13025,6 +13132,8 @@ namespace OpenJigWare
                     {
                         OjwTranslate(SVector.x, SVector.y, SVector.z);
 
+                        #region 클릭하면 축이 나타나게...
+#if false
                         if (bPicked == true)
                         {
                             float fThick = 10.0f;
@@ -13033,6 +13142,8 @@ namespace OpenJigWare
                             Axis_Y(true, Color.Green, 1.0f, fThick, fLength);
                             Axis_Z(true, Color.Blue, 1.0f, fThick, fLength);
                         }
+#endif
+                        #endregion 클릭하면 축이 나타나게...
                     }
                     else if (OjwDisp.nAxisMoveType == 10) // 트랙 전용 ( 각도 회전 )
                     {
@@ -13040,8 +13151,28 @@ namespace OpenJigWare
                     }
                     else if (OjwDisp.nAxisMoveType == 11) // 트랙 전용 ( RPM 회전 )
                     {
-                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
-                        fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+                        if (OjwDisp.nPickGroup_A > 0)// && (m_lTmrTrack == 0)) //if (OjwDisp.GetData_AxisName() >= 0)
+                        {
+                            float fAngle = GetData(OjwDisp.nPickGroup_B);
+                            fTrackValue = (fAngle * (int)Math.Pow(-1, OjwDisp.nDir + 1));
+
+#if _RPM_TEST
+                            fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+#else
+                            //if (OjwDisp.strDispObject.IndexOf('!') == 1) // Track Axis
+                            //{
+                                //long lTmr = m_CTmrDraw.Get();
+                                //if (lTmr != 0) m_lTmrTrack = lTmr;
+                                float fTmr = (float)m_lTmrTrack;
+                                fTrackValue = fTmr * fTrackValue * 360.0f * m_fTest / 1000.0f;//fTrackValue = (float)(m_CTmrDraw.Get() % 60000) * fTrackValue * 360.0f / 1000.0f;
+                                //OjwDisp.fAngle = 0.0f;
+                                m_afTrack[OjwDisp.nPickGroup_B] = (m_afTrack[OjwDisp.nPickGroup_B] + fTrackValue);
+                                if (m_fTrackDisplay_Rot_Limit != 0.0f) m_afTrack[OjwDisp.nPickGroup_B] %= m_fTrackDisplay_Rot_Limit;
+                                fTrackValue = m_afTrack[OjwDisp.nPickGroup_B];
+                            //}
+                            //else fTrackValue = m_fTrackValue;
+#endif
+                        }
                     }
                     else if (OjwDisp.nAxisMoveType == 12) // 트랙 stack('?') 전용 ( 각도 회전 위 )
                     {
@@ -13055,27 +13186,97 @@ namespace OpenJigWare
                     }
                     else if (OjwDisp.nAxisMoveType == 14) // 트랙 stack('?') 전용 ( RPM 회전 위 )
                     {
-                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
-                        fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+                        if (OjwDisp.nPickGroup_A > 0)// && (m_lTmrTrack == 0)) //if (OjwDisp.GetData_AxisName() >= 0)
+                        {
+                            float fAngle = GetData(OjwDisp.nPickGroup_B);
+                            fTrackValue = (fAngle * (int)Math.Pow(-1, OjwDisp.nDir + 1));
+#if _RPM_TEST
+                            fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+#else
+                            //if (OjwDisp.strDispObject.IndexOf('!') == 1) // Track Axis
+                            //{
+                                //long lTmr = m_CTmrDraw.Get();
+                                //if (lTmr != 0) m_lTmrTrack = lTmr;
+                                float fTmr = (float)m_lTmrTrack;
+                                fTrackValue = fTmr * fTrackValue * 360.0f * m_fTest / 1000.0f;//fTrackValue = (float)(m_CTmrDraw.Get() % 60000) * fTrackValue * 360.0f / 1000.0f;
+                                //OjwDisp.fAngle = 0.0f;
+                                m_afTrack[OjwDisp.nPickGroup_B] = (m_afTrack[OjwDisp.nPickGroup_B] + fTrackValue);
+                                if (m_fTrackDisplay_Rot_Limit != 0.0f) m_afTrack[OjwDisp.nPickGroup_B] %= m_fTrackDisplay_Rot_Limit;
+                                fTrackValue = m_afTrack[OjwDisp.nPickGroup_B];
+                            //}
+                            //else fTrackValue = m_fTrackValue;
+#endif
+                        }
                         nTrackMode = 1; // 회전
                     }
                     else if (OjwDisp.nAxisMoveType == 15) // 트랙 stack('?') 전용 ( RPM 회전 아래 )
                     {
-                        fTrackValue = (OjwDisp.fAngle * (int)Math.Pow(-1, OjwDisp.nDir));
-                        fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+                        if (OjwDisp.nPickGroup_A > 0)// && (m_lTmrTrack == 0)) //if (OjwDisp.GetData_AxisName() >= 0)
+                        {
+                            float fAngle = GetData(OjwDisp.nPickGroup_B);
+                            fTrackValue = (fAngle * (int)Math.Pow(-1, OjwDisp.nDir + 1));
+#if _RPM_TEST
+                            fTrackValue = (float)(CTimer.GetCurrentTime() % 60000) * fTrackValue * 360.0f / 60000.0f;
+#else
+                            //if (OjwDisp.strDispObject.IndexOf('!') == 1) // Track Axis
+                            //{
+                                //long lTmr = m_CTmrDraw.Get();
+                                //if (lTmr != 0) m_lTmrTrack = lTmr;
+                                float fTmr = (float)m_lTmrTrack;
+                                fTrackValue = fTmr * fTrackValue * 360.0f * m_fTest / 1000.0f;//fTrackValue = (float)(m_CTmrDraw.Get() % 60000) * fTrackValue * 360.0f / 1000.0f;
+                                //OjwDisp.fAngle = 0.0f;
+                                m_afTrack[OjwDisp.nPickGroup_B] = (m_afTrack[OjwDisp.nPickGroup_B] + fTrackValue);
+                                if (m_fTrackDisplay_Rot_Limit != 0.0f) m_afTrack[OjwDisp.nPickGroup_B] %= m_fTrackDisplay_Rot_Limit;
+                                fTrackValue = m_afTrack[OjwDisp.nPickGroup_B];
+                            //}
+                            //else fTrackValue = m_fTrackValue;
+#endif
+                        }
                         nTrackMode = 2; // 회전
                     }
                     else // CW & CCW
                     {
-                        if (m_fPanDisplay_Rot_Limit != 0.0f) SRot.pan %= m_fPanDisplay_Rot_Limit;
-                        if (m_fTiltDisplay_Rot_Limit != 0.0f) SRot.tilt %= m_fTiltDisplay_Rot_Limit;
-                        if (m_fSwingDisplay_Rot_Limit != 0.0f) SRot.swing %= m_fSwingDisplay_Rot_Limit;
+                        // 속도 제어의 경우 이 값은 필요 없으니 삭제 한다.
+                        OjwDisp.fAngle = 0.0f;
+                        int nID = OjwDisp.GetData_AxisName();
+                        if (nID >= 0)
+                        {
+#if false//_RPM_TEST
+                            if (m_fPanDisplay_Rot_Limit != 0.0f) SRot.pan %= m_fPanDisplay_Rot_Limit;
+                            if (m_fTiltDisplay_Rot_Limit != 0.0f) SRot.tilt %= m_fTiltDisplay_Rot_Limit;
+                            if (m_fSwingDisplay_Rot_Limit != 0.0f) SRot.swing %= m_fSwingDisplay_Rot_Limit;
 
-                        SRot.pan = (float)(CTimer.GetCurrentTime() % 60000) * SRot.pan * 360.0f / 60000.0f;// (float)(((double)(SAngle.pan / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
-                        SRot.tilt = (float)(CTimer.GetCurrentTime() % 60000) * SRot.tilt * 360.0f / 60000.0f;// (float)(((double)(SAngle.tilt / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
-                        SRot.swing = (float)(CTimer.GetCurrentTime() % 60000) * SRot.swing * 360.0f / 60000.0f;// (float)(((double)(SAngle.swing / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            SRot.pan = (float)(CTimer.GetCurrentTime() % 60000) * SRot.pan * 360.0f / 60000.0f;// (float)(((double)(SAngle.pan / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            SRot.tilt = (float)(CTimer.GetCurrentTime() % 60000) * SRot.tilt * 360.0f / 60000.0f;// (float)(((double)(SAngle.tilt / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            SRot.swing = (float)(CTimer.GetCurrentTime() % 60000) * SRot.swing * 360.0f / 60000.0f;// (float)(((double)(SAngle.swing / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            OjwRotation(
+                                SRot.pan + SAngle_Offset.pan,
+                                SRot.tilt + SAngle_Offset.tilt,
+                                SRot.swing + SAngle_Offset.swing
+                                );
+#else                      
+                            // Rps / 1000 = 360 / 1000;
+                            SRot.pan = (float)(m_lTmrTrack) * SRot.pan * 360.0f / 1000.0f;// (float)(((double)(SAngle.pan / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            SRot.tilt = (float)(m_lTmrTrack) * SRot.tilt * 360.0f / 1000.0f;// (float)(((double)(SAngle.tilt / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            SRot.swing = (float)(m_lTmrTrack) * SRot.swing * 360.0f / 1000.0f;// (float)(((double)(SAngle.swing / 360.0) * (double)CTimer.GetCurrentTime() / 60000.0) % 360.0);
+                            
+                            m_pSRot[nID].pan = (m_pSRot[nID].pan + SRot.pan);
+                            m_pSRot[nID].tilt = (m_pSRot[nID].tilt + SRot.tilt);
+                            m_pSRot[nID].swing = (m_pSRot[nID].swing + SRot.swing);
 
-                        OjwRotation(SRot.pan + SAngle_Offset.pan, SRot.tilt + SAngle_Offset.tilt, SRot.swing + SAngle_Offset.swing);
+                            if (m_fPanDisplay_Rot_Limit != 0.0f) m_pSRot[nID].pan %= m_fPanDisplay_Rot_Limit;
+                            if (m_fTiltDisplay_Rot_Limit != 0.0f) m_pSRot[nID].tilt %= m_fTiltDisplay_Rot_Limit;
+                            if (m_fSwingDisplay_Rot_Limit != 0.0f) m_pSRot[nID].swing %= m_fSwingDisplay_Rot_Limit;
+
+                            //OjwRotation(SRot.pan + SAngle_Offset.pan, SRot.tilt + SAngle_Offset.tilt, SRot.swing + SAngle_Offset.swing);
+                            OjwRotation(
+                                m_pSRot[nID].pan + SAngle_Offset.pan,
+                                m_pSRot[nID].tilt + SAngle_Offset.tilt,
+                                m_pSRot[nID].swing + SAngle_Offset.swing
+                                );
+                            //m_pSTmrTrack[nID].Set();
+#endif
+                        }
                     }
 
                     if (OjwDisp.strDispObject == "#-1")
@@ -14170,17 +14371,7 @@ namespace OpenJigWare
                 {
                     m_bPickingData = false;
                 }
-                private int m_nSeq_Pick = 0;
-                private int m_nSeq_Pick_Back = 0;
-                public bool GetPickingEvent()
-                {
-                    if (m_nSeq_Pick != m_nSeq_Pick_Back)
-                    {
-                        m_nSeq_Pick = m_nSeq_Pick_Back;
-                        return true;
-                    }
-                    return false;
-                }
+                
                 uint m_unObjectName = 0;
                 public bool GetPickingData(out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber)
                 {
@@ -15775,14 +15966,24 @@ namespace OpenJigWare
                         if (OjwAse_GetIndex(strTrackFile) < 0)
                         {
                             //string strObject = strTrackFile;
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".dat" : "");
+#else
                             String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
+#endif
                             FileInfo f = new FileInfo(strFileName);
                             if (f.Exists == true)
                             {
                                 if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                     OjwFileOpen_3D_ASE(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
+                                    OjwFileOpen_3D_SSTL(strFileName);
                                 else if (CFile.GetExe(strFileName).ToUpper() == "STL")
                                     OjwFileOpen_3D_STL(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
+                                    OjwFileOpen_3D_Dat(strFileName);
+                                else if (CFile.GetExe(strFileName).ToUpper() == "OBJ")
+                                    OjwFileOpen_3D_OBJ(strFileName);
                             }
                         }
                     }
@@ -16889,8 +17090,13 @@ namespace OpenJigWare
                 {
 #if true
                     int nIndex = -1;
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                    // Default -> dat
+                    if (strIndex.IndexOf('.') < 0) strIndex += ".dat";
+#else
                     // Default -> ase
                     if (strIndex.IndexOf('.') < 0) strIndex += ".ase";
+#endif
                     for (int i = 0; i < m_lstModel.Count; i++)
                     {
                         if (m_lstModel[i] == strIndex) { nIndex = i; break; }
@@ -16927,9 +17133,24 @@ namespace OpenJigWare
                         }
                         return;
                     }
-                                    
+
                     bool bStl = false;
-                    if (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0) bStl = true;
+                    if (
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                        (strIndex_Ase.ToUpper().IndexOf('.') < 0) ||
+#endif
+                        (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0) ||
+                        (strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0) ||
+                        (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0)
+                        ) bStl = true;
+                    bool bDat = false;
+                    if (
+                        //(strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0) ||
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                        (strIndex_Ase.ToUpper().IndexOf('.') < 0) ||
+#endif
+                        (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0) 
+                        ) bDat = true;
 
                     Color cColor = color;
                     m_fColor[0] = ((float)cColor.R / 255.0f);  // R
@@ -16939,7 +17160,8 @@ namespace OpenJigWare
 #if _STL_CW
                     Gl.glFrontFace((bStl == true) ? Gl.GL_CW : Gl.GL_CCW);
 #else
-                    Gl.glFrontFace(Gl.GL_CCW); // 20150528 수정 - 이게 맞다.
+                    //Gl.glFrontFace(Gl.GL_CCW); // 20150528 수정 - 이게 맞다.
+                    Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
                     //Gl.glFrontFace((bStl == true) ? Gl.GL_CCW : Gl.GL_CCW);
 #endif
 #if true // 1
@@ -17008,7 +17230,7 @@ namespace OpenJigWare
                     //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
                     //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_LINE : Gl.GL_LINE));
 #endif
-                    int uiType = Gl.GL_TRIANGLES;// Gl.GL_POLYGON;// Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
+                    int uiType = (bDat == true) ? Gl.GL_TRIANGLES : Gl.GL_TRIANGLES;// Gl.GL_POLYGON;// Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
 
                     Gl.glColor4fv(m_fColor);
 
@@ -17286,7 +17508,141 @@ namespace OpenJigWare
                     //SetCursor(IDC_ARROW);
                     //this.Cursor = System.Windows.Forms.Cursors.Default;
                 }
-                #region STL
+                #region STL & Dat
+                public bool OjwFileOpen_3D_Dat(String strFileName)
+                {
+                    int nTmp = 0;
+                    String strName = "";
+                    int nTmpAll = 0;
+                    try
+                    {
+                        string header;
+                        //FileInfo f = new FileInfo(strFileName);
+                        //FileStream fs_Ascii = f.OpenRead();
+                        //long lHeaderSize = fs_Ascii.Length;
+                        //byte[] byteData = new byte[lHeaderSize];
+                        
+                        #region Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
+                        //fs_Ascii.Read(byteData, 0, (int)lHeaderSize);
+                        //fs_Ascii.Close();
+                        #endregion Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
+                        
+                        using (var fs = new BinaryReader(File.OpenRead(strFileName), Encoding.ASCII))
+                        {
+                            header = Ojw.CFile.GetName(strFileName);//Encoding.ASCII.GetString(fs.ReadBytes(80));
+                            int nTrash = 16 // ID
+                                       + 4 // Version
+                                       + 4; // Object Count
+                                ///////// object // Object 1개만 읽어보자.
+                            int nTrash2 = 32 // Name
+                                       + 260 // FileName
+                                       + 4 // Type
+                                       + 4; // vertex Format
+
+                            byte[] byteData = fs.ReadBytes(nTrash + nTrash2);
+
+
+                            uint unCount = fs.ReadUInt32();  // primitive 갯수
+                            uint unStructSize = fs.ReadUInt32(); // 정점의 크기
+
+                            nTmpAll = (int)unCount;
+                            strName = header;
+
+                            COjwAse CAse = new COjwAse();
+                            CAse.Data_Clear();
+                            CAse.Data_Type_Set(1);
+                            m_lstOjwAse.Add(CAse);
+                            m_lstModel.Add(Ojw.CFile.GetName(strFileName)); // Add a Model Name
+                            m_nCnt_Obj_Ase++;
+                            m_nCnt_Ase++;
+
+                            //float fA, fB, fC;
+                            byte byTmp0;//, byTmp1;
+
+                            float[] afPos = new float[3];
+                            Array.Clear(afPos, 0, afPos.Length);
+
+                            int _x = 0;
+                            int _y = 2;
+                            int _z = 1;
+                            float[] afTmp = new float[3];
+                            for (int i = 0; i < nTmpAll; i++)
+                            {
+                                nTmp++;
+                                int nMax = 3;//fs.ReadInt32();//3;
+                                //int nTmp2 = fs.ReadInt32();
+                                for (int j = 0; j < nMax; j++)
+                                {
+                                    afTmp[_x] = fs.ReadSingle();
+                                    //uint A = fs.ReadUInt32();
+                                    afTmp[_y] = fs.ReadSingle();
+                                    //uint B = fs.ReadUInt32();
+                                    afTmp[_z] = -fs.ReadSingle();
+                                    //uint C = fs.ReadUInt32();
+
+                                    //#region Face
+
+
+                                    //float fA = fs.ReadSingle();
+                                    //float fB = fs.ReadSingle();
+                                    //float fC = fs.ReadSingle();
+                                    //uint A = fs.ReadUInt32();
+                                    //uint B = fs.ReadUInt32();
+                                    //uint C = fs.ReadUInt32();
+                                    //#endregion Face
+
+                                    if (i == 0) // normal
+                                    {
+                                        afPos[_x] = 0;// afTmp[_x]; //0;// fA; //0;//fA;
+                                        afPos[_y] = 0;// afTmp[_y]; //0;// fC; //0;//fB;
+                                        afPos[_z] = 0;// afTmp[_z];
+                                        //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(fA - afPos[0], fB - afPos[1], fC - afPos[2]);
+                                        //continue;
+                                    }
+                                    else
+                                    {
+                                        //if ((i == 0) && (j == 1))// First data
+                                        //{
+                                        //    afPos[_x] = afTmp[_x]; //0;// fA; //0;//fA;
+                                        //    afPos[_y] = afTmp[_y]; //0;// fC; //0;//fB;
+                                        //    afPos[_z] = afTmp[_z]; //0;// fB; //0;//fC;
+                                        //}
+                                        //else
+                                        //{
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Face_Add(A - (int)afPos[0], B - (int)afPos[1], C - (int)afPos[2]);
+
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(fA - afPos[0], fB - afPos[1], fC - afPos[2]);
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afTmp[_x] - afPos[_x], afTmp[_y] - afPos[_y], afTmp[_z] - afPos[_z]);
+                                            m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afTmp[_x] - afPos[_x], afTmp[_y] - afPos[_y], afTmp[_z] - afPos[_z]);
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(fA - afPos[0], fC - afPos[2], fB - afPos[1]);
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Face_Add((int)fA - (int)afPos[0], (int)fB - (int)afPos[1], (int)fC - (int)afPos[2]);
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Face_Add((int)fA - (int)afPos[0], (int)fB - (int)afPos[1], (int)fC - (int)afPos[2]);
+
+                                            //Ojw.CMessage.Write("Test - {0}, {1}, {2}", fA, fB, fC);
+
+                                            // put the actual data.(Kor: 실제의 데이타를 넣자.)
+                                            //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Face_Add((int)fA - (int)afPos[_x], (int)fB - (int)afPos[_y], (int)fC - (int)afPos[_z]);
+                                        //}
+                                    }
+                                    // unused
+                                    for (int k = 0; k < (unStructSize - 12); k++) byTmp0 = fs.ReadByte();
+                                }
+                                
+                                //for (int k = 0; k < 4; k++) byTmp0 = fs.ReadByte();
+                                //nTmp2 = fs.ReadInt32();
+                                //nTmp2 = fs.ReadInt32();
+                                //byTmp1 = fs.ReadByte();
+                            }
+                        }
+                        return true;
+                    }
+                    catch(Exception e)
+                    {
+                        m_nCnt_Obj_Ase = 0;
+                        MessageBox.Show(nTmp.ToString() + "/" + nTmpAll.ToString() + " : " + strName + "=>" + e.ToString());
+                        return false;
+                    }
+                }
                 public bool OjwFileOpen_3D_STL(String strFileName)
                 {
                     int nTmp = 0;
@@ -17296,8 +17652,6 @@ namespace OpenJigWare
                     {
                         string header;
                         //STLTriangle[] mesh;
-
-
 
                         // stl(solid ascii)
                         FileInfo f = new FileInfo(strFileName);
@@ -17341,10 +17695,10 @@ namespace OpenJigWare
                                     {
                                         bFirst = false;
                                         afPos[0] = afData[0]; //0;//fA;
-                                        afPos[2] = afData[2]; //0;//fB;
-                                        afPos[1] = afData[1]; //0;//fC;
+                                        afPos[1] = afData[1]; //0;//fB;
+                                        afPos[2] = afData[2]; //0;//fC;
                                     }
-                                    m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afData[0] - afPos[0], afData[2] - afPos[2], afData[1] - afPos[1]);                                            
+                                    else m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afData[0] - afPos[0], afData[2] - afPos[2], afData[1] - afPos[1]);                                            
                                 }
                             }
                             pstrSplit = null;
@@ -17391,7 +17745,7 @@ namespace OpenJigWare
                                         if (j == 0) // normal
                                         {                                            
                                             //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(fA - afPos[0], fB - afPos[1], fC - afPos[2]);
-                                            //continue;
+                                            continue;
                                         }
                                         else
                                         {
@@ -17420,6 +17774,70 @@ namespace OpenJigWare
                     {
                         m_nCnt_Obj_Ase = 0;
                         MessageBox.Show(nTmp.ToString() + "/" + nTmpAll.ToString() + " : " + strName + "=>" + e.ToString());
+                        return false;
+                    }
+                }
+
+                public bool OjwFileOpen_3D_SSTL(String strFileName)
+                {
+                    int nTmp = 0;
+                    String strName = "";
+                    try
+                    {
+                        string header;
+                        using (var fs = new BinaryReader(File.OpenRead(strFileName), Encoding.ASCII))
+                        {
+                            header = Ojw.CFile.GetName(strFileName);
+
+                            int nDir = fs.ReadInt32();
+                            int nCount = fs.ReadInt32(); 
+
+                            strName = header;
+
+                            COjwAse CAse = new COjwAse();
+                            CAse.Data_Clear();
+                            CAse.Data_Type_Set(1);
+                            m_lstOjwAse.Add(CAse);
+                            m_lstModel.Add(Ojw.CFile.GetName(strFileName)); // Add a Model Name
+                            m_nCnt_Obj_Ase++;
+                            m_nCnt_Ase++;
+
+                            //float fA, fB, fC;
+                            //byte byTmp0;//, byTmp1;
+
+                            float[] afPos = new float[3];
+                            Array.Clear(afPos, 0, afPos.Length);
+
+                            int _x = 0;
+                            int _y = 1;
+                            int _z = 2;
+                            float[] afTmp = new float[3];
+                            for (int i = 0; i < nCount; i++)
+                            {
+                                nTmp++;
+                                
+                                afTmp[_x] = fs.ReadSingle();
+                                afTmp[_y] = fs.ReadSingle();
+                                afTmp[_z] = fs.ReadSingle();
+                                
+                                //if (i == 0) // normal
+                                //{
+                                //    afPos[_x] = 0;
+                                //    afPos[_y] = 0;
+                                //    afPos[_z] = 0;                                    
+                                //}
+                                //else
+                                {
+                                    m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afTmp[_x] - afPos[_x], afTmp[_y] - afPos[_y], afTmp[_z] - afPos[_z]);
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    catch (Exception e)
+                    {
+                        m_nCnt_Obj_Ase = 0;
+                        //MessageBox.Show(nTmp.ToString() + "/" + nTmpAll.ToString() + " : " + strName + "=>" + e.ToString());
                         return false;
                     }
                 }
@@ -17731,6 +18149,791 @@ namespace OpenJigWare
 #endif
                 #endregion Ojw3D_ASE_0
 
+                #region Convert Stl To Sstl
+                public bool OjwFileConvert_STL_to_SSTL(String strFileName)
+                {
+                    bool bRet = false;
+                    int nTmp = 0;
+                    String strName = "";
+                    int nTmpAll = 0;
+
+                    COjwAse CAse = new COjwAse();
+                    CAse.Data_Clear();
+                    CAse.Data_Type_Set(1);
+
+                    try
+                    {
+                        string header;
+                        FileInfo f = new FileInfo(strFileName);
+                        FileStream fs_Ascii = f.OpenRead();
+                        long lHeaderSize = fs_Ascii.Length;
+                        byte[] byteData = new byte[lHeaderSize];
+
+                        #region Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
+                        fs_Ascii.Read(byteData, 0, (int)lHeaderSize);//byteData.Length); // for Check 11 bytes in header
+                        fs_Ascii.Close();
+                        #endregion Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
+                        if (Encoding.ASCII.GetString(byteData, 0, 80).IndexOf("solid ascii") >= 0)
+                        {
+                            Ojw.CMessage.Write("solid ascii");
+                            float[] afData = new float[3];
+                            float[] afPos = new float[3];
+                            String[] pstrSplit = Encoding.ASCII.GetString(byteData, 0, (int)lHeaderSize).Split('\n');
+                            bool bFirst = true;
+
+
+                            foreach (string strLine in pstrSplit)
+                            {
+                                int nIndex = strLine.IndexOf("vertex");
+                                if (nIndex >= 0)
+                                {
+                                    String[] pstrItems = strLine.Substring(nIndex + 6).Split(' ');
+                                    int nPos = 0;
+                                    foreach (string strItem in pstrItems)
+                                    {
+                                        if (strItem.Length > 0)
+                                            afData[nPos++] = Ojw.CConvert.StrToFloat(strItem);
+                                    }
+                                    if (bFirst)
+                                    {
+                                        bFirst = false;
+                                        afPos[0] = afData[0];
+                                        afPos[1] = afData[1];
+                                        afPos[2] = afData[2];
+                                    }
+                                    else CAse.Data_Add(afData[0] - afPos[0], afData[1] - afPos[1], afData[2] - afPos[2]);
+                                }
+                            }
+                            pstrSplit = null;
+                        }
+                        else
+                        {
+                            using (var fs = new BinaryReader(File.OpenRead(strFileName), Encoding.ASCII))
+                            {
+                                header = Encoding.ASCII.GetString(fs.ReadBytes(80));
+                                var unCount = fs.ReadUInt32();
+
+                                nTmpAll = (int)unCount;
+                                strName = header;
+                                
+                                //float fA, fB, fC;
+                                byte byTmp0, byTmp1;
+
+                                float[] afPos = new float[3];
+                                Array.Clear(afPos, 0, afPos.Length);
+
+                                int _x = 0;
+                                int _y = 1;
+                                int _z = 2;
+                                float[] afTmp = new float[3];
+                                for (int i = 0; i < nTmpAll; i++)
+                                {
+                                    nTmp++;
+                                    int nMax = 4;
+                                    for (int j = 0; j < nMax; j++)
+                                    {
+                                        afTmp[_x] = fs.ReadSingle();
+                                        afTmp[_y] = fs.ReadSingle();
+                                        afTmp[_z] = fs.ReadSingle();
+
+                                        if (j == 0) // normal
+                                        {
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            if ((i == 0) && (j == 1))// First data
+                                            {
+                                                afPos[_x] = afTmp[_x]; 
+                                                afPos[_y] = afTmp[_y];
+                                                afPos[_z] = afTmp[_z];
+                                            }
+                                            CAse.Data_Add(afTmp[_x] - afPos[_x], afTmp[_y] - afPos[_y], afTmp[_z] - afPos[_z]);
+                                        }
+                                    }
+                                    // unused
+                                    byTmp0 = fs.ReadByte();
+                                    byTmp1 = fs.ReadByte();
+                                }
+                            }
+                        }
+                        bRet = true;
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(nTmp.ToString() + "/" + nTmpAll.ToString() + " : " + strName + "=>" + e.ToString());
+                        bRet = false;
+                    }
+
+                    if (bRet == true)
+                    {
+                        // Write File
+                        strFileName = Ojw.CConvert.ChangeString(strFileName.ToLower(), ".stl", ".sstl");
+                        FileInfo fw = new FileInfo(strFileName);
+                        FileStream fws = fw.Create();
+
+                        try
+                        {
+                            #region Save SSTL
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            int nCnt = CAse.Data_GetCnt();
+                            pbyte = BitConverter.GetBytes(nCnt); fws.Write(pbyte, 0, 4);
+
+                            bool bInverse = false;
+                            DialogResult dlgRet = MessageBox.Show("Do you want to make it upside down?", "save CCW", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            if (dlgRet == DialogResult.OK)
+                            {
+                                bInverse = true;
+                            }
+
+                            SVector3D_t SVec;
+                            for (int i = 0; i < nCnt; i++)
+                            {
+#if false
+                                int nPos = ((bInverse == true) ? 3 * ((int)Math.Round(i / 3 + 0.6, 0)) - (i % 3) - 1 : i);
+#else
+                                int nPos = ((bInverse == true) ? nCnt - i - 1 : i);
+#endif
+                                SVec = CAse.Data_Get(nPos);
+                                pbyte = BitConverter.GetBytes((float)SVec.x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)SVec.y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)SVec.z); fws.Write(pbyte, 0, 4);
+                            }
+
+                            //foreach (SVector3D_t SVec in CAse.Data_Get())
+                            //{
+                            //    pbyte = BitConverter.GetBytes((float)SVec.x); fws.Write(pbyte, 0, 4);
+                            //    pbyte = BitConverter.GetBytes((float)SVec.y); fws.Write(pbyte, 0, 4);
+                            //    pbyte = BitConverter.GetBytes((float)SVec.z); fws.Write(pbyte, 0, 4);
+                            //}
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+                            #endregion Save SSTL
+
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            //Message("File save error");
+                            fws.Close();
+                            fw = null;
+                            bRet = false;
+                        }
+                    }
+                    return bRet;
+                }
+                #endregion Convert Stl To Sstl
+
+                #region Convert Ase To Sstl
+                public bool OjwFileConvert_ASE_to_SSTL(String strFileName)
+                {
+                    bool bRet = false;
+                    
+                    // Add a new model
+                    COjwAse CAse = new COjwAse();
+                    CAse.Data_Clear();
+                    CAse.Data_Type_Set(1);
+
+                    try
+                    {
+                        const int nHide = 1; // 10;
+                        FileInfo f = new FileInfo(strFileName);
+                        if (f.Exists == false) return false;
+
+                        StreamReader fs = f.OpenText();
+                        bool bOk = false;
+                        bool bOk_Face = false;
+                        float[] afPos = new float[3];
+                        float[] afPos2 = new float[3];
+                        int nTemp = 0;
+                        bool bStart = false;
+                        while (true)
+                        {
+                            String str = fs.ReadLine();
+                            if (str == null) break;
+
+                            if (bStart == false)
+                            {
+                                if (str.IndexOf("*GEOMOBJECT") >= 0) bStart = true;
+                            }
+                            else
+                            {
+                                // Do not load 2'st data
+                                if (str.IndexOf("*GEOMOBJECT") >= 0) break;
+                            }
+
+                            //if (str.IndexOf("*MESH_FACE_LIST") >= 0) break;
+
+                            if ((bStart == true) && (str.IndexOf("*TM_POS") >= 0))
+                            {
+                                str = str.Trim();
+                                int nPos0 = str.IndexOf(' ');
+                                int nPos1 = str.IndexOf('\t') - nPos0;
+                                afPos[0] = CConvert.StrToFloat(str.Substring(nPos0, nPos1));
+                                str = str.Substring((nPos1 + 1 + nPos0), str.Length - (nPos1 + 1 + nPos0));
+                                nPos1 = str.IndexOf('\t');
+                                afPos[2] = CConvert.StrToFloat(str.Substring(0, nPos1));
+                                afPos[1] = CConvert.StrToFloat(str.Substring((nPos1 + 1), str.Length - (nPos1 + 1)));
+
+                                Array.Clear(afPos, 0, afPos.Length);
+                            }
+
+                            if (str.IndexOf("*MESH_VERTEX_LIST") >= 0)
+                            {
+                                bOk = true;
+                                continue;
+                            }
+                            else if (str.IndexOf("*MESH_FACE_LIST") >= 0)
+                            {
+                                bOk_Face = true;
+                                continue;
+                            }
+
+
+                            if (bOk == true)
+                            {
+                                if (str.IndexOf("}") >= 0) bOk = false;
+                                else
+                                {
+                                    if (nTemp == 0)
+                                    {
+                                        // read in the order of [x, z, y](Kor: x, z, y의 순으로 읽음)
+                                        str = str.Trim();
+                                        int nPos0 = str.IndexOf(' ');
+                                        int nPos1 = str.IndexOf('\t') - nPos0;
+                                        int nIndex = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                        str = str.Substring((nPos1 + 1 + nPos0), str.Length - (nPos1 + 1 + nPos0));
+                                        nPos1 = str.IndexOf('\t');
+                                        afPos2[0] = CConvert.StrToFloat(str.Substring(0, nPos1));
+                                        str = str.Substring(nPos1 + 1, str.Length - (nPos1 + 1));
+                                        nPos1 = str.IndexOf('\t');
+                                        afPos2[2] = CConvert.StrToFloat(str.Substring(0, nPos1));
+                                        str = str.Substring(nPos1 + 1, str.Length - (nPos1 + 1));
+                                        afPos2[1] = CConvert.StrToFloat(str);
+                                        
+                                        // put the actual data.(Kor: 실제의 데이타를 넣자.)
+                                        CAse.Data_Add((afPos2[0] - afPos[0]), (afPos2[1] - afPos[2]), -(afPos2[2] - afPos[1]));
+                                    }
+
+                                    nTemp++;
+                                    if (nTemp >= nHide) nTemp = 0;
+                                }
+                            }
+                            else if (bOk_Face == true)
+                            {
+                                if (str.IndexOf("}") >= 0) bOk_Face = false;
+                                else
+                                {
+                                    if (nTemp == 0)
+                                    {
+                                        // read in the order of [x, z, y](Kor: x, z, y의 순으로 읽음)
+                                        str = str.Trim();
+                                        int nPos0 = str.IndexOf(' ');
+                                        int nPos1 = str.IndexOf(":") - nPos0;
+                                        int nIndex = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                        nPos0 = str.IndexOf("A:") + 2;
+                                        nPos1 = str.IndexOf("B:") - nPos0;
+                                        int A = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                        nPos0 = str.IndexOf("B:") + 2;
+                                        nPos1 = str.IndexOf("C:") - nPos0;
+                                        int B = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                        nPos0 = str.IndexOf("C:") + 2;
+                                        nPos1 = str.IndexOf("AB:") - nPos0;
+                                        int C = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                        // put the actual data.(Kor: 실제의 데이타를 넣자.)
+                                        CAse.Face_Add(A - (int)afPos[0], B - (int)afPos[1], C - (int)afPos[2]);
+                                    }
+
+                                    nTemp++;
+                                    if (nTemp >= nHide) nTemp = 0;
+                                }
+                            }
+                        }
+                        fs.Close();
+
+                        bRet = true;
+                    }
+                    catch
+                    {
+                        bRet = false;
+                    }
+
+
+                    if (bRet == true)
+                    {
+                        // Write File
+                        FileInfo fw = new FileInfo(Ojw.CConvert.ChangeString(strFileName.ToLower(), ".ase", ".sstl"));
+                        FileStream fws = fw.Create();
+
+                        try
+                        {
+#if false
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            pbyte = BitConverter.GetBytes((int)CAse.Face_GetCnt() * 3); fws.Write(pbyte, 0, 4);
+
+                            for (int i = 0; i < CAse.Face_GetCnt(); i++)
+                            {
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).x).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).x).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).x).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).y).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).y).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).y).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).z).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).z).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).z).z); fws.Write(pbyte, 0, 4);
+                            }
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+#else
+                            #region Save SSTL
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            int nCnt = CAse.Face_GetCnt();
+                            pbyte = BitConverter.GetBytes(nCnt * 3); fws.Write(pbyte, 0, 4);
+
+                            bool bInverse = false;
+                            DialogResult dlgRet = MessageBox.Show("Do you want to make it upside down?", "save CCW", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            if (dlgRet == DialogResult.OK)
+                            {
+                                bInverse = true;
+                            }
+
+                            for (int i = 0; i < nCnt; i++)
+                            {
+                                int nPos = ((bInverse == true) ? nCnt - i - 1 : i);
+                                //SVec = CAse.Data_Get(nPos);
+                                //pbyte = BitConverter.GetBytes((float)SVec.x); fws.Write(pbyte, 0, 4);
+                                //pbyte = BitConverter.GetBytes((float)SVec.y); fws.Write(pbyte, 0, 4);
+                                //pbyte = BitConverter.GetBytes((float)SVec.z); fws.Write(pbyte, 0, 4);
+
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).x).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).x).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).x).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).y).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).y).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).y).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).z).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).z).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).z).z); fws.Write(pbyte, 0, 4);
+                            }
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+                            #endregion Save SSTL
+#endif
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            fws.Close();
+                            fw = null;
+                            bRet = false;
+                        }
+                    }
+                    return bRet;
+                }
+                #endregion Convert Ase To Sstl
+
+                #region Convert Obj To Sstl
+                public bool OjwFileConvert_OBJ_to_SSTL(String strFileName)
+                {
+                    bool bRet = false;
+                    
+                    // New model
+                    COjwAse CAse = new COjwAse();
+                    CAse.Data_Clear();
+                    CAse.Data_Type_Set(0);
+
+                    try
+                    {
+                        const int nHide = 10;
+                        FileInfo f = new FileInfo(strFileName);
+                        StreamReader fs = f.OpenText();
+                        float[] afPos = new float[3] { 0, 0, 0 };
+                        float[] afPos2 = new float[3];
+                        bool bStartPos = true;
+                        int nTemp = 0;
+                        while (true)
+                        {
+                            String str = fs.ReadLine();
+                            if (str == null) break;
+                            if (str.IndexOf("mtllib") == 0)
+                            {
+                                // Start
+                            }
+
+                            if (str.IndexOf("v ") == 0)
+                            {
+
+                                if (nTemp == 0)
+                                {
+                                    str = str.Substring(2, str.Length - 2);
+                                    str = str.Trim();
+                                    int nPos1 = str.IndexOf(' ');
+                                    afPos2[0] = CConvert.StrToFloat(str.Substring(0, nPos1));
+                                    str = str.Substring((nPos1 + 1), str.Length - (nPos1 + 1));
+                                    nPos1 = str.IndexOf(' ');
+                                    afPos2[2] = CConvert.StrToFloat(str.Substring(0, nPos1));
+                                    str = str.Substring((nPos1 + 1), str.Length - (nPos1 + 1));
+                                    afPos2[1] = CConvert.StrToFloat(str);
+
+                                    if (bStartPos == true)
+                                    {
+                                        bStartPos = false;
+                                        afPos[0] = 0;
+                                        afPos[1] = 0;
+                                        afPos[2] = 0;
+                                    }
+
+                                    CAse.Data_Add(afPos2[0] - afPos[0], afPos2[1] - afPos[1], afPos2[2] - afPos[2]);
+                                }
+
+                                nTemp++;
+                                if (nTemp >= nHide) nTemp = 0;
+                            }
+
+                            if (str.IndexOf("f ") == 0)
+                            {
+
+                                if (nTemp == 0)
+                                {
+                                    int[] anPos = new int[3];
+                                    str = str.Substring(2, str.Length - 2);
+                                    str = str.Trim();
+                                    int nPos0 = 0;// str.IndexOf(' ');
+                                    int nPos1 = str.IndexOf('/') - nPos0;
+                                    anPos[0] = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                    str = str.Substring((nPos1 + 1), str.Length - (nPos1 + 1));
+                                    nPos1 = str.IndexOf('/');
+                                    anPos[2] = CConvert.StrToInt(str.Substring(nPos0, nPos1));
+                                    str = str.Substring((nPos1 + 1), str.Length - (nPos1 + 1));
+                                    nPos1 = str.IndexOf(' ');
+                                    anPos[1] = CConvert.StrToInt(str.Substring(nPos0, nPos1)); //CConvert.StrToFloat(str);
+
+                                    if (bStartPos == true)
+                                    {
+                                        bStartPos = false;
+                                        Array.Clear(afPos, 0, afPos.Length);
+                                    }
+                                    CAse.Face_Add(anPos[0], anPos[1], anPos[2]);
+                                }
+
+                                nTemp++;
+                                if (nTemp >= nHide) nTemp = 0;
+                            }
+                        }
+                        fs.Close();
+                        bRet = true;
+                    }
+                    catch
+                    {
+                        bRet = false;
+                    }
+
+                    if (bRet == true)
+                    {
+                        // Write File
+                        FileInfo fw = new FileInfo(Ojw.CConvert.ChangeString(strFileName.ToLower(), ".obj", ".sstl"));
+                        FileStream fws = fw.Create();
+
+                        try
+                        {
+#if false
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            pbyte = BitConverter.GetBytes((int)CAse.Face_GetCnt() * 3); fws.Write(pbyte, 0, 4);
+
+                            for (int i = 0; i < CAse.Face_GetCnt(); i++)
+                            {
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).x).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).x).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).x).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).y).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).y).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).y).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).z).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).z).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(i).z).z); fws.Write(pbyte, 0, 4);
+                            }
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+#else
+                            #region Save SSTL
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            int nCnt = CAse.Face_GetCnt();
+                            pbyte = BitConverter.GetBytes(nCnt * 3); fws.Write(pbyte, 0, 4);
+
+                            bool bInverse = false;
+                            DialogResult dlgRet = MessageBox.Show("Do you want to make it upside down?", "save CCW", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            if (dlgRet == DialogResult.OK)
+                            {
+                                bInverse = true;
+                            }
+
+                            for (int i = 0; i < nCnt; i++)
+                            {
+                                int nPos = ((bInverse == true) ? nCnt - i - 1 : i);
+                                //SVec = CAse.Data_Get(nPos);
+                                //pbyte = BitConverter.GetBytes((float)SVec.x); fws.Write(pbyte, 0, 4);
+                                //pbyte = BitConverter.GetBytes((float)SVec.y); fws.Write(pbyte, 0, 4);
+                                //pbyte = BitConverter.GetBytes((float)SVec.z); fws.Write(pbyte, 0, 4);
+
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).x).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).x).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).x).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).y).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).y).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).y).z); fws.Write(pbyte, 0, 4);
+
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).z).x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).z).y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)CAse.Data_Get(CAse.Face_Get(nPos).z).z); fws.Write(pbyte, 0, 4);
+                            }
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+                            #endregion Save SSTL
+#endif
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            fws.Close();
+                            fw = null;
+                            bRet = false;
+                        }
+                    }
+                    return bRet;
+                }
+                #endregion Convert Obj To Sstl
+
+                #region Convert Dat To Sstl
+                public bool OjwFileConvert_DAT_to_SSTL(String strFileName)
+                {
+                    bool bRet = false;
+                    int nTmp = 0;
+                    String strName = "";
+                    int nTmpAll = 0;
+
+                    COjwAse CAse = new COjwAse();
+                    CAse.Data_Clear();
+                    CAse.Data_Type_Set(1);
+
+                    try
+                    {
+                        string header;
+
+                        using (var fs = new BinaryReader(File.OpenRead(strFileName), Encoding.ASCII))
+                        {
+                            header = Ojw.CFile.GetName(strFileName);//Encoding.ASCII.GetString(fs.ReadBytes(80));
+                            int nTrash = 16 // ID
+                                       + 4 // Version
+                                       + 4; // Object Count
+                            ///////// object // Object 1개만 읽어보자.
+                            int nTrash2 = 32 // Name
+                                       + 260 // FileName
+                                       + 4 // Type
+                                       + 4; // vertex Format
+
+                            byte[] byteData = fs.ReadBytes(nTrash + nTrash2);
+
+
+                            uint unCount = fs.ReadUInt32();  // primitive 갯수
+                            uint unStructSize = fs.ReadUInt32(); // 정점의 크기
+
+                            nTmpAll = (int)unCount;
+                            strName = header;
+                                                        
+                            //float fA, fB, fC;
+                            byte byTmp0;
+
+                            float[] afPos = new float[3];
+                            Array.Clear(afPos, 0, afPos.Length);
+
+                            int _x = 0;
+                            int _y = 2;
+                            int _z = 1;
+                            float[] afTmp = new float[3];
+                            for (int i = 0; i < nTmpAll; i++)
+                            {
+                                nTmp++;
+                                int nMax = 3;
+                                for (int j = 0; j < nMax; j++)
+                                {
+                                    afTmp[_x] = fs.ReadSingle();
+                                    afTmp[_y] = fs.ReadSingle();
+                                    afTmp[_z] = -fs.ReadSingle();
+                                    
+                                    if (i == 0) // normal
+                                    {
+                                        afPos[_x] = 0;
+                                        afPos[_y] = 0;
+                                        afPos[_z] = 0;
+                                    }
+                                    else
+                                    {
+                                        CAse.Data_Add(afTmp[_x] - afPos[_x], afTmp[_y] - afPos[_y], afTmp[_z] - afPos[_z]);
+                                    }
+                                    // unused
+                                    for (int k = 0; k < (unStructSize - 12); k++) byTmp0 = fs.ReadByte();
+                                }
+                            }
+                        }
+                        bRet = true;
+                    }
+                    catch (Exception e)
+                    {
+                        //MessageBox.Show(nTmp.ToString() + "/" + nTmpAll.ToString() + " : " + strName + "=>" + e.ToString());
+                        bRet = false;
+                    }
+                    if (bRet == true)
+                    {
+                        // Write File
+                        strFileName = Ojw.CConvert.ChangeString(strFileName.ToLower(), ".dat", ".sstl");
+                        FileInfo fw = new FileInfo(strFileName);
+                        FileStream fws = fw.Create();
+
+                        try
+                        {
+#if false
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            pbyte = BitConverter.GetBytes((int)CAse.Data_GetCnt()); fws.Write(pbyte, 0, 4);
+
+                            foreach (SVector3D_t SVec in CAse.Data_Get())
+                            {
+                                pbyte = BitConverter.GetBytes((float)SVec.x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)SVec.y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)SVec.z); fws.Write(pbyte, 0, 4);
+                            }
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+#else
+                            #region Save SSTL
+                            // 스트림 버퍼를 비운다.
+                            fws.Flush();
+
+                            byte[] pbyte;
+
+                            // Dir
+                            pbyte = BitConverter.GetBytes((int)1); fws.Write(pbyte, 0, 4);// 0 : CW , 1 : CCW
+                            // Size
+                            int nCnt = CAse.Data_GetCnt();
+                            pbyte = BitConverter.GetBytes(nCnt); fws.Write(pbyte, 0, 4);
+
+                            bool bInverse = false;
+                            DialogResult dlgRet = MessageBox.Show("Do you want to make it upside down?", "save CCW", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            if (dlgRet == DialogResult.OK)
+                            {
+                                bInverse = true;
+                            }
+
+                            SVector3D_t SVec;
+                            for (int i = 0; i < nCnt; i++)
+                            {
+#if false
+                                int nPos = ((bInverse == true) ? 3 * ((int)Math.Round(i / 3 + 0.6, 0)) - (i % 3) - 1 : i);//nCnt - i - 1 : i);
+#else
+                                int nPos = ((bInverse == true) ? nCnt - i - 1 : i);
+#endif
+                                SVec = CAse.Data_Get(nPos);
+                                pbyte = BitConverter.GetBytes((float)SVec.x); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)SVec.y); fws.Write(pbyte, 0, 4);
+                                pbyte = BitConverter.GetBytes((float)SVec.z); fws.Write(pbyte, 0, 4);
+                            }
+
+                            pbyte = null;
+
+                            fws.Close();
+                            fw = null;
+                            Ojw.CMessage.Write("File Convert Ok");
+                            MessageBox.Show("File Convert Ok");
+                            #endregion Save SSTL
+#endif
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            //Message("File save error");
+                            fws.Close();
+                            fw = null;
+                            bRet = false;
+                        }
+                    }
+                    return bRet;
+                }
+                #endregion Convert Dat To Sstl
 
                 #region OjwLine / OjwLines
                 public void OjwPoint(Color color, float fAlpha, float fX, float fY, float fZ,
@@ -18221,14 +19424,25 @@ namespace OpenJigWare
                                         {
                                             strFile = strFile.Substring(1);
                                         }
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : "");
+#else
                                         String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+#endif
                                         FileInfo f = new FileInfo(strFileName);
                                         if (f.Exists == true)
                                         {
                                             if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                                 OjwFileOpen_3D_ASE(strFileName);
+                                            else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
+                                                OjwFileOpen_3D_SSTL(strFileName);
                                             else if (CFile.GetExe(strFileName).ToUpper() == "STL")
                                                 OjwFileOpen_3D_STL(strFileName);
+                                            else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
+                                                OjwFileOpen_3D_Dat(strFileName);
+                                            else if (CFile.GetExe(strFileName).ToUpper() == "OBJ")
+                                                OjwFileOpen_3D_OBJ(strFileName);
+
                                         }
 
                                         //this.Cursor = System.Windows.Forms.Cursors.Default;
@@ -19108,6 +20322,776 @@ namespace OpenJigWare
                     fs.Close();
                 }
             }
+            public bool FileOpen_Without_Event(String strFileName, out COjwDesignerHeader CHeader)
+            {
+                m_bFileOpening = true;
+                bool bFileOpened = true;
+                CHeader = null;
+                string strVersion = String.Empty;
+                try
+                {
+                    int i;
+
+                    FileInfo f = new FileInfo(strFileName);
+                    FileStream fs = f.OpenRead();
+
+                    byte[] byteData = new byte[fs.Length];
+                    string strFileName2 = "";
+                    string strData = "";
+
+                    #region Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
+                    fs.Read(byteData, 0, byteData.Length);
+                    strFileName2 = f.Name;
+                    fs.Close();
+                    #endregion Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
+
+                    #region separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
+                    String strTmp = String.Empty;
+                    for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
+                   
+                    strData = (_STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper());
+                    #endregion separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
+                    COjwDesignerHeader CDesignHeder = new COjwDesignerHeader();
+                    #region OjwVersion
+#if _DHF_FILE
+                    if ((strTmp[0] == 'D') & (strTmp[1] == 'H') & (strTmp[2] == 'F'))
+                    {
+                        strVersion += (char)byteData[3];
+                        strVersion += (char)byteData[4];
+                        strVersion += (char)byteData[5];
+
+                        // In version 1.1, there is a second position(Kor: 1.1 버전에서는 2번째 자세가 없다.)
+                        bool bNoSecondPos = false;
+                        bool bNoAxisMirror = false;
+                        int nVersion = 11;
+
+                        if (strTmp.Substring(0, 6) == "DHF1.1") nVersion = 11;
+                        else if (strTmp.Substring(0, 6) == "DHF1.2") nVersion = 12;
+                        else if (strTmp.Substring(0, 6) == "DHF1.3") nVersion = 13;
+                        else if (strTmp.Substring(0, 6) == "DHF1.4") nVersion = 14;
+
+                        CDesignHeder.strVersion = strTmp.Substring(0, 6);
+                        CDesignHeder.nVersion = nVersion;
+
+                        if (nVersion < 12)
+                        {
+                            bNoSecondPos = true;
+                            bNoAxisMirror = true;
+                        }
+                        else if (nVersion == 12)
+                        {
+                            bNoAxisMirror = true;
+                        }
+
+                        int nPos = 6;   // 'HMT1.1'
+
+                        #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+                        CDesignHeder.nDefaultFunctionNumber = -1;// no use it in DHF
+                        #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+
+                        #region Model type ( 2 Bytes )
+                        CDesignHeder.nModelNum = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Model type ( 2 Bytes )
+
+                        #region Title ( 21 Bytes )
+                        CDesignHeder.strModelName = Encoding.Default.GetString(byteData, nPos, 21);
+                        nPos += 21;
+                        #endregion Title ( 21 Bytes )
+
+                        #region BackColor - Background color ( 4 Bytes)
+                        CDesignHeder.cBackColor = Color.FromArgb(BitConverter.ToInt32(byteData, nPos));
+                        nPos += 4;
+                        #endregion BackColor - Background color ( 4 Bytes)
+
+                        #region Number of the motor ( 2 Bytes )
+                        CDesignHeder.nMotorCnt = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Number of the motor ( 2 Bytes )
+                        #region initial angle
+                        #region initial angle - Pan ( 4 Bytes )
+                        CDesignHeder.SInitAngle.pan = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion initial angle - Pan ( 4 Bytes )
+                        #region initial angle - Tilt ( 4 Bytes )
+                        CDesignHeder.SInitAngle.tilt = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion initial angle - Tilt ( 4 Bytes )
+                        #region initial angle - Swing ( 4 Bytes )
+                        CDesignHeder.SInitAngle.swing = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion initial angle - Swing ( 4 Bytes )
+                        #endregion initial angle
+                        #region Init position
+                        #region Init position - x ( 4 Bytes )
+                        CDesignHeder.SInitPos.x = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init position - x ( 4 Bytes )
+                        #region Init position - y ( 4 Bytes )
+                        CDesignHeder.SInitPos.y = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init position - y ( 4 Bytes )
+                        #region Init position - z ( 4 Bytes )
+                        CDesignHeder.SInitPos.z = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init position - z ( 4 Bytes )
+                        #endregion Init position
+
+                        #region Init Scale - 100% = 1.0 ( 4 Bytes )
+                        CDesignHeder.fInitScale = BitConverter.ToSingle(byteData, nPos);
+                        nPos += 4;
+                        #endregion Init Scale - 100% = 1.0 ( 4 Bytes )
+
+                        if (nVersion >= 14)
+                        {
+                            #region 2 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_2 = (int)byteData[nPos++];
+                            #endregion 2 Wheel Counter ( 1 Bytes )
+
+                            #region 3 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_3 = (int)byteData[nPos++];
+                            #endregion 3 Wheel Counter ( 1 Bytes )
+
+                            #region 4 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_4 = (int)byteData[nPos++];
+                            #endregion 4 Wheel Counter ( 1 Bytes )
+                        }
+
+                        for (i = 0; i < 256; i++)
+                        {
+                            #region Axis MotorInfo
+
+                            #region Motor ID ( 2 Byte )
+                            CDesignHeder.pSMotorInfo[i].nMotorID = (int)(short)BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Motor ID ( 2 Byte )
+
+                            #region Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nMotorDir = (int)(short)BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+
+                            #region Max Angle (+) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fLimit_Up = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Max Angle (+) ( 4 Bytes )
+
+                            #region Min Angle (-) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fLimit_Down = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Min Angle (-) ( 4 Bytes )
+
+                            #region Center Position - Evd ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Center Position - Evd ( 2 Bytes )
+
+                            #region Mech Move - Maximum pulse Evd ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Mech Move - Maximum pulse Evd ( 2 Bytes )
+
+                            #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: 최대치 펄스에 해당하는 각도값 (분주각))]( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fMechAngle = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: 최대치 펄스에 해당하는 각도값 (분주각))]( 4 Bytes )
+
+                            #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: 데이타의 초기자세를 임의의 자세로 하기 위해 사용( 4 Bytes ))
+                            CDesignHeder.pSMotorInfo[i].fInitAngle = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            if (bNoSecondPos == false)
+                            {
+                                CDesignHeder.pSMotorInfo[i].fInitAngle2 = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                            }
+                            #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: 데이타의 초기자세를 임의의 자세로 하기 위해 사용( 4 Bytes ))
+
+                            #region Interference axis number(Kor: 간섭 축 번호) ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nInterference_Axis = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Interference axis number(Kor: 간섭 축 번호) ( 2 Bytes )
+
+                            #region axis Width ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fW = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion axis Width ( 4 Bytes )
+
+                            #region Interference axis Width ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fInterference_W = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Interference axis Width ( 4 Bytes )
+
+                            #region axis Side ( Right ) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fPos_Right = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion axis Side ( Right ) ( 4 Bytes )
+
+                            #region axis Side ( Left) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fPos_Left = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion axis Side ( Left) ( 4 Bytes )
+
+                            #region Interference axis ( Front ) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fInterference_Pos_Front = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Interference axis ( Front ) ( 4 Bytes )
+
+                            #region Interference axis ( Rear ) ( 4 Bytes )
+                            CDesignHeder.pSMotorInfo[i].fInterference_Pos_Rear = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Interference axis ( Rear ) ( 4 Bytes )
+
+                            #region NickName ( 32 Bytes )
+                            CDesignHeder.pSMotorInfo[i].strNickName = Encoding.Default.GetString(byteData, nPos, 32);
+                            nPos += 32;
+                            #endregion NickName ( 32 Bytes )
+
+                            #region Group Number ( 2 Bytes )
+                            CDesignHeder.pSMotorInfo[i].nGroupNumber = BitConverter.ToInt16(byteData, nPos);
+                            nPos += 2;
+                            #endregion Group Number ( 2 Bytes )
+
+                            #region mirroring axis number ( 2 Bytes )
+                            if (bNoAxisMirror == false)
+                            {
+                                CDesignHeder.pSMotorInfo[i].nAxis_Mirror = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                            }
+                            #endregion mirroring axis number ( 2 Bytes )
+                            #region V1.4
+                            #region Motor control type ( 2 Bytes )
+                            if (nVersion >= 14)
+                            {
+                                CDesignHeder.pSMotorInfo[i].nMotorControlType = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                            }
+                            #endregion mirroring axis number ( 2 Bytes )
+                            #endregion V1.4
+
+                            #endregion Axis MotorInfo
+                        }
+
+                        #region set the separation code [ HE - Header End ( 2 Bytes ) ]
+                        strData = "";
+                        strData += (char)(byteData[nPos++]);
+                        strData += (char)(byteData[nPos++]);
+                        if (strData != "HE") bFileOpened = false;
+                        #endregion set the separation code [ HE - Header End ( 2 Bytes ) ]
+
+                        int nSize_GroupName;
+                        int nSize_0;
+                        int nSize_1;
+                        for (i = 0; i < 512; i++)
+                        {
+                            #region V1.4
+                            if (nVersion >= 14)
+                            {
+                                #region Secret Mode
+                                // Verify that the encryption code -> If this is the encryption code is set to '1'.
+                                // Kor: // 암호화 코드인지 확인 -> 암호화 코드라면 '1'
+                                CDesignHeder.pnSecret[i] = (int)(byte)(byteData[nPos++]);
+                                #endregion Secret Mode
+                                #region Type
+                                // check formulas Control Type -> If the wheel-type control '1', if the position type control '0'
+                                // Kor: 수식 제어타입 확인 -> 바퀴형 제어라면 '1', 위치형 제어라면 '0'
+                                CDesignHeder.pnType[i] = (int)(byte)(byteData[nPos++]);
+                                #endregion Type
+                            }
+                            #endregion V1.4
+
+                            #region GroupName String
+
+                            #region Size - Kinematics ( 2 Bytes )
+                            nSize_GroupName = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Size - Kinematics ( 2 Bytes )
+
+                            #region String - Kinematics
+                            CDesignHeder.pstrGroupName[i] = Encoding.Default.GetString(byteData, nPos, nSize_GroupName);
+                            nPos += nSize_GroupName;
+                            #endregion String - Kinematics
+
+                            #endregion GroupName String
+
+                            #region Kinematics/InverseKinematics String
+                            #region Size - Kinematics ( 2 Bytes )
+                            nSize_0 = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Size - Kinematics ( 2 Bytes )
+
+                            #region String - Kinematics
+                            //CDesignHeder.pstrKinematics[i] = "";
+                            //for (int j = 0; j < nSize_0; j++) CDesignHeder.pstrKinematics[i] += (char)(byteData[nPos++]);
+                            CDesignHeder.pstrKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                            // Since then loads the data may be encrypted.(Kor: 암호화 데이터일 수도 있으므로 로딩)
+                            CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption = new byte[nSize_0];
+                            Array.Copy(byteData, nPos, CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption, 0, nSize_0);
+
+                            nPos += nSize_0;
+                            #endregion String - Kinematics
+
+                            #region Size - InverseKinematics ( 2 Bytes )
+                            nSize_1 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Size - InverseKinematics ( 2 Bytes )
+
+                            #region String - InverseKinematics
+                            CDesignHeder.pstrInverseKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_1);
+                            // Since then loads the data may be encrypted.(Kor: 암호화 데이터일 수도 있으므로 로딩)
+                            CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption = new byte[nSize_1];
+                            Array.Copy(byteData, nPos, CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption, 0, nSize_1);
+
+                            nPos += nSize_1;
+                            #endregion String - InverseKinematics
+                            #endregion Kinematics/InverseKinematics String
+                        }
+
+                        #region set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
+                        strData = "";
+                        strData += (char)(byteData[nPos++]);
+                        strData += (char)(byteData[nPos++]);
+                        if (strData != "KE") bFileOpened = false;
+                        #endregion set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
+
+                        #region Actual design string
+                        #region Size - Actual design string ( 2 Bytes )
+                        nSize_0 = (int)(ushort)(BitConverter.ToUInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Size - Actual design string ( 2 Bytes )
+
+                        #region String - Actual design string
+                        //CDesignHeder.strDrawModel = "";
+                        CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);//CConvert.RemoveChar(Encoding.Default.GetString(byteData, nPos, nSize_0), '\r');
+                        nPos += nSize_0;
+                        // Dhf -> Ojw(Convert)
+                        String[] pstrLine = CDesignHeder.strDrawModel.Split('\n');
+                        int nCnt = 0;
+                        StringBuilder sbAll = new StringBuilder();
+
+#if _USING_DOTNET_3_5
+                            sbAll.Remove(0, sbAll.Length);
+#else
+                        sbAll.Clear(); // Dotnet 4.0 이상에서만 사용
+#endif
+                        foreach (string strLine in pstrLine)
+                        {
+                            String[] pstrTmp = strLine.Split(',');
+                            //if (pstrTmp.Length > 10)
+                            //{
+                            nCnt = 0;
+                            bool bCaption = false;
+                            int nModelPosition = 2;
+                            foreach (string strItem in pstrTmp)
+                            {
+                                if (strItem.IndexOf("//") >= 0)
+                                {
+                                    bCaption = true;
+                                }
+                                else if (bCaption == false)
+                                {
+                                    if (nCnt++ == nModelPosition)
+                                    {
+                                        sbAll.Append("1.0,");
+                                        int nData = CConvert.StrToInt(strItem);
+                                        if (nData >= 0x1000) sbAll.Append(CConvert.IntToStr(nData - 0x1000));
+                                        else sbAll.Append("#" + CConvert.RemoveChar(strItem, ' '));
+                                    }
+                                }
+                                if (nCnt != (nModelPosition + 1)) { sbAll.Append(CConvert.RemoveChar(strItem, ' ')); }
+                                else nCnt++;
+                                // ojw5014 - ,(콤마) 붙는거 해결할 것.
+                                if (strItem.IndexOf('\r') < 0) sbAll.Append(',');
+                                else sbAll.Append("\n");
+                            }
+                            //}
+                        }
+                        CDesignHeder.strDrawModel = sbAll.ToString();
+                        // Set a new version
+                        CDesignHeder.strVersion = _STR_EXT.ToUpper() + C3d._STR_EXT_VERSION.ToUpper();
+                        #endregion String - Actual design string
+                        #endregion Actual design string
+
+
+                        #region Comment
+                        #region Size - Comment ( 2 Bytes )
+                        nSize_0 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                        nPos += 2;
+                        #endregion Size - Comment ( 2 Bytes )
+
+                        #region String - Comment
+                        CDesignHeder.strComment = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                        nPos += nSize_0;
+                        #endregion String - Comment
+                        #endregion Comment
+
+                        #region set the separation code [ FE - File End ( 2 Bytes ) ]
+                        strData = "";
+                        strData += (char)(byteData[nPos++]);
+                        strData += (char)(byteData[nPos++]);
+                        if (strData != "FE") bFileOpened = false;
+                        #endregion set the separation code [ FE - File End ( 2 Bytes ) ]
+
+                        //fs.Close();
+                        //bFileOpened = true;
+
+
+                    }
+                    else
+#endif // _DHF_FILE
+#if true
+                        if ((strTmp[0] == 'O') & (strTmp[1] == 'J') & (strTmp[2] == 'W'))//(strTmp == strData) 
+                        {
+                            int nVersion = 0;// 010000; // 01.00.00
+                            for (i = 3; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++)
+                            {
+                                strVersion += (char)byteData[i];
+                                if ((char)byteData[i] != '.')
+                                {
+                                    nVersion = nVersion * 10 + (int)(byteData[i] - 0x30);
+                                }
+                            }
+
+                            CDesignHeder.strVersion = strTmp;
+                            CDesignHeder.nVersion = nVersion;
+
+                            int nPos = (_STR_EXT.Length + _STR_EXT_VERSION.Length);   // 앞의 (_STR_EXT.Length + _STR_EXT_VERSION.Length)개는 'OJW01.00.00' 에 할당
+
+                            #region From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+                            if (nVersion > 010000)
+                            {
+                                CDesignHeder.nDefaultFunctionNumber = (int)(BitConverter.ToInt32(byteData, nPos));
+                                //SetFunctionNumber(CDesignHeder.nDefaultFunctionNumber);                                
+                                //Prop_Set_Main_DefaultFunctionNum(CDesignHeder.nDefaultFunctionNumber);
+                                nPos += 4;
+                            }
+                            #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
+
+                            #region Model type ( 2 Bytes )
+                            CDesignHeder.nModelNum = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Model type ( 2 Bytes )
+
+                            #region Title ( 21 Bytes )
+                            CDesignHeder.strModelName = Encoding.Default.GetString(byteData, nPos, 21);
+                            nPos += 21;
+                            #endregion Title ( 21 Bytes )
+
+                            #region BackColor - background color ( 4 Bytes)
+                            CDesignHeder.cBackColor = Color.FromArgb(BitConverter.ToInt32(byteData, nPos));
+                            nPos += 4;
+                            #endregion BackColor - background color ( 4 Bytes)
+
+                            #region Num. of Motor ( 2 Bytes )
+                            CDesignHeder.nMotorCnt = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Num. of Motor ( 2 Bytes )
+                            #region Init Angle
+                            #region Init Angle - Pan ( 4 Bytes )
+                            CDesignHeder.SInitAngle.pan = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Angle - Pan ( 4 Bytes )
+                            #region Init Angle - Tilt ( 4 Bytes )
+                            CDesignHeder.SInitAngle.tilt = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Angle - Tilt ( 4 Bytes )
+                            #region Init Angle - Swing ( 4 Bytes )
+                            CDesignHeder.SInitAngle.swing = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Angle - Swing ( 4 Bytes )
+                            #endregion Init Angle
+                            #region Init Position
+                            #region Init Position - x ( 4 Bytes )
+                            CDesignHeder.SInitPos.x = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Position - x ( 4 Bytes )
+                            #region Init Position - y ( 4 Bytes )
+                            CDesignHeder.SInitPos.y = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Position - y ( 4 Bytes )
+                            #region Init Position - z ( 4 Bytes )
+                            CDesignHeder.SInitPos.z = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Position - z ( 4 Bytes )
+                            #endregion Init Position
+
+                            #region Init Scale - 100% = 1.0 ( 4 Bytes )
+                            CDesignHeder.fInitScale = BitConverter.ToSingle(byteData, nPos);
+                            nPos += 4;
+                            #endregion Init Scale - 100% = 1.0 ( 4 Bytes )
+
+                            #region 2 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_2 = (int)byteData[nPos++];
+                            #endregion 2 Wheel Counter ( 1 Bytes )
+
+                            #region 3 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_3 = (int)byteData[nPos++];
+                            #endregion 3 Wheel Counter ( 1 Bytes )
+
+                            #region 4 Wheel Counter ( 1 Bytes )
+                            CDesignHeder.nWheelCounter_4 = (int)byteData[nPos++];
+                            #endregion 4 Wheel Counter ( 1 Bytes )
+
+                            for (i = 0; i < 256; i++)
+                            {
+                                #region Axis MotorInfo
+
+                                #region Motor ID ( 2 Byte )
+                                CDesignHeder.pSMotorInfo[i].nMotorID = (int)(short)BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                                #endregion Motor ID ( 2 Byte )
+
+                                #region Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+                                CDesignHeder.pSMotorInfo[i].nMotorDir = (int)(short)BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                                #endregion Direction - 0 - Forward, 1 - Inverse ( 2 Bytes )
+
+                                #region Max Angle (+) ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fLimit_Up = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Max Angle (+) ( 4 Bytes )
+
+                                #region Min Angle (-) ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fLimit_Down = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Min Angle (-) ( 4 Bytes )
+
+                                if (nVersion < 010200)
+                                {
+                                    #region Center Position - Evd ( 2 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt16(byteData, nPos);
+                                    nPos += 2;
+                                    #endregion Center Position - Evd ( 2 Bytes )
+
+                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 2 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt16(byteData, nPos);
+                                    nPos += 2;
+                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 2 Bytes )
+                                }
+                                else
+                                {
+                                    #region Center Position - Evd ( 4 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nCenter_Evd = BitConverter.ToInt32(byteData, nPos);
+                                    nPos += 4;
+                                    #endregion Center Position - Evd ( 4 Bytes )
+
+                                    #region Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 4 Bytes )
+                                    CDesignHeder.pSMotorInfo[i].nMechMove = BitConverter.ToInt32(byteData, nPos);
+                                    nPos += 4;
+                                    #endregion Mech Move - Maximum Pulse value(Evd)(Kor: 최대치 펄스값 Evd)( 4 Bytes )
+                                }
+                                #region Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: 최대치 펄스에 해당하는 각도값 (분주각))]( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fMechAngle = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Mech Angle - Angle of Mech Mov [ The maximum pulse corresponding to the angle value(Kor: 최대치 펄스에 해당하는 각도값 (분주각))]( 4 Bytes )
+
+                                #region Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: 데이타의 초기자세를 임의의 자세로 하기 위해 사용( 4 Bytes ))
+                                // First Posture
+                                CDesignHeder.pSMotorInfo[i].fInitAngle = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                // Second Posture
+                                CDesignHeder.pSMotorInfo[i].fInitAngle2 = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Init Angle - Used for the initial position of the data in an arbitrary position( 4 Bytes )(Kor: 데이타의 초기자세를 임의의 자세로 하기 위해 사용( 4 Bytes ))
+
+                                #region Interference axis number(Kor: 간섭 축 번호) ( 2 Bytes )
+                                CDesignHeder.pSMotorInfo[i].nInterference_Axis = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                                #endregion Interference axis number(Kor: 간섭 축 번호) ( 2 Bytes )
+
+                                #region axis Width ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fW = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion axis Width ( 4 Bytes )
+
+                                #region Interference axis Width ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fInterference_W = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Interference axis Width ( 4 Bytes )
+
+                                #region Axis Side ( Right ) ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fPos_Right = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Axis Side ( Right ) ( 4 Bytes )
+
+                                #region Axis Side ( Left) ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fPos_Left = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Axis Side ( Left) ( 4 Bytes )
+
+                                #region Interference axis ( Front ) ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fInterference_Pos_Front = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Interference axis ( Front ) ( 4 Bytes )
+
+                                #region Interference axis ( Rear ) ( 4 Bytes )
+                                CDesignHeder.pSMotorInfo[i].fInterference_Pos_Rear = BitConverter.ToSingle(byteData, nPos);
+                                nPos += 4;
+                                #endregion Interference axis ( Rear ) ( 4 Bytes )
+
+                                #region NickName ( 32 Bytes )
+                                CDesignHeder.pSMotorInfo[i].strNickName = Encoding.Default.GetString(byteData, nPos, 32);
+                                nPos += 32;
+                                #endregion NickName ( 32 Bytes )
+
+                                #region Group Number ( 2 Bytes )
+                                CDesignHeder.pSMotorInfo[i].nGroupNumber = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                                #endregion Group Number ( 2 Bytes )
+
+                                #region mirroring axis number ( 2 Bytes )
+                                CDesignHeder.pSMotorInfo[i].nAxis_Mirror = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                                #endregion mirroring axis number ( 2 Bytes )
+                                #region V1.0.0
+                                #region Motor control type ( 2 Bytes )
+                                CDesignHeder.pSMotorInfo[i].nMotorControlType = BitConverter.ToInt16(byteData, nPos);
+                                nPos += 2;
+                                #endregion mirroring axis number ( 2 Bytes )
+                                #endregion V1.0.0
+
+                                #endregion Axis MotorInfo
+                            }
+
+                            #region set the separation code [ HE - Header End ( 2 Bytes ) ]
+                            strData = "";
+                            strData += (char)(byteData[nPos++]);
+                            strData += (char)(byteData[nPos++]);
+                            if (strData != "HE") bFileOpened = false;
+                            #endregion set the separation code [ HE - Header End ( 2 Bytes ) ]
+
+                            int nSize_GroupName;
+                            int nSize_0;
+                            int nSize_1;
+                            for (i = 0; i < 512; i++)
+                            {
+                                #region V1.0.0
+                                #region Secret Mode
+                                // Verify that the encryption code -> If this is the encryption code is set to '1'.
+                                // Kor: // 암호화 코드인지 확인 -> 암호화 코드라면 '1'
+                                CDesignHeder.pnSecret[i] = (int)(byte)(byteData[nPos++]);
+                                #endregion Secret Mode
+                                #region Type
+                                // check formulas Control Type -> If the wheel-type control '1', if the position type control '0'
+                                // Kor: 수식 제어타입 확인 -> 바퀴형 제어라면 '1', 위치형 제어라면 '0'
+                                CDesignHeder.pnType[i] = (int)(byte)(byteData[nPos++]);
+                                #endregion Type
+                                #endregion V1.0.0
+
+                                #region GroupName String
+
+                                #region Size - Kinematics ( 2 Bytes )
+                                nSize_GroupName = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                                nPos += 2;
+                                #endregion Size - Kinematics ( 2 Bytes )
+
+                                #region String - Kinematics
+                                CDesignHeder.pstrGroupName[i] = Encoding.Default.GetString(byteData, nPos, nSize_GroupName);
+                                nPos += nSize_GroupName;
+                                #endregion String - Kinematics
+
+                                #endregion GroupName String
+
+                                #region Kinematics/InverseKinematics String
+                                #region Size - Kinematics ( 2 Bytes )
+                                nSize_0 = (int)(short)(BitConverter.ToInt16(byteData, nPos));
+                                nPos += 2;
+                                #endregion Size - Kinematics ( 2 Bytes )
+
+                                #region String - Kinematics
+                                //CDesignHeder.pstrKinematics[i] = "";
+                                //for (int j = 0; j < nSize_0; j++) CDesignHeder.pstrKinematics[i] += (char)(byteData[nPos++]);
+                                CDesignHeder.pstrKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                                // Since then loads the data may be encrypted.(Kor: 암호화 데이터일 수도 있으므로 로딩)
+                                CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption = new byte[nSize_0];
+                                Array.Copy(byteData, nPos, CDesignHeder.pSEncryptKinematics_encryption[i].byteEncryption, 0, nSize_0);
+
+                                nPos += nSize_0;
+                                #endregion String - Kinematics
+
+                                #region Size - InverseKinematics ( 2 Bytes )
+                                nSize_1 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                                nPos += 2;
+                                #endregion Size - InverseKinematics ( 2 Bytes )
+
+                                #region String - InverseKinematics
+                                CDesignHeder.pstrInverseKinematics[i] = Encoding.Default.GetString(byteData, nPos, nSize_1);
+                                // Since then loads the data may be encrypted.(Kor: 암호화 데이터일 수도 있으므로 로딩)
+                                CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption = new byte[nSize_1];
+                                Array.Copy(byteData, nPos, CDesignHeder.pSEncryptInverseKinematics_encryption[i].byteEncryption, 0, nSize_1);
+
+                                nPos += nSize_1;
+                                #endregion String - InverseKinematics
+                                #endregion Kinematics/InverseKinematics String
+                            }
+
+                            #region set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
+                            strData = "";
+                            strData += (char)(byteData[nPos++]);
+                            strData += (char)(byteData[nPos++]);
+                            if (strData != "KE") bFileOpened = false;
+                            #endregion set the separation code [ KE - Kinematics End ( 2 Bytes ) ]
+
+                            #region Actual design string
+                            #region Size - Actual design string ( 2 Bytes )
+                            nSize_0 = (int)(ushort)(BitConverter.ToUInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Size - Actual design string ( 2 Bytes )
+
+                            #region String - Actual design string
+                            //CDesignHeder.strDrawModel = "";
+                            CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);
+
+                            nPos += nSize_0;
+                            #endregion String - Actual design string
+                            #endregion Actual design string
+
+
+                            #region Comment
+                            #region Size - Comment ( 2 Bytes )
+                            nSize_0 = (int)(short)(int)(short)(BitConverter.ToInt16(byteData, nPos));
+                            nPos += 2;
+                            #endregion Size - Comment ( 2 Bytes )
+
+                            #region String - Comment
+                            CDesignHeder.strComment = Encoding.Default.GetString(byteData, nPos, nSize_0);
+                            nPos += nSize_0;
+                            #endregion String - Comment
+                            #endregion Comment
+
+                            #region set the separation code [ FE - File End ( 2 Bytes ) ]
+                            strData = "";
+                            strData += (char)(byteData[nPos++]);
+                            strData += (char)(byteData[nPos++]);
+                            if (strData != "FE") bFileOpened = false;
+                            #endregion set the separation code [ FE - File End ( 2 Bytes ) ]
+
+                            //Prop_Update_VirtualObject();
+                        }
+                        else bFileOpened = false;
+#endif
+                    #endregion OjwVersion
+                    ////////////////////////////////////////////////////////////////////////////
+
+                    if (bFileOpened == true)
+                    {
+                        CHeader = CDesignHeder;
+                        CHeader.pDhParamAll = new CDhParamAll[512];
+
+                        CDesignHeder = null;
+
+                        m_bFileOpening = false;
+                        return true;
+                    }
+                    CDesignHeder = null;
+                    m_bFileOpening = false;
+                    return false;
+                }
+                catch
+                {
+                    m_bFileOpening = false;
+                    return false;
+                }
+            }
             public bool FileOpen(String strFileName, out COjwDesignerHeader CHeader)
             {
                 m_bFileOpening = true;
@@ -19115,8 +21099,17 @@ namespace OpenJigWare
                 bool bFileOpened = true;
                 CHeader = null;
                 m_strVersion = "";
+                                
                 try
                 {
+                    for (int nID = 0; nID < _SIZE_MAX_MOT; nID++)
+                    {
+                        m_pSRot[nID].pan = 0.0f;
+                        m_pSRot[nID].tilt = 0.0f;
+                        m_pSRot[nID].swing = 0.0f;
+                        //m_pSTmrTrack[nID].Set();
+                    }
+                    
                     int i;//, j;
 
                     FileInfo f = new FileInfo(strFileName);
@@ -19977,6 +21970,12 @@ namespace OpenJigWare
                         //pbyteKinematics_encryption
                         pstrInverseKinematics[i] = "";
                         //pbyteInverseKinematics_encryption
+
+                        pSMotorInfo[i].nMotorID = i;
+                        pSMotorInfo[i].fMechAngle = 330.0f;
+                        pSMotorInfo[i].nMechMove = 1024;
+                        pSMotorInfo[i].nCenter_Evd = 512;
+                        
 
                         pSEncryptKinematics_encryption[i].byteEncryption = new byte[0];
                         pSEncryptInverseKinematics_encryption[i].byteEncryption = new byte[0];

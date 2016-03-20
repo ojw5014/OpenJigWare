@@ -32,21 +32,33 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMotionEditor));
             this.dgAngle = new System.Windows.Forms.DataGridView();
             this.pnProperty = new System.Windows.Forms.Panel();
-            this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.tcControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.chkFreeze_Z = new System.Windows.Forms.CheckBox();
+            this.chkFreeze_Swing = new System.Windows.Forms.CheckBox();
+            this.chkFreeze_Y = new System.Windows.Forms.CheckBox();
+            this.chkFreeze_Pan = new System.Windows.Forms.CheckBox();
+            this.btnMotion_Download2 = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
             this.btnSimul = new System.Windows.Forms.Button();
             this.btnRun = new System.Windows.Forms.Button();
+            this.btnMotion_GetList2 = new System.Windows.Forms.Button();
+            this.btnInitpos = new System.Windows.Forms.Button();
             this.btnMotionEnd = new System.Windows.Forms.Button();
             this.btnReset = new System.Windows.Forms.Button();
+            this.btnConnect = new System.Windows.Forms.Button();
             this.txtMotionCounter = new System.Windows.Forms.TextBox();
             this.btnEms = new System.Windows.Forms.Button();
+            this.txtIp = new System.Windows.Forms.TextBox();
             this.label128 = new System.Windows.Forms.Label();
             this.lbMotion_Counter = new System.Windows.Forms.Label();
+            this.label314 = new System.Windows.Forms.Label();
             this.lbMotion_Status = new System.Windows.Forms.Label();
             this.label129 = new System.Windows.Forms.Label();
+            this.btnConnect_Serial = new System.Windows.Forms.Button();
             this.label12 = new System.Windows.Forms.Label();
             this.label127 = new System.Windows.Forms.Label();
+            this.lbModify = new System.Windows.Forms.Label();
             this.lbMotion_Message = new System.Windows.Forms.Label();
             this.panel2 = new System.Windows.Forms.Panel();
             this.txtChangeValue = new System.Windows.Forms.TextBox();
@@ -121,58 +133,77 @@
             this.btnGroup1 = new System.Windows.Forms.Button();
             this.btnGroup2 = new System.Windows.Forms.Button();
             this.btnGroup3 = new System.Windows.Forms.Button();
+            this.txtPort = new System.Windows.Forms.TextBox();
             this.chkSmooth = new System.Windows.Forms.CheckBox();
+            this.btnDisplay_RememberPos = new System.Windows.Forms.Button();
+            this.txtBaudrate = new System.Windows.Forms.TextBox();
+            this.chkFreeze_Tilt = new System.Windows.Forms.CheckBox();
+            this.btnInitpos2 = new System.Windows.Forms.Button();
+            this.lbTableName = new System.Windows.Forms.Label();
+            this.chkFreeze_X = new System.Windows.Forms.CheckBox();
+            this.btnPos_TurnBack = new System.Windows.Forms.Button();
+            this.btnPos_Front = new System.Windows.Forms.Button();
+            this.txtBackAngle_X = new System.Windows.Forms.TextBox();
+            this.txtSocket_Port = new System.Windows.Forms.TextBox();
+            this.cmbStartPosition = new System.Windows.Forms.ComboBox();
+            this.btnCalcTime = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.btnPos_Go = new System.Windows.Forms.Button();
+            this.btnDisplay_GetThePose = new System.Windows.Forms.Button();
+            this.btnPos_Left = new System.Windows.Forms.Button();
+            this.label7 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label10 = new System.Windows.Forms.Label();
+            this.label8 = new System.Windows.Forms.Label();
+            this.btnMotionFileOpen = new System.Windows.Forms.Button();
+            this.txtTableName = new System.Windows.Forms.TextBox();
+            this.label13 = new System.Windows.Forms.Label();
+            this.txtBackAngle_Y = new System.Windows.Forms.TextBox();
+            this.btnPos_Top = new System.Windows.Forms.Button();
+            this.txtFileName = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.txtComment = new System.Windows.Forms.TextBox();
+            this.btnPos_Bottom = new System.Windows.Forms.Button();
+            this.btnBinarySave = new System.Windows.Forms.Button();
+            this.label3 = new System.Windows.Forms.Label();
+            this.txtBackAngle_Z = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.btnPos_Right = new System.Windows.Forms.Button();
+            this.btnTextSave = new System.Windows.Forms.Button();
+            this.tbFiles = new System.Windows.Forms.TabPage();
+            this.btnDirRefresh = new System.Windows.Forms.Button();
+            this.btnAppendFile = new System.Windows.Forms.Button();
+            this.lstInfo = new System.Windows.Forms.ListView();
+            this.ColumnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.ColumnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.ColumnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.treeInfo = new System.Windows.Forms.TreeView();
+            this.lbList_Comment = new System.Windows.Forms.Label();
+            this.label222 = new System.Windows.Forms.Label();
+            this.lbList_FrameSize_Emoticon = new System.Windows.Forms.Label();
+            this.lbList_FrameSize_Sound = new System.Windows.Forms.Label();
+            this.label225 = new System.Windows.Forms.Label();
+            this.label224 = new System.Windows.Forms.Label();
+            this.label223 = new System.Windows.Forms.Label();
+            this.label221 = new System.Windows.Forms.Label();
+            this.lbList_FrameSize = new System.Windows.Forms.Label();
+            this.lblVersion = new System.Windows.Forms.Label();
+            this.lbList_Title = new System.Windows.Forms.Label();
+            this.lblPath = new System.Windows.Forms.Label();
+            this.tbDownload = new System.Windows.Forms.TabPage();
+            this.btnMotion_Download = new System.Windows.Forms.Button();
+            this.btnMotion_Play = new System.Windows.Forms.Button();
+            this.btnMotion_GetList = new System.Windows.Forms.Button();
+            this.btnMotion_Delete = new System.Windows.Forms.Button();
+            this.listviewMotion = new System.Windows.Forms.ListView();
+            this.clmDownload = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.txtMessage = new System.Windows.Forms.TextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.label1 = new System.Windows.Forms.Label();
             this.txtTest = new System.Windows.Forms.TextBox();
-            this.btnPos_TurnBack = new System.Windows.Forms.Button();
-            this.btnPos_Left = new System.Windows.Forms.Button();
-            this.btnPos_Top = new System.Windows.Forms.Button();
-            this.btnPos_Right = new System.Windows.Forms.Button();
-            this.txtBackAngle_Z = new System.Windows.Forms.TextBox();
-            this.btnPos_Bottom = new System.Windows.Forms.Button();
-            this.txtBackAngle_Y = new System.Windows.Forms.TextBox();
-            this.btnDisplay_GetThePose = new System.Windows.Forms.Button();
-            this.txtBackAngle_X = new System.Windows.Forms.TextBox();
-            this.btnDisplay_RememberPos = new System.Windows.Forms.Button();
-            this.btnPos_Front = new System.Windows.Forms.Button();
-            this.btnPos_Go = new System.Windows.Forms.Button();
-            this.label13 = new System.Windows.Forms.Label();
-            this.label8 = new System.Windows.Forms.Label();
-            this.label7 = new System.Windows.Forms.Label();
-            this.btnCalcTime = new System.Windows.Forms.Button();
-            this.btnMotionFileOpen = new System.Windows.Forms.Button();
-            this.txtFileName = new System.Windows.Forms.TextBox();
-            this.btnBinarySave = new System.Windows.Forms.Button();
-            this.btnTextSave = new System.Windows.Forms.Button();
-            this.txtComment = new System.Windows.Forms.TextBox();
-            this.txtTableName = new System.Windows.Forms.TextBox();
-            this.label10 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
-            this.lbTableName = new System.Windows.Forms.Label();
-            this.cmbStartPosition = new System.Windows.Forms.ComboBox();
-            this.lbModify = new System.Windows.Forms.Label();
-            this.label314 = new System.Windows.Forms.Label();
-            this.txtIp = new System.Windows.Forms.TextBox();
-            this.btnConnect = new System.Windows.Forms.Button();
-            this.txtPort = new System.Windows.Forms.TextBox();
-            this.btnConnect_Serial = new System.Windows.Forms.Button();
             this.tmrDraw = new System.Windows.Forms.Timer(this.components);
             this.picDisp = new System.Windows.Forms.PictureBox();
-            this.label3 = new System.Windows.Forms.Label();
-            this.txtBaudrate = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
-            this.txtSocket_Port = new System.Windows.Forms.TextBox();
-            this.label6 = new System.Windows.Forms.Label();
-            this.chkFreeze_Swing = new System.Windows.Forms.CheckBox();
-            this.chkFreeze_Z = new System.Windows.Forms.CheckBox();
-            this.chkFreeze_Pan = new System.Windows.Forms.CheckBox();
-            this.chkFreeze_Y = new System.Windows.Forms.CheckBox();
-            this.chkFreeze_Tilt = new System.Windows.Forms.CheckBox();
-            this.chkFreeze_X = new System.Windows.Forms.CheckBox();
             this.label9 = new System.Windows.Forms.Label();
             this.btnMp3Open = new System.Windows.Forms.Button();
             this.btnMp3Play = new System.Windows.Forms.Button();
@@ -191,10 +222,9 @@
             this.txtMp3TimeDelay = new System.Windows.Forms.TextBox();
             this.tmrRun = new System.Windows.Forms.Timer(this.components);
             this.pnButton = new System.Windows.Forms.Panel();
+            this.btnUserButton = new System.Windows.Forms.Button();
             this.btnMode0 = new System.Windows.Forms.Button();
             this.btnMode1 = new System.Windows.Forms.Button();
-            this.btnInitpos = new System.Windows.Forms.Button();
-            this.btnInitpos2 = new System.Windows.Forms.Button();
             this.lbPlayState = new System.Windows.Forms.Label();
             this.prbStatus = new System.Windows.Forms.ProgressBar();
             this.btnSync_Mp3_Grid = new System.Windows.Forms.Button();
@@ -202,28 +232,37 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.label15 = new System.Windows.Forms.Label();
             this.btnOpenDesignFile = new System.Windows.Forms.Button();
+            this.picIcon = new System.Windows.Forms.PictureBox();
+            this.lbMsg = new System.Windows.Forms.Label();
+            this.imglstBig = new System.Windows.Forms.ImageList(this.components);
+            this.imglstSmall = new System.Windows.Forms.ImageList(this.components);
+            this.imglstTree = new System.Windows.Forms.ImageList(this.components);
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.mpPlayer = new AxWMPLib.AxWindowsMediaPlayer();
             ((System.ComponentModel.ISupportInitialize)(this.dgAngle)).BeginInit();
-            this.tabControl1.SuspendLayout();
+            this.tcControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.panel2.SuspendLayout();
+            this.tbFiles.SuspendLayout();
+            this.tbDownload.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picDisp)).BeginInit();
             this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picIcon)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.mpPlayer)).BeginInit();
             this.SuspendLayout();
             // 
             // dgAngle
             // 
             this.dgAngle.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgAngle.Location = new System.Drawing.Point(12, 430);
+            this.dgAngle.Location = new System.Drawing.Point(9, 431);
             this.dgAngle.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.dgAngle.Name = "dgAngle";
             this.dgAngle.RowHeadersWidth = 600;
             this.dgAngle.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             this.dgAngle.RowTemplate.Height = 27;
-            this.dgAngle.Size = new System.Drawing.Size(1000, 314);
+            this.dgAngle.Size = new System.Drawing.Size(1005, 314);
             this.dgAngle.TabIndex = 483;
             // 
             // pnProperty
@@ -231,45 +270,154 @@
             this.pnProperty.Location = new System.Drawing.Point(6, 5);
             this.pnProperty.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pnProperty.Name = "pnProperty";
-            this.pnProperty.Size = new System.Drawing.Size(222, 290);
+            this.pnProperty.Size = new System.Drawing.Size(213, 287);
             this.pnProperty.TabIndex = 482;
             // 
-            // tabControl1
+            // tcControl
             // 
-            this.tabControl1.Controls.Add(this.tabPage1);
-            this.tabControl1.Controls.Add(this.tabPage2);
-            this.tabControl1.Controls.Add(this.tabPage3);
-            this.tabControl1.Location = new System.Drawing.Point(529, 43);
-            this.tabControl1.Name = "tabControl1";
-            this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(254, 325);
-            this.tabControl1.TabIndex = 485;
+            this.tcControl.Controls.Add(this.tabPage1);
+            this.tcControl.Controls.Add(this.tbFiles);
+            this.tcControl.Controls.Add(this.tbDownload);
+            this.tcControl.Controls.Add(this.tabPage2);
+            this.tcControl.Controls.Add(this.tabPage3);
+            this.tcControl.Location = new System.Drawing.Point(309, 43);
+            this.tcControl.Name = "tcControl";
+            this.tcControl.SelectedIndex = 0;
+            this.tcControl.Size = new System.Drawing.Size(474, 325);
+            this.tcControl.TabIndex = 485;
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.chkFreeze_Z);
+            this.tabPage1.Controls.Add(this.chkFreeze_Swing);
+            this.tabPage1.Controls.Add(this.chkFreeze_Y);
+            this.tabPage1.Controls.Add(this.chkFreeze_Pan);
+            this.tabPage1.Controls.Add(this.btnMotion_Download2);
             this.tabPage1.Controls.Add(this.btnStop);
             this.tabPage1.Controls.Add(this.btnSimul);
             this.tabPage1.Controls.Add(this.btnRun);
+            this.tabPage1.Controls.Add(this.btnMotion_GetList2);
+            this.tabPage1.Controls.Add(this.btnInitpos);
             this.tabPage1.Controls.Add(this.btnMotionEnd);
             this.tabPage1.Controls.Add(this.btnReset);
+            this.tabPage1.Controls.Add(this.btnConnect);
             this.tabPage1.Controls.Add(this.txtMotionCounter);
             this.tabPage1.Controls.Add(this.btnEms);
+            this.tabPage1.Controls.Add(this.txtIp);
             this.tabPage1.Controls.Add(this.label128);
             this.tabPage1.Controls.Add(this.lbMotion_Counter);
+            this.tabPage1.Controls.Add(this.label314);
             this.tabPage1.Controls.Add(this.lbMotion_Status);
             this.tabPage1.Controls.Add(this.label129);
+            this.tabPage1.Controls.Add(this.btnConnect_Serial);
             this.tabPage1.Controls.Add(this.label12);
             this.tabPage1.Controls.Add(this.label127);
+            this.tabPage1.Controls.Add(this.lbModify);
             this.tabPage1.Controls.Add(this.lbMotion_Message);
             this.tabPage1.Controls.Add(this.panel2);
+            this.tabPage1.Controls.Add(this.txtPort);
             this.tabPage1.Controls.Add(this.chkSmooth);
+            this.tabPage1.Controls.Add(this.btnDisplay_RememberPos);
+            this.tabPage1.Controls.Add(this.txtBaudrate);
+            this.tabPage1.Controls.Add(this.chkFreeze_Tilt);
+            this.tabPage1.Controls.Add(this.btnInitpos2);
+            this.tabPage1.Controls.Add(this.lbTableName);
+            this.tabPage1.Controls.Add(this.chkFreeze_X);
+            this.tabPage1.Controls.Add(this.btnPos_TurnBack);
+            this.tabPage1.Controls.Add(this.btnPos_Front);
+            this.tabPage1.Controls.Add(this.txtBackAngle_X);
+            this.tabPage1.Controls.Add(this.txtSocket_Port);
+            this.tabPage1.Controls.Add(this.cmbStartPosition);
+            this.tabPage1.Controls.Add(this.btnCalcTime);
+            this.tabPage1.Controls.Add(this.label2);
+            this.tabPage1.Controls.Add(this.btnPos_Go);
+            this.tabPage1.Controls.Add(this.btnDisplay_GetThePose);
+            this.tabPage1.Controls.Add(this.btnPos_Left);
+            this.tabPage1.Controls.Add(this.label7);
+            this.tabPage1.Controls.Add(this.label4);
+            this.tabPage1.Controls.Add(this.label10);
+            this.tabPage1.Controls.Add(this.label8);
+            this.tabPage1.Controls.Add(this.btnMotionFileOpen);
+            this.tabPage1.Controls.Add(this.txtTableName);
+            this.tabPage1.Controls.Add(this.label13);
+            this.tabPage1.Controls.Add(this.txtBackAngle_Y);
+            this.tabPage1.Controls.Add(this.btnPos_Top);
+            this.tabPage1.Controls.Add(this.txtFileName);
+            this.tabPage1.Controls.Add(this.label5);
+            this.tabPage1.Controls.Add(this.txtComment);
+            this.tabPage1.Controls.Add(this.btnPos_Bottom);
+            this.tabPage1.Controls.Add(this.btnBinarySave);
+            this.tabPage1.Controls.Add(this.label3);
+            this.tabPage1.Controls.Add(this.txtBackAngle_Z);
+            this.tabPage1.Controls.Add(this.label6);
+            this.tabPage1.Controls.Add(this.btnPos_Right);
+            this.tabPage1.Controls.Add(this.btnTextSave);
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(246, 299);
+            this.tabPage1.Size = new System.Drawing.Size(466, 299);
             this.tabPage1.TabIndex = 0;
-            this.tabPage1.Text = "tabPage1";
+            this.tabPage1.Text = "Control";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // chkFreeze_Z
+            // 
+            this.chkFreeze_Z.AutoSize = true;
+            this.chkFreeze_Z.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_Z.Location = new System.Drawing.Point(247, 210);
+            this.chkFreeze_Z.Name = "chkFreeze_Z";
+            this.chkFreeze_Z.Size = new System.Drawing.Size(81, 16);
+            this.chkFreeze_Z.TabIndex = 654;
+            this.chkFreeze_Z.Text = "Freeze(Z)";
+            this.chkFreeze_Z.UseVisualStyleBackColor = false;
+            this.chkFreeze_Z.CheckedChanged += new System.EventHandler(this.chkFreeze_Z_CheckedChanged);
+            // 
+            // chkFreeze_Swing
+            // 
+            this.chkFreeze_Swing.AutoSize = true;
+            this.chkFreeze_Swing.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_Swing.Location = new System.Drawing.Point(328, 210);
+            this.chkFreeze_Swing.Name = "chkFreeze_Swing";
+            this.chkFreeze_Swing.Size = new System.Drawing.Size(81, 16);
+            this.chkFreeze_Swing.TabIndex = 653;
+            this.chkFreeze_Swing.Text = "Freeze(S)";
+            this.chkFreeze_Swing.UseVisualStyleBackColor = false;
+            this.chkFreeze_Swing.CheckedChanged += new System.EventHandler(this.chkFreeze_Swing_CheckedChanged);
+            // 
+            // chkFreeze_Y
+            // 
+            this.chkFreeze_Y.AutoSize = true;
+            this.chkFreeze_Y.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_Y.Location = new System.Drawing.Point(247, 196);
+            this.chkFreeze_Y.Name = "chkFreeze_Y";
+            this.chkFreeze_Y.Size = new System.Drawing.Size(81, 16);
+            this.chkFreeze_Y.TabIndex = 650;
+            this.chkFreeze_Y.Text = "Freeze(Y)";
+            this.chkFreeze_Y.UseVisualStyleBackColor = false;
+            this.chkFreeze_Y.CheckedChanged += new System.EventHandler(this.chkFreeze_Y_CheckedChanged);
+            // 
+            // chkFreeze_Pan
+            // 
+            this.chkFreeze_Pan.AutoSize = true;
+            this.chkFreeze_Pan.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_Pan.Location = new System.Drawing.Point(328, 196);
+            this.chkFreeze_Pan.Name = "chkFreeze_Pan";
+            this.chkFreeze_Pan.Size = new System.Drawing.Size(81, 16);
+            this.chkFreeze_Pan.TabIndex = 655;
+            this.chkFreeze_Pan.Text = "Freeze(P)";
+            this.chkFreeze_Pan.UseVisualStyleBackColor = false;
+            this.chkFreeze_Pan.CheckedChanged += new System.EventHandler(this.chkFreeze_Pan_CheckedChanged);
+            // 
+            // btnMotion_Download2
+            // 
+            this.btnMotion_Download2.BackgroundImage = global::OpenJigWare.Properties.Resources.download;
+            this.btnMotion_Download2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnMotion_Download2.Location = new System.Drawing.Point(430, 47);
+            this.btnMotion_Download2.Name = "btnMotion_Download2";
+            this.btnMotion_Download2.Size = new System.Drawing.Size(33, 32);
+            this.btnMotion_Download2.TabIndex = 1;
+            this.btnMotion_Download2.UseVisualStyleBackColor = true;
+            this.btnMotion_Download2.Click += new System.EventHandler(this.btnMotion_Download_Click);
             // 
             // btnStop
             // 
@@ -304,6 +452,28 @@
             this.btnRun.UseVisualStyleBackColor = true;
             this.btnRun.Click += new System.EventHandler(this.btnRun_Click);
             // 
+            // btnMotion_GetList2
+            // 
+            this.btnMotion_GetList2.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
+            this.btnMotion_GetList2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnMotion_GetList2.Location = new System.Drawing.Point(430, 5);
+            this.btnMotion_GetList2.Name = "btnMotion_GetList2";
+            this.btnMotion_GetList2.Size = new System.Drawing.Size(33, 32);
+            this.btnMotion_GetList2.TabIndex = 1;
+            this.btnMotion_GetList2.UseVisualStyleBackColor = true;
+            this.btnMotion_GetList2.Click += new System.EventHandler(this.btnMotion_GetList_Click);
+            // 
+            // btnInitpos
+            // 
+            this.btnInitpos.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
+            this.btnInitpos.Location = new System.Drawing.Point(409, 181);
+            this.btnInitpos.Name = "btnInitpos";
+            this.btnInitpos.Size = new System.Drawing.Size(52, 59);
+            this.btnInitpos.TabIndex = 673;
+            this.btnInitpos.Text = "InitPos 1";
+            this.btnInitpos.UseVisualStyleBackColor = false;
+            this.btnInitpos.Click += new System.EventHandler(this.btnInitpos_Click);
+            // 
             // btnMotionEnd
             // 
             this.btnMotionEnd.Location = new System.Drawing.Point(82, 77);
@@ -323,6 +493,16 @@
             this.btnReset.Text = "Reset";
             this.btnReset.UseVisualStyleBackColor = true;
             this.btnReset.Click += new System.EventHandler(this.btnReset_Click);
+            // 
+            // btnConnect
+            // 
+            this.btnConnect.Enabled = false;
+            this.btnConnect.Location = new System.Drawing.Point(357, 42);
+            this.btnConnect.Name = "btnConnect";
+            this.btnConnect.Size = new System.Drawing.Size(71, 42);
+            this.btnConnect.TabIndex = 634;
+            this.btnConnect.Text = "Connect [Wifi]";
+            this.btnConnect.UseVisualStyleBackColor = true;
             // 
             // txtMotionCounter
             // 
@@ -346,6 +526,15 @@
             this.btnEms.Text = "Ems";
             this.btnEms.UseVisualStyleBackColor = false;
             this.btnEms.Click += new System.EventHandler(this.btnEms_Click);
+            // 
+            // txtIp
+            // 
+            this.txtIp.Enabled = false;
+            this.txtIp.Location = new System.Drawing.Point(274, 42);
+            this.txtIp.Name = "txtIp";
+            this.txtIp.Size = new System.Drawing.Size(82, 21);
+            this.txtIp.TabIndex = 635;
+            this.txtIp.Text = "192.168.1.100";
             // 
             // label128
             // 
@@ -373,6 +562,18 @@
             this.lbMotion_Counter.Text = "0";
             this.lbMotion_Counter.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // label314
+            // 
+            this.label314.BackColor = System.Drawing.Color.Gainsboro;
+            this.label314.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label314.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label314.Location = new System.Drawing.Point(247, 106);
+            this.label314.Name = "label314";
+            this.label314.Size = new System.Drawing.Size(59, 18);
+            this.label314.TabIndex = 636;
+            this.label314.Text = "저장상태";
+            this.label314.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // lbMotion_Status
             // 
             this.lbMotion_Status.BackColor = System.Drawing.Color.Gainsboro;
@@ -398,6 +599,16 @@
             this.label129.TabIndex = 630;
             this.label129.Text = "Counter";
             this.label129.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // btnConnect_Serial
+            // 
+            this.btnConnect_Serial.Location = new System.Drawing.Point(357, 0);
+            this.btnConnect_Serial.Name = "btnConnect_Serial";
+            this.btnConnect_Serial.Size = new System.Drawing.Size(71, 42);
+            this.btnConnect_Serial.TabIndex = 632;
+            this.btnConnect_Serial.Text = "Connect";
+            this.btnConnect_Serial.UseVisualStyleBackColor = true;
+            this.btnConnect_Serial.Click += new System.EventHandler(this.btnConnect_Serial_Click);
             // 
             // label12
             // 
@@ -427,6 +638,19 @@
             this.label127.Text = "Status";
             this.label127.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // lbModify
+            // 
+            this.lbModify.BackColor = System.Drawing.Color.Yellow;
+            this.lbModify.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lbModify.Font = new System.Drawing.Font("굴림", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lbModify.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
+            this.lbModify.Location = new System.Drawing.Point(307, 106);
+            this.lbModify.Name = "lbModify";
+            this.lbModify.Size = new System.Drawing.Size(70, 18);
+            this.lbModify.TabIndex = 637;
+            this.lbModify.Text = "완료";
+            this.lbModify.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // lbMotion_Message
             // 
             this.lbMotion_Message.BackColor = System.Drawing.Color.Gainsboro;
@@ -440,7 +664,7 @@
             // 
             // panel2
             // 
-            this.panel2.BackColor = System.Drawing.Color.Black;
+            this.panel2.BackColor = System.Drawing.Color.DarkGray;
             this.panel2.Controls.Add(this.txtChangeValue);
             this.panel2.Controls.Add(this.lbWheel4Dir);
             this.panel2.Controls.Add(this.btnWheel4_0);
@@ -917,7 +1141,7 @@
             // label17
             // 
             this.label17.AutoSize = true;
-            this.label17.BackColor = System.Drawing.Color.Black;
+            this.label17.BackColor = System.Drawing.Color.Transparent;
             this.label17.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label17.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
             this.label17.Location = new System.Drawing.Point(0, 6);
@@ -971,6 +1195,7 @@
             this.btnChangeType.TabIndex = 674;
             this.btnChangeType.Text = "T";
             this.btnChangeType.UseVisualStyleBackColor = false;
+            this.btnChangeType.Visible = false;
             // 
             // btnChangeEnable
             // 
@@ -981,6 +1206,8 @@
             this.btnChangeEnable.TabIndex = 675;
             this.btnChangeEnable.Text = "E";
             this.btnChangeEnable.UseVisualStyleBackColor = false;
+            this.btnChangeEnable.Visible = false;
+            this.btnChangeEnable.Click += new System.EventHandler(this.btnChangeEnable_Click);
             // 
             // btnChangeLed_B
             // 
@@ -1301,6 +1528,14 @@
             this.btnGroup3.UseVisualStyleBackColor = false;
             this.btnGroup3.Click += new System.EventHandler(this.btnGroup3_Click);
             // 
+            // txtPort
+            // 
+            this.txtPort.Location = new System.Drawing.Point(308, 0);
+            this.txtPort.Name = "txtPort";
+            this.txtPort.Size = new System.Drawing.Size(48, 21);
+            this.txtPort.TabIndex = 633;
+            this.txtPort.Text = "1";
+            // 
             // chkSmooth
             // 
             this.chkSmooth.AutoSize = true;
@@ -1316,333 +1551,113 @@
             this.chkSmooth.UseVisualStyleBackColor = false;
             this.chkSmooth.CheckedChanged += new System.EventHandler(this.chkSmooth_CheckedChanged);
             // 
-            // tabPage2
-            // 
-            this.tabPage2.Controls.Add(this.txtMessage);
-            this.tabPage2.Location = new System.Drawing.Point(4, 22);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(246, 299);
-            this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "tabPage2";
-            this.tabPage2.UseVisualStyleBackColor = true;
-            // 
-            // txtMessage
-            // 
-            this.txtMessage.Location = new System.Drawing.Point(6, 5);
-            this.txtMessage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.txtMessage.Multiline = true;
-            this.txtMessage.Name = "txtMessage";
-            this.txtMessage.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtMessage.Size = new System.Drawing.Size(237, 289);
-            this.txtMessage.TabIndex = 485;
-            // 
-            // tabPage3
-            // 
-            this.tabPage3.Controls.Add(this.label1);
-            this.tabPage3.Controls.Add(this.txtTest);
-            this.tabPage3.Controls.Add(this.pnProperty);
-            this.tabPage3.Location = new System.Drawing.Point(4, 22);
-            this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(246, 299);
-            this.tabPage3.TabIndex = 2;
-            this.tabPage3.Text = "tabPage3";
-            this.tabPage3.UseVisualStyleBackColor = true;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 163);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(190, 12);
-            this.label1.TabIndex = 489;
-            this.label1.Text = "< Information with clicking part >";
-            // 
-            // txtTest
-            // 
-            this.txtTest.Location = new System.Drawing.Point(6, 177);
-            this.txtTest.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.txtTest.Multiline = true;
-            this.txtTest.Name = "txtTest";
-            this.txtTest.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtTest.Size = new System.Drawing.Size(234, 120);
-            this.txtTest.TabIndex = 488;
-            // 
-            // btnPos_TurnBack
-            // 
-            this.btnPos_TurnBack.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_TurnBack.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnPos_TurnBack.Location = new System.Drawing.Point(140, 353);
-            this.btnPos_TurnBack.Name = "btnPos_TurnBack";
-            this.btnPos_TurnBack.Size = new System.Drawing.Size(52, 19);
-            this.btnPos_TurnBack.TabIndex = 656;
-            this.btnPos_TurnBack.Text = "←";
-            this.btnPos_TurnBack.UseVisualStyleBackColor = false;
-            this.btnPos_TurnBack.Click += new System.EventHandler(this.btnPos_TurnBack_Click);
-            // 
-            // btnPos_Left
-            // 
-            this.btnPos_Left.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_Left.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnPos_Left.Location = new System.Drawing.Point(140, 335);
-            this.btnPos_Left.Name = "btnPos_Left";
-            this.btnPos_Left.Size = new System.Drawing.Size(52, 19);
-            this.btnPos_Left.TabIndex = 661;
-            this.btnPos_Left.Text = "Left";
-            this.btnPos_Left.UseVisualStyleBackColor = false;
-            this.btnPos_Left.Click += new System.EventHandler(this.btnPos_Left_Click);
-            // 
-            // btnPos_Top
-            // 
-            this.btnPos_Top.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_Top.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnPos_Top.Location = new System.Drawing.Point(89, 353);
-            this.btnPos_Top.Name = "btnPos_Top";
-            this.btnPos_Top.Size = new System.Drawing.Size(52, 19);
-            this.btnPos_Top.TabIndex = 659;
-            this.btnPos_Top.Text = "Top";
-            this.btnPos_Top.UseVisualStyleBackColor = false;
-            this.btnPos_Top.Click += new System.EventHandler(this.btnPos_Top_Click);
-            // 
-            // btnPos_Right
-            // 
-            this.btnPos_Right.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_Right.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnPos_Right.Location = new System.Drawing.Point(140, 317);
-            this.btnPos_Right.Name = "btnPos_Right";
-            this.btnPos_Right.Size = new System.Drawing.Size(52, 19);
-            this.btnPos_Right.TabIndex = 662;
-            this.btnPos_Right.Text = "Right";
-            this.btnPos_Right.UseVisualStyleBackColor = false;
-            this.btnPos_Right.Click += new System.EventHandler(this.btnPos_Right_Click);
-            // 
-            // txtBackAngle_Z
-            // 
-            this.txtBackAngle_Z.Location = new System.Drawing.Point(31, 348);
-            this.txtBackAngle_Z.Name = "txtBackAngle_Z";
-            this.txtBackAngle_Z.Size = new System.Drawing.Size(33, 21);
-            this.txtBackAngle_Z.TabIndex = 584;
-            this.txtBackAngle_Z.Text = "0";
-            // 
-            // btnPos_Bottom
-            // 
-            this.btnPos_Bottom.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_Bottom.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnPos_Bottom.Location = new System.Drawing.Point(89, 335);
-            this.btnPos_Bottom.Name = "btnPos_Bottom";
-            this.btnPos_Bottom.Size = new System.Drawing.Size(52, 19);
-            this.btnPos_Bottom.TabIndex = 657;
-            this.btnPos_Bottom.Text = "Bottom";
-            this.btnPos_Bottom.UseVisualStyleBackColor = false;
-            this.btnPos_Bottom.Click += new System.EventHandler(this.btnPos_Bottom_Click);
-            // 
-            // txtBackAngle_Y
-            // 
-            this.txtBackAngle_Y.Location = new System.Drawing.Point(31, 324);
-            this.txtBackAngle_Y.Name = "txtBackAngle_Y";
-            this.txtBackAngle_Y.Size = new System.Drawing.Size(33, 21);
-            this.txtBackAngle_Y.TabIndex = 583;
-            this.txtBackAngle_Y.Text = "0";
-            // 
-            // btnDisplay_GetThePose
-            // 
-            this.btnDisplay_GetThePose.BackColor = System.Drawing.Color.Turquoise;
-            this.btnDisplay_GetThePose.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnDisplay_GetThePose.Location = new System.Drawing.Point(140, 299);
-            this.btnDisplay_GetThePose.Name = "btnDisplay_GetThePose";
-            this.btnDisplay_GetThePose.Size = new System.Drawing.Size(52, 19);
-            this.btnDisplay_GetThePose.TabIndex = 663;
-            this.btnDisplay_GetThePose.Text = "Get";
-            this.btnDisplay_GetThePose.UseVisualStyleBackColor = false;
-            this.btnDisplay_GetThePose.Click += new System.EventHandler(this.btnDisplay_GetThePose_Click);
-            // 
-            // txtBackAngle_X
-            // 
-            this.txtBackAngle_X.Location = new System.Drawing.Point(31, 300);
-            this.txtBackAngle_X.Name = "txtBackAngle_X";
-            this.txtBackAngle_X.Size = new System.Drawing.Size(33, 21);
-            this.txtBackAngle_X.TabIndex = 582;
-            this.txtBackAngle_X.Text = "0";
-            // 
             // btnDisplay_RememberPos
             // 
             this.btnDisplay_RememberPos.BackColor = System.Drawing.Color.Turquoise;
             this.btnDisplay_RememberPos.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnDisplay_RememberPos.Location = new System.Drawing.Point(89, 299);
+            this.btnDisplay_RememberPos.Location = new System.Drawing.Point(304, 225);
             this.btnDisplay_RememberPos.Name = "btnDisplay_RememberPos";
-            this.btnDisplay_RememberPos.Size = new System.Drawing.Size(52, 19);
+            this.btnDisplay_RememberPos.Size = new System.Drawing.Size(51, 19);
             this.btnDisplay_RememberPos.TabIndex = 660;
             this.btnDisplay_RememberPos.Text = "Set";
             this.btnDisplay_RememberPos.UseVisualStyleBackColor = false;
             this.btnDisplay_RememberPos.Click += new System.EventHandler(this.btnDisplay_RememberPos_Click);
             // 
-            // btnPos_Front
+            // txtBaudrate
             // 
-            this.btnPos_Front.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_Front.Font = new System.Drawing.Font("굴림", 8F);
-            this.btnPos_Front.Location = new System.Drawing.Point(89, 317);
-            this.btnPos_Front.Name = "btnPos_Front";
-            this.btnPos_Front.Size = new System.Drawing.Size(52, 19);
-            this.btnPos_Front.TabIndex = 658;
-            this.btnPos_Front.Text = "Front";
-            this.btnPos_Front.UseVisualStyleBackColor = false;
-            this.btnPos_Front.Click += new System.EventHandler(this.btnPos_Front_Click);
+            this.txtBaudrate.Location = new System.Drawing.Point(308, 21);
+            this.txtBaudrate.Name = "txtBaudrate";
+            this.txtBaudrate.Size = new System.Drawing.Size(48, 21);
+            this.txtBaudrate.TabIndex = 633;
+            this.txtBaudrate.Text = "115200";
             // 
-            // btnPos_Go
+            // chkFreeze_Tilt
             // 
-            this.btnPos_Go.BackColor = System.Drawing.Color.Turquoise;
-            this.btnPos_Go.Location = new System.Drawing.Point(64, 299);
-            this.btnPos_Go.Name = "btnPos_Go";
-            this.btnPos_Go.Size = new System.Drawing.Size(26, 72);
-            this.btnPos_Go.TabIndex = 585;
-            this.btnPos_Go.Text = "Go";
-            this.btnPos_Go.UseVisualStyleBackColor = false;
-            this.btnPos_Go.Click += new System.EventHandler(this.btnPos_Go_Click);
+            this.chkFreeze_Tilt.AutoSize = true;
+            this.chkFreeze_Tilt.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_Tilt.Location = new System.Drawing.Point(328, 182);
+            this.chkFreeze_Tilt.Name = "chkFreeze_Tilt";
+            this.chkFreeze_Tilt.Size = new System.Drawing.Size(81, 16);
+            this.chkFreeze_Tilt.TabIndex = 651;
+            this.chkFreeze_Tilt.Text = "Freeze(T)";
+            this.chkFreeze_Tilt.UseVisualStyleBackColor = false;
+            this.chkFreeze_Tilt.CheckedChanged += new System.EventHandler(this.chkFreeze_Tilt_CheckedChanged);
             // 
-            // label13
+            // btnInitpos2
             // 
-            this.label13.AutoSize = true;
-            this.label13.BackColor = System.Drawing.Color.Black;
-            this.label13.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.label13.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
-            this.label13.Location = new System.Drawing.Point(16, 353);
-            this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(11, 11);
-            this.label13.TabIndex = 421;
-            this.label13.Text = "Z";
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.BackColor = System.Drawing.Color.Black;
-            this.label8.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.label8.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
-            this.label8.Location = new System.Drawing.Point(16, 329);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(11, 11);
-            this.label8.TabIndex = 421;
-            this.label8.Text = "Y";
-            // 
-            // label7
-            // 
-            this.label7.AutoSize = true;
-            this.label7.BackColor = System.Drawing.Color.Black;
-            this.label7.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.label7.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
-            this.label7.Location = new System.Drawing.Point(16, 305);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(11, 11);
-            this.label7.TabIndex = 421;
-            this.label7.Text = "X";
-            // 
-            // btnCalcTime
-            // 
-            this.btnCalcTime.Location = new System.Drawing.Point(145, 217);
-            this.btnCalcTime.Name = "btnCalcTime";
-            this.btnCalcTime.Size = new System.Drawing.Size(73, 20);
-            this.btnCalcTime.TabIndex = 644;
-            this.btnCalcTime.Text = "시간계산";
-            this.btnCalcTime.UseVisualStyleBackColor = true;
-            // 
-            // btnMotionFileOpen
-            // 
-            this.btnMotionFileOpen.Location = new System.Drawing.Point(13, 157);
-            this.btnMotionFileOpen.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btnMotionFileOpen.Name = "btnMotionFileOpen";
-            this.btnMotionFileOpen.Size = new System.Drawing.Size(51, 22);
-            this.btnMotionFileOpen.TabIndex = 645;
-            this.btnMotionFileOpen.Text = "Open";
-            this.btnMotionFileOpen.UseVisualStyleBackColor = true;
-            this.btnMotionFileOpen.Click += new System.EventHandler(this.btnMotionFileOpen_Click);
-            // 
-            // txtFileName
-            // 
-            this.txtFileName.Font = new System.Drawing.Font("굴림", 8F);
-            this.txtFileName.Location = new System.Drawing.Point(64, 158);
-            this.txtFileName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.txtFileName.Name = "txtFileName";
-            this.txtFileName.Size = new System.Drawing.Size(154, 20);
-            this.txtFileName.TabIndex = 648;
-            // 
-            // btnBinarySave
-            // 
-            this.btnBinarySave.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.btnBinarySave.Location = new System.Drawing.Point(145, 198);
-            this.btnBinarySave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btnBinarySave.Name = "btnBinarySave";
-            this.btnBinarySave.Size = new System.Drawing.Size(73, 20);
-            this.btnBinarySave.TabIndex = 646;
-            this.btnBinarySave.Text = "Save(압축)";
-            this.btnBinarySave.UseVisualStyleBackColor = true;
-            this.btnBinarySave.Click += new System.EventHandler(this.btnBinarySave_Click);
-            // 
-            // btnTextSave
-            // 
-            this.btnTextSave.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.btnTextSave.Location = new System.Drawing.Point(145, 178);
-            this.btnTextSave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btnTextSave.Name = "btnTextSave";
-            this.btnTextSave.Size = new System.Drawing.Size(73, 20);
-            this.btnTextSave.TabIndex = 647;
-            this.btnTextSave.Text = "Save";
-            this.btnTextSave.UseVisualStyleBackColor = true;
-            this.btnTextSave.Click += new System.EventHandler(this.btnTextSave_Click);
-            // 
-            // txtComment
-            // 
-            this.txtComment.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.txtComment.Location = new System.Drawing.Point(75, 235);
-            this.txtComment.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.txtComment.Multiline = true;
-            this.txtComment.Name = "txtComment";
-            this.txtComment.Size = new System.Drawing.Size(143, 21);
-            this.txtComment.TabIndex = 642;
-            // 
-            // txtTableName
-            // 
-            this.txtTableName.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.txtTableName.Location = new System.Drawing.Point(75, 198);
-            this.txtTableName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.txtTableName.Name = "txtTableName";
-            this.txtTableName.Size = new System.Drawing.Size(70, 20);
-            this.txtTableName.TabIndex = 641;
-            // 
-            // label10
-            // 
-            this.label10.BackColor = System.Drawing.Color.Gainsboro;
-            this.label10.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.label10.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.label10.Location = new System.Drawing.Point(15, 237);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(59, 18);
-            this.label10.TabIndex = 640;
-            this.label10.Text = "Comment";
-            this.label10.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // label2
-            // 
-            this.label2.BackColor = System.Drawing.Color.Gainsboro;
-            this.label2.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.label2.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.label2.Location = new System.Drawing.Point(15, 218);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(59, 18);
-            this.label2.TabIndex = 639;
-            this.label2.Text = "자세";
-            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.btnInitpos2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
+            this.btnInitpos2.Location = new System.Drawing.Point(409, 239);
+            this.btnInitpos2.Name = "btnInitpos2";
+            this.btnInitpos2.Size = new System.Drawing.Size(52, 59);
+            this.btnInitpos2.TabIndex = 673;
+            this.btnInitpos2.Text = "InitPos 2";
+            this.btnInitpos2.UseVisualStyleBackColor = false;
+            this.btnInitpos2.Click += new System.EventHandler(this.btnInitpos2_Click);
             // 
             // lbTableName
             // 
             this.lbTableName.BackColor = System.Drawing.Color.Gainsboro;
             this.lbTableName.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.lbTableName.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.lbTableName.Location = new System.Drawing.Point(15, 199);
+            this.lbTableName.Location = new System.Drawing.Point(247, 125);
             this.lbTableName.Name = "lbTableName";
             this.lbTableName.Size = new System.Drawing.Size(59, 18);
             this.lbTableName.TabIndex = 638;
             this.lbTableName.Text = "Table";
             this.lbTableName.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // chkFreeze_X
+            // 
+            this.chkFreeze_X.AutoSize = true;
+            this.chkFreeze_X.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_X.Location = new System.Drawing.Point(247, 182);
+            this.chkFreeze_X.Name = "chkFreeze_X";
+            this.chkFreeze_X.Size = new System.Drawing.Size(81, 16);
+            this.chkFreeze_X.TabIndex = 652;
+            this.chkFreeze_X.Text = "Freeze(X)";
+            this.chkFreeze_X.UseVisualStyleBackColor = false;
+            this.chkFreeze_X.CheckedChanged += new System.EventHandler(this.chkFreeze_X_CheckedChanged);
+            // 
+            // btnPos_TurnBack
+            // 
+            this.btnPos_TurnBack.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_TurnBack.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnPos_TurnBack.Location = new System.Drawing.Point(354, 279);
+            this.btnPos_TurnBack.Name = "btnPos_TurnBack";
+            this.btnPos_TurnBack.Size = new System.Drawing.Size(51, 19);
+            this.btnPos_TurnBack.TabIndex = 656;
+            this.btnPos_TurnBack.Text = "←";
+            this.btnPos_TurnBack.UseVisualStyleBackColor = false;
+            this.btnPos_TurnBack.Click += new System.EventHandler(this.btnPos_TurnBack_Click);
+            // 
+            // btnPos_Front
+            // 
+            this.btnPos_Front.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_Front.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnPos_Front.Location = new System.Drawing.Point(304, 243);
+            this.btnPos_Front.Name = "btnPos_Front";
+            this.btnPos_Front.Size = new System.Drawing.Size(51, 19);
+            this.btnPos_Front.TabIndex = 658;
+            this.btnPos_Front.Text = "Front";
+            this.btnPos_Front.UseVisualStyleBackColor = false;
+            this.btnPos_Front.Click += new System.EventHandler(this.btnPos_Front_Click);
+            // 
+            // txtBackAngle_X
+            // 
+            this.txtBackAngle_X.Location = new System.Drawing.Point(255, 226);
+            this.txtBackAngle_X.Name = "txtBackAngle_X";
+            this.txtBackAngle_X.Size = new System.Drawing.Size(28, 21);
+            this.txtBackAngle_X.TabIndex = 582;
+            this.txtBackAngle_X.Text = "0";
+            // 
+            // txtSocket_Port
+            // 
+            this.txtSocket_Port.Enabled = false;
+            this.txtSocket_Port.Location = new System.Drawing.Point(308, 63);
+            this.txtSocket_Port.Name = "txtSocket_Port";
+            this.txtSocket_Port.Size = new System.Drawing.Size(48, 21);
+            this.txtSocket_Port.TabIndex = 633;
+            this.txtSocket_Port.Text = "1";
             // 
             // cmbStartPosition
             // 
@@ -1661,72 +1676,635 @@
             "8-서기",
             "9-엎드리기2",
             "10-엎드리기3"});
-            this.cmbStartPosition.Location = new System.Drawing.Point(75, 217);
+            this.cmbStartPosition.Location = new System.Drawing.Point(307, 143);
             this.cmbStartPosition.Name = "cmbStartPosition";
             this.cmbStartPosition.Size = new System.Drawing.Size(70, 19);
             this.cmbStartPosition.TabIndex = 643;
             // 
-            // lbModify
+            // btnCalcTime
             // 
-            this.lbModify.BackColor = System.Drawing.Color.Yellow;
-            this.lbModify.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.lbModify.Font = new System.Drawing.Font("굴림", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.lbModify.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.lbModify.Location = new System.Drawing.Point(75, 180);
-            this.lbModify.Name = "lbModify";
-            this.lbModify.Size = new System.Drawing.Size(70, 18);
-            this.lbModify.TabIndex = 637;
-            this.lbModify.Text = "완료";
-            this.lbModify.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.btnCalcTime.Location = new System.Drawing.Point(377, 143);
+            this.btnCalcTime.Name = "btnCalcTime";
+            this.btnCalcTime.Size = new System.Drawing.Size(83, 20);
+            this.btnCalcTime.TabIndex = 644;
+            this.btnCalcTime.Text = "시간계산";
+            this.btnCalcTime.UseVisualStyleBackColor = true;
             // 
-            // label314
+            // label2
             // 
-            this.label314.BackColor = System.Drawing.Color.Gainsboro;
-            this.label314.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.label314.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.label314.Location = new System.Drawing.Point(15, 180);
-            this.label314.Name = "label314";
-            this.label314.Size = new System.Drawing.Size(59, 18);
-            this.label314.TabIndex = 636;
-            this.label314.Text = "저장상태";
-            this.label314.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.label2.BackColor = System.Drawing.Color.Gainsboro;
+            this.label2.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label2.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label2.Location = new System.Drawing.Point(247, 144);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(59, 18);
+            this.label2.TabIndex = 639;
+            this.label2.Text = "자세";
+            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // txtIp
+            // btnPos_Go
             // 
-            this.txtIp.Enabled = false;
-            this.txtIp.Location = new System.Drawing.Point(42, 116);
-            this.txtIp.Name = "txtIp";
-            this.txtIp.Size = new System.Drawing.Size(82, 21);
-            this.txtIp.TabIndex = 635;
-            this.txtIp.Text = "192.168.1.100";
+            this.btnPos_Go.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_Go.Location = new System.Drawing.Point(284, 225);
+            this.btnPos_Go.Name = "btnPos_Go";
+            this.btnPos_Go.Size = new System.Drawing.Size(21, 72);
+            this.btnPos_Go.TabIndex = 585;
+            this.btnPos_Go.Text = "Go";
+            this.btnPos_Go.UseVisualStyleBackColor = false;
+            this.btnPos_Go.Click += new System.EventHandler(this.btnPos_Go_Click);
             // 
-            // btnConnect
+            // btnDisplay_GetThePose
             // 
-            this.btnConnect.Enabled = false;
-            this.btnConnect.Location = new System.Drawing.Point(128, 116);
-            this.btnConnect.Name = "btnConnect";
-            this.btnConnect.Size = new System.Drawing.Size(90, 42);
-            this.btnConnect.TabIndex = 634;
-            this.btnConnect.Text = "Connect(Wifi)";
-            this.btnConnect.UseVisualStyleBackColor = true;
+            this.btnDisplay_GetThePose.BackColor = System.Drawing.Color.Turquoise;
+            this.btnDisplay_GetThePose.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnDisplay_GetThePose.Location = new System.Drawing.Point(354, 225);
+            this.btnDisplay_GetThePose.Name = "btnDisplay_GetThePose";
+            this.btnDisplay_GetThePose.Size = new System.Drawing.Size(51, 19);
+            this.btnDisplay_GetThePose.TabIndex = 663;
+            this.btnDisplay_GetThePose.Text = "Get";
+            this.btnDisplay_GetThePose.UseVisualStyleBackColor = false;
+            this.btnDisplay_GetThePose.Click += new System.EventHandler(this.btnDisplay_GetThePose_Click);
             // 
-            // txtPort
+            // btnPos_Left
             // 
-            this.txtPort.Location = new System.Drawing.Point(76, 74);
-            this.txtPort.Name = "txtPort";
-            this.txtPort.Size = new System.Drawing.Size(48, 21);
-            this.txtPort.TabIndex = 633;
-            this.txtPort.Text = "1";
+            this.btnPos_Left.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_Left.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnPos_Left.Location = new System.Drawing.Point(354, 261);
+            this.btnPos_Left.Name = "btnPos_Left";
+            this.btnPos_Left.Size = new System.Drawing.Size(51, 19);
+            this.btnPos_Left.TabIndex = 661;
+            this.btnPos_Left.Text = "Left";
+            this.btnPos_Left.UseVisualStyleBackColor = false;
+            this.btnPos_Left.Click += new System.EventHandler(this.btnPos_Left_Click);
             // 
-            // btnConnect_Serial
+            // label7
             // 
-            this.btnConnect_Serial.Location = new System.Drawing.Point(128, 74);
-            this.btnConnect_Serial.Name = "btnConnect_Serial";
-            this.btnConnect_Serial.Size = new System.Drawing.Size(90, 42);
-            this.btnConnect_Serial.TabIndex = 632;
-            this.btnConnect_Serial.Text = "Connect";
-            this.btnConnect_Serial.UseVisualStyleBackColor = true;
-            this.btnConnect_Serial.Click += new System.EventHandler(this.btnConnect_Serial_Click);
+            this.label7.AutoSize = true;
+            this.label7.BackColor = System.Drawing.Color.Transparent;
+            this.label7.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label7.ForeColor = System.Drawing.Color.Black;
+            this.label7.Location = new System.Drawing.Point(244, 231);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(11, 11);
+            this.label7.TabIndex = 421;
+            this.label7.Text = "X";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.BackColor = System.Drawing.Color.Transparent;
+            this.label4.Location = new System.Drawing.Point(251, 25);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(55, 12);
+            this.label4.TabIndex = 649;
+            this.label4.Text = "Baudrate";
+            // 
+            // label10
+            // 
+            this.label10.BackColor = System.Drawing.Color.Gainsboro;
+            this.label10.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label10.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label10.Location = new System.Drawing.Point(247, 163);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(59, 18);
+            this.label10.TabIndex = 640;
+            this.label10.Text = "Comment";
+            this.label10.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.BackColor = System.Drawing.Color.Transparent;
+            this.label8.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label8.ForeColor = System.Drawing.Color.Black;
+            this.label8.Location = new System.Drawing.Point(244, 255);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(11, 11);
+            this.label8.TabIndex = 421;
+            this.label8.Text = "Y";
+            // 
+            // btnMotionFileOpen
+            // 
+            this.btnMotionFileOpen.Location = new System.Drawing.Point(245, 83);
+            this.btnMotionFileOpen.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnMotionFileOpen.Name = "btnMotionFileOpen";
+            this.btnMotionFileOpen.Size = new System.Drawing.Size(61, 22);
+            this.btnMotionFileOpen.TabIndex = 645;
+            this.btnMotionFileOpen.Text = "Open";
+            this.btnMotionFileOpen.UseVisualStyleBackColor = true;
+            this.btnMotionFileOpen.Click += new System.EventHandler(this.btnMotionFileOpen_Click);
+            // 
+            // txtTableName
+            // 
+            this.txtTableName.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.txtTableName.Location = new System.Drawing.Point(307, 124);
+            this.txtTableName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtTableName.Name = "txtTableName";
+            this.txtTableName.Size = new System.Drawing.Size(70, 20);
+            this.txtTableName.TabIndex = 641;
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.BackColor = System.Drawing.Color.Transparent;
+            this.label13.Font = new System.Drawing.Font("굴림체", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label13.ForeColor = System.Drawing.Color.Black;
+            this.label13.Location = new System.Drawing.Point(244, 279);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(11, 11);
+            this.label13.TabIndex = 421;
+            this.label13.Text = "Z";
+            // 
+            // txtBackAngle_Y
+            // 
+            this.txtBackAngle_Y.Location = new System.Drawing.Point(255, 250);
+            this.txtBackAngle_Y.Name = "txtBackAngle_Y";
+            this.txtBackAngle_Y.Size = new System.Drawing.Size(28, 21);
+            this.txtBackAngle_Y.TabIndex = 583;
+            this.txtBackAngle_Y.Text = "0";
+            // 
+            // btnPos_Top
+            // 
+            this.btnPos_Top.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_Top.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnPos_Top.Location = new System.Drawing.Point(304, 279);
+            this.btnPos_Top.Name = "btnPos_Top";
+            this.btnPos_Top.Size = new System.Drawing.Size(51, 19);
+            this.btnPos_Top.TabIndex = 659;
+            this.btnPos_Top.Text = "Top";
+            this.btnPos_Top.UseVisualStyleBackColor = false;
+            this.btnPos_Top.Click += new System.EventHandler(this.btnPos_Top_Click);
+            // 
+            // txtFileName
+            // 
+            this.txtFileName.Font = new System.Drawing.Font("굴림", 8F);
+            this.txtFileName.Location = new System.Drawing.Point(307, 84);
+            this.txtFileName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtFileName.Name = "txtFileName";
+            this.txtFileName.Size = new System.Drawing.Size(153, 20);
+            this.txtFileName.TabIndex = 648;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.BackColor = System.Drawing.Color.Transparent;
+            this.label5.Enabled = false;
+            this.label5.Location = new System.Drawing.Point(251, 46);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(16, 12);
+            this.label5.TabIndex = 649;
+            this.label5.Text = "IP";
+            // 
+            // txtComment
+            // 
+            this.txtComment.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.txtComment.Location = new System.Drawing.Point(307, 161);
+            this.txtComment.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtComment.Multiline = true;
+            this.txtComment.Name = "txtComment";
+            this.txtComment.Size = new System.Drawing.Size(153, 21);
+            this.txtComment.TabIndex = 642;
+            // 
+            // btnPos_Bottom
+            // 
+            this.btnPos_Bottom.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_Bottom.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnPos_Bottom.Location = new System.Drawing.Point(304, 261);
+            this.btnPos_Bottom.Name = "btnPos_Bottom";
+            this.btnPos_Bottom.Size = new System.Drawing.Size(51, 19);
+            this.btnPos_Bottom.TabIndex = 657;
+            this.btnPos_Bottom.Text = "Bottom";
+            this.btnPos_Bottom.UseVisualStyleBackColor = false;
+            this.btnPos_Bottom.Click += new System.EventHandler(this.btnPos_Bottom_Click);
+            // 
+            // btnBinarySave
+            // 
+            this.btnBinarySave.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnBinarySave.Location = new System.Drawing.Point(377, 124);
+            this.btnBinarySave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnBinarySave.Name = "btnBinarySave";
+            this.btnBinarySave.Size = new System.Drawing.Size(83, 20);
+            this.btnBinarySave.TabIndex = 646;
+            this.btnBinarySave.Text = "Save(압축)";
+            this.btnBinarySave.UseVisualStyleBackColor = true;
+            this.btnBinarySave.Click += new System.EventHandler(this.btnBinarySave_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.BackColor = System.Drawing.Color.Transparent;
+            this.label3.Location = new System.Drawing.Point(251, 4);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(53, 12);
+            this.label3.TabIndex = 649;
+            this.label3.Text = "Comport";
+            // 
+            // txtBackAngle_Z
+            // 
+            this.txtBackAngle_Z.Location = new System.Drawing.Point(255, 274);
+            this.txtBackAngle_Z.Name = "txtBackAngle_Z";
+            this.txtBackAngle_Z.Size = new System.Drawing.Size(28, 21);
+            this.txtBackAngle_Z.TabIndex = 584;
+            this.txtBackAngle_Z.Text = "0";
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.BackColor = System.Drawing.Color.Transparent;
+            this.label6.Enabled = false;
+            this.label6.Location = new System.Drawing.Point(248, 67);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(27, 12);
+            this.label6.TabIndex = 649;
+            this.label6.Text = "Port";
+            // 
+            // btnPos_Right
+            // 
+            this.btnPos_Right.BackColor = System.Drawing.Color.Turquoise;
+            this.btnPos_Right.Font = new System.Drawing.Font("굴림", 8F);
+            this.btnPos_Right.Location = new System.Drawing.Point(354, 243);
+            this.btnPos_Right.Name = "btnPos_Right";
+            this.btnPos_Right.Size = new System.Drawing.Size(51, 19);
+            this.btnPos_Right.TabIndex = 662;
+            this.btnPos_Right.Text = "Right";
+            this.btnPos_Right.UseVisualStyleBackColor = false;
+            this.btnPos_Right.Click += new System.EventHandler(this.btnPos_Right_Click);
+            // 
+            // btnTextSave
+            // 
+            this.btnTextSave.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnTextSave.Location = new System.Drawing.Point(377, 104);
+            this.btnTextSave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnTextSave.Name = "btnTextSave";
+            this.btnTextSave.Size = new System.Drawing.Size(83, 20);
+            this.btnTextSave.TabIndex = 647;
+            this.btnTextSave.Text = "Save";
+            this.btnTextSave.UseVisualStyleBackColor = true;
+            this.btnTextSave.Click += new System.EventHandler(this.btnTextSave_Click);
+            // 
+            // tbFiles
+            // 
+            this.tbFiles.Controls.Add(this.btnDirRefresh);
+            this.tbFiles.Controls.Add(this.btnAppendFile);
+            this.tbFiles.Controls.Add(this.lstInfo);
+            this.tbFiles.Controls.Add(this.treeInfo);
+            this.tbFiles.Controls.Add(this.lbList_Comment);
+            this.tbFiles.Controls.Add(this.label222);
+            this.tbFiles.Controls.Add(this.lbList_FrameSize_Emoticon);
+            this.tbFiles.Controls.Add(this.lbList_FrameSize_Sound);
+            this.tbFiles.Controls.Add(this.label225);
+            this.tbFiles.Controls.Add(this.label224);
+            this.tbFiles.Controls.Add(this.label223);
+            this.tbFiles.Controls.Add(this.label221);
+            this.tbFiles.Controls.Add(this.lbList_FrameSize);
+            this.tbFiles.Controls.Add(this.lblVersion);
+            this.tbFiles.Controls.Add(this.lbList_Title);
+            this.tbFiles.Controls.Add(this.lblPath);
+            this.tbFiles.Location = new System.Drawing.Point(4, 22);
+            this.tbFiles.Name = "tbFiles";
+            this.tbFiles.Padding = new System.Windows.Forms.Padding(3);
+            this.tbFiles.Size = new System.Drawing.Size(466, 299);
+            this.tbFiles.TabIndex = 4;
+            this.tbFiles.Text = "File";
+            this.tbFiles.UseVisualStyleBackColor = true;
+            // 
+            // btnDirRefresh
+            // 
+            this.btnDirRefresh.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
+            this.btnDirRefresh.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnDirRefresh.Location = new System.Drawing.Point(5, 51);
+            this.btnDirRefresh.Name = "btnDirRefresh";
+            this.btnDirRefresh.Size = new System.Drawing.Size(23, 23);
+            this.btnDirRefresh.TabIndex = 29;
+            this.btnDirRefresh.UseVisualStyleBackColor = true;
+            this.btnDirRefresh.Click += new System.EventHandler(this.btnDirRefresh_Click);
+            // 
+            // btnAppendFile
+            // 
+            this.btnAppendFile.Location = new System.Drawing.Point(220, 20);
+            this.btnAppendFile.Name = "btnAppendFile";
+            this.btnAppendFile.Size = new System.Drawing.Size(73, 19);
+            this.btnAppendFile.TabIndex = 28;
+            this.btnAppendFile.Text = "Append";
+            this.btnAppendFile.UseVisualStyleBackColor = true;
+            this.btnAppendFile.Click += new System.EventHandler(this.btnAppendFile_Click);
+            // 
+            // lstInfo
+            // 
+            this.lstInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lstInfo.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.ColumnHeader1,
+            this.ColumnHeader2,
+            this.ColumnHeader3});
+            this.lstInfo.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lstInfo.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.lstInfo.HideSelection = false;
+            this.lstInfo.Location = new System.Drawing.Point(207, 54);
+            this.lstInfo.Name = "lstInfo";
+            this.lstInfo.Size = new System.Drawing.Size(256, 234);
+            this.lstInfo.TabIndex = 27;
+            this.lstInfo.UseCompatibleStateImageBehavior = false;
+            this.lstInfo.View = System.Windows.Forms.View.Details;
+            this.lstInfo.SelectedIndexChanged += new System.EventHandler(this.lstInfo_SelectedIndexChanged);
+            this.lstInfo.DoubleClick += new System.EventHandler(this.lstInfo_DoubleClick);
+            // 
+            // ColumnHeader1
+            // 
+            this.ColumnHeader1.Text = "파일이름";
+            this.ColumnHeader1.Width = 160;
+            // 
+            // ColumnHeader2
+            // 
+            this.ColumnHeader2.Text = "크기(Byte)";
+            this.ColumnHeader2.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.ColumnHeader2.Width = 56;
+            // 
+            // ColumnHeader3
+            // 
+            this.ColumnHeader3.Text = "수정시간";
+            this.ColumnHeader3.Width = 140;
+            // 
+            // treeInfo
+            // 
+            this.treeInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.treeInfo.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.treeInfo.HideSelection = false;
+            this.treeInfo.Location = new System.Drawing.Point(6, 74);
+            this.treeInfo.Name = "treeInfo";
+            this.treeInfo.Size = new System.Drawing.Size(200, 214);
+            this.treeInfo.TabIndex = 25;
+            this.treeInfo.AfterCollapse += new System.Windows.Forms.TreeViewEventHandler(this.treeInfo_AfterCollapse);
+            this.treeInfo.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.treeInfo_AfterExpand);
+            this.treeInfo.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeInfo_AfterSelect);
+            // 
+            // lbList_Comment
+            // 
+            this.lbList_Comment.BackColor = System.Drawing.Color.Gainsboro;
+            this.lbList_Comment.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lbList_Comment.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lbList_Comment.Location = new System.Drawing.Point(72, 37);
+            this.lbList_Comment.Name = "lbList_Comment";
+            this.lbList_Comment.Size = new System.Drawing.Size(221, 15);
+            this.lbList_Comment.TabIndex = 21;
+            this.lbList_Comment.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label222
+            // 
+            this.label222.BackColor = System.Drawing.Color.Lime;
+            this.label222.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label222.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label222.Location = new System.Drawing.Point(6, 37);
+            this.label222.Name = "label222";
+            this.label222.Size = new System.Drawing.Size(66, 15);
+            this.label222.TabIndex = 24;
+            this.label222.Text = "Comment";
+            this.label222.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lbList_FrameSize_Emoticon
+            // 
+            this.lbList_FrameSize_Emoticon.BackColor = System.Drawing.Color.Gainsboro;
+            this.lbList_FrameSize_Emoticon.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lbList_FrameSize_Emoticon.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lbList_FrameSize_Emoticon.Location = new System.Drawing.Point(396, 37);
+            this.lbList_FrameSize_Emoticon.Name = "lbList_FrameSize_Emoticon";
+            this.lbList_FrameSize_Emoticon.Size = new System.Drawing.Size(56, 15);
+            this.lbList_FrameSize_Emoticon.TabIndex = 23;
+            this.lbList_FrameSize_Emoticon.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lbList_FrameSize_Sound
+            // 
+            this.lbList_FrameSize_Sound.BackColor = System.Drawing.Color.Gainsboro;
+            this.lbList_FrameSize_Sound.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lbList_FrameSize_Sound.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lbList_FrameSize_Sound.Location = new System.Drawing.Point(396, 21);
+            this.lbList_FrameSize_Sound.Name = "lbList_FrameSize_Sound";
+            this.lbList_FrameSize_Sound.Size = new System.Drawing.Size(56, 15);
+            this.lbList_FrameSize_Sound.TabIndex = 22;
+            this.lbList_FrameSize_Sound.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label225
+            // 
+            this.label225.BackColor = System.Drawing.Color.Lime;
+            this.label225.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label225.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label225.Location = new System.Drawing.Point(295, 37);
+            this.label225.Name = "label225";
+            this.label225.Size = new System.Drawing.Size(100, 15);
+            this.label225.TabIndex = 16;
+            this.label225.Text = "Emoticon Size";
+            this.label225.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label224
+            // 
+            this.label224.BackColor = System.Drawing.Color.Lime;
+            this.label224.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label224.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label224.Location = new System.Drawing.Point(295, 21);
+            this.label224.Name = "label224";
+            this.label224.Size = new System.Drawing.Size(100, 15);
+            this.label224.TabIndex = 13;
+            this.label224.Text = "Sound Size";
+            this.label224.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label223
+            // 
+            this.label223.BackColor = System.Drawing.Color.Lime;
+            this.label223.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label223.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label223.Location = new System.Drawing.Point(295, 5);
+            this.label223.Name = "label223";
+            this.label223.Size = new System.Drawing.Size(100, 15);
+            this.label223.TabIndex = 14;
+            this.label223.Text = "Frame Size";
+            this.label223.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label221
+            // 
+            this.label221.BackColor = System.Drawing.Color.Lime;
+            this.label221.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label221.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label221.Location = new System.Drawing.Point(6, 21);
+            this.label221.Name = "label221";
+            this.label221.Size = new System.Drawing.Size(66, 15);
+            this.label221.TabIndex = 19;
+            this.label221.Text = "Title";
+            this.label221.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lbList_FrameSize
+            // 
+            this.lbList_FrameSize.BackColor = System.Drawing.Color.Gainsboro;
+            this.lbList_FrameSize.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lbList_FrameSize.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lbList_FrameSize.Location = new System.Drawing.Point(396, 5);
+            this.lbList_FrameSize.Name = "lbList_FrameSize";
+            this.lbList_FrameSize.Size = new System.Drawing.Size(56, 15);
+            this.lbList_FrameSize.TabIndex = 20;
+            this.lbList_FrameSize.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lblVersion
+            // 
+            this.lblVersion.BackColor = System.Drawing.Color.Gainsboro;
+            this.lblVersion.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lblVersion.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lblVersion.Location = new System.Drawing.Point(222, 5);
+            this.lblVersion.Name = "lblVersion";
+            this.lblVersion.Size = new System.Drawing.Size(71, 15);
+            this.lblVersion.TabIndex = 17;
+            this.lblVersion.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lbList_Title
+            // 
+            this.lbList_Title.BackColor = System.Drawing.Color.Gainsboro;
+            this.lbList_Title.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lbList_Title.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lbList_Title.Location = new System.Drawing.Point(72, 21);
+            this.lbList_Title.Name = "lbList_Title";
+            this.lbList_Title.Size = new System.Drawing.Size(149, 15);
+            this.lbList_Title.TabIndex = 18;
+            this.lbList_Title.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lblPath
+            // 
+            this.lblPath.BackColor = System.Drawing.Color.Gainsboro;
+            this.lblPath.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lblPath.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lblPath.Location = new System.Drawing.Point(6, 5);
+            this.lblPath.Name = "lblPath";
+            this.lblPath.Size = new System.Drawing.Size(215, 15);
+            this.lblPath.TabIndex = 15;
+            this.lblPath.Text = "C:\\";
+            this.lblPath.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // tbDownload
+            // 
+            this.tbDownload.Controls.Add(this.btnMotion_Download);
+            this.tbDownload.Controls.Add(this.btnMotion_Play);
+            this.tbDownload.Controls.Add(this.btnMotion_GetList);
+            this.tbDownload.Controls.Add(this.btnMotion_Delete);
+            this.tbDownload.Controls.Add(this.listviewMotion);
+            this.tbDownload.Location = new System.Drawing.Point(4, 22);
+            this.tbDownload.Name = "tbDownload";
+            this.tbDownload.Padding = new System.Windows.Forms.Padding(3);
+            this.tbDownload.Size = new System.Drawing.Size(466, 299);
+            this.tbDownload.TabIndex = 3;
+            this.tbDownload.Text = "Download";
+            this.tbDownload.UseVisualStyleBackColor = true;
+            // 
+            // btnMotion_Download
+            // 
+            this.btnMotion_Download.BackgroundImage = global::OpenJigWare.Properties.Resources.download;
+            this.btnMotion_Download.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnMotion_Download.Location = new System.Drawing.Point(207, 4);
+            this.btnMotion_Download.Name = "btnMotion_Download";
+            this.btnMotion_Download.Size = new System.Drawing.Size(33, 32);
+            this.btnMotion_Download.TabIndex = 1;
+            this.btnMotion_Download.UseVisualStyleBackColor = true;
+            this.btnMotion_Download.Click += new System.EventHandler(this.btnMotion_Download_Click);
+            // 
+            // btnMotion_Play
+            // 
+            this.btnMotion_Play.BackgroundImage = global::OpenJigWare.Properties.Resources.action_go;
+            this.btnMotion_Play.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnMotion_Play.Location = new System.Drawing.Point(149, 4);
+            this.btnMotion_Play.Name = "btnMotion_Play";
+            this.btnMotion_Play.Size = new System.Drawing.Size(33, 32);
+            this.btnMotion_Play.TabIndex = 1;
+            this.btnMotion_Play.UseVisualStyleBackColor = true;
+            this.btnMotion_Play.Click += new System.EventHandler(this.btnMotion_Play_Click);
+            // 
+            // btnMotion_GetList
+            // 
+            this.btnMotion_GetList.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
+            this.btnMotion_GetList.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnMotion_GetList.Location = new System.Drawing.Point(6, 4);
+            this.btnMotion_GetList.Name = "btnMotion_GetList";
+            this.btnMotion_GetList.Size = new System.Drawing.Size(33, 32);
+            this.btnMotion_GetList.TabIndex = 1;
+            this.btnMotion_GetList.UseVisualStyleBackColor = true;
+            this.btnMotion_GetList.Click += new System.EventHandler(this.btnMotion_GetList_Click);
+            // 
+            // btnMotion_Delete
+            // 
+            this.btnMotion_Delete.BackgroundImage = global::OpenJigWare.Properties.Resources.action_delete;
+            this.btnMotion_Delete.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnMotion_Delete.Location = new System.Drawing.Point(16, 4);
+            this.btnMotion_Delete.Name = "btnMotion_Delete";
+            this.btnMotion_Delete.Size = new System.Drawing.Size(33, 32);
+            this.btnMotion_Delete.TabIndex = 1;
+            this.btnMotion_Delete.UseVisualStyleBackColor = true;
+            this.btnMotion_Delete.Visible = false;
+            this.btnMotion_Delete.Click += new System.EventHandler(this.btnMotion_Delete_Click);
+            // 
+            // listviewMotion
+            // 
+            this.listviewMotion.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.clmDownload});
+            this.listviewMotion.GridLines = true;
+            this.listviewMotion.Location = new System.Drawing.Point(6, 39);
+            this.listviewMotion.Name = "listviewMotion";
+            this.listviewMotion.Size = new System.Drawing.Size(234, 254);
+            this.listviewMotion.TabIndex = 0;
+            this.listviewMotion.UseCompatibleStateImageBehavior = false;
+            this.listviewMotion.View = System.Windows.Forms.View.Details;
+            this.listviewMotion.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.listviewMotion_MouseDoubleClick);
+            // 
+            // clmDownload
+            // 
+            this.clmDownload.Text = "MotionFile in Robot";
+            this.clmDownload.Width = 230;
+            // 
+            // tabPage2
+            // 
+            this.tabPage2.Controls.Add(this.txtMessage);
+            this.tabPage2.Location = new System.Drawing.Point(4, 22);
+            this.tabPage2.Name = "tabPage2";
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(466, 299);
+            this.tabPage2.TabIndex = 1;
+            this.tabPage2.Text = "Message";
+            this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // txtMessage
+            // 
+            this.txtMessage.Location = new System.Drawing.Point(6, 5);
+            this.txtMessage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtMessage.Multiline = true;
+            this.txtMessage.Name = "txtMessage";
+            this.txtMessage.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtMessage.Size = new System.Drawing.Size(457, 289);
+            this.txtMessage.TabIndex = 485;
+            // 
+            // tabPage3
+            // 
+            this.tabPage3.Controls.Add(this.label1);
+            this.tabPage3.Controls.Add(this.txtTest);
+            this.tabPage3.Controls.Add(this.pnProperty);
+            this.tabPage3.Location = new System.Drawing.Point(4, 22);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Size = new System.Drawing.Size(466, 299);
+            this.tabPage3.TabIndex = 2;
+            this.tabPage3.Text = "Infomation";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(222, 7);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(190, 12);
+            this.label1.TabIndex = 489;
+            this.label1.Text = "< Information with clicking part >";
+            // 
+            // txtTest
+            // 
+            this.txtTest.Location = new System.Drawing.Point(225, 21);
+            this.txtTest.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtTest.Multiline = true;
+            this.txtTest.Name = "txtTest";
+            this.txtTest.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtTest.Size = new System.Drawing.Size(234, 271);
+            this.txtTest.TabIndex = 488;
             // 
             // tmrDraw
             // 
@@ -1736,143 +2314,12 @@
             // picDisp
             // 
             this.picDisp.BackColor = System.Drawing.Color.Transparent;
-            this.picDisp.Location = new System.Drawing.Point(236, 74);
+            this.picDisp.Location = new System.Drawing.Point(16, 74);
             this.picDisp.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.picDisp.Name = "picDisp";
             this.picDisp.Size = new System.Drawing.Size(279, 292);
             this.picDisp.TabIndex = 481;
             this.picDisp.TabStop = false;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.BackColor = System.Drawing.Color.Transparent;
-            this.label3.Location = new System.Drawing.Point(19, 78);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(53, 12);
-            this.label3.TabIndex = 649;
-            this.label3.Text = "Comport";
-            // 
-            // txtBaudrate
-            // 
-            this.txtBaudrate.Location = new System.Drawing.Point(76, 95);
-            this.txtBaudrate.Name = "txtBaudrate";
-            this.txtBaudrate.Size = new System.Drawing.Size(48, 21);
-            this.txtBaudrate.TabIndex = 633;
-            this.txtBaudrate.Text = "115200";
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.BackColor = System.Drawing.Color.Transparent;
-            this.label4.Location = new System.Drawing.Point(19, 99);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(55, 12);
-            this.label4.TabIndex = 649;
-            this.label4.Text = "Baudrate";
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.BackColor = System.Drawing.Color.Transparent;
-            this.label5.Enabled = false;
-            this.label5.Location = new System.Drawing.Point(19, 120);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(16, 12);
-            this.label5.TabIndex = 649;
-            this.label5.Text = "IP";
-            // 
-            // txtSocket_Port
-            // 
-            this.txtSocket_Port.Enabled = false;
-            this.txtSocket_Port.Location = new System.Drawing.Point(76, 137);
-            this.txtSocket_Port.Name = "txtSocket_Port";
-            this.txtSocket_Port.Size = new System.Drawing.Size(48, 21);
-            this.txtSocket_Port.TabIndex = 633;
-            this.txtSocket_Port.Text = "1";
-            // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.BackColor = System.Drawing.Color.Transparent;
-            this.label6.Enabled = false;
-            this.label6.Location = new System.Drawing.Point(16, 141);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(27, 12);
-            this.label6.TabIndex = 649;
-            this.label6.Text = "Port";
-            // 
-            // chkFreeze_Swing
-            // 
-            this.chkFreeze_Swing.AutoSize = true;
-            this.chkFreeze_Swing.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_Swing.Location = new System.Drawing.Point(96, 284);
-            this.chkFreeze_Swing.Name = "chkFreeze_Swing";
-            this.chkFreeze_Swing.Size = new System.Drawing.Size(81, 16);
-            this.chkFreeze_Swing.TabIndex = 653;
-            this.chkFreeze_Swing.Text = "Freeze(S)";
-            this.chkFreeze_Swing.UseVisualStyleBackColor = false;
-            this.chkFreeze_Swing.CheckedChanged += new System.EventHandler(this.chkFreeze_Swing_CheckedChanged);
-            // 
-            // chkFreeze_Z
-            // 
-            this.chkFreeze_Z.AutoSize = true;
-            this.chkFreeze_Z.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_Z.Location = new System.Drawing.Point(15, 284);
-            this.chkFreeze_Z.Name = "chkFreeze_Z";
-            this.chkFreeze_Z.Size = new System.Drawing.Size(81, 16);
-            this.chkFreeze_Z.TabIndex = 654;
-            this.chkFreeze_Z.Text = "Freeze(Z)";
-            this.chkFreeze_Z.UseVisualStyleBackColor = false;
-            this.chkFreeze_Z.CheckedChanged += new System.EventHandler(this.chkFreeze_Z_CheckedChanged);
-            // 
-            // chkFreeze_Pan
-            // 
-            this.chkFreeze_Pan.AutoSize = true;
-            this.chkFreeze_Pan.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_Pan.Location = new System.Drawing.Point(96, 270);
-            this.chkFreeze_Pan.Name = "chkFreeze_Pan";
-            this.chkFreeze_Pan.Size = new System.Drawing.Size(81, 16);
-            this.chkFreeze_Pan.TabIndex = 655;
-            this.chkFreeze_Pan.Text = "Freeze(P)";
-            this.chkFreeze_Pan.UseVisualStyleBackColor = false;
-            this.chkFreeze_Pan.CheckedChanged += new System.EventHandler(this.chkFreeze_Pan_CheckedChanged);
-            // 
-            // chkFreeze_Y
-            // 
-            this.chkFreeze_Y.AutoSize = true;
-            this.chkFreeze_Y.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_Y.Location = new System.Drawing.Point(15, 270);
-            this.chkFreeze_Y.Name = "chkFreeze_Y";
-            this.chkFreeze_Y.Size = new System.Drawing.Size(81, 16);
-            this.chkFreeze_Y.TabIndex = 650;
-            this.chkFreeze_Y.Text = "Freeze(Y)";
-            this.chkFreeze_Y.UseVisualStyleBackColor = false;
-            this.chkFreeze_Y.CheckedChanged += new System.EventHandler(this.chkFreeze_Y_CheckedChanged);
-            // 
-            // chkFreeze_Tilt
-            // 
-            this.chkFreeze_Tilt.AutoSize = true;
-            this.chkFreeze_Tilt.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_Tilt.Location = new System.Drawing.Point(96, 256);
-            this.chkFreeze_Tilt.Name = "chkFreeze_Tilt";
-            this.chkFreeze_Tilt.Size = new System.Drawing.Size(81, 16);
-            this.chkFreeze_Tilt.TabIndex = 651;
-            this.chkFreeze_Tilt.Text = "Freeze(T)";
-            this.chkFreeze_Tilt.UseVisualStyleBackColor = false;
-            this.chkFreeze_Tilt.CheckedChanged += new System.EventHandler(this.chkFreeze_Tilt_CheckedChanged);
-            // 
-            // chkFreeze_X
-            // 
-            this.chkFreeze_X.AutoSize = true;
-            this.chkFreeze_X.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_X.Location = new System.Drawing.Point(15, 256);
-            this.chkFreeze_X.Name = "chkFreeze_X";
-            this.chkFreeze_X.Size = new System.Drawing.Size(81, 16);
-            this.chkFreeze_X.TabIndex = 652;
-            this.chkFreeze_X.Text = "Freeze(X)";
-            this.chkFreeze_X.UseVisualStyleBackColor = false;
-            this.chkFreeze_X.CheckedChanged += new System.EventHandler(this.chkFreeze_X_CheckedChanged);
             // 
             // label9
             // 
@@ -2027,7 +2474,7 @@
             this.lbTitle.BackColor = System.Drawing.Color.Transparent;
             this.lbTitle.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.lbTitle.ForeColor = System.Drawing.Color.White;
-            this.lbTitle.Location = new System.Drawing.Point(4, 9);
+            this.lbTitle.Location = new System.Drawing.Point(7, 9);
             this.lbTitle.Name = "lbTitle";
             this.lbTitle.Size = new System.Drawing.Size(92, 12);
             this.lbTitle.TabIndex = 667;
@@ -2081,49 +2528,38 @@
             this.pnButton.TabIndex = 672;
             this.pnButton.Paint += new System.Windows.Forms.PaintEventHandler(this.pnButton_Paint);
             // 
+            // btnUserButton
+            // 
+            this.btnUserButton.Location = new System.Drawing.Point(12, 378);
+            this.btnUserButton.Name = "btnUserButton";
+            this.btnUserButton.Size = new System.Drawing.Size(75, 23);
+            this.btnUserButton.TabIndex = 0;
+            this.btnUserButton.Text = "UserButton";
+            this.btnUserButton.UseVisualStyleBackColor = true;
+            this.btnUserButton.Visible = false;
+            this.btnUserButton.Click += new System.EventHandler(this.btnUserButton_Click);
+            // 
             // btnMode0
             // 
-            this.btnMode0.Location = new System.Drawing.Point(320, 45);
+            this.btnMode0.Location = new System.Drawing.Point(172, 44);
             this.btnMode0.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnMode0.Name = "btnMode0";
-            this.btnMode0.Size = new System.Drawing.Size(97, 21);
+            this.btnMode0.Size = new System.Drawing.Size(61, 23);
             this.btnMode0.TabIndex = 453;
-            this.btnMode0.Text = "Admin Mode";
+            this.btnMode0.Text = "Display";
             this.btnMode0.UseVisualStyleBackColor = true;
             this.btnMode0.Click += new System.EventHandler(this.btnMode0_Click);
             // 
             // btnMode1
             // 
-            this.btnMode1.Location = new System.Drawing.Point(418, 45);
+            this.btnMode1.Location = new System.Drawing.Point(234, 44);
             this.btnMode1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnMode1.Name = "btnMode1";
-            this.btnMode1.Size = new System.Drawing.Size(97, 21);
+            this.btnMode1.Size = new System.Drawing.Size(61, 23);
             this.btnMode1.TabIndex = 453;
-            this.btnMode1.Text = "Control Mode";
+            this.btnMode1.Text = "Control";
             this.btnMode1.UseVisualStyleBackColor = true;
             this.btnMode1.Click += new System.EventHandler(this.btnMode1_Click);
-            // 
-            // btnInitpos
-            // 
-            this.btnInitpos.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
-            this.btnInitpos.Location = new System.Drawing.Point(13, 43);
-            this.btnInitpos.Name = "btnInitpos";
-            this.btnInitpos.Size = new System.Drawing.Size(90, 23);
-            this.btnInitpos.TabIndex = 673;
-            this.btnInitpos.Text = "InitPos 1";
-            this.btnInitpos.UseVisualStyleBackColor = false;
-            this.btnInitpos.Click += new System.EventHandler(this.btnInitpos_Click);
-            // 
-            // btnInitpos2
-            // 
-            this.btnInitpos2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
-            this.btnInitpos2.Location = new System.Drawing.Point(128, 43);
-            this.btnInitpos2.Name = "btnInitpos2";
-            this.btnInitpos2.Size = new System.Drawing.Size(90, 23);
-            this.btnInitpos2.TabIndex = 673;
-            this.btnInitpos2.Text = "InitPos 2";
-            this.btnInitpos2.UseVisualStyleBackColor = false;
-            this.btnInitpos2.Click += new System.EventHandler(this.btnInitpos2_Click);
             // 
             // lbPlayState
             // 
@@ -2142,7 +2578,7 @@
             this.prbStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(192)))), ((int)(((byte)(128)))));
             this.prbStatus.Location = new System.Drawing.Point(6, 749);
             this.prbStatus.Name = "prbStatus";
-            this.prbStatus.Size = new System.Drawing.Size(505, 14);
+            this.prbStatus.Size = new System.Drawing.Size(731, 14);
             this.prbStatus.TabIndex = 676;
             this.prbStatus.Visible = false;
             // 
@@ -2199,13 +2635,61 @@
             // btnOpenDesignFile
             // 
             this.btnOpenDesignFile.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(192)))), ((int)(((byte)(128)))));
-            this.btnOpenDesignFile.Location = new System.Drawing.Point(236, 44);
+            this.btnOpenDesignFile.Location = new System.Drawing.Point(13, 44);
             this.btnOpenDesignFile.Name = "btnOpenDesignFile";
             this.btnOpenDesignFile.Size = new System.Drawing.Size(73, 23);
             this.btnOpenDesignFile.TabIndex = 679;
             this.btnOpenDesignFile.Text = "Open(3D)";
             this.btnOpenDesignFile.UseVisualStyleBackColor = false;
             this.btnOpenDesignFile.Click += new System.EventHandler(this.btnOpenDesignFile_Click);
+            // 
+            // picIcon
+            // 
+            this.picIcon.BackColor = System.Drawing.Color.Transparent;
+            this.picIcon.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.picIcon.Location = new System.Drawing.Point(3, 2);
+            this.picIcon.Name = "picIcon";
+            this.picIcon.Size = new System.Drawing.Size(32, 26);
+            this.picIcon.TabIndex = 680;
+            this.picIcon.TabStop = false;
+            this.picIcon.Visible = false;
+            // 
+            // lbMsg
+            // 
+            this.lbMsg.AutoSize = true;
+            this.lbMsg.BackColor = System.Drawing.Color.Transparent;
+            this.lbMsg.ForeColor = System.Drawing.Color.Yellow;
+            this.lbMsg.Location = new System.Drawing.Point(743, 751);
+            this.lbMsg.Name = "lbMsg";
+            this.lbMsg.Size = new System.Drawing.Size(44, 12);
+            this.lbMsg.TabIndex = 681;
+            this.lbMsg.Text = "label18";
+            this.lbMsg.Visible = false;
+            // 
+            // imglstBig
+            // 
+            this.imglstBig.ColorDepth = System.Windows.Forms.ColorDepth.Depth16Bit;
+            this.imglstBig.ImageSize = new System.Drawing.Size(32, 32);
+            this.imglstBig.TransparentColor = System.Drawing.Color.Transparent;
+            // 
+            // imglstSmall
+            // 
+            this.imglstSmall.ColorDepth = System.Windows.Forms.ColorDepth.Depth16Bit;
+            this.imglstSmall.ImageSize = new System.Drawing.Size(16, 16);
+            this.imglstSmall.TransparentColor = System.Drawing.Color.Transparent;
+            // 
+            // imglstTree
+            // 
+            this.imglstTree.ColorDepth = System.Windows.Forms.ColorDepth.Depth16Bit;
+            this.imglstTree.ImageSize = new System.Drawing.Size(16, 16);
+            this.imglstTree.TransparentColor = System.Drawing.Color.Transparent;
+            // 
+            // imageList1
+            // 
+            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList1.Images.SetKeyName(0, "folder.ico");
+            this.imageList1.Images.SetKeyName(1, "file.ico");
             // 
             // mpPlayer
             // 
@@ -2225,6 +2709,8 @@
             this.BackgroundImage = global::OpenJigWare.Properties.Resources.MotionTool;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(1024, 769);
+            this.Controls.Add(this.btnUserButton);
+            this.Controls.Add(this.lbMsg);
             this.Controls.Add(this.btnOpenDesignFile);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btnSync_Grid_Mp3);
@@ -2232,73 +2718,30 @@
             this.Controls.Add(this.prbStatus);
             this.Controls.Add(this.lbPlayState);
             this.Controls.Add(this.mpPlayer);
-            this.Controls.Add(this.btnPos_TurnBack);
-            this.Controls.Add(this.btnInitpos2);
-            this.Controls.Add(this.btnPos_Left);
-            this.Controls.Add(this.btnInitpos);
-            this.Controls.Add(this.btnPos_Top);
             this.Controls.Add(this.btnMode1);
-            this.Controls.Add(this.btnPos_Right);
             this.Controls.Add(this.btnMode0);
-            this.Controls.Add(this.txtBackAngle_Z);
-            this.Controls.Add(this.btnPos_Bottom);
             this.Controls.Add(this.pnButton);
-            this.Controls.Add(this.txtBackAngle_Y);
             this.Controls.Add(this.chkTracking);
-            this.Controls.Add(this.btnDisplay_GetThePose);
             this.Controls.Add(this.chkMp3);
-            this.Controls.Add(this.txtBackAngle_X);
             this.Controls.Add(this.lbTitle);
-            this.Controls.Add(this.btnDisplay_RememberPos);
             this.Controls.Add(this.btnExit);
-            this.Controls.Add(this.btnPos_Front);
             this.Controls.Add(this.chkDualMonitor);
-            this.Controls.Add(this.btnPos_Go);
             this.Controls.Add(this.chkFullSize);
             this.Controls.Add(this.prgMp3);
             this.Controls.Add(this.lbMp3Time);
             this.Controls.Add(this.lbMp3AllTime);
             this.Controls.Add(this.lbMp3File);
-            this.Controls.Add(this.label13);
             this.Controls.Add(this.label9);
-            this.Controls.Add(this.label8);
             this.Controls.Add(this.btnMp3Open);
-            this.Controls.Add(this.label7);
             this.Controls.Add(this.btnMp3Play);
             this.Controls.Add(this.btnMp3Stop);
-            this.Controls.Add(this.chkFreeze_Swing);
-            this.Controls.Add(this.chkFreeze_Z);
-            this.Controls.Add(this.chkFreeze_Pan);
-            this.Controls.Add(this.chkFreeze_Y);
-            this.Controls.Add(this.chkFreeze_Tilt);
-            this.Controls.Add(this.chkFreeze_X);
-            this.Controls.Add(this.cmbStartPosition);
-            this.Controls.Add(this.btnCalcTime);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.btnMotionFileOpen);
-            this.Controls.Add(this.txtFileName);
-            this.Controls.Add(this.label5);
-            this.Controls.Add(this.btnBinarySave);
-            this.Controls.Add(this.label6);
-            this.Controls.Add(this.btnTextSave);
-            this.Controls.Add(this.label3);
-            this.Controls.Add(this.txtComment);
-            this.Controls.Add(this.tabControl1);
-            this.Controls.Add(this.txtTableName);
-            this.Controls.Add(this.dgAngle);
-            this.Controls.Add(this.label10);
+            this.Controls.Add(this.tcControl);
             this.Controls.Add(this.picDisp);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.txtSocket_Port);
-            this.Controls.Add(this.lbTableName);
-            this.Controls.Add(this.txtBaudrate);
-            this.Controls.Add(this.txtPort);
-            this.Controls.Add(this.lbModify);
-            this.Controls.Add(this.btnConnect_Serial);
-            this.Controls.Add(this.label314);
-            this.Controls.Add(this.txtIp);
-            this.Controls.Add(this.btnConnect);
+            this.Controls.Add(this.picIcon);
+            this.Controls.Add(this.dgAngle);
+            this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "frmMotionEditor";
             this.Text = "MotionEditor";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMotionEditor_FormClosing);
@@ -2309,11 +2752,13 @@
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.frmMotionEditor_MouseMove);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.frmMotionEditor_MouseUp);
             ((System.ComponentModel.ISupportInitialize)(this.dgAngle)).EndInit();
-            this.tabControl1.ResumeLayout(false);
+            this.tcControl.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.tabPage1.PerformLayout();
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
+            this.tbFiles.ResumeLayout(false);
+            this.tbDownload.ResumeLayout(false);
             this.tabPage2.ResumeLayout(false);
             this.tabPage2.PerformLayout();
             this.tabPage3.ResumeLayout(false);
@@ -2321,6 +2766,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.picDisp)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picIcon)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.mpPlayer)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -2332,7 +2778,7 @@
         private System.Windows.Forms.DataGridView dgAngle;
         private System.Windows.Forms.Panel pnProperty;
         private System.Windows.Forms.PictureBox picDisp;
-        private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.TabControl tcControl;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Button btnStop;
@@ -2502,5 +2948,41 @@
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.Button btnSimul;
         private System.Windows.Forms.CheckBox chkSmooth;
+        public System.Windows.Forms.Button btnUserButton;
+        private System.Windows.Forms.PictureBox picIcon;
+        private System.Windows.Forms.Label lbMsg;
+        private System.Windows.Forms.TabPage tbDownload;
+        private System.Windows.Forms.ListView listviewMotion;
+        private System.Windows.Forms.ColumnHeader clmDownload;
+        private System.Windows.Forms.Button btnMotion_Delete;
+        private System.Windows.Forms.Button btnMotion_GetList;
+        private System.Windows.Forms.Button btnMotion_Download;
+        private System.Windows.Forms.Button btnMotion_GetList2;
+        private System.Windows.Forms.Button btnMotion_Download2;
+        private System.Windows.Forms.Button btnMotion_Play;
+        private System.Windows.Forms.TabPage tbFiles;
+        private System.Windows.Forms.Button btnDirRefresh;
+        private System.Windows.Forms.Button btnAppendFile;
+        internal System.Windows.Forms.ListView lstInfo;
+        internal System.Windows.Forms.ColumnHeader ColumnHeader1;
+        internal System.Windows.Forms.ColumnHeader ColumnHeader2;
+        internal System.Windows.Forms.ColumnHeader ColumnHeader3;
+        internal System.Windows.Forms.TreeView treeInfo;
+        private System.Windows.Forms.Label lbList_Comment;
+        private System.Windows.Forms.Label label222;
+        private System.Windows.Forms.Label lbList_FrameSize_Emoticon;
+        private System.Windows.Forms.Label lbList_FrameSize_Sound;
+        private System.Windows.Forms.Label label225;
+        private System.Windows.Forms.Label label224;
+        private System.Windows.Forms.Label label223;
+        private System.Windows.Forms.Label label221;
+        private System.Windows.Forms.Label lbList_FrameSize;
+        private System.Windows.Forms.Label lblVersion;
+        private System.Windows.Forms.Label lbList_Title;
+        private System.Windows.Forms.Label lblPath;
+        private System.Windows.Forms.ImageList imglstBig;
+        private System.Windows.Forms.ImageList imglstSmall;
+        private System.Windows.Forms.ImageList imglstTree;
+        private System.Windows.Forms.ImageList imageList1;
     }
 }

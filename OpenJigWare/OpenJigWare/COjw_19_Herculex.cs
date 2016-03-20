@@ -1473,6 +1473,7 @@ namespace OpenJigWare
 
             #region Counter - 통신에 관한 카운터 ( 보낸것, 받은 이벤트, Push 횟수, Pop 횟수 )
             private int m_nCntTick_Receive_Event_All = 0;
+            private int m_nCntTick_Receive_Event_All_Back = 0;
             private int m_nCntTick_Receive_PushBuffer = 0;
             private int m_nCntTick_Receive_GetBuffer = 0;
             public int GetCounter_Tick_Reveive_Event(int nAxis) { return m_nCntTick_Receive_Event_All; }
@@ -1489,7 +1490,7 @@ namespace OpenJigWare
             public int GetCounter_Tick_Receive(int nAxis) { return m_pnCntTick_Receive[nAxis]; }
             public void ResetCounter()
             {
-                m_nCntTick_Receive_Event_All = m_nCntTick_Receive_PushBuffer = m_nCntTick_Receive_GetBuffer = 0;
+                m_nCntTick_Receive_Event_All = m_nCntTick_Receive_Event_All_Back = m_nCntTick_Receive_PushBuffer = m_nCntTick_Receive_GetBuffer = 0;
                 Array.Clear(m_pnCntTick_Send, 0, m_pnCntTick_Send.Length);
                 Array.Clear(m_pnCntTick_Receive, 0, m_pnCntTick_Receive.Length);
                 //Array.Clear(m_pnCntTick_Receive_Back, 0, m_pnCntTick_Receive_Back.Length);
@@ -1500,6 +1501,31 @@ namespace OpenJigWare
             public long GetCounter_Timer(int nAxis) { return Tick_GetTimer(nAxis); }
             //public bool IsReceived(int nAxis) { return ((m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) || (m_aCTmr[nAxis].Get() > 100)) ? true : false; }
             public bool IsReceived(int nAxis) { return (m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) ? true : false; }
+            public bool IsReceived_1Packet() { return (m_nCntTick_Receive_Event_All != m_nCntTick_Receive_Event_All_Back) ? true : false; }
+            public bool WaitReceive_1Packet(long lWaitTimer)
+            {
+                CTimer tmrReceive = new CTimer();
+                tmrReceive.Set();
+                bool bError = true;
+                bool bOver = false;
+                while ((IsConnect() == true) && (m_bClassEnd == false) && (bOver == false))
+                {
+                    if (IsReceived_1Packet() == true)
+                    {
+                        bError = false;
+                        break;
+                    }
+                    if (lWaitTimer > 0)
+                    {
+                        if (tmrReceive.Get() >= lWaitTimer)
+                        {
+                            bOver = true;
+                        }
+                    }
+                    Thread.Sleep(1);
+                }
+                return ((bError == false) ? true : false);                
+            }
             public bool WaitReceive(int nAxis, long lWaitTimer)  // true : Receive Ok, false : Fail
             {
                 CTimer tmrReceive = new CTimer();
@@ -1890,6 +1916,8 @@ namespace OpenJigWare
             private int[] m_pnMpsuRom = new int[_SIZE_MPSU_ROM];
             private int[] m_pnHeadRam = new int[_SIZE_HEAD_RAM];
             private int[] m_pnHeadRom = new int[_SIZE_HEAD_ROM];
+            public byte GetLastPacket() { return m_byteLastPacket; }
+            private byte m_byteLastPacket = 0;
             private void ReceiveDataCallback()		/* Callback 함수 */
             {
                 while ((IsConnect() == true) && (m_bClassEnd == false))
@@ -1931,7 +1959,7 @@ namespace OpenJigWare
                             for (i = 0; i < nLength; i++)
                             {
                                 RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
-
+                                m_byteLastPacket = RxData; // LastPacket
                                 if ((RxData == 0xFF) && (m_nRxIndex == 0xFF))
                                 {
 
@@ -2786,6 +2814,54 @@ namespace OpenJigWare
                 //Tick_Send_Mpsu();
                 SendPacket(pbyteBuffer, nDefaultSize + i);
             }
+            public void Mpsu_EnterBootloader()
+            {
+                if (IsConnect() == false) return;
+
+                m_bBusy = true; // 통신 요청
+                byte[] pbyteBuffer = Ojw.CConvert.StrToBytes("S");
+
+                SendPacket(pbyteBuffer, 1);
+            }
+            public void QuitBootloader()
+            {
+                if (IsConnect() == false) return;
+
+                m_bBusy = true; // 통신 요청
+                byte[] pbyteBuffer = Ojw.CConvert.StrToBytes("Q");
+
+                SendPacket(pbyteBuffer, 1);
+            }
+            // 주의 : 이후 제어기와의 통신은 할 수 없다. 오로지 모터와만 통신 가능
+            public void Mpsu_Servo_Fw_UpdateMode(int nMpsuID)
+            {
+                if (IsConnect() == false) return;
+
+                m_bBusy = true; // 통신 요청
+
+                int nDefaultSize = _CHECKSUM2 + 1;
+
+                int i = 0;
+                // Header
+                byte[] pbyteBuffer = new byte[256];
+                pbyteBuffer[_HEADER1] = 0xff;
+                pbyteBuffer[_HEADER2] = 0xff;
+                // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                // Cmd
+                pbyteBuffer[_CMD] = 0x1E;
+
+                //Packet Size
+                pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                MakeCheckSum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                // 보내기 전에 Tick 을 Set 한다.
+                //Tick_Send_Mpsu();
+                SendPacket(pbyteBuffer, nDefaultSize + i);
+            }
+            public void SetBusy() { m_bBusy = true; }
+            public void ResetBusy() { m_bBusy = false; }
             public void Mpsu_Reboot(int nMpsuID)
             {
                 if (IsConnect() == false) return;
@@ -2802,7 +2878,7 @@ namespace OpenJigWare
                 // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
                 pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
                 // Cmd
-                pbyteBuffer[_CMD] = 0x1b; // Play Buzz
+                pbyteBuffer[_CMD] = 0x1b; // Reboot
 
                 /////////////////////////////////////////////////////
                 // Data

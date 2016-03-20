@@ -10,9 +10,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>OpenJigWare</RootNamespace>
     <AssemblyName>OpenJigWare</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -27,10 +28,13 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;_USING_DOTNET_3_5</DefineConstants>
+    <DefineConstants>TRACE;//_USING_DOTNET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RegisterForComInterop>false</RegisterForComInterop>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>oroca.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Contracts">
@@ -70,6 +74,12 @@
     <Compile Include="COjw_02_InputBox.cs" />
     <Compile Include="COjw_01_Struct.cs" />
     <Compile Include="COjw_xx_User.cs" />
+    <Compile Include="Docking\frmFolder.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\frmFolder.Designer.cs">
+      <DependentUpon>frmFolder.cs</DependentUpon>
+    </Compile>
     <Compile Include="Docking\KeyPad.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -124,6 +134,9 @@
     <Compile Include="COjw_25_Genibo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Docking\frmFolder.resx">
+      <DependentUpon>frmFolder.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Docking\KeyPad.resx">
       <DependentUpon>KeyPad.cs</DependentUpon>
     </EmbeddedResource>
@@ -142,6 +155,11 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="oroca.ico" />
+    <None Include="Images\action_delete.ico" />
+    <None Include="Images\search.ico" />
+    <None Include="Images\download.ico" />
+    <None Include="Images\action_go.gif" />
     <Content Include="KeyPad\english_L\eL_normal_A.png" />
     <Content Include="KeyPad\english_L\eL_normal_B.png" />
     <Content Include="KeyPad\english_L\eL_normal_Back.png" />
@@ -239,11 +257,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
-copy *.dll "..\..\..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
-copy *.dll "..\..\..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
-copy *.dll "..\..\..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
-copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
+    <PostBuildEvent>copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
 copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

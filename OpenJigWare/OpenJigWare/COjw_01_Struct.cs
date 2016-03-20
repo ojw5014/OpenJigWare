@@ -135,13 +135,15 @@ namespace OpenJigWare
             public int nData4;
             public int nData5;
 
+            public string strCaption;
+
             //public int nExtLed;
             //public int nExtBuzz;
         }
         public struct SMotion_t
         {
             //public int nCount;
-
+            public string strVersion;
             public int nFrameSize;
             public int nCnt_LineComment;
             public int nPlayTime;
@@ -151,7 +153,7 @@ namespace OpenJigWare
             public int nStartPosition;
             public string strFileName;
             public string strTableName;
-            //public string strComment;
+            public string strComment;
             public SMotionTable_t[] STable;
         }
         #endregion Motion

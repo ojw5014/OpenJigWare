@@ -495,5 +495,34 @@ namespace OpenJigWare.Docking
             m_C3d.Prop_Set_Main_MouseControlMode(15);
             m_C3d.Prop_Update_VirtualObject();
         }
+
+        private void btnMakeSstl_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd3d = new OpenFileDialog();
+            ofd3d.Filter = "3d Files(*.stl,*.ase,*.obj,*.dat)|*.stl;*.ase;*.obj;*.dat";
+            //ofd3d.DefaultExt = "mp3";
+            ofd3d.InitialDirectory = Application.StartupPath + m_C3d.GetAseFile_Path();
+            if (ofd3d.ShowDialog() == DialogResult.OK)
+            {
+                String fileName = ofd3d.FileName;
+
+                if (fileName.ToLower().IndexOf(".stl") > 0) // 파일명 없이 확장자만 있는것도 에러
+                {
+                    m_C3d.OjwFileConvert_STL_to_SSTL(fileName);
+                }
+                else if (fileName.ToLower().IndexOf(".ase") > 0) // 파일명 없이 확장자만 있는것도 에러
+                {
+                    m_C3d.OjwFileConvert_ASE_to_SSTL(fileName);
+                }
+                else if (fileName.ToLower().IndexOf(".obj") > 0) // 파일명 없이 확장자만 있는것도 에러
+                {
+                    m_C3d.OjwFileConvert_OBJ_to_SSTL(fileName);
+                }
+                else if (fileName.ToLower().IndexOf(".dat") > 0) // 파일명 없이 확장자만 있는것도 에러
+                {
+                    m_C3d.OjwFileConvert_DAT_to_SSTL(fileName);
+                }
+            }            
+        }
     }
 }

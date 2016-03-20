@@ -398,7 +398,6 @@ namespace OpenJigWare
                 string strName = strPath + "\\" + strFileName;
                 SaveImage(bmp, strName);
             }
-
             private static bool SaveImage(System.Windows.Forms.PictureBox pictureBox, string path)
             {
                 bool bRet = true;

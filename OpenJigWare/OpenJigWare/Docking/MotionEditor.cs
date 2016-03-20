@@ -1,4 +1,5 @@
 ﻿//#define _ENABLE_MEDIAPLAYER
+//#define _VIEW_FRMFOLDER
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,6 +12,7 @@ using System.Windows.Forms;
 using OpenJigWare;
 using System.Threading;
 using System.IO;
+using System.Runtime.InteropServices;
 
 //#if _ENABLE_MEDIAPLAYER
 //
@@ -22,7 +24,7 @@ Tools-> Choose Item -> Com -> Windows media player    : wmp.dll
 //#endif
 
 namespace OpenJigWare.Docking
-{
+{    
     public partial class frmMotionEditor : Form
     {
         public frmMotionEditor()
@@ -32,7 +34,14 @@ namespace OpenJigWare.Docking
 
 //#endif
         }
-        
+
+        #region UserFunction
+        public delegate void UserFunction();
+        private UserFunction m_FUser;
+        public Ojw.C3d GetC3d() { return m_C3d; }
+        public void SetUserButton(UserFunction FUser) { if (FUser != null) { m_FUser = new UserFunction(FUser); btnUserButton.Visible = true; } }
+        #endregion UserFunction
+
         //private Ojw.COjwMotor m_CMotor = new Ojw.COjwMotor();
         
         private Ojw.C3d m_C3d = new Ojw.C3d();
@@ -46,11 +55,415 @@ namespace OpenJigWare.Docking
         // 파일의 경로
         private String m_strWorkDirectory_Dmt = String.Empty;
         private String m_strWorkDirectory_Mp3 = String.Empty;
+        
+        public void SetTitleImage(Bitmap bmp, Rectangle rc) 
+        {
+            if (bmp == null)
+            {
+                picIcon.Visible = false;
+                lbTitle.Left = m_nLeft_Title;
+                lbTitle.Top = m_nTop_Title;
+            }
+            else
+            {
+                if (rc != null)
+                {
+                    int nLeft = (rc.Left == -1) ? picIcon.Left : rc.Left;
+                    int nTop = (rc.Top == -1) ? picIcon.Top : rc.Top;
+                    int nWidth = (rc.Width == 0) ? picIcon.Width : rc.Width;
+                    int nHeight = (rc.Height == 0) ? picIcon.Height : rc.Height;
+                    picIcon.Visible = true;
+                    picIcon.Location = new Point(nLeft, nTop);
+                    picIcon.Size = new Size(nWidth, nHeight);
+                }
+                lbTitle.Left = picIcon.Left + picIcon.Width + 10;
+                picIcon.BackgroundImage = bmp;
+            }
+        }
 
+        #region Treeview
+        ////// treeview 탐색기 -- ///////
+        // 프로그램 실행 API
+        [System.Runtime.InteropServices.DllImport("shell32.dll")]
+        public static extern int ShellExecute(int hwnd, string lpOperation, string lpFile, string lpParameters, string lpDirectory, int nShowCmd);
+        public const int SW_SHOWNORMAL = 1;
+
+        frmFolder m_frmFolder;// 폴더 탐색 정보를 출력
+
+        public struct SFileHeader_t
+        {
+            public String strFileVersion;
+            public String strFileName;
+            public bool bActFile;  // 액션 파일 여부
+            public String strTitle;
+            public String strComment;
+            public int nStartPosition;
+            public int nFrameSize;
+            public int nFrameSize_Sound;
+            public int nFrameSize_Emoticon;
+        };
+        SFileHeader_t[] m_pSFileHeader;
+        public int m_nFileHeader;
+        public int m_nDirCnt;
+
+        // 리스트뷰에 폴더및 파일정보 삽입
+        private void SetListView(String strPath)
+        {
+            string strFilter = "";
+            string[] pstrFilter;
+            // 동영상
+            // avi,asf,asx,wpl,wm,wmx,wmd,wmz,wmv,wav,mpeg,mpg,mpe,m1v,m2v,mod,mp2,mpv2,mp2v,mpa
+            strFilter = ".avi,.asf,.asx,.wpl,.wm,.wmx,.wmd,.wmz,.wmv,.wav,.mpeg,.mpg,.mpe,.m1v,.m2v,.mod,.mp2,.mpv2,.mp2v,.mpa";
+            // 오디오
+            // wma,wax,cda,mp3,m3u,mid,midi,rmi,air,aifc,aiff,au,snd
+            strFilter += ",.wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
+            // 액션파일
+            strFilter += ",.dmt";
+            pstrFilter = strFilter.Split(',');
+            SetListView(strPath, pstrFilter);
+            //SetListView(strPath, "*.*");
+        }
+
+        private bool CheckAudioExist(String strData)
+        {
+            string strFilter = ".wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
+            string[] pstrFilter;
+            pstrFilter = strFilter.Split(',');
+            return CheckFileExist(strData, pstrFilter);
+        }
+
+        private bool CheckMovieExist(String strData)
+        {
+            string strFilter = ".avi,.asf,.asx,.wpl,.wm,.wmx,.wmd,.wmz,.wmv,.wav,.mpeg,.mpg,.mpe,.m1v,.m2v,.mod,.mp2,.mpv2,.mp2v,.mpa";
+            string[] pstrFilter;
+            pstrFilter = strFilter.Split(',');
+            return CheckFileExist(strData, pstrFilter);
+        }
+
+        private bool CheckDmtExist(String strData)
+        {
+            if (strData.ToLower().IndexOf(".dmt") == (strData.Length - 4)) return true;
+            return false;
+        }
+
+        private bool CheckFileExist(String strData, String[] pstrFilter)
+        {
+            bool bFind = false;
+            foreach (string strItem in pstrFilter)
+            {
+                if (strData.IndexOf(strItem) == (strData.Length - 4))
+                {
+                    bFind = true;
+                    break;
+                }
+            }
+            return bFind;
+        }
+
+        private void SetListView(String strPath, String[] pstrFilter)
+        {
+            SystemImgList sysimglst = new SystemImgList();
+            Icon icoParent;
+            int nCnt;
+
+            strPath = strPath + "\\";
+
+            imglstSmall.Images.Clear();
+            imglstBig.Images.Clear();
+            lstInfo.Items.Clear();
+            lstInfo.Sorting = SortOrder.None;
+
+            System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(strPath);
+
+            //frmFolder에 출력하기 위해서 strPath의 icon을 얻는다. 
+            icoParent = sysimglst.GetIcon(strPath, false, false);
+
+            CallFrmFolder(strPath, icoParent);
+
+            try
+            {
+                int nCnt2 = 0;
+                nCnt = 0;
+                // 폴더 정보를 얻기       
+#if true
+                foreach (System.IO.DirectoryInfo dirInfoSub in dirInfo.GetDirectories("*"))
+                {
+                    // 리스트뷰에 입력
+                    imglstSmall.Images.Add(sysimglst.GetIcon(dirInfoSub.FullName, true, false));
+                    imglstBig.Images.Add(sysimglst.GetIcon(dirInfoSub.FullName, false, false));
+                    nCnt = imglstSmall.Images.Count;
+
+                    lstInfo.Items.Add(dirInfoSub.Name, nCnt - 1);
+                    lstInfo.Items[nCnt - 1].SubItems.Add("");
+                    lstInfo.Items[nCnt - 1].SubItems.Add(dirInfoSub.LastWriteTime.ToString());
+
+                    lstInfo.Update();//Application.DoEvents();
+                    
+                    ViewFrmFolder(dirInfoSub.Name, imglstBig.Images[nCnt - 1]);
+                    nCnt++;
+                }
+#else
+                lstInfoFolder.Sorting = SortOrder.None;
+                lstInfoFolder.Clear();
+                foreach (System.IO.DirectoryInfo dirInfoSub in dirInfo.GetDirectories("*"))
+                {
+                    // 리스트뷰에 입력
+                    imglstSmall.Images.Add(sysimglst.GetIcon(dirInfoSub.FullName, true, false));
+                    imglstBig.Images.Add(sysimglst.GetIcon(dirInfoSub.FullName, false, false));
+                    nCnt = imglstSmall.Images.Count;
+
+                    lstInfoFolder.Items.Add(dirInfoSub.Name, nCnt - 1);
+                    lstInfoFolder.Items[nCnt - 1].SubItems.Add("");
+                    lstInfoFolder.Items[nCnt - 1].SubItems.Add(dirInfoSub.LastWriteTime.ToString());
+
+                    Application.DoEvents();
+                    ViewFrmFolder(dirInfoSub.Name, imglstBig.Images[nCnt - 1]);
+                    nCnt++;
+                }
+                lstInfoFolder.Sorting = SortOrder.Ascending;
+#endif
+                m_nDirCnt = nCnt;
+                nCnt2 = 0;
+                foreach (System.IO.FileInfo fileInfo in dirInfo.GetFiles("*.*")) nCnt2++;
+
+                m_nFileHeader = nCnt2;// dirInfo.GetFiles().GetLength();
+                nCnt2 = 0;
+                m_pSFileHeader = new SFileHeader_t[m_nFileHeader];
+                // 파일 정보(리스트뷰 입력)
+                foreach (System.IO.FileInfo fileInfo in dirInfo.GetFiles("*.*"))
+                {
+                    if (CheckFileExist(fileInfo.FullName, pstrFilter) == true)
+                    {
+                        if (CheckDmtExist(fileInfo.FullName))
+                        {
+                            //String strTitle, strComment, strFileVersion;
+                            //int nTmp;
+                            //int nStartPosition, nFrameSize, nFrameSize_Sound, nFrameSize_Emoticon;
+
+                            Ojw.SMotion_t SMotion = new Ojw.SMotion_t();
+                            if (m_C3d.BinaryFileOpen(fileInfo.FullName, out SMotion) == true)
+                            {
+                                //nTmp = 1;// 3 + nStartPosition * 2;
+                                //imglstSmall.Images.Add(imageList1.Images[nTmp]);//3 + nStartPosition * 2]);
+                                //nTmp = 1;// 4 + nStartPosition * 2;
+                                //imglstBig.Images.Add(imageList1.Images[nTmp]);//4 + nStartPosition * 2]);
+                                imglstSmall.Images.Add(sysimglst.GetIcon(fileInfo.FullName, true, false));
+                                imglstBig.Images.Add(sysimglst.GetIcon(fileInfo.FullName, false, false));
+
+                                m_pSFileHeader[nCnt2].strFileName = fileInfo.Name;
+
+                                m_pSFileHeader[nCnt2].bActFile = true;
+                                m_pSFileHeader[nCnt2].strTitle = SMotion.strTableName;
+                                m_pSFileHeader[nCnt2].strComment = SMotion.strComment;
+                                m_pSFileHeader[nCnt2].nStartPosition = SMotion.nStartPosition;
+                                m_pSFileHeader[nCnt2].nFrameSize = SMotion.nFrameSize;
+                                m_pSFileHeader[nCnt2].nFrameSize_Sound = 0;//SMotion.nFrameSize_Sound;
+                                m_pSFileHeader[nCnt2].nFrameSize_Emoticon = 0;//SMotion.nFrameSize_Emoticon;
+                                m_pSFileHeader[nCnt2].strFileVersion = SMotion.strVersion;
+                            }
+                            else
+                            {
+                                imglstSmall.Images.Add(sysimglst.GetIcon(fileInfo.FullName, true, false));
+                                imglstBig.Images.Add(sysimglst.GetIcon(fileInfo.FullName, false, false));
+                                //imglstSmall.Images.Add(sysimglst.GetIcon(fileInfo.FullName, true, false));
+                                //imglstBig.Images.Add(sysimglst.GetIcon(fileInfo.FullName, false, false));
+                                m_pSFileHeader[nCnt2].bActFile = false;
+                            }
+                        } 
+                        // 디자인 파일 아이콘
+                        else if (
+                        (fileInfo.FullName.ToLower().IndexOf(".ojw") > 0) ||
+                        (fileInfo.FullName.ToLower().IndexOf(".dhf") > 0)
+                        )
+                        {
+                            imglstSmall.Images.Add(sysimglst.GetIcon(fileInfo.FullName, true, false));
+                            imglstBig.Images.Add(sysimglst.GetIcon(fileInfo.FullName, false, false));
+                            //m_pSFileHeader[nCnt2].bActFile = false;
+                        }
+                        else
+                        {
+                            imglstSmall.Images.Add(sysimglst.GetIcon(fileInfo.FullName, true, false));
+                            imglstBig.Images.Add(sysimglst.GetIcon(fileInfo.FullName, false, false));
+                            //imglstSmall.Images.Add(sysimglst.GetIcon(fileInfo.FullName, true, false));
+                            //imglstBig.Images.Add(sysimglst.GetIcon(fileInfo.FullName, false, false));
+                            m_pSFileHeader[nCnt2].bActFile = false;
+                        }
+                        nCnt = imglstSmall.Images.Count;
+
+                        lstInfo.Items.Add(fileInfo.Name, nCnt - 1);
+#if true
+                        lstInfo.Items[nCnt - 1].SubItems.Add(fileInfo.Length.ToString());
+                        lstInfo.Items[nCnt - 1].SubItems.Add(fileInfo.LastWriteTime.ToString());
+#else
+                        ListViewItem lstviewItem = lstInfo.FindItemWithText(fileInfo.Name);//.Find(fileInfo.Name, false);
+                        lstviewItem.SubItems.Add(fileInfo.Length.ToString());
+                        lstviewItem.SubItems.Add(fileInfo.LastWriteTime.ToString());
+#endif
+                        nCnt2++;
+                        lstInfo.Update();//Application.DoEvents();
+                        ViewFrmFolder(fileInfo.Name, imglstBig.Images[nCnt - 1]);
+                    }
+                }
+
+                //for (int i = 0; i < m_nDirCnt; i++)
+                //{
+
+                //}
+                m_nFileHeader = nCnt2;
+            }
+            catch (Exception e)
+            {
+                KillFrmFolder();
+                MessageBox.Show(e.ToString());
+            }
+            lstInfo.Sorting = SortOrder.Ascending;
+
+            KillFrmFolder();
+
+            lstInfo.SmallImageList = imglstSmall;
+            lstInfo.LargeImageList = imglstBig;
+        }
+
+        // node에 하위 폴더 삽입
+        private void SetTreeNode(TreeNode node)
+        {
+            String strPath;
+            int nNode;
+            SystemImgList sysimglst = new SystemImgList();
+
+            strPath = node.FullPath;
+            strPath = strPath + "\\";
+
+            System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(strPath);
+
+            // 폴더 정보
+            try
+            {
+                // 폴더 정보를 얻기
+                List<String> strList = new List<String>();
+                strList.Clear();
+                foreach (System.IO.DirectoryInfo dirInfoSub in dirInfo.GetDirectories("*")) strList.Add(dirInfoSub.Name);
+                strList.Sort();
+
+                //foreach (System.IO.DirectoryInfo dirInfoSub in dirInfo.GetDirectories("*"))
+                foreach (string strInfoSub in strList)
+                {
+                    nNode = node.Nodes.Add(new TreeNode(strInfoSub, imglstTree.Images.Count - 2, imglstTree.Images.Count - 1));
+                    if (HasSubFolder(node.Nodes[nNode].FullPath))
+                        node.Nodes[nNode].Nodes.Add("???");
+
+                }
+            }
+            catch (Exception e)
+            {
+                KillFrmFolder();
+                MessageBox.Show(e.ToString());
+            }
+
+        }
+
+        // 트리 노드 찾기
+        // 현재 선택된 노드의 자식들중에서 찾는다.
+        private TreeNode FindNode(String strFolder)
+        {
+
+            TreeNode tnTmp;
+
+            // 선택된 노드의 최초 자식을 찾는다.
+            tnTmp = treeInfo.SelectedNode.FirstNode;
+
+            while (tnTmp != null)
+            {
+                if (tnTmp.Text.Equals(strFolder)) return tnTmp;
+
+                tnTmp = tnTmp.NextNode;
+            }
+
+            return null;
+        }
+
+        private const string _C_DRV_ = "C:";
+
+        // 하위 폴더가 있는지 검사한다.
+        private bool HasSubFolder(String strPath)
+        {
+            strPath = strPath + "\\";
+
+            System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(_C_DRV_ + "\\");
+
+            try
+            {
+                foreach (System.IO.DirectoryInfo dirInfoSub in dirInfo.GetDirectories("*"))
+                {
+                    String strTmp = dirInfoSub.Name;
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
+        }
+
+        // 폴더 정보를 출력하는 폼을 생성한다.
+        private void CallFrmFolder(String strParent, Icon icoParent)
+        {
+#if _VIEW_FRMFOLDER
+            // 이미 출력된 상태면 
+            if (m_frmFolder != null) return;
+
+            // 출력
+            m_frmFolder = new frmFolder();
+            m_frmFolder.Show();
+            m_frmFolder.CenterParentFrm(this);
+
+            //경로입력
+            m_frmFolder.lblParentPath.Text = strParent;
+            //아이콘입력
+            m_frmFolder.picParent.Image = Bitmap.FromHicon(icoParent.Handle);
+#endif
+        }
+
+        // 폴더 정보를 출력하는 폼을 제거한다.
+        private void KillFrmFolder()
+        {
+#if _VIEW_FRMFOLDER
+            // 출력되기 전이라면 
+            if (m_frmFolder == null) return;
+
+            // 제거
+            m_frmFolder.Close();
+            m_frmFolder.Dispose();
+            m_frmFolder = null;
+#endif
+        }
+
+        // 폼에 정보를 출력한다.
+        private void ViewFrmFolder(String strInfo, Image imgInfo)
+        {
+#if _VIEW_FRMFOLDER
+            // 출력되기 전이라면 
+            if (m_frmFolder == null) return;
+
+            // 발견된 파일(폴더)이름
+            m_frmFolder.lblInfo.Text = strInfo;
+            // 이미지
+            m_frmFolder.picInfo.Image = imgInfo;
+#endif
+        }
+        ////// -- treeview 탐색기 ///////
+        #endregion Treeview
+
+        private int m_nLeft_Title = 0;
+        private int m_nTop_Title = 0;
         private void frmMotionEditor_Load(object sender, EventArgs e)
         {
             m_strTitle = String.Format("{0} - Open Jig Ware Ver [{1}]", m_strTitle, SVersion_T.strVersion);
             lbTitle.Text = m_strTitle;
+            m_nLeft_Title = lbTitle.Left;
+            m_nTop_Title = lbTitle.Top;
 
             Ojw.CTimer.Init(100);
             // 이것만 선언하면 기본 선언은 끝.
@@ -196,12 +609,54 @@ namespace OpenJigWare.Docking
             m_CTmr_Save.Set();
 
             SetToolTip();
-
+            
             tmrMp3.Enabled = true;
 
             m_bLoadedForm = true;
-        }
 
+            // Folder
+            SetTreeDrive();
+        }
+        // 트리뷰에 드라이브 정보 입력
+        private void SetTreeDrive()
+        {
+            String[] strDrives;
+            String strTmp;
+            SystemImgList sysimglst = new SystemImgList();
+            int nNode;
+
+            strDrives = System.IO.Directory.GetLogicalDrives();
+            imglstTree.Images.Clear();
+            treeInfo.Nodes.Clear();
+
+            // 얻이진 드라이브 목록을 트리뷰에 입력한다.
+            foreach (string str in strDrives)
+            {
+                //일반(이미지)
+                imglstTree.Images.Add(sysimglst.GetIcon(str, true, false));
+
+                // 끝에있는 //\//를 삭제한다.
+                strTmp = str.Substring(0, 2);
+                nNode = treeInfo.Nodes.Add(new TreeNode(strTmp, imglstTree.Images.Count - 1, imglstTree.Images.Count - 1));
+
+                // 하위폴더가 있으면 //???//를 임시로 저장한다.
+                if (HasSubFolder(strTmp))
+                    treeInfo.Nodes[nNode].Nodes.Add("???");
+
+            }
+
+            //최초에 찾는 폴더를 이용해 폴더 이미지를 얻는다.
+            System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(_C_DRV_ + "\\");
+
+            foreach (System.IO.DirectoryInfo dirInfoSub in dirInfo.GetDirectories("*"))
+            {
+                imglstTree.Images.Add(sysimglst.GetIcon(dirInfoSub.FullName, true, false));
+                imglstTree.Images.Add(sysimglst.GetIcon(dirInfoSub.FullName, true, true));
+            }
+            treeInfo.ImageList = imglstTree;
+            // C드라이브(루트 다음)를 선택 효과를 준다.
+            treeInfo.SelectedNode = treeInfo.Nodes[0];
+        }
         private Ojw.CTimer m_CTmr_Save = new Ojw.CTimer();
 
         private bool m_bRequestPick = false;
@@ -232,12 +687,16 @@ namespace OpenJigWare.Docking
             try
             {
                 OjwDraw();
-                if (m_bRequestPick == true)
+                //if (m_bRequestPick == true)
+                //{
+                //    m_bRequestPick = false;
+                if (m_C3d.GetEvent_Pick() == true)
                 {
-                    m_bRequestPick = false;
-
+                    m_bPick = true;
+                    m_C3d.GetEvent_Pick_Data(out m_nGroup, out m_nMotor, out m_nServeGroup, out m_nKinematicsNumber);
                     ShowData(m_bPick);
                 }
+                //}
             }
             catch (Exception ex)
             {
@@ -253,7 +712,7 @@ namespace OpenJigWare.Docking
             {
                 int nVer = _V_10;//((chkFileVersionForSave.Checked == true) ? _V_11 : ((chkFileVersionForSave_1_0.Checked == true) ? _V_10 : _V_12));
                 m_C3d.BinaryFileSave(nVer, Application.StartupPath + Ojw.C3d._STR_BACKUP_FILE, false, false);
-
+                
                 // 혹시 모르니 파라미터도 같이 저장하자.
                 SaveParam();
 
@@ -262,10 +721,10 @@ namespace OpenJigWare.Docking
 #endif
             int nKey = m_C3d.KeyCommand_Get();
             if (nKey == (int)Keys.F5) { tmrRun.Enabled = true; }
-            else if (nKey == (int)Keys.F4)
-            {
-                Cmd_InitPos(_INITPOS_DEFAULT, 2000);
-            }
+            //else if (nKey == (int)Keys.F4)
+            //{
+            //    Cmd_InitPos(_INITPOS_DEFAULT, 2000);
+            //}
             else if (nKey == (int)Keys.Escape)
             {
                 Stop();
@@ -275,7 +734,7 @@ namespace OpenJigWare.Docking
             m_bTimer = false;
         }
 
-        private int m_nGroupA, m_nGroupB, m_nGroupC;
+        private int m_nGroup, m_nMotor, m_nServeGroup;
         private int m_nKinematicsNumber;
         private bool m_bPick;
         private bool m_bLimit;
@@ -289,33 +748,33 @@ namespace OpenJigWare.Docking
                 return;
             }
             // 클릭했으니 메세지를 한번 보여주자(show messages when it click)	
-            Ojw.CMessage.Write2(txtTest, "Current Joint Group = " + Ojw.CConvert.IntToStr(m_nGroupA) + "\r\n");
-            Ojw.CMessage.Write2(txtTest, "Current Motor Number = " + Ojw.CConvert.IntToStr(m_nGroupB) + "\r\n");
-            Ojw.CMessage.Write2(txtTest, "Current Serve Group Number = " + Ojw.CConvert.IntToStr(m_nGroupC) + "\r\n");
+            Ojw.CMessage.Write2(txtTest, "Current Joint Group = " + Ojw.CConvert.IntToStr(m_nGroup) + "\r\n");
+            Ojw.CMessage.Write2(txtTest, "Current Motor Number = " + Ojw.CConvert.IntToStr(m_nMotor) + "\r\n");
+            Ojw.CMessage.Write2(txtTest, "Current Serve Group Number = " + Ojw.CConvert.IntToStr(m_nServeGroup) + "\r\n");
             Ojw.CMessage.Write2(txtTest, "Connected Function number(but, 255 is None)=" + Ojw.CConvert.IntToStr(m_nKinematicsNumber) + "\r\n");
             Ojw.C3d.COjwDesignerHeader CHeader = m_C3d.GetHeader();
 
             // 수식부분이 선택된게 아니라면...(if there is no function number...)
-            if ((m_nKinematicsNumber == 255) && (m_nGroupB < CHeader.nMotorCnt))
+            if ((m_nKinematicsNumber == 255) && (m_nMotor < CHeader.nMotorCnt))
             {
-                if (m_nGroupA > 0) // Is there a data?
+                if (m_nGroup > 0) // Is there a data?
                 {
-                    Ojw.CMessage.Write2(txtTest, Ojw.CConvert.IntToStr(m_nGroupB) + "번모터(Name : " + Ojw.CConvert.RemoveChar(CHeader.pSMotorInfo[m_nGroupB].strNickName, (char)0) + ")\r\n");
-                    Ojw.CMessage.Write2(txtTest, "MotorID =" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nGroupB].nMotorID) + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Direction =" + ((CHeader.pSMotorInfo[m_nGroupB].nMotorDir == 0) ? "Forward" : "Inverse"));
-                    Ojw.CMessage.Write2(txtTest, "Limit(Max : but 0 -> there is no Limit)=" + ((CHeader.pSMotorInfo[m_nGroupB].fLimit_Up != 0.0f) ? Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nGroupB].fLimit_Up) + " 도" : "리미트 없음") + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Limit(Min : but 0 -> there is no Limit)=" + ((CHeader.pSMotorInfo[m_nGroupB].fLimit_Down != 0.0f) ? Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nGroupB].fLimit_Down) + " 도" : "리미트 없음") + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Center(EVD) : 0도에 해당하는 EVD 값 =" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nGroupB].nCenter_Evd) + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Mech Mov=" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nGroupB].nMechMove) + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Angle of Mech M =" + Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nGroupB].fMechAngle) + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Initial Position =" + Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nGroupB].fInitAngle) + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "NickName =" + Ojw.CConvert.RemoveChar(CHeader.pSMotorInfo[m_nGroupB].strNickName, (char)0) + "\r\n");
-                    Ojw.CMessage.Write2(txtTest, "Motor\'s Group Number =" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nGroupB].nGroupNumber) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, Ojw.CConvert.IntToStr(m_nMotor) + "번모터(Name : " + Ojw.CConvert.RemoveChar(CHeader.pSMotorInfo[m_nMotor].strNickName, (char)0) + ")\r\n");
+                    Ojw.CMessage.Write2(txtTest, "MotorID =" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nMotor].nMotorID) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Direction =" + ((CHeader.pSMotorInfo[m_nMotor].nMotorDir == 0) ? "Forward" : "Inverse"));
+                    Ojw.CMessage.Write2(txtTest, "Limit(Max : but 0 -> there is no Limit)=" + ((CHeader.pSMotorInfo[m_nMotor].fLimit_Up != 0.0f) ? Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nMotor].fLimit_Up) + " 도" : "리미트 없음") + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Limit(Min : but 0 -> there is no Limit)=" + ((CHeader.pSMotorInfo[m_nMotor].fLimit_Down != 0.0f) ? Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nMotor].fLimit_Down) + " 도" : "리미트 없음") + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Center(EVD) : 0도에 해당하는 EVD 값 =" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nMotor].nCenter_Evd) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Mech Mov=" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nMotor].nMechMove) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Angle of Mech M =" + Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nMotor].fMechAngle) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Initial Position =" + Ojw.CConvert.FloatToStr(CHeader.pSMotorInfo[m_nMotor].fInitAngle) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "NickName =" + Ojw.CConvert.RemoveChar(CHeader.pSMotorInfo[m_nMotor].strNickName, (char)0) + "\r\n");
+                    Ojw.CMessage.Write2(txtTest, "Motor\'s Group Number =" + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[m_nMotor].nGroupNumber) + "\r\n");
                     //Ojw.CMessage.Write2(txtTest, );
                     //Ojw.CMessage.Write2(txtTest, );
 
                     // Motor Check(relationship)
-                    int nMotID = m_nGroupB;
+                    int nMotID = m_nMotor;
                     if (CHeader.pSMotorInfo[nMotID].nAxis_Mirror == -1) Ojw.CMessage.Write2(txtTest, "이 모터는 Mirror 시 값의 변형을 주지 않는다.(No Changing when it has command [flip]");
                     else if (CHeader.pSMotorInfo[nMotID].nAxis_Mirror == -2) Ojw.CMessage.Write2(txtTest, "이 모터는 Mirror 시 Motor 의 Center Point 를 중심으로 뒤집도록 한다.(ex: -30 도 -> 30 도)");
                     else Ojw.CMessage.Write2(txtTest, "Current Motor number = " + Ojw.CConvert.IntToStr(nMotID) + ", Mirroring Motor number = " + Ojw.CConvert.IntToStr(CHeader.pSMotorInfo[nMotID].nAxis_Mirror));
@@ -336,19 +795,26 @@ namespace OpenJigWare.Docking
         }
 
         private bool m_bProgEnd = false;
+        public int m_nSeq_ProgEnd = 0;
         private bool ProgEnd()
         {
-            if (m_bLoadedForm == false) return true;
+            if (m_bLoadedForm == false)
+            {
+                m_nSeq_ProgEnd = 2;
+                return true;
+            }
             //tmrDraw.Enabled = false;
             //tmrMp3.Enabled = false;
             //tmrRun.Enabled = false;
+            m_nSeq_ProgEnd = 1;
             DialogResult dlgRet = MessageBox.Show("프로그램을 종료합니다.\r\n\r\n계속 하시겠습니까?", "Program 종료", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             if (dlgRet != DialogResult.OK)
             {
                 tmrDraw.Enabled = true;
                 tmrMp3.Enabled = true;
                 tmrRun.Enabled = true;
-            
+
+                m_nSeq_ProgEnd = 0;
                 return false;
             }
             Stop();
@@ -391,6 +857,7 @@ namespace OpenJigWare.Docking
             if (m_C3d.m_CMotor.IsConnect() == true)
                 Disconnect();
 
+            m_nSeq_ProgEnd = 2;
             return true;
         }
         private void SaveParam()
@@ -437,6 +904,7 @@ namespace OpenJigWare.Docking
         private readonly string _STR_FILENAME = "\\Param.dat";
         private void frmMotionEditor_FormClosing(object sender, FormClosingEventArgs e)
         {
+            m_nSeq_ProgEnd = 1;
             m_bProgEnd = true;
             bool bRet = ProgEnd();
             if (bRet == false)
@@ -969,8 +1437,19 @@ namespace OpenJigWare.Docking
 
         private void OjwDraw()
         {
-            if (m_C3d.GetFileName() != null) 
-                if (m_C3d != null) m_C3d.OjwDraw(out m_nGroupA, out m_nGroupB, out m_nGroupC, out m_nKinematicsNumber, out m_bPick, out m_bLimit);
+            if (m_C3d.GetFileName() != null)
+            {
+                if (m_C3d != null)
+                {
+                    //bool bPick = false;
+                    //m_C3d.OjwDraw(out m_nGroupA, out m_nGroupB, out m_nGroupC, out m_nKinematicsNumber, out bPick, out m_bLimit);
+                    m_C3d.OjwDraw();
+                    //if (bPick == true)
+                    //{
+                    //    m_bPick = bPick;
+                    //}
+                }
+            }
         }
         private float[] m_afOrgAngleDispaly = new float[3];
         private float[] m_afSavedAngleDispaly = new float[3];
@@ -1191,6 +1670,13 @@ namespace OpenJigWare.Docking
 
         private void btnPos_TurnBack_Click(object sender, EventArgs e)
         {
+            // test
+            //int nCommand = 3; // 1 // 0 - Get Motion List, 1 - Motion Download, 2 - Delete, 3 - Delete All
+            //F_enter_bootloader(253, Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text), nCommand);
+
+
+
+
             m_bControled_AngleDisplay = false;
 
             m_C3d.SetAngle_Display(m_afOrgAngleDispaly[1], m_afOrgAngleDispaly[0], m_afOrgAngleDispaly[2]);
@@ -1527,6 +2013,7 @@ namespace OpenJigWare.Docking
         {
             //int nVer = ((chkFileVersionForSave.Checked == true) ? _V_11 : ((chkFileVersionForSave_1_0.Checked == true) ? _V_10 : _V_12));
             m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), false);
+            m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             m_CTmr_Save.Set();            
         }
 
@@ -1556,13 +2043,13 @@ namespace OpenJigWare.Docking
             if ((bModify == true) && (m_bModify != bModify)) m_CTmr_AutoBackup.Set();
             m_bModify = bModify;
             lbModify.ForeColor = (bModify == true) ? Color.Red : Color.Green;
-            lbModify.Text = (bModify == true) ? "수정중..." : "완료";
+            lbModify.Text = (bModify == true) ? "Keep modifying..." : "Done";
         }
         private void btnMotionFileOpen_Click(object sender, EventArgs e)
         {
             if (m_bModify == true)
             {
-                DialogResult dlgRet = MessageBox.Show("문서를 저장하지 않고 다른파일을 열면 데이터가 사라집니다.\r\n\r\n그래도 파일을 여시겠습니까?", "파일열기", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                DialogResult dlgRet = MessageBox.Show("You have not yet saved the file. The data will be lost.\r\n\r\nDo you still want to open the file?", "File Open", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                 if (dlgRet != DialogResult.OK)
                 {
                     return;
@@ -1610,6 +2097,7 @@ namespace OpenJigWare.Docking
         private void btnBinarySave_Click(object sender, EventArgs e)
         {
             m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), true);
+            m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             m_CTmr_Save.Set(); 
         }
 
@@ -1795,35 +2283,6 @@ namespace OpenJigWare.Docking
 
         #region Mp3
         public bool m_bScreen = true;
-        private bool CheckAudioExist(String strData)
-        {
-            string strFilter = ".wma,.wax,.cda,.mp3,.m3u,.mid,.midi,.rmi,.air,.aifc,.aiff,.au,.snd";
-            string[] pstrFilter;
-            pstrFilter = strFilter.Split(',');
-            return CheckFileExist(strData, pstrFilter);
-        }
-
-        private bool CheckMovieExist(String strData)
-        {
-            string strFilter = ".avi,.asf,.asx,.wpl,.wm,.wmx,.wmd,.wmz,.wmv,.wav,.mpeg,.mpg,.mpe,.m1v,.m2v,.mod,.mp2,.mpv2,.mp2v,.mpa,.mp4";
-            string[] pstrFilter;
-            pstrFilter = strFilter.Split(',');
-            return CheckFileExist(strData, pstrFilter);
-        }
-
-        private bool CheckFileExist(String strData, string[] pstrFilter)
-        {
-            bool bFind = false;
-            foreach (string strItem in pstrFilter)
-            {
-                if (strData.IndexOf(strItem) == (strData.Length - 4))
-                {
-                    bFind = true;
-                    break;
-                }
-            }
-            return bFind;
-        }
         private void btnMp3Open_Click(object sender, EventArgs e)
         {
             m_dMp3_Max = 0;
@@ -2872,7 +3331,7 @@ namespace OpenJigWare.Docking
         {
             m_C3d.SetSimulation_Smooth(chkSmooth.Checked);
         }
-
+        
         private void frmMotionEditor_DragDrop(object sender, DragEventArgs e)
         {
             string[] file_name_array = (string[])e.Data.GetData(DataFormats.FileDrop, false);
@@ -2923,7 +3382,10 @@ namespace OpenJigWare.Docking
                 #region Design File
                 if (nCnt_Ojw == 0)
                 {
-                    if (strItem.ToLower().IndexOf(".ojw") > 0)
+                    if (
+                        (strItem.ToLower().IndexOf(".ojw") > 0) ||
+                        (strItem.ToLower().IndexOf(".dhf") > 0)
+                        )
                     {
                         if (m_C3d.FileOpen(strItem) == true) // 모델링 파일이 잘 로드 되었다면 
                         {
@@ -2952,7 +3414,7 @@ namespace OpenJigWare.Docking
                     {
                         if (m_bModify == true)
                         {
-                            DialogResult dlgRet = MessageBox.Show("문서를 저장하지 않고 다른파일을 열면 데이터가 사라집니다.\r\n\r\n그래도 파일을 여시겠습니까?", "파일열기", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            DialogResult dlgRet = MessageBox.Show("You have not yet saved the file. The data will be lost.\r\n\r\nDo you still want to open the file", "File Open", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                             if (dlgRet != DialogResult.OK)
                                 return;
                         }
@@ -2960,7 +3422,7 @@ namespace OpenJigWare.Docking
                         txtFileName.Text = strItem;
                         if (m_C3d.DataFileOpen(strItem, null) == false)
                         {
-                            MessageBox.Show("Dmt 모션 파일이 아닙니다.");
+                            MessageBox.Show("This is not a Dmt motion file.");
                         }
                         else
                         {
@@ -2983,6 +3445,2277 @@ namespace OpenJigWare.Docking
         }
 
         private void frmMotionEditor_DragEnter(object sender, DragEventArgs e) { if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy; }
+
+        private void btnUserButton_Click(object sender, EventArgs e)
+        {
+            m_FUser();
+        }
+
+#if true
+
+        private Ojw.CSerial m_CSerial = new Ojw.CSerial();
+        private bool F_flash_read(out int nValue)
+        {
+            bool bRet = false;
+            nValue = -1;
+            if (Command_And_Wait((byte)('R')) == true)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 1000) { if (m_CSerial.GetBuffer_Length() >= 2) break; else Thread.Sleep(1); }
+                if (m_CSerial.GetBuffer_Length() >= 2)
+                {
+                    nValue = (int)((int)m_CSerial.GetByte() | ((int)m_CSerial.GetByte() << 8));
+                    bRet = true;
+                }
+            }
+            return bRet;
+        }
+        private bool F_flash_add_read(out int nValue)
+        {
+            bool bRet = false;
+            nValue = -1;
+            if (Command_And_Wait((byte)('a')) == true)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 1000) { if (m_CSerial.GetBuffer_Length() >= 2) break; else Thread.Sleep(1); }
+                if (m_CSerial.GetBuffer_Length() >= 2)
+                {
+                    nValue = (int)((int)m_CSerial.GetByte() | ((int)m_CSerial.GetByte() << 8));                    
+                    bRet = true;
+                }
+            }
+            return bRet;
+        }
+        #region Define Const
+        private const int _FLASH_MTN_DMT10_HEADER_LEN					= 17;//33byte -> 17word
+        private const int _FLASH_MTN_DMT10_HEADER_TABLE_NAME_IDX		= 3; //6byte -> 3word
+        private const int _FLASH_MTN_DMT10_HEADER_MOTION_FRAME_SIZE_IDX	= 14; // 28byte -> 14word
+        private const int _FLASH_MTN_DMT10_HEADER_ROBOT_MODEL_TYPE_IDX	= 15; // 30byte -> 15word
+        private const int _FLASH_MTN_DMT10_HEADER_MOTOR_CNT_IDX			= 16; // 32byte -> 16word
+        
+        private const int _FLASH_MTN_DMT11_HEADER_LEN					= 17;//33byte -> 17word
+        private const int _FLASH_MTN_DMT11_HEADER_TABLE_NAME_IDX		= 3; //6byte -> 3word
+        private const int _FLASH_MTN_DMT11_HEADER_MOTION_FRAME_SIZE_IDX	= 14; // 28byte -> 14word
+        private const int _FLASH_MTN_DMT11_HEADER_ROBOT_MODEL_TYPE_IDX	= 15; // 30byte -> 15word
+        private const int _FLASH_MTN_DMT11_HEADER_MOTOR_CNT_IDX			= 16; // 32byte -> 16word
                 
+        private const int _FLASH_MTN_DMT12_HEADER_LEN_WO_MOTORS			= 17;//33byte -> 17word
+        private const int _FLASH_MTN_DMT12_HEADER_TABLE_NAME_IDX		= 3; //6byte -> 3word
+        private const int _FLASH_MTN_DMT12_HEADER_MOTION_FRAME_SIZE_IDX	= 14; // 28byte -> 14word
+        private const int _FLASH_MTN_DMT12_HEADER_ROBOT_MODEL_TYPE_IDX	= 15; // 30byte -> 15word
+        private const int _FLASH_MTN_DMT12_HEADER_MOTOR_CNT_IDX         = 16; // 32byte -> 16word
+        #endregion Define Const
+
+        private int[] m_anMotionAddress = new int[_SIZE_PAGE];
+        private int[] m_anMotionSize = new int[_SIZE_PAGE];
+        private List<string> m_lstMotionList = new List<string>();
+        private bool F_action(int nBootloaderCommand)
+        {
+            switch(nBootloaderCommand)
+            {
+                case 0: // GetList
+                    #region Get File List
+                    {
+                        GetFileList();
+                    }
+                    break;
+                #endregion Get File List
+                case 1: // Motion Download
+                    #region Motion Download
+                    {
+                        #region 다운로드 폴더 지정
+                        List<String> lstFiles = new List<string>();
+                        lstFiles.Clear();
+                        FolderBrowserDialog dlg = new FolderBrowserDialog();
+                        dlg.SelectedPath = m_strWorkDirectory_Dmt;
+
+                        if (dlg.ShowDialog() != DialogResult.OK) return false;
+
+                        string strPath = dlg.SelectedPath;
+
+                        //string strTest = String.Empty;
+
+                        DirectoryInfo dirInfo = new DirectoryInfo(strPath);
+                        if (dirInfo.Exists == true)
+                        {
+                            lstFiles.Clear();
+                            foreach (FileInfo fileInfo in dirInfo.GetFiles("*.dmt"))
+                            {
+                                lstFiles.Add(fileInfo.ToString());
+                                //strTest += fileInfo.ToString() + "\r\n";
+                            }
+                        }
+
+                        m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(strPath);
+
+                        //MessageBox.Show(strPath + "\r\n" + strTest);
+                        //return;
+                        #endregion 다운로드 폴더 지정
+
+                        if (lstFiles.Count > 0)
+                        {
+                            int nAddress, nSize;
+                            #region Delete All Motions
+                            prbStatus.Visible = true;
+                            lbMsg.Visible = true;
+                            lbMsg.Text = "Memory Clearing...";
+                            lbMsg.ForeColor = Color.Red;
+                            prbStatus.Maximum = _SIZE_PAGE;
+                            prbStatus.Value = 0;
+                            Application.DoEvents();
+
+                            for (int i = 0; i < _SIZE_PAGE; i++)
+                            {
+                                prbStatus.Value++;
+                                Command_And_Wait_FlashAddWrite(0x8000 + 2 * i, false);
+                                F_flash_read(out nAddress);
+                                F_flash_read(out nSize);
+                                // Motion 이 없는 경우 0xffff
+                                if (
+                                    ((nAddress != 0) && (nSize != 0)) && 
+                                    ((nAddress != 0xffff) && (nSize != 0xff)) 
+                                )
+                                {
+                                    DeleteMtnData(i);
+                                }
+                            }
+                            prbStatus.Visible = false;
+                            lbMsg.Visible = false;
+                            #endregion Delete All Motions
+
+                            #region Download Motions
+                            bool bRet = Command_And_Wait_DownloadMotions(strPath, lstFiles);
+                            if (bRet == false) MessageBox.Show("Cannot download any files");
+                            #endregion Download Motions
+
+                            #region GetFile List
+                            if (bRet == true) GetFileList();
+                            #endregion GetFile List
+                        }
+                        else
+                        {
+                            MessageBox.Show("There is no file...");
+                        }
+                    }
+                    break;
+                    #endregion Motion Download
+                case 2: // Delete
+                    #region Delete Motion
+                    {
+                        string strValue = "0";
+                        if (Ojw.CInputBox.Show("Test", "Input Delete File Number", ref strValue) == System.Windows.Forms.DialogResult.OK)
+                        {
+                            DeleteMtnData(Ojw.CConvert.StrToInt(strValue));
+                        }
+                    }
+                    break;
+                    #endregion Delete Motion
+                case 3: // Delete all
+                    #region Delete All
+                    {
+                        int nAddress, nSize;
+                        for (int i = 0; i < _SIZE_PAGE; i++)
+                        {
+                            Command_And_Wait_FlashAddWrite( 0x8000 + 2 * i, false);
+                            F_flash_read(out nAddress);
+                            F_flash_read(out nSize);
+                            // Motion 이 없는 경우 0xffff
+                            //if ((nAddress != 0xffff) && (nSize != 0xff))
+                            if (
+                                    ((nAddress != 0) && (nSize != 0)) && 
+                                    ((nAddress != 0xffff) && (nSize != 0xff))
+                                )
+                            {
+                                DeleteMtnData(i);
+                            }
+                        }
+                        //string strValue = "0";
+                        //if (Ojw.CInputBox.Show("Test", "Input Delete File Number", ref strValue) == System.Windows.Forms.DialogResult.OK)
+                        //{
+                        //    DeleteMtnData(Ojw.CConvert.StrToInt(strValue));
+                        //}
+                    }
+                    break;
+                    #endregion Delete All
+            }
+            return true;
+        }
+        private bool GetFileList()
+        {            
+            prbStatus.Visible = true;
+            prbStatus.Maximum = _SIZE_PAGE;
+            
+            lbMsg.Text = "File List Checking...";
+            //lbMsg.Font = new System.Drawing.Font("굴림", 8F);
+            lbMsg.ForeColor = Color.Yellow;
+            lbMsg.Visible = true;
+            Application.DoEvents();
+
+            prbStatus.Value = 0;
+            bool bRet = false;
+            #region GetList
+            //int nCnt_NoMotion = 0;
+            m_lstMotionList.Clear();
+            byte[] pbyteBuff = new byte[_SIZE_PAGE * 2];
+            //int nCnt_Ret = _SIZE_PAGE;
+            for (int i = 0; i < _SIZE_PAGE; i++)
+            {
+                prbStatus.Value++;
+
+                m_anMotionAddress[i] = 0;
+                m_anMotionSize[i] = 0;
+                int nAddress = 0x8000 + 2 * i;
+                int nSize = -1;
+                if (Command_And_Wait_FlashAddWrite(nAddress, false) == false) break;
+                if (F_flash_read(out nAddress) == false) break;
+                if (F_flash_read(out nSize) == false) break;
+
+                //if ((nAddress != 0xffff) && (nSize != 0xffff))
+                if (
+                    ((nAddress != 0) && (nSize != 0)) && 
+                    ((nAddress != 0xffff) && (nSize != 0xff))
+                )
+                {
+                    //Check Version & Check if the motion is correct
+                    bool bMotionDistorted = false;
+
+                    // Read Version
+                    if (Command_And_Wait_FlashAddWrite(nAddress, false) == false) break;
+                    int nTmp0, nTmp1, nTmp2;
+                    if (F_flash_read(out nTmp0) == false) break;
+                    if (F_flash_read(out nTmp1) == false) break;
+                    if (F_flash_read(out nTmp2) == false) break;
+                    string strVer = String.Format("{0}{1}{2}{3}{4}{5}",
+                                        (char)((nTmp0 >> 0) & 0xff),
+                                        (char)((nTmp0 >> 8) & 0xff),
+                                        (char)((nTmp1 >> 0) & 0xff),
+                                        (char)((nTmp1 >> 8) & 0xff),
+                                        (char)((nTmp2 >> 0) & 0xff),
+                                        (char)((nTmp2 >> 8) & 0xff)
+                                        );
+                    int nFlashTableNameIdx = _FLASH_MTN_DMT10_HEADER_TABLE_NAME_IDX;
+                    int nFlashFrameSizeIdx = _FLASH_MTN_DMT10_HEADER_MOTION_FRAME_SIZE_IDX;
+                    int nFlashMotorCntIdx = _FLASH_MTN_DMT10_HEADER_MOTOR_CNT_IDX;
+                    if (strVer == "DMT1.0")
+                    {
+                        nFlashTableNameIdx = _FLASH_MTN_DMT10_HEADER_TABLE_NAME_IDX;
+                        nFlashFrameSizeIdx = _FLASH_MTN_DMT10_HEADER_MOTION_FRAME_SIZE_IDX;
+                        nFlashMotorCntIdx = _FLASH_MTN_DMT10_HEADER_MOTOR_CNT_IDX;
+                    }
+                    else if (strVer == "DMT1.1")
+                    {
+                        nFlashTableNameIdx = _FLASH_MTN_DMT11_HEADER_TABLE_NAME_IDX;
+                        nFlashFrameSizeIdx = _FLASH_MTN_DMT11_HEADER_MOTION_FRAME_SIZE_IDX;
+                        nFlashMotorCntIdx = _FLASH_MTN_DMT11_HEADER_MOTOR_CNT_IDX;
+                    }
+                    else if (strVer == "DMT1.2")
+                    {
+                        nFlashTableNameIdx = _FLASH_MTN_DMT12_HEADER_TABLE_NAME_IDX;
+                        nFlashFrameSizeIdx = _FLASH_MTN_DMT12_HEADER_MOTION_FRAME_SIZE_IDX;
+                        nFlashMotorCntIdx = _FLASH_MTN_DMT12_HEADER_MOTOR_CNT_IDX;
+                    }
+                    else bMotionDistorted = true;
+
+
+                    if (Command_And_Wait_FlashAddWrite(nAddress + nSize - 1, false) == false) break;
+                    if (F_flash_read(out nTmp0) == false) break;
+
+                    if ((char)(nTmp0 & 0xFF) != 'M' || (char)((nTmp0 >> 8) & 0xFF) != 'E')
+                    {
+                        if ((char)(nTmp0 & 0xFF) == 'E')
+                        {
+                            if (Command_And_Wait_FlashAddWrite(nAddress + nSize - 2, false) == false) break;
+                            if (F_flash_read(out nTmp0) == false) break;
+                            if ((char)((nTmp0 >> 8) & 0xFF) != 'M')
+                                bMotionDistorted = true;
+                        }
+                        else
+                            bMotionDistorted = true;
+                    }
+
+                    if (bMotionDistorted == true)
+                    {
+                        //nCnt_NoMotion++;
+                        //if (nCnt_NoMotion > 3) break;// 연속적으로 모션이 없을 때 탈출
+
+#if false // 굳이 삭제 하지 말아보자
+                        Ojw.CMessage.Write("Motion {0} was distorted. Deleting Motion {1}...", i, i);
+                        if (Command_And_Wait_FlashWriteMtnData(0xFF, 0x8000 + 2 * i, ref pbyteBuff) == false) break;
+                        if (Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pbyteBuff) == false) break;
+                        if (Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pbyteBuff) == false) break;
+                        if (Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pbyteBuff) == false) break;
+                        if (Command_And_Wait_WritePageFromBuf(pbyteBuff) == false) break;
+#endif
+                        //continue;
+                        // 모션이 연달아 있지않으면 그냥 종료하자.
+                        //break;
+                        continue;
+                    }
+                    //else nCnt_NoMotion = 0;
+
+                    m_anMotionAddress[i] = nAddress;
+                    m_anMotionSize[i] = nSize;
+
+                    //Display Address & Size
+                    m_lstMotionList.Add(String.Format("{0}", i));
+                    string strTmp = String.Format("0x{0}", nAddress);
+                    Ojw.CMessage.Write(strTmp);
+                    m_lstMotionList.Add(Ojw.CConvert.IntToStr(nSize));
+                    m_lstMotionList.Add(strVer);
+                    //strgidMtnMgrList->Cells[1][i + 1] = strtmp;
+                    //strgidMtnMgrList->Cells[2][i + 1] = MtnSize;
+                    //strgidMtnMgrList->Cells[3][i + 1] = cVersion;
+
+                    //Read Table name and display
+                    Command_And_Wait_FlashAddWrite(nAddress + nFlashTableNameIdx, false);
+                    strTmp = String.Empty;
+                    for (int j = 0; j < 10; j++)
+                    {
+                        if (F_flash_read(out nTmp0) == false) break;
+                        if ((char)(nTmp0 & 0xFF) != '\0')
+                        {
+                            strTmp += (char)(nTmp0 & 0xFF);
+                        }
+                        if ((char)((nTmp0 >> 8) & 0xFF) != '\0')
+                        {
+                            strTmp += (char)((nTmp0 >> 8) & 0xFF);
+                        }
+                    }
+                    if (F_flash_read(out nTmp0) == false) break;
+                    if ((char)(nTmp0 & 0xFF) != '\0')
+                    {
+                        strTmp += (char)(nTmp0 & 0xFF);
+                    }
+                    //strgidMtnMgrList->Cells[4][i + 1] = strtmp;
+                    m_lstMotionList.Add(strTmp);
+
+                    //Read frame count and display
+                    if (Command_And_Wait_FlashAddWrite(nAddress + nFlashFrameSizeIdx, false) == false) break;
+                    if (F_flash_read(out nTmp0) == false) break;
+                    //strgidMtnMgrList->Cells[5][i + 1] = wordtmp;
+                    m_lstMotionList.Add(Ojw.CConvert.IntToStr(nTmp0));
+
+                    //Read motor count and display
+                    if (Command_And_Wait_FlashAddWrite(nAddress + nFlashMotorCntIdx, false) == false) break;
+                    if (F_flash_read(out nTmp0) == false) break;
+                    //strgidMtnMgrList->Cells[6][i + 1] = wordtmp;
+                    m_lstMotionList.Add(Ojw.CConvert.IntToStr(nTmp0));// + ";");
+                }
+            }
+            prbStatus.Visible = false;
+            lbMsg.Visible = false;
+            #endregion GetList
+            return bRet;
+        }
+        private bool DeleteMtnData(int nIndex)
+        {
+            byte [] pageBuf = new byte[_SIZE_PAGE * 2];
+            Array.Clear(pageBuf, 0, pageBuf.Length);
+            if (Command_And_Wait_FlashWriteMtnData(0xFF, 0x8000 + (2 * nIndex), ref pageBuf) == false) return false;
+            if (Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf) == false) return false;
+            if (Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf) == false) return false;
+            if (Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf) == false) return false;
+            if (Command_And_Wait_WritePageFromBuf(pageBuf) == false) return false;
+
+            m_anMotionAddress[nIndex] = 0;
+            m_anMotionSize[nIndex] = 0;
+            
+            return true;
+        }
+
+        #region Download Motions
+        private bool Command_And_Wait_DownloadMotions(String strPath, List<String> strFiles)
+        {
+            bool bRet = false;
+
+            prbStatus.Visible = true;
+            lbMsg.Visible = true;
+            lbMsg.Text = "Motion DownLoading...";
+            lbMsg.ForeColor = Color.Green;
+            prbStatus.Value = 0;
+            prbStatus.Maximum = strFiles.Count;
+            Application.DoEvents();
+
+            int nDownload = 0;
+            for (int i = 0; i < strFiles.Count; i++)
+            {
+                prbStatus.Value++;
+                nDownload += (Command_And_Wait_DownLoadMotion(String.Format("{0}\\{1}", strPath, strFiles[i]), i) == true) ? 1 : 0;
+                lbMotion_Status.Text = String.Format("{0} / {1}", i + 1, strFiles.Count);
+            }
+            if (nDownload == strFiles.Count) bRet = true;
+
+            lbMsg.Visible = false;
+            prbStatus.Visible = false;
+            return bRet;
+        }
+        private bool Command_And_Wait_DownLoadMotion(String strFileName, int nIndex)
+        {
+#if true
+            int i, j;
+	        int nMotionAddressMax=0, nMotionSizeOfMax=0, nMtnAddress, nMtnSize;
+	        String strtmp, strVersion;
+	        int nTmp;
+	        bool bMotionDistorted;
+            byte [] pageBuf = new byte[_SIZE_PAGE * 2];
+            Array.Clear(pageBuf, 0, pageBuf.Length);
+	        //char cVersion[7];
+	        //int nFlashTableNameIdx,nFlashFrameSizeIdx,nFlashMotorCntIdx;
+
+            int nFlashTableNameIdx = _FLASH_MTN_DMT10_HEADER_TABLE_NAME_IDX;
+            int nFlashFrameSizeIdx = _FLASH_MTN_DMT10_HEADER_MOTION_FRAME_SIZE_IDX;
+            int nFlashMotorCntIdx = _FLASH_MTN_DMT10_HEADER_MOTOR_CNT_IDX;
+
+	        for(i=0;i<128;i++){
+                if (nMotionAddressMax < m_anMotionAddress[i])
+                {
+                    nMotionAddressMax = m_anMotionAddress[i];
+                    nMotionSizeOfMax = m_anMotionSize[i];
+		        }
+	        }
+	        if(nMotionAddressMax <= 0x8100){
+		        nMotionAddressMax = 0x8100;
+	        }
+	        //Result->Lines->Add(nMotionAddressMax);
+	        //Result->Lines->Add(nMotionSizeOfMax);
+	        //Bootloader->FlashWriteHmt(edMtnMgrSrcFile->Text, nIndex, nMotionAddressMax+nMotionSizeOfMax);
+            bool bRet = FlashWriteDmt(strFileName, nIndex, nMotionAddressMax + nMotionSizeOfMax);
+
+	        m_anMotionAddress[nIndex] = 0;
+            m_anMotionSize[nIndex] = 0;
+
+	        Command_And_Wait_FlashAddWrite(0x8000+2*nIndex, false);
+	        F_flash_read(out nMtnAddress);
+	        F_flash_read(out nMtnSize);
+	        if(nMtnAddress != 0xFFFF && nMtnSize != 0xFFFF){
+		        //Check if the motion is correct
+		        bMotionDistorted = false;
+                strVersion = String.Empty;
+		        Command_And_Wait_FlashAddWrite(nMtnAddress, false);
+		        F_flash_read(out nTmp);
+                strVersion += (char)(nTmp & 0xFF);
+                strVersion += (char)((nTmp & 0xFF00) >> 8);
+		        F_flash_read(out nTmp);
+                strVersion += (char)(nTmp & 0xFF);
+                strVersion += (char)((nTmp & 0xFF00) >> 8);
+		        F_flash_read(out nTmp);
+                strVersion += (char)(nTmp & 0xFF);
+                strVersion += (char)((nTmp & 0xFF00) >> 8);
+		        //cVersion[6] = '\0';
+
+                //strVersion.sprintf("%s", cVersion);
+                if (strVersion == "DMT1.0")
+                {
+                    nFlashTableNameIdx = _FLASH_MTN_DMT10_HEADER_TABLE_NAME_IDX;
+                    nFlashFrameSizeIdx = _FLASH_MTN_DMT10_HEADER_MOTION_FRAME_SIZE_IDX;
+                    nFlashMotorCntIdx = _FLASH_MTN_DMT10_HEADER_MOTOR_CNT_IDX;
+		        }
+                else if (strVersion == "DMT1.1")
+                {
+                    nFlashTableNameIdx = _FLASH_MTN_DMT11_HEADER_TABLE_NAME_IDX;
+                    nFlashFrameSizeIdx = _FLASH_MTN_DMT11_HEADER_MOTION_FRAME_SIZE_IDX;
+                    nFlashMotorCntIdx = _FLASH_MTN_DMT11_HEADER_MOTOR_CNT_IDX;
+		        }
+                else if (strVersion == "DMT1.2")
+                {
+                    nFlashTableNameIdx = _FLASH_MTN_DMT12_HEADER_TABLE_NAME_IDX;
+                    nFlashFrameSizeIdx = _FLASH_MTN_DMT12_HEADER_MOTION_FRAME_SIZE_IDX;
+                    nFlashMotorCntIdx = _FLASH_MTN_DMT12_HEADER_MOTOR_CNT_IDX;
+		        }
+		        else{
+			        bMotionDistorted = true;
+		        }
+
+		        Command_And_Wait_FlashAddWrite(nMtnAddress+nMtnSize-1, false);
+		        F_flash_read(out nTmp);
+		        if((char)(nTmp & 0xFF) != 'M' || (char)((nTmp & 0xFF00)>>8) != 'E'){
+			        if((char)(nTmp & 0xFF) == 'E'){
+				        Command_And_Wait_FlashAddWrite(nMtnAddress+nMtnSize-2, false);
+				        F_flash_read(out nTmp);
+				        if((char)((nTmp & 0xFF00)>>8) != 'M'){
+					        bMotionDistorted = true;
+				        }
+			        }
+			        else{
+				        bMotionDistorted = true;
+			        }
+		        }
+		        if(bMotionDistorted){
+			        strtmp = String.Format("Motion %d was distorted. Deleting Motion %d...", nIndex, nIndex);
+			        Command_And_Wait_FlashWriteMtnData(0xFF, 0x8000+2*nIndex, ref pageBuf);
+			        Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf);
+			        Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf);
+			        Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf);
+                    Command_And_Wait_WritePageFromBuf(pageBuf);
+			        //Result->Lines->Add(strtmp);
+			        return false;
+		        }
+
+                m_anMotionAddress[nIndex] = nMtnAddress;
+                m_anMotionSize[nIndex] = nMtnSize;
+
+		        //Display Address & Size
+                //strtmp = String.Format("0x%04X", nMtnAddress);
+		        //strgidMtnMgrList->Cells[1][nIndex+1] = strtmp;
+		        //strgidMtnMgrList->Cells[2][nIndex+1] = nMtnSize;
+		        //strgidMtnMgrList->Cells[3][nIndex+1] = strVersion;
+
+		        //Read Table name and display
+                Command_And_Wait_FlashAddWrite(nMtnAddress + nFlashTableNameIdx, false);
+		        strtmp = "";
+		        for (j=0;j<10;j++){
+			        F_flash_read(out nTmp);
+			        if((char)(nTmp & 0xFF)!='\0'){
+				        strtmp += (char)(nTmp & 0xFF);
+			        }
+			        if((char)((nTmp & 0xFF00)>>8) != '\0'){
+				        strtmp += (char)((nTmp & 0xFF00)>>8);
+			        }
+		        }
+		        F_flash_read(out nTmp);
+		        if((char)(nTmp & 0xFF)!='\0'){
+			        strtmp += (char)(nTmp & 0xFF);
+		        }
+		        //strgidMtnMgrList->Cells[4][nIndex+1] = strtmp;
+                Ojw.CMessage.Write(strtmp);
+
+		        //Read frame count and display
+                Command_And_Wait_FlashAddWrite(nMtnAddress + nFlashFrameSizeIdx, false);
+		        F_flash_read(out nTmp);
+		        //strgidMtnMgrList->Cells[5][nIndex+1] = nTmp;
+                Ojw.CMessage.Write("{0}", nTmp);
+
+		        //Read motor count and display
+                Command_And_Wait_FlashAddWrite(nMtnAddress + nFlashMotorCntIdx, false);
+		        F_flash_read(out nTmp);
+                nTmp = nTmp & 0xFF;
+		        //strgidMtnMgrList->Cells[6][nIndex+1] = nTmp;
+                Ojw.CMessage.Write("{0}", nTmp);
+                return true;
+	        }
+            return false;
+#else
+            bool bRet = false;
+            int nMax_Address = 0;
+            int nMax_Size = 0;
+            //bool bMotionDistorted = false;
+            //주소상으로 가장 뒤에 있는 모션의 주소와 사이즈를 알아냄
+            for (int i = 0; i < 128; i++)
+            {
+                if (nMax_Address < m_anMotionAddress[i])
+                {
+                    nMax_Address = m_anMotionAddress[i];
+                    nMax_Size = m_anMotionSize[i];
+                }
+            }
+            if (nMax_Address <= 0x8100) nMax_Address = 0x8100;
+
+            //가장 뒤에 있는 모션의 뒤에 새로운 모션 파일을 씀
+            bRet = FlashWriteDmt(strFileName, nIndex, nMax_Address + nMax_Size);
+            return bRet;
+#if false
+            //이 후의 내용은 제대로 쓰여 졌는지 확인하고 Display하는 루틴임
+            m_anMotionAddress[nIndex] = 0;
+            m_anMotionSize[nIndex] = 0;
+            bool bMotionDistorted = false;
+            Command_And_Wait_FlashAddWrite(0x8000 + 2 * nIndex, false);
+            int nAddress, nSize, nTmp;
+            F_flash_read(out nAddress);
+            F_flash_read(out nSize);
+            if (nAddress != 0xFFFF && nSize != 0xFFFF)
+            {
+                //Check if the motion is correct
+                bMotionDistorted = false;
+                Command_And_Wait_FlashAddWrite(nAddress + nSize - 1, false);
+                F_flash_read(out nTmp);
+                if ((char)(nTmp & 0xFF) != 'M' || (char)((nTmp & 0xFF00) >> 8) != 'E')
+                {
+                    if ((char)(nTmp & 0xFF) == 'E')
+                    {
+                        Command_And_Wait_FlashAddWrite(nAddress + nSize - 2, false);
+                        F_flash_read(out nTmp);
+                        if ((char)((nTmp & 0xFF00) >> 8) != 'M')
+                        {
+                            bMotionDistorted = true;
+                        }
+                    }
+                    else
+                    {
+                        bMotionDistorted = true;
+                    }
+                }
+                if (bMotionDistorted)
+                {
+                    byte[] pageBuf = new byte[_SIZE_PAGE * 2];
+                    Array.Clear(pageBuf, 0, pageBuf.Length);
+                    // Motion was distorted. Deleting Motion i
+                    Command_And_Wait_FlashWriteMtnData(0xFF, 0x8000 + 2 * nIndex, ref pageBuf);
+                    Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf);
+                    Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf);
+                    Command_And_Wait_FlashWriteMtnData(0xFF, 0, ref pageBuf);
+                    Command_And_Wait_WritePageFromBuf(pageBuf);
+                    return false;
+                }
+
+                m_anMotionAddress[nIndex] = nAddress;
+                m_anMotionSize[nIndex] = nSize;
+            }
+            return bRet;
+#endif
+#endif
+        }
+        private const int _BOOT_START = 0xF800;
+        private bool FlashWriteDmt(string strFilename, int nMotionNo, int nAddress)
+        {
+            bool bRet = true;
+            Ojw.SMotion_t SMotion = new Ojw.SMotion_t();
+            int i, j;
+            if (m_C3d.BinaryFileOpen(strFilename, out SMotion) == true)
+            {
+
+            }
+            else return false;
+
+            int nDataLen = 0;
+
+            byte[] pbytePageBuf = new byte[256];
+
+            /////////////수정 20120116/////////////
+            int nMotionFrameSize = 0;//SMotion.nFrameSize;
+
+            // 실제 Enable 된 프레임만 카운트 한다.
+            foreach (Ojw.SMotionTable_t STable in SMotion.STable) { if (STable.bEn == true) nMotionFrameSize++; }
+
+
+            int nMotorCnt = SMotion.nMotorCnt;
+
+            if (nAddress + (33 + (2 * nMotorCnt + 9) * nMotionFrameSize + 2 + 1) / 2 > _BOOT_START)
+            {
+                return false;
+            }
+            String strMotion = "DMT1.0"; // 나중에 가변으로 ? 
+            Command_And_Wait_FlashWriteMtnData((byte)strMotion[0], nAddress, ref pbytePageBuf);
+            for (i = 1; i < strMotion.Length; i++) Command_And_Wait_FlashWriteMtnData((byte)strMotion[i], 0, ref pbytePageBuf);
+
+            // File Name
+            StringBuilder sb = new StringBuilder(Ojw.CFile.GetTitle(strFilename));//(SMotion.strTableName);
+            for (i = 0; i < 20; i++)
+            {
+                byte byteData = (byte)((i < sb.Length) ? sb[i] : 0);
+                Command_And_Wait_FlashWriteMtnData(byteData, 0, ref pbytePageBuf);
+            }
+            Command_And_Wait_FlashWriteMtnData((byte)0, 0, ref pbytePageBuf);
+
+            Command_And_Wait_FlashWriteMtnData((byte)(SMotion.nStartPosition & 0xff), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)(SMotion.nFrameSize & 0xff), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)((SMotion.nFrameSize >> 8) & 0xff), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)(SMotion.nRobotModelNum & 0xff), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)((SMotion.nRobotModelNum >> 8) & 0xff), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)(SMotion.nMotorCnt & 0xff), 0, ref pbytePageBuf);
+
+            nDataLen += 33;
+
+            for (i = 0; i < nMotionFrameSize; i++)
+            {
+                if (SMotion.STable[i].bEn == true)
+                {
+                    //Motor Data
+                    for (j = 0; j < nMotorCnt; j++)
+                    {
+                        Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].anMot[j] & 0xff), 0, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].anMot[j] >> 8 & 0xff), 0, ref pbytePageBuf);
+                    }
+
+                    //Playtime
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nTime & 0xff), 0, ref pbytePageBuf);
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nTime >> 8 & 0xff), 0, ref pbytePageBuf);
+
+                    //Delay
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nDelay & 0xff), 0, ref pbytePageBuf);
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nDelay >> 8 & 0xff), 0, ref pbytePageBuf);
+
+                    //Command
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nCmd & 0xff), 0, ref pbytePageBuf);
+
+                    //Data0
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nData0 & 0xff), 0, ref pbytePageBuf);
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nData0 >> 8 & 0xff), 0, ref pbytePageBuf);
+                    //Data1
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nData1 & 0xff), 0, ref pbytePageBuf);
+                    Command_And_Wait_FlashWriteMtnData((byte)(SMotion.STable[i].nData1 >> 8 & 0xff), 0, ref pbytePageBuf);
+
+                    nDataLen += nMotorCnt * 2 + 9;
+                }
+            }
+
+            Command_And_Wait_FlashWriteMtnData((byte)('M'), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)('E'), 0, ref pbytePageBuf);
+            nDataLen += 2;
+
+            Command_And_Wait_WritePageFromBuf(pbytePageBuf);
+            nDataLen = (nDataLen + 1) / 2; //converting from byte address to word address
+
+            int nPtrAddress = 0x8000 + 2 * nMotionNo;
+            Command_And_Wait_FlashWriteMtnData((byte)(nAddress & 0x00FF), nPtrAddress, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)((nAddress & 0xFF00) >> 8), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)(nDataLen & 0x00FF), 0, ref pbytePageBuf);
+            Command_And_Wait_FlashWriteMtnData((byte)((nDataLen & 0xFF00) >> 8), 0, ref pbytePageBuf);
+            Command_And_Wait_WritePageFromBuf(pbytePageBuf);
+            return bRet;
+        }
+        #endregion Download Motions
+        
+        private int m_nCurrentAddress = 0;
+        private int m_nBufIdx = 0;
+        private const int _SIZE_PAGE = 128;
+        private bool Command_And_Wait_FlashWriteMtnData(byte byteData, int nAddress, ref byte[] pbyteBuffer)
+        {
+            int nRet = 1;
+            int nMaxTmp = -999999;
+            
+            if (nAddress != 0)
+            {
+                if (Command_And_Wait_FlashAddWrite(nAddress, false) == true)
+                {
+                    m_nCurrentAddress = nAddress;
+                    m_nBufIdx = (nAddress % _SIZE_PAGE) * 2;
+                    nRet += ((Command_And_Wait_LoadPageToBuf(ref pbyteBuffer) == true) ? 1 : nMaxTmp);
+                }
+            }
+
+            pbyteBuffer[m_nBufIdx] = byteData;
+            if (m_nBufIdx % 2 == 1)
+            {
+                m_nCurrentAddress++;
+            }
+
+            if (m_nBufIdx == (2 * _SIZE_PAGE - 1))
+            {
+                nRet += ((Command_And_Wait_WritePageFromBuf(pbyteBuffer) == true) ? 1 : nMaxTmp);
+                nRet += ((Command_And_Wait_FlashAddWrite(m_nCurrentAddress, false) == true) ? 1 : nMaxTmp);
+                nRet += ((Command_And_Wait_LoadPageToBuf(ref pbyteBuffer) == true) ? 1 : nMaxTmp);
+                m_nBufIdx = 0;
+            }
+            else
+            {
+                m_nBufIdx++;
+            }
+            return ((nRet > 0) ? true : false);
+        }
+        private bool Command_And_Wait_WritePageFromBuf(byte[] pbyteData)
+        {
+            int nRet = 0;
+            int nMaxTmp = -999999;
+
+            int nAddress = 0;
+            if (F_flash_add_read(out nAddress) == false) return false; 
+            nRet += ((Command_And_Wait_FlashAddWrite((int)(nAddress / _SIZE_PAGE) * _SIZE_PAGE, false) == true) ? 1 : nMaxTmp);
+            for (int i = 0; i < _SIZE_PAGE; i++)
+            {
+                if (nRet < 0) return false;
+                if (Command_And_Wait((byte)('T')) == true)
+                {
+                    nRet += ((Command_And_Wait(pbyteData[2 * i]) == true) ? 1 : nMaxTmp);
+                    if (nRet < 0) return false;
+                    nRet += ((Command_And_Wait(pbyteData[2 * i + 1]) == true) ? 1 : nMaxTmp);
+                    if (nRet < 0) return false;
+                }
+                else
+                {
+                    //nRet += nMaxTmp;
+                    //break;
+                    return false;                    
+                }
+            }
+            nRet += ((Command_And_Wait_FlashAddWrite(nAddress, false) == true) ? 1 : nMaxTmp);
+            nRet += ((Command_And_Wait_ErasePage() == true) ? 1 : nMaxTmp);
+            nRet += ((Command_And_Wait_WritePage() == true) ? 1 : nMaxTmp);
+            return ((nRet > 0) ? true : false);
+        }
+        private bool Command_And_Wait_WritePage()
+        {
+            bool bRet = false;
+            if (SendPacket_And_Wait((byte)('W')) == true)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 1000) { if (m_CSerial.GetBuffer_Length() >= 1) break; else Thread.Sleep(1); }
+                if (m_CSerial.GetBuffer_Length() >= 1)
+                {
+                    byte byteData = m_CSerial.GetByte();
+                    if (byteData == (byte)('?')) Ojw.CMessage.Write("Cannot Write booltloader area");
+                    else if (byteData == (byte)('W')) Ojw.CMessage.Write("At WritePage :Unexpected Response");
+                    else bRet = true;
+                }
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait_ErasePage()
+        {
+            bool bRet = false;
+            if (SendPacket_And_Wait((byte)('E')) == true)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 1000) { if (m_CSerial.GetBuffer_Length() >= 1) break; else Thread.Sleep(1); }
+                if (m_CSerial.GetBuffer_Length() >= 1)
+                {
+                    byte byteData = m_CSerial.GetByte();
+                    if (byteData == (byte)('?')) Ojw.CMessage.Write("Cannot Erase booltloader area");
+                    else if (byteData == (byte)('E')) Ojw.CMessage.Write("At ErasePage :Unexpected Response");
+                    else bRet = true;
+                }
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait_LoadPageToBuf(ref byte [] pbyteData)
+        {
+            int nRet = 0;
+            int nMaxTmp = -999999;
+
+            int nAddress = 0;
+            nRet += ((F_flash_add_read(out nAddress) == true) ? 1 : nMaxTmp);
+            nRet += ((Command_And_Wait_FlashAddWrite((int)(nAddress / _SIZE_PAGE) * _SIZE_PAGE, false) == true) ? 1 : nMaxTmp);
+
+            for (int i = 0; i < _SIZE_PAGE; i++)
+            {
+                if (nRet < 0) return false;
+                if (Command_And_Wait((byte)('R')) == true)
+                {
+                    Ojw.CTimer CTmr = new Ojw.CTimer();
+                    CTmr.Set(); while (CTmr.Get() < 1000) { if (m_CSerial.GetBuffer_Length() >= 2) break; else Thread.Sleep(1); }
+                    if (m_CSerial.GetBuffer_Length() >= 2)
+                    {
+                        pbyteData[2 * i] = m_CSerial.GetByte();
+                        pbyteData[2 * i + 1] = m_CSerial.GetByte();
+                        nRet++;
+                    }                    
+                }
+                else
+                {
+                    //nRet += nMaxTmp;
+                    //break;
+                    return false;
+                }
+            }
+            nRet += ((Command_And_Wait_FlashAddWrite(nAddress, false) == true) ? 1 : nMaxTmp);
+            return ((nRet > 0) ? true : false);
+        }
+        
+        private void F_enter_bootloader(int nMpsuID, int nPort, int nBaudrate, int nBootloaderCommand)
+        {
+            #region Timer 정지
+            bool bTmrDraw = tmrDraw.Enabled;
+            bool bTmrMp3 = tmrMp3.Enabled;
+            bool bTmrRun = tmrRun.Enabled;
+            tmrDraw.Enabled = false;
+            tmrMp3.Enabled = false;
+            tmrRun.Enabled = false;
+            #endregion Timer 정지
+
+            Ojw.CTimer.Wait(100);
+
+            #region MPSU Motion DownLoad
+            int nID = nMpsuID;
+            m_C3d.m_CMotor.Mpsu_Reboot(nID);
+            bool bRet = m_C3d.m_CMotor.WaitReceive_Mpsu(100);
+            if (bRet == true)
+            {
+                m_C3d.m_CMotor.ResetCounter_Mpsu(); // 명령을 보내지 않았지만 부팅시 저절로 들어오는 패킷 명령을 받는 이벤트를 확인하기 위해...
+                bRet = m_C3d.m_CMotor.WaitReceive_Mpsu(3000);
+                if (bRet == true)
+                {
+                    // 포트를 따로 연다.
+                    if (m_C3d.m_CMotor.IsConnect() == true)
+                    {
+                        int i;
+                        Ojw.CTimer CTmr = new Ojw.CTimer();
+                        m_CSerial = new Ojw.CSerial();
+                        m_C3d.m_CMotor.DisConnect();
+
+                        // 전체 기능 버튼 Disable 항목을 넣도록 한다.
+
+                        //
+
+                        m_CSerial.Connect(nPort, nBaudrate);
+                        if (m_CSerial.IsConnect() == true)
+                        {
+                            bool bEntered = false;
+                            if (Command_And_Wait((byte)('S')) == true)
+                            {
+                                //MessageBox.Show("We have entered bootloader");
+                                bEntered = true;
+
+                                F_action(nBootloaderCommand);
+                            }
+                            else
+                            {
+                                //MessageBox.Show("We could not enter bootloader");
+                            }
+
+
+
+                            if (bEntered == true)
+                            {
+                                // Quit Bootloader
+                                if (Command_And_Wait((byte)('Q')) == true)
+                                {
+                                }
+                            }
+                        }
+
+                        // 전체 기능 버튼 Restore 항목을 넣도록 한다.
+
+                        //
+
+                        // return
+                        m_CSerial.DisConnect();
+                        m_C3d.m_CMotor.Connect(nPort, nBaudrate);
+                        //MessageBox.Show("Downloaded All motion files");
+                    }
+                }
+                else MessageBox.Show("reboot fail");
+
+                //MessageBox.Show("부트로더 진입 ok");
+            }
+            else //MessageBox.Show("부트로더 진입 fail");
+            {
+                MessageBox.Show("we could not enter the [bootloader]");
+            }
+            #endregion MPSU Motion DownLoad
+            
+            #region Timer 복구
+            tmrDraw.Enabled = bTmrDraw;
+            tmrMp3.Enabled = bTmrMp3;
+            tmrRun.Enabled = bTmrRun;
+            #endregion Timer 복구
+
+            if (
+                (nBootloaderCommand == 0) || // GetList
+                (nBootloaderCommand == 1)    // Motion Download
+                ) 
+            {
+                string strMsg = String.Empty;
+                if (m_lstMotionList.Count > 0)
+                {
+                    int nMax = 6;
+                    int nNum = -1;
+                    m_lstDownload.Clear();
+                    string strName = String.Empty;
+                    for (int i = 0; i < m_lstMotionList.Count; i++)
+                    {
+                        int nIndex = i % nMax;
+                        if (nIndex == 0) nNum = Ojw.CConvert.StrToInt(m_lstMotionList[i]);//{ strMsg += String.Format("[{0}] ", Ojw.CConvert.FillString(m_lstMotionList[i], "0", 3, false)); nNum = Ojw.CConvert.StrToInt(m_lstMotionList[i]); }
+                        else if (nIndex == 3) strName = m_lstMotionList[i];//{ strMsg += String.Format("{0}", m_lstMotionList[i]); strName = m_lstMotionList[i]; }
+                        else if (nIndex == (nMax - 1)) m_lstDownload.Add(new SDownloadList_t(nNum, strName)); //{ strMsg += "\r\n"; m_lstDownload.Add(new SDownloadList_t(nNum, strName)); }
+                        //strMsg += String.Format("{0}{1}", Ojw.CConvert.FillString(m_lstMotionList[i], " ", 25, true), ((((i + 1) % 6) == 0) ? "\r\n" : "\t,"));
+                    }
+                    //foreach (String strItem in m_lstMotionList)
+                    //{
+                    //    strMsg += String.Format("0\r\n", strItem);
+                    //}
+                    //strMsg += "Done";
+                    //listviewMotion
+                    listviewMotion.Items.Clear();
+                    foreach (SDownloadList_t SDown in m_lstDownload) listviewMotion.Items.Add(String.Format("[{0}] {1}", Ojw.CConvert.FillString(Ojw.CConvert.IntToStr(SDown.nIndex), "0", 3, false), SDown.strName));
+                    tcControl.SelectedIndex = 1;
+                }
+                else { strMsg = String.Format("Cannot find any files."); MessageBox.Show(strMsg); }
+            }
+        }
+        private struct SDownloadList_t { public int nIndex; public String strName; public SDownloadList_t(int index, String name) { nIndex = index; strName = name; } }
+        private List<SDownloadList_t> m_lstDownload = new List<SDownloadList_t>();
+        private bool Command_And_Wait_FlashAddWrite(int nAddress, bool bMessage)
+        {
+            bool bRet = false;
+            if (Command_And_Wait((byte)('A')) == true)
+            {
+                // 하위주소번지를 던짐
+                if (Command_And_Wait((byte)(nAddress & 0x00FF)) == true)
+                {
+                    // 상위주소번지를 던짐
+                    if (Command_And_Wait((byte)((nAddress >> 8) & 0x00FF)) == true) bRet = true;
+                }
+            }
+            if (bMessage == true)
+            {
+                if (bRet == true)   Ojw.CMessage.Write("Flash address changed to [{0}]", nAddress);
+                else                Ojw.CMessage.Write("Setting Flash Address [{0}] failed", nAddress);
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait(byte byteData)
+        {
+            bool bRet = false;
+            if (SendPacket_And_Wait(byteData) == true)
+            {
+                if (m_CSerial.GetByte() == byteData) bRet = true;
+            }
+            return bRet;
+        }
+        private bool SendPacket_And_Wait(byte byteData)
+        {
+            if (m_CSerial.IsConnect() == false) return false;
+            bool bRet = false;
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            byte[] pbyteData = new byte[1];
+            pbyteData[0] = byteData;
+            m_CSerial.SendPacket(pbyteData);
+            CTmr.Set();
+            while (CTmr.Get() < 1000)
+            {
+                if (m_CSerial.GetBuffer_Length() > 0) { bRet = true; break; }
+                else Thread.Sleep(1);// Application.DoEvents();
+            }
+            return bRet;
+        }
+        private bool SendPacket_And_Wait(byte[] pbyteData)
+        {
+            if (m_CSerial.IsConnect() == false) return false;
+            bool bRet = false;
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            m_CSerial.SendPacket(pbyteData);
+            CTmr.Set();
+            while (CTmr.Get() < 1000)
+            {
+                if (m_CSerial.GetBuffer_Length() > 0) { bRet = true; break; }
+                else Thread.Sleep(1);// Application.DoEvents();
+            }
+            return bRet;
+        }
+
+        private void listviewMotion_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            int nPos = listviewMotion.SelectedItems.Count - 1;
+            int nNum = listviewMotion.SelectedItems[nPos].Index;
+            m_C3d.m_CMotor.Mpsu_Play_Motion(m_lstDownload[nNum].nIndex);
+            //MessageBox.Show(String.Format("FileNumber - {0}", m_lstDownload[nNum].nIndex));
+        }
+
+        private void btnMotion_Delete_Click(object sender, EventArgs e)
+        {
+            // test
+            //int nCommand = 3; // 1 // 0 - Get Motion List, 1 - Motion Download, 2 - Delete, 3 - Delete All
+            //F_enter_bootloader(253, Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text), nCommand);
+        }
+
+        private void btnMotion_Download_Click(object sender, EventArgs e)
+        {
+            int nCommand = 1; // 1 // 0 - Get Motion List, 1 - Motion Download, 2 - Delete, 3 - Delete All
+            F_enter_bootloader(253, Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text), nCommand);
+        }
+
+        private void btnMotion_GetList_Click(object sender, EventArgs e)
+        {
+            int nCommand = 0; // 1 // 0 - Get Motion List, 1 - Motion Download, 2 - Delete, 3 - Delete All
+            F_enter_bootloader(253, Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text), nCommand);
+        }
+
+        private void btnMotion_Play_Click(object sender, EventArgs e)
+        {
+            int nPos = listviewMotion.SelectedItems.Count - 1;
+            int nNum = listviewMotion.SelectedItems[nPos].Index;
+            m_C3d.m_CMotor.Mpsu_Play_Motion(m_lstDownload[nNum].nIndex);
+            //MessageBox.Show(String.Format("FileNumber - {0}", m_lstDownload[nNum].nIndex));
+        }
+
+        private void btnDirRefresh_Click(object sender, EventArgs e)
+        {
+            // Folder
+            SetTreeDrive();
+        }
+
+        private void treeInfo_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            lblPath.Text = e.Node.FullPath;
+            SetListView(e.Node.FullPath);
+        }
+
+        private void treeInfo_AfterCollapse(object sender, TreeViewEventArgs e)
+        {
+            // 축소되는 노드의 하위 노드를 모두 삭제
+            // 확장되는 노드의 하위 노드를 모두 삭제
+            while (true)
+            {
+                if (e.Node.FirstNode == null) break;
+                e.Node.Nodes[0].Remove();
+            }
+
+            // 하위폴더가 있으면 "???" 추가
+            if (HasSubFolder(e.Node.FullPath))
+                e.Node.Nodes.Add("???");
+
+
+            // 축소한 노드가 선택된 효과를 준다.
+            treeInfo.SelectedNode = e.Node;
+        }
+
+        private void treeInfo_AfterExpand(object sender, TreeViewEventArgs e)
+        {
+            // 확장되는 노드의 하위 노드를 모두 삭제
+            while (true)
+            {
+                if (e.Node.FirstNode == null) break;
+                e.Node.Nodes[0].Remove();
+            }
+
+            // 실제 하위 폴더를 찾아서 삽입
+            SetTreeNode(e.Node);
+        }
+
+        private bool CheckHeader(String strItemName, out SFileHeader_t SFileHeader)
+        {
+            bool bRet = false;
+            int nNum = 0;
+            for (int i = 0; i < m_nFileHeader; i++)
+            {
+                if (m_pSFileHeader[i].bActFile)
+                {
+                    if (m_pSFileHeader[i].strFileName == strItemName)
+                    {
+                        bRet = true;
+                        nNum = i;
+                    }
+                }
+            }
+
+            SFileHeader = m_pSFileHeader[nNum];
+
+            return bRet;
+        }
+
+        private void lstInfo_DoubleClick(object sender, EventArgs e)
+        {
+            String strSel;
+            String strSize;
+
+            strSel = lstInfo.SelectedItems[0].SubItems[0].Text;
+            strSize = lstInfo.SelectedItems[0].SubItems[1].Text;
+
+            if (strSize.Equals("")) //폴더일 경우
+            {
+                TreeNode treeNodeTmp;
+
+                // 현재 선택 노드의 확장 효과를 준다.
+                treeInfo.SelectedNode.Expand();
+
+                // 트리에서 동일한 이름의 노드를 찾는다.
+                treeNodeTmp = FindNode(strSel);
+
+                // 찾은 노드를 선택한 효과와 확장한 효과를 준다.
+                treeInfo.SelectedNode = treeNodeTmp;
+                treeNodeTmp.Expand();
+            }
+            else //파일일 경우
+            {
+                //ShellExecute(0, "open", lblPath.Text + "\\" + strSel, null, null, SW_SHOWNORMAL);
+                if (CheckDmtExist(lblPath.Text + "\\" + strSel) == true)
+                {
+                    if (m_bModify == true)
+                    {
+                        DialogResult dlgRet = MessageBox.Show("You have not yet saved the file. The data will be lost.\r\n\r\nDo you still want to open the file?", "File Open", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                        if (dlgRet != DialogResult.OK)
+                        {
+                            //MessageBox.Show("Yes");
+                            return;
+                        }
+                    }
+
+                    String fileName = lblPath.Text + "\\" + strSel;
+                    //m_strWorkDirectory = lblPath.Text;
+                    //m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(lblPath.Text);
+                    txtFileName.Text = fileName;
+                    if (m_C3d.DataFileOpen(fileName, null) == false)
+                    {
+                        MessageBox.Show("This is not a Dmt motion file.");
+                    }
+                    else
+                    {
+                        // 파일 데이터 저장
+                        //TextConfigFileSave(m_strOrgDirectory + "\\ip.ini");
+                        //OjwCreateToolTip(btnFileOpen, m_strWorkDirectory);
+
+                        Modify(false);
+                        //DisplayTime();
+                        Grid_DisplayTime();
+
+                        txtTableName.Text = m_C3d.GetMotionFile_Title();
+                        txtComment.Text = m_C3d.GetMotionFile_Comment();
+                        cmbStartPosition.SelectedIndex = m_C3d.GetMotionFile_StartPosition();
+
+                        m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(fileName);
+                        if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
+                    }
+
+                    //m_strWorkDirectory = Directory.GetCurrentDirectory();
+                }
+                else if (
+                            (CheckAudioExist(lblPath.Text + "\\" + strSel) == true) ||
+                            (CheckMovieExist(lblPath.Text + "\\" + strSel) == true)
+                )
+                {
+                    String fileName = lblPath.Text + "\\" + strSel;
+                    //m_strWorkDirectoryMp3 = lblPath.Text;
+                    lbMp3File.Text = Ojw.CFile.GetTitle(fileName);
+                    //m_strFileNameMp3 = fileName;
+                    m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(lblPath.Text);
+                    String strExe = Ojw.CFile.GetExe(fileName);
+
+                    if ((strExe.ToUpper() != "MP3") && (strExe.ToUpper() != "WAV")) mpPlayer.Visible = true;
+                    else mpPlayer.Visible = false;
+                    InitMp3();
+                    mpPlayer.URL = fileName;
+
+                    // 파일 데이터 저장
+                    //TextConfigFileSave(m_strOrgDirectory + "\\ip.ini");
+
+                    //m_strWorkDirectoryMp3 = Directory.GetCurrentDirectory();
+                }
+                else if (
+                        ((lblPath.Text + "\\" + strSel).ToLower().IndexOf(".ojw") > 0) ||
+                        ((lblPath.Text + "\\" + strSel).ToLower().IndexOf(".dhf") > 0)
+                        )
+                {
+                    if (m_C3d.FileOpen((lblPath.Text + "\\" + strSel)) == true) // 모델링 파일이 잘 로드 되었다면 
+                    {
+                        Ojw.CMessage.Write("3d Modeling File Opened");
+
+                        float[] afData = new float[3];
+                        m_C3d.GetPos_Display(out afData[0], out afData[1], out afData[2]);
+                        m_C3d.GetAngle_Display(out afData[0], out afData[1], out afData[2]);
+
+                        m_C3d.m_strDesignerFilePath = Ojw.CFile.GetPath((lblPath.Text + "\\" + strSel));
+                        if (m_C3d.m_strDesignerFilePath == null) m_C3d.m_strDesignerFilePath = Application.StartupPath;
+                    }
+                }
+            }
+        }
+
+        private void lstInfo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                String strSel;
+                String strSize;
+                //listviewOjwList.FocusedItem.Text;
+                strSel = lstInfo.SelectedItems[0].SubItems[0].Text;
+                strSize = lstInfo.SelectedItems[0].SubItems[1].Text;
+
+                if (strSize.Equals("") == false) //파일일 경우
+                {
+                    //ShellExecute(0, "open", lblPath.Text + "\\" + strSel, null, null, SW_SHOWNORMAL);
+                    if (CheckDmtExist(lblPath.Text + "\\" + strSel) == true)
+                    {
+                        SFileHeader_t SFileHeader;
+                        if (CheckHeader(strSel, out SFileHeader) == true)
+                        {
+                            //Message(Ojw.CConvert.IntToStr(SFileHeader.nStartPosition));
+                            //picStartPosition.Image = imageList1.Images[25 + SFileHeader.nStartPosition];
+                            lbList_Title.Text = SFileHeader.strTitle;
+                            lbList_Comment.Text = SFileHeader.strComment;
+                            //lbList_FrameSize.Text = "M[" + Ojw.CConvert.IntToStr(SFileHeader.nFrameSize) + "], S[" + Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Sound) + "], E[" + Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Emoticon) + "]";
+                            lbList_FrameSize.Text = Ojw.CConvert.IntToStr(SFileHeader.nFrameSize);
+                            lbList_FrameSize_Sound.Text = Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Sound);
+                            lbList_FrameSize_Emoticon.Text = Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Emoticon);
+                            lblVersion.Text = SFileHeader.strFileVersion;
+                        }
+                    }
+                    else if (
+                                (CheckAudioExist(lblPath.Text + "\\" + strSel) == true) ||
+                                (CheckMovieExist(lblPath.Text + "\\" + strSel) == true)
+                    )
+                    {
+
+                    }
+                    else if (
+                        ((lblPath.Text + "\\" + strSel).ToLower().IndexOf(".ojw") > 0) ||
+                        ((lblPath.Text + "\\" + strSel).ToLower().IndexOf(".dhf") > 0)
+                        )
+                    {
+                        Ojw.C3d.COjwDesignerHeader CHeader = new Ojw.C3d.COjwDesignerHeader();
+                        if (m_C3d.FileOpen_Without_Event(lblPath.Text + "\\" + strSel, out CHeader) == true) // 모델링 파일이 잘 로드 되었다면 
+                        {
+                            lbList_Title.Text = CHeader.strModelName;
+                            lbList_Comment.Text = String.Format("[Design({0}))]{1}", ((lblPath.Text + "\\" + strSel).ToLower().IndexOf(".ojw") > 0) ? "ojw" : "dhf", CHeader.strComment);
+                            //lbList_FrameSize.Text = "M[" + Ojw.CConvert.IntToStr(SFileHeader.nFrameSize) + "], S[" + Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Sound) + "], E[" + Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Emoticon) + "]";
+                            lbList_FrameSize.Text = Ojw.CConvert.IntToStr(CHeader.nMotorCnt) + "Axis";
+                            lbList_FrameSize_Sound.Text = String.Empty;// Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Sound);
+                            lbList_FrameSize_Emoticon.Text = String.Empty;//Ojw.CConvert.IntToStr(SFileHeader.nFrameSize_Emoticon);
+                            lblVersion.Text = CHeader.strVersion;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        private void btnAppendFile_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                String strSel;
+                String strSize;
+
+                strSel = lstInfo.SelectedItems[0].SubItems[0].Text;
+                strSize = lstInfo.SelectedItems[0].SubItems[1].Text;
+                String strFileName = lblPath.Text + "\\" + strSel;
+                if (strSize.Equals("") == false) //폴더가 아닐 경우
+                {
+                    Ojw.SMotion_t SMotion = new Ojw.SMotion_t();
+                    if (m_C3d.BinaryFileOpen(lblPath.Text + "\\" + strSel, out SMotion) == true)
+                    {
+                        
+                    }
+                    int nLine = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
+
+                    #region Insert
+                    // 프레임 사이즈 만큼 새 줄을 삽입한다.
+                    //m_C3d.m_CGridMotionEditor.Insert(nLine, SMotion.nFrameSize);
+
+                    int nInsertCnt = SMotion.nFrameSize;
+                    int nFirst = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
+
+                    // 먼저 빼고
+                    m_C3d.m_CGridMotionEditor.Delete(m_C3d.m_CGridMotionEditor.GetHandle().RowCount - nInsertCnt - 1, nInsertCnt);
+
+                    m_C3d.Flag_Insert(m_C3d.m_CGridMotionEditor.m_nCurrntCell, nInsertCnt);
+                    m_C3d.m_CGridMotionEditor.Insert(m_C3d.m_CGridMotionEditor.m_nCurrntCell, nInsertCnt);
+                    //Grid_Insert(nFirst, nInsertCnt);
+                    //m_bKeyInsert = false;
+
+                    for (int i = m_C3d.m_CGridMotionEditor.m_nCurrntCell; i < m_C3d.m_CGridMotionEditor.m_nCurrntCell + nInsertCnt; i++)
+                    {
+                        for (int j = 0; j < m_C3d.m_CHeader.nMotorCnt; j++)
+                        {
+                            m_C3d.m_pnFlag[i, j] = (int)(
+                                0x10 | // Enable
+                                ((m_C3d.m_CHeader.pSMotorInfo[j].nMotorControlType != 0) ? 0x08 : 0x00)// 위치제어가 아니라면 //0x08 //| // MotorType
+                                //0x07 // Led
+                                );
+                        }
+                    }
+                    //m_C3d.CheckFlag(m_C3d.m_CGridMotionEditor.m_nCurrntCell);
+                    // 색칠하기...
+                    //m_C3d.GridMotionEditor_SetColorGrid(0, dgGrid.RowCount);
+                    #endregion Insert
+
+                    // 모션 추가
+                    int nMax = nLine + SMotion.nFrameSize;
+                    if (nMax > 999) nMax = 999;
+                    for (int i = 0; i < SMotion.nFrameSize; i++)
+                    {
+                        int nPos = i + nLine;
+                        
+                        //En
+                        #region Enable
+                        m_C3d.m_CGridMotionEditor.SetEnable(nPos, SMotion.STable[i].bEn);
+                        #endregion Enable
+                        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                        #region Motor
+                        for (int nAxis = 0; nAxis < SMotion.nMotorCnt; nAxis++)
+                        {
+
+                            m_C3d.Grid_SetFlag_Led(nPos, nAxis, SMotion.STable[i].anLed[nAxis]);
+                            m_C3d.Grid_SetFlag_Type(nPos, nAxis, SMotion.STable[i].abType[nAxis]);
+                            m_C3d.Grid_SetFlag_En(nPos, nAxis, SMotion.STable[i].abEn[nAxis]);
+
+                            m_C3d.GridMotionEditor_SetMotor(nPos, nAxis, m_C3d.CalcEvd2Angle(nAxis, (int)SMotion.STable[i].anMot[nAxis]));
+                        }
+                        #endregion Motor
+                        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                        #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                        // Speed  
+                        m_C3d.m_CGridMotionEditor.SetTime(nPos, SMotion.STable[i].nTime);
+
+                        // Delay  
+                        m_C3d.m_CGridMotionEditor.SetDelay(nPos, SMotion.STable[i].nDelay);
+
+                        // Group  
+                        m_C3d.m_CGridMotionEditor.SetGroup(SMotion.STable[i].nGroup);
+
+                        // Command  
+                        m_C3d.m_CGridMotionEditor.SetCommand(nPos, SMotion.STable[i].nCmd);
+
+                        // Data0  
+                        m_C3d.m_CGridMotionEditor.SetData0(nPos, SMotion.STable[i].nData0);
+                        // Data1  
+                        m_C3d.m_CGridMotionEditor.SetData1(nPos, SMotion.STable[i].nData1);
+                        // Data2  
+                        m_C3d.m_CGridMotionEditor.SetData2(nPos, SMotion.STable[i].nData2);
+                        // Data3  
+                        m_C3d.m_CGridMotionEditor.SetData3(nPos, SMotion.STable[i].nData3);
+                        // Data4  
+                        m_C3d.m_CGridMotionEditor.SetData4(nPos, SMotion.STable[i].nData4);
+                        // Data5  
+                        m_C3d.m_CGridMotionEditor.SetData5(nPos, SMotion.STable[i].nData5);
+                        #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                        
+                        // Caption
+                        m_C3d.m_CGridMotionEditor.SetCaption(nPos, SMotion.STable[i].strCaption);
+
+                        #region 추가한 Frame 위치 및 자세
+
+
+
+                        #endregion 추가한 Frame 위치 및 자세
+                    }
+                }
+
+                m_C3d.CheckFlag(m_C3d.m_CGridMotionEditor.m_nCurrntCell);
+                // 색칠하기...
+                m_C3d.GridMotionEditor_SetColorGrid(0, 999);
+
+
+                //txtTableName.Text = m_C3d.GetMotionFile_Title();
+                //txtComment.Text = m_C3d.GetMotionFile_Comment();
+                //cmbStartPosition.SelectedIndex = m_C3d.GetMotionFile_StartPosition();
+            }
+            catch
+            {
+
+            }
+        }
+
+        private void btnChangeEnable_Click(object sender, EventArgs e)
+        {
+            //int nCol = m_C3d.m_CGridMotionEditor.m_nCurrntColumn;
+            //int nLine = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
+            //m_C3d.Grid_SetFlag_En(nLine, nCol + 1, b
+        }
+#else
+        private void btnDownload_Click(object sender, EventArgs e)
+        {
+            List<String> lstFiles = new List<string>();
+            lstFiles.Clear();
+            FolderBrowserDialog dlg = new FolderBrowserDialog();
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+
+            string strPath = dlg.SelectedPath;
+            
+            //string strTest = String.Empty;
+
+            DirectoryInfo dirInfo = new DirectoryInfo(strPath);
+            if (dirInfo.Exists == true)
+            {
+                lstFiles.Clear();
+                foreach (FileInfo fileInfo in dirInfo.GetFiles("*.dmt"))
+                {
+                    lstFiles.Add(fileInfo.ToString());
+                    //strTest += fileInfo.ToString() + "\r\n";
+                }
+            }
+            //MessageBox.Show(strPath + "\r\n" + strTest);
+            //return;
+
+
+            bool bTmrDraw = tmrDraw.Enabled;
+            bool bTmrMp3 = tmrMp3.Enabled;
+            bool bTmrRun = tmrRun.Enabled;
+            tmrDraw.Enabled = false;
+            tmrMp3.Enabled = false;
+            tmrRun.Enabled = false;
+
+            Ojw.CTimer.Wait(100);
+
+            #region MPSU Motion DownLoad
+            int nID = 253;
+            m_C3d.m_CMotor.Mpsu_Reboot(nID);
+            bool bRet = m_C3d.m_CMotor.WaitReceive_Mpsu(100);
+            if (bRet == true)
+            {
+                //Ojw.CTimer.Wait(1000); // 재부팅 시간 1초정도를 대기한다.
+                
+                m_C3d.m_CMotor.ResetCounter_Mpsu(); // 명령을 보내지 않았지만 부팅시 저절로 들어오는 패킷 명령을 받는 이벤트를 확인하기 위해...
+                bRet = m_C3d.m_CMotor.WaitReceive_Mpsu(3000);
+                if (bRet == true)
+                {
+#if false
+                    // 재부팅 완료
+
+                    // 잠시대기
+                    Ojw.CTimer.Wait(100);
+                    // 이벤트 체크를 위한 카운터 클리어
+                    m_C3d.m_CMotor.ResetCounter(); 
+                    // 부트로드 진입 명령
+                    m_C3d.m_CMotor.Mpsu_EnterBootloader();
+                    bRet = m_C3d.m_CMotor.WaitReceive_1Packet(3000);
+                    if (bRet == true)
+                    {
+                        if (m_C3d.m_CMotor.GetLastPacket() == (byte)('S'))
+                        {
+                            //MessageBox.Show("부트로더 진입 ok");
+
+                            // 포트를 따로 연다.
+                            if (m_C3d.m_CMotor.IsConnect() == true)
+                            {
+                                Ojw.CSerial CSerial = new Ojw.CSerial();
+                                m_C3d.m_CMotor.DisConnect();
+                            }
+                        }
+                        else
+                        {
+                            //MessageBox.Show("부트로더 진입 리턴데이터 이상");
+                        }
+                    }
+                    else
+                    {
+                        //MessageBox.Show("부트로더 진입 fail");
+                    }
+#else
+                    // 포트를 따로 연다.
+                    if (m_C3d.m_CMotor.IsConnect() == true)
+                    {
+                        int i;
+                        Ojw.CTimer CTmr = new Ojw.CTimer();
+                        Ojw.CSerial CSerial = new Ojw.CSerial();
+                        m_C3d.m_CMotor.DisConnect();
+                        CSerial.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
+                        if (CSerial.IsConnect() == true)
+                        {
+                            bool bEntered = false;
+                            if (Command_And_Wait(CSerial, (byte)('S')) == true)
+                            {
+                                //MessageBox.Show("We have entered bootloader");
+                                bEntered = true;
+
+                                // Delete Motion
+                                Command_And_Wait_DeleteMotions(CSerial);
+                                Command_And_Wait_DownloadMotions(CSerial, strPath, lstFiles);
+                                Command_And_Wait_GetMotionList(CSerial);
+                                String strList = String.Empty;
+                                foreach (string strItem in m_lstMotion)
+                                {
+                                    strList += strItem + "\r\n";
+                                }
+                                MessageBox.Show(strList);
+                            }
+                            else
+                            {
+                                //MessageBox.Show("We could not enter bootloader");
+                            }
+                                    
+                             
+
+                            if (bEntered == true)
+                            {
+                                // Quit Bootloader
+                                if (Command_And_Wait(CSerial, (byte)('Q')) == true)
+                                {
+                                }
+                            }
+                        }
+                        
+                        // return
+                        CSerial.DisConnect();
+                        m_C3d.m_CMotor.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
+                        MessageBox.Show("Downloaded All motion files");
+                    }
+#endif
+                }
+                else MessageBox.Show("reboot fail");
+                
+
+                //MessageBox.Show("부트로더 진입 ok");
+            }
+            else //MessageBox.Show("부트로더 진입 fail");
+            {
+                MessageBox.Show("Reset fail");
+            }
+#if false
+            if ( EnterBootloader() )
+		    {
+			    DeleteMotions();
+			    DownloadMotions();
+			    GetMotionList();
+			    QuitBootloader();
+		    }
+#endif
+            #endregion MPSU Motion DownLoad
+            
+            tmrDraw.Enabled = bTmrDraw;
+            tmrMp3.Enabled = bTmrMp3;
+            tmrRun.Enabled = bTmrRun;
+        }
+
+        #region Made by Chulhee Yun - 이 코드들은 전부 특정 위치에서 포트가 열릴 경우만 실행되게 되어 있으므로 Open 에러처리가 많이 필요하진 않다.
+        private int [] m_anMotionAddress = new int[128];
+        private int [] m_anMotionSize = new int[128];
+        private const int _PAGESIZE = 128;
+        private int m_nBufIdx = 0;
+        private int m_nCurrentAddress = 0;
+        private bool Command_And_Wait_FlashWriteMtnData(Ojw.CSerial CSerial, byte byteData, int nAddress, ref byte [] pbyteBuffer)
+        {
+            bool bRet = false;
+            
+            if (nAddress > 0)
+            {
+                if (Command_And_Wait_FlashAddWrite(CSerial, nAddress) == true)
+                {
+                    m_nCurrentAddress = nAddress;
+                    m_nBufIdx = (nAddress % _PAGESIZE) * 2;
+                    if (Command_And_Wait_LoadPageToBuf(CSerial, ref pbyteBuffer) == true)
+                    {
+                    }
+                }
+            }
+
+            pbyteBuffer[m_nBufIdx] = byteData;
+            if (m_nBufIdx % 2 == 1)
+            {
+                m_nCurrentAddress++;
+            }
+
+            if (m_nBufIdx == (2 * _PAGESIZE - 1))
+            {
+                Command_And_Wait_WritePageFromBuf(CSerial, pbyteBuffer);
+                Command_And_Wait_FlashAddWrite(CSerial, m_nCurrentAddress);
+                Command_And_Wait_LoadPageToBuf(CSerial, ref pbyteBuffer);
+                m_nBufIdx = 0;
+            }
+            else
+            {
+                m_nBufIdx++;
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait_FlashAddRead(Ojw.CSerial CSerial, out int nAddress)
+        {
+            bool bRet = false;
+            nAddress = 0;
+            if (Command_And_Wait(CSerial, (byte)('a')) == true)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
+                if (CSerial.GetBuffer_Length() >= 2)
+                {
+                    nAddress = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
+                }
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait_FlashReadWord(Ojw.CSerial CSerial, out int nValue)
+        {
+            bool bRet = false;
+            nValue = 0;
+            if (Command_And_Wait(CSerial, (byte)('R')) == true)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
+                if (CSerial.GetBuffer_Length() >= 2)
+                {
+                    nValue = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
+                }
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait_WritePage(Ojw.CSerial CSerial)
+        {
+            bool bRet = false;
+            if (Command_And_Wait(CSerial, (byte)('W')) == true) bRet = true;
+            return bRet;
+        }
+        private bool Command_And_Wait_ErasePage(Ojw.CSerial CSerial)
+        {
+            bool bRet = false;
+            if (Command_And_Wait(CSerial, (byte)('E')) == true) bRet = true;
+            return bRet;
+        }
+        private bool Command_And_Wait_WritePageFromBuf(Ojw.CSerial CSerial, byte[] pbyteData)
+        {
+            bool bRet = true;
+            int nAddress = 0;
+            Command_And_Wait_FlashAddRead(CSerial, out nAddress);
+            Command_And_Wait_FlashAddWrite(CSerial, (nAddress / _PAGESIZE) * _PAGESIZE);
+            for (int i = 0; i < _PAGESIZE; i++)
+            {
+                if (Command_And_Wait(CSerial, (byte)('T')) == true)
+                {
+                    Command_And_Wait(CSerial, pbyteData[2 * i]);
+                    Command_And_Wait(CSerial, pbyteData[2 * i + 1]);
+#if false
+                    //if (Command_And_Wait(CSerial, pbyteData[2 * i]) == true)
+                    //{
+                    //}
+                    //else
+                    //{
+                    //    bRet = false;
+                    //    break;
+                    //}
+                    //if (Command_And_Wait(CSerial, pbyteData[2 * i + 1]) == true)
+                    //{
+                    //}
+                    //else
+                    //{
+                    //    bRet = false;
+                    //    break;
+                    //}
+#endif
+                }
+                //else
+                //{
+                //    bRet = false;
+                //    break;
+                //}
+            }
+            Command_And_Wait_FlashAddWrite(CSerial, nAddress);
+            Command_And_Wait_ErasePage(CSerial);
+            Command_And_Wait_WritePage(CSerial);            
+            return bRet;
+        }
+        private bool Command_And_Wait_LoadPageToBuf(Ojw.CSerial CSerial, ref byte [] pbyteData)
+        {
+            bool bRet = true;
+            int nAddress = 0;
+            if (Command_And_Wait_FlashAddRead(CSerial, out nAddress) == true)
+            {
+                // 하위주소번지를 던짐
+                byte byteData = (byte)(nAddress & 0x00FF);
+                if (Command_And_Wait_FlashAddWrite(CSerial, ((nAddress / _PAGESIZE) * _PAGESIZE)) == true)
+                {
+                    for (int i = 0; i < _PAGESIZE; i++)
+                    {
+                        if (Command_And_Wait(CSerial, (byte)('R')) == true)
+                        {
+                            Ojw.CTimer CTmr = new Ojw.CTimer();
+                            CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
+                            if (CSerial.GetBuffer_Length() >= 2)
+                            {
+                                pbyteData[2 * i] = CSerial.GetByte();
+                                pbyteData[2 * i + 1] = CSerial.GetByte();
+                            }
+                            else
+                            {
+                                bRet = false;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            bRet = false;
+                            break;
+                        }
+                    }
+                }
+                else bRet = false;
+            }
+            else bRet = false;
+            return bRet;
+        }
+        private bool Command_And_Wait_DownloadMotions(Ojw.CSerial CSerial, String strPath, List<String> strFiles)
+        {
+            bool bRet = false;
+
+            for (int i = 0; i < strFiles.Count; i++)
+            {
+                Command_And_Wait_DownLoadMotion(CSerial, String.Format("{0}\\{1}", strPath, strFiles[i]), i);
+                lbMotion_Status.Text = String.Format("File Download -> {0} / {1}", i + 1, strFiles.Count);
+            }
+
+            return bRet;
+        }
+        private bool Command_And_Wait_DownLoadMotion(Ojw.CSerial CSerial, String strFileName, int nIndex)
+        {
+            bool bRet = false;
+            int nMax_Address = 0;
+            int nMax_Size = 0;
+            //bool bMotionDistorted = false;
+            //주소상으로 가장 뒤에 있는 모션의 주소와 사이즈를 알아냄
+            for (int i = 0; i < 128; i++)
+            {
+                if (nMax_Address < m_anMotionAddress[i])
+                {
+                    nMax_Address = m_anMotionAddress[i];
+                    nMax_Size = m_anMotionSize[i];
+                }
+            }
+            if (nMax_Address <= 0x8100) nMax_Address = 0x8100;
+
+            //가장 뒤에 있는 모션의 뒤에 새로운 모션 파일을 씀
+            bRet = FlashWriteDmt(CSerial, strFileName, nIndex, nMax_Address + nMax_Size);
+            return bRet;
+#if false
+            //이 후의 내용은 제대로 쓰여 졌는지 확인하고 Display하는 루틴임
+            m_anMotionAddress[nIndex] = 0;
+            m_anMotionSize[nIndex] = 0;
+
+            Command_And_Wait_FlashAddWrite(CSerial, 0x8000 + 2 * nIndex);
+            int nAddress = Command_And_Wait_FlashReadWord(CSerial);
+            int nSize = Command_And_Wait_FlashReadWord(CSerial);
+            if (nAddress != 0xFFFF && nSize != 0xFFFF)
+            {
+                //Check if the motion is correct
+                bMotionDistorted = false;
+                FlashAddWrite(nAddress + nSize - 1);
+                nTmp = Command_And_Wait_FlashReadWord(CSerial);
+                if ((char)(nTmp & 0xFF) != 'M' || (char)((nTmp & 0xFF00) >> 8) != 'E')
+                {
+                    if ((char)(nTmp & 0xFF) == 'E')
+                    {
+                        Command_And_Wait_FlashAddWrite(CSerial, nAddress + nSize - 2);
+                        nTmp = Command_And_Wait_FlashReadWord(CSerial);
+                        if ((char)((nTmp & 0xFF00) >> 8) != 'M')
+                        {
+                            bMotionDistorted = true;
+                        }
+                    }
+                    else
+                    {
+                        bMotionDistorted = true;
+                    }
+                }
+                if (bMotionDistorted)
+                {
+                    // Motion was distorted. Deleting Motion i
+                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0x8000 + 2 * nIndex, pageBuf);
+                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, pageBuf);
+                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, pageBuf);
+                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, pageBuf);
+                    Command_And_Wait_WritePageFromBuf(CSerial, pageBuf);
+                    return false;
+                }
+
+                m_anMotionAddress[nIndex] = nAddress;
+                m_anMotionSize[nIndex] = nSize;
+            }
+#endif
+            return bRet;
+        }
+        private const int _BOOT_START = 0xF800;
+        //DMT File formats////////////////////////////////////////
+        private const int _HEADER_LEN	                = 41;
+        private const int _HEADER_TABLE_NAME_IDX		= 6;
+        private const int _HEADER_START_POS_IDX			= 27;
+        private const int _HEADER_MOTION_FRAME_SIZE_IDX	= 28;
+        private const int _HEADER_ROBOT_MODEL_TYPE_IDX	= 38;
+        private const int _HEADER_MOTOR_CNT_IDX			= 40;
+        //////////////////////////////////////////////////////////
+        private bool FlashWriteDmt(Ojw.CSerial CSerial, string strFilename, int nMotionNo, int nAddress)
+        {
+            bool bRet = true;
+            Ojw.SMotion_t SMotion = new Ojw.SMotion_t();
+            int i, j;
+            if (m_C3d.BinaryFileOpen(strFilename, out SMotion) == true)
+            {
+                
+            }
+            else return false;
+
+            int nDataLen = 0;
+
+	        byte [] pbytePageBuf = new byte[256];
+            	        
+	        /////////////수정 20120116/////////////
+	        int nMotionFrameSize = 0;//SMotion.nFrameSize;
+            
+            // 실제 Enable 된 프레임만 카운트 한다.
+            foreach(Ojw.SMotionTable_t STable in SMotion.STable) { if (STable.bEn == true) nMotionFrameSize++; }
+
+
+	        int nMotorCnt = SMotion.nMotorCnt;
+
+	        if(nAddress+(33+(2*nMotorCnt+9)*nMotionFrameSize+2+1)/2 > _BOOT_START){
+		        return false;
+	        }
+
+            String strMotion = "DMT1.0"; // 나중에 가변으로 ? 
+	        for ( i = 0; i < strMotion.Length; i++ ) Command_And_Wait_FlashWriteMtnData(CSerial, (byte)strMotion[i], 0, ref pbytePageBuf );
+
+	        // Table Name
+            StringBuilder sb = new StringBuilder(SMotion.strTableName);
+	        for( i = 0; i < 20; i++ )
+		        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)sb[i], 0, ref pbytePageBuf );
+            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)0, 0, ref pbytePageBuf );
+            
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nStartPosition & 0xff), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nFrameSize & 0xff), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)((SMotion.nFrameSize >> 8) & 0xff), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nRobotModelNum & 0xff), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)((SMotion.nRobotModelNum >> 8) & 0xff), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nMotorCnt & 0xff), 0, ref pbytePageBuf );
+
+	        nDataLen += 33;
+                            
+	        for( i = 0; i < nMotionFrameSize; i++ )
+	        {
+                if (SMotion.STable[i].bEn == true)
+                {
+		            //Motor Data
+		            for ( j = 0; j < nMotorCnt; j++ )
+		            {
+		                Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].anMot[j] & 0xff), 0, ref pbytePageBuf );
+		                Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].anMot[j] >> 8 & 0xff), 0, ref pbytePageBuf );
+		            }
+
+		            //Playtime
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nTime & 0xff), 0, ref pbytePageBuf );
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nTime >> 8 & 0xff), 0, ref pbytePageBuf );
+
+		            //Delay
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nDelay & 0xff), 0, ref pbytePageBuf );
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nDelay >> 8 & 0xff), 0, ref pbytePageBuf );
+
+		            //Command
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nCmd & 0xff), 0, ref pbytePageBuf );
+
+		            //Data0
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData0 & 0xff), 0, ref pbytePageBuf );
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData0 >> 8 & 0xff), 0, ref pbytePageBuf );
+		            //Data1
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData1 & 0xff), 0, ref pbytePageBuf );
+		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData1 >> 8 & 0xff), 0, ref pbytePageBuf );
+
+		            nDataLen += nMotorCnt * 2 + 9;
+                }
+	        }
+
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)('M'), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)('E'), 0, ref pbytePageBuf );
+	        nDataLen += 2;
+            
+	        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf );
+	        nDataLen = ( nDataLen + 1 ) / 2; //converting from byte address to word address
+
+	        int nPtrAddress = 0x8000 + 2 * nMotionNo;
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)( nAddress & 0x00FF ), nPtrAddress, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(( nAddress & 0xFF00 ) >> 8), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)( nDataLen & 0x00FF ), 0, ref pbytePageBuf );
+	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(( nDataLen & 0xFF00 ) >> 8), 0, ref pbytePageBuf );
+	        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf );                
+            return bRet;
+        }
+        private const int _FLASH_MTN_HEADER_LEN						= 17; //33byte -> 17word
+        private const int _FLASH_MTN_HEADER_TABLE_NAME_IDX			= 3;  //6byte -> 3word
+        private const int _FLASH_MTN_HEADER_START_POS_IDX			= 13; // 27byte -> 13word
+        private const int _FLASH_MTN_HEADER_MOTION_FRAME_SIZE_IDX	= 14; // 28byte -> 14word
+        private const int _FLASH_MTN_HEADER_ROBOT_MODEL_TYPE_IDX	= 15; // 30byte -> 15word
+        private const int _FLASH_MTN_HEADER_MOTOR_CNT_IDX			= 16; // 32byte -> 16word
+        private List<String> m_lstMotion = new List<string>();
+        private void Command_And_Wait_GetMotionList(Ojw.CSerial CSerial)
+        {
+            m_lstMotion.Clear();
+            int nAddress;
+            int nSize;
+            
+		    int nTmp;
+		    bool bMotionDistorted;
+            byte [] pbytePageBuf = new byte[256];
+
+		    //모션에 대한 pointer가 저장된 0x8000 ~ 0x80FF의 공간을 스캔하며 모션 주소와 크기를 읽음
+		    for ( int i = 0; i < 128; i++ )
+		    {
+			    m_anMotionAddress[i] = 0;
+			    m_anMotionSize[i] = 0;
+
+			    Command_And_Wait_FlashAddWrite(CSerial, 0x8000 + 2 * i );
+			    Command_And_Wait_FlashReadWord(CSerial, out nAddress);
+			    Command_And_Wait_FlashReadWord(CSerial, out nSize);
+
+			    //모션이 저장되어 있을 경우
+			    if ( nAddress != 0xFFFF && nSize != 0xFFFF )
+			    {
+				    //Check if the motion is correct
+				    bMotionDistorted = false;
+				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + nSize - 1 );
+				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
+				    if ( (char)(nTmp & 0xFF) != 'M' || (char)((nTmp & 0xFF00)>>8) != 'E' )
+				    {
+					    if ( (char)(nTmp & 0xFF) == 'E' )
+					    {
+						    Command_And_Wait_FlashAddWrite(CSerial, nAddress + nSize - 2 );
+						    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
+						    if ( (char)((nTmp & 0xFF00)>>8) != 'M' )
+						    {
+							    bMotionDistorted = true;
+						    }
+					    }
+					    else
+					    {
+						    bMotionDistorted = true;
+					    }
+				    }
+				    if ( bMotionDistorted )
+				    {
+					    // Motion was distorted. Deleting Motion i
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0x8000 + 2 * i, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
+                        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf);
+					    continue;
+				    }
+				    m_anMotionAddress[i] = nAddress;
+				    m_anMotionSize[i] = nSize;
+
+				    //Read Table name and display
+				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + _FLASH_MTN_HEADER_TABLE_NAME_IDX );
+				    string strTmp = String.Empty;
+				    for ( int j = 0; j < 10; j++ )
+				    {
+					    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
+					    if ( (char)(nTmp & 0xFF) != '\0' )
+					    {
+						    strTmp += (char)(nTmp & 0xFF);
+					    }
+					    if ( (char)( ( nTmp & 0xFF00 ) >> 8 ) != '\0' )
+					    {
+						    strTmp += (char)( (nTmp & 0xFF00) >> 8 );
+					    }
+				    }
+				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
+				    if ( (char)(nTmp & 0xFF)!='\0' )
+				    {
+					    strTmp += (char)(nTmp & 0xFF);
+				    }
+				    int len = strTmp.Length;
+
+				    string str = String.Format("{0}. ", i);
+				    str += strTmp;
+                    m_lstMotion.Add(str);
+
+				    //Read frame count and display
+				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + _FLASH_MTN_HEADER_MOTION_FRAME_SIZE_IDX );
+				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
+
+				    //Read motor count and display
+				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + _FLASH_MTN_HEADER_MOTOR_CNT_IDX );
+				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
+                    nTmp = (nTmp & 0xFF);
+			    }
+		    }
+        }
+        private bool Command_And_Wait_DeleteMotions(Ojw.CSerial CSerial)
+        {
+            bool bRet = true;
+            for (int i = 0; i < 128; i++)
+            {
+                m_anMotionAddress[i] = 0;
+                m_anMotionSize[i] = 0;
+
+                #region Delete Motion
+                // Flash Addwrite
+                int nAddress = 0x8000 + i * 2;
+                if (Command_And_Wait_FlashAddWrite(CSerial, nAddress) == true)
+                {
+                    // FlashReadWord
+                    int nMotionAddress = 0;
+                    int nMotionSize = 0;
+
+                    #region Read MotionAddress
+                    if (Command_And_Wait(CSerial, (byte)('R')) == true)
+                    {
+                        // 
+                        Ojw.CTimer CTmr = new Ojw.CTimer();
+                        CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
+                        if (CSerial.GetBuffer_Length() >= 2)
+                        {
+                            nMotionAddress = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
+                            #region Read MotionSize
+                            if (Command_And_Wait(CSerial, (byte)('R')) == true)
+                            {
+                                // 
+                                CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
+                                if (CSerial.GetBuffer_Length() >= 2)
+                                {
+                                    nMotionSize = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
+                                }
+                                else bRet = false;
+                            }
+                            #endregion Read MotionSize
+                        }
+                        else bRet = false;
+                    }
+                    else bRet = false;
+                    #endregion Read MotionAddress
+
+                    // 모션이 저장되어 있는 경우
+                    if ((nMotionAddress > 0) && (nMotionSize > 0))
+                    {
+                        byte[] pbytePageBuf = new byte[256];
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0x8000 + 2 * i, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
+                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
+                        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf);
+
+                        m_anMotionAddress[i] = 0;
+                        m_anMotionSize[i] = 0;
+                    }
+                    //else bRet = false;
+                }
+                else bRet = false;
+                #endregion Delete Motion
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait_FlashAddWrite(Ojw.CSerial CSerial, int nAddress)
+        {
+            bool bRet = false;
+            if (Command_And_Wait(CSerial, (byte)('A')) == true)
+            {
+                // 하위주소번지를 던짐
+                byte byteData = (byte)(nAddress & 0x00FF);
+                if (Command_And_Wait(CSerial, byteData) == true)
+                {
+                    // 상위주소번지를 던짐
+                    byteData = (byte)((nAddress >> 8) & 0x00FF);
+                    if (Command_And_Wait(CSerial, byteData) == true)
+                    {
+                        bRet = true;
+                    }
+                }
+            }
+            return bRet;
+        }
+        private bool Command_And_Wait(Ojw.CSerial CSerial, byte byteData)
+        {
+            bool bRet = false;
+            if (SendPacket_And_Wait(CSerial, byteData) == true)
+            {
+                if (CSerial.GetByte() == byteData) bRet = true;
+            }
+            return bRet;
+        }
+        private bool SendPacket_And_Wait(Ojw.CSerial CSerial, byte byteData)
+        {
+            bool bRet = false;
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            byte[] pbyteData = new byte[1];
+            pbyteData[0] = byteData;
+            CSerial.SendPacket(pbyteData);
+            CTmr.Set();
+            while (CTmr.Get() < 1000)
+            {
+                if (CSerial.GetBuffer_Length() > 0)
+                {
+                    bRet = true;
+                    break;
+                }
+                else Application.DoEvents();
+            }
+            return bRet;
+        }
+        private bool SendPacket_And_Wait(Ojw.CSerial CSerial, byte [] pbyteData)
+        {
+            bool bRet = false;
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            CSerial.SendPacket(pbyteData); 
+            CTmr.Set(); 
+            while (CTmr.Get() < 1000) 
+            {
+                if (CSerial.GetBuffer_Length() > 0)
+                {
+                    bRet = true;
+                    break;
+                }
+                else Application.DoEvents();
+            }
+            return bRet;
+            //if (bRet == true)
+            //{
+            //    CSerial.GetBytes();
+            //}
+            //return null;
+        }
+        #endregion Made by Chulhee Yun
+#endif
+    }
+    
+    public class SystemImgList
+    {
+        ////// treeview 탐색기 -- ///////
+        //[DllImport("Shell32.dll")]
+        //private static extern int SHGetFileInfo(
+        //                                            string pszPath, uint dwFileAttributes,
+        //                                            ref SHFILEINFO psfi, uint cbfileInfo,
+        //                                            SHGFI uFlags
+        //    );
+        [DllImport("Shell32.dll")]
+        private static extern IntPtr SHGetFileInfo(
+                                                    string pszPath, uint dwFileAttributes,
+                                                    ref SHFILEINFO psfi, uint cbfileInfo,
+                                                    uint uFlags
+            );
+        [DllImport("User32.dll")]
+        public static extern int DestroyIcon(IntPtr hIcon);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SHFILEINFO
+        {
+            public SHFILEINFO(int i)
+            {
+                hIcon = IntPtr.Zero;
+                iIcon = IntPtr.Zero; //0;
+                dwAttributes = 0;
+                szDisplayName = "";
+                szTypeName = "";
+            }
+            public IntPtr hIcon;
+            public IntPtr iIcon;
+            public uint dwAttributes;
+            // WinApi 의 char 형 배열과 String 의 차이를 통합시키기 위해...
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string szDisplayName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+            public string szTypeName;
+        }
+        private enum SHGFI
+        {
+            SmallIcon = 0x00000001,
+            OpenIcon = 0x00000002,
+            LargeIcon = 0x00000000,
+            Icon = 0x00000100,
+            DisplayName = 0x00000200,
+            TypeName = 0x00000400,
+            SysIconIndex = 0x00004000,
+            LinkOverlay = 0x00008000,
+            UseFileAttributes = 0x00000010,
+        }
+        // 파일 / 폴더에 맞는 아이콘을 얻는다.
+        // 인자 1 : 파일 / 폴더 전체 경로
+        // 인자 2 : 작은 / 큰 이미지
+        // 인자 3 : 보통 / 선택 이미지
+        public Icon GetIcon(String strPath, bool bSmall, bool bOpen)
+        {
+            try
+            {
+                SHFILEINFO info = new SHFILEINFO(0);
+
+                // 구조체 크기 얻기
+                int cbFileInfo = Marshal.SizeOf(info);
+                uint flags;
+
+                // 조건에 맞게 플래그 설정
+                if (bSmall)
+                    flags = (uint)SHGFI.Icon | (uint)SHGFI.SmallIcon;
+                else
+                    flags = (uint)SHGFI.Icon | (uint)SHGFI.LargeIcon;
+
+                if (bOpen) flags = flags | (uint)SHGFI.OpenIcon;
+
+                //// 아이콘 얻기
+                //SHGetFileInfo(strPath, 256, ref info, (uint)cbFileInfo, flags);
+
+                //// 형식을 변환해 아이콘 반환
+
+                //return Icon.FromHandle(info.hIcon);
+
+                SHFILEINFO shinfo = new SHFILEINFO();
+                //IntPtr hImgSmall = SHGetFileInfo(strPath, 256, ref shinfo, (uint)cbFileInfo, flags);
+                IntPtr hImgSmall = SHGetFileInfo(strPath, 0, ref shinfo, (uint)cbFileInfo, flags);
+
+                Icon icon = (Icon)System.Drawing.Icon.FromHandle(shinfo.hIcon).Clone();
+                DestroyIcon(shinfo.hIcon);
+                return icon;
+            }
+            catch(Exception ex)
+            {
+                Ojw.CMessage.Write_Error(ex.ToString());
+                return null;
+            }
+        }
+        ////// -- treeview 탐색기 ///////
     }
 }
