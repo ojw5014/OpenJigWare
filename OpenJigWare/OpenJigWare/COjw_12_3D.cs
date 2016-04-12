@@ -1230,7 +1230,18 @@ namespace OpenJigWare
                 }
                 return nMotCnt;
             }
-
+            public void SetMot_WIthInverseKinematics(int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds)
+            {
+                int [] anMotorID = new int[256];
+                double [] adValue = new double[256];
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                for (int i = 0; i < nCnt; i++)
+                {
+                    SetData(anMotorID[i], (float)adValue[i]);
+                    m_CMotor.SetCmd_Angle(anMotorID[i], (float)adValue[i]);
+                }
+                m_CMotor.SetMot(nTime_Milliseconds);
+            }
             private String MakeDHSkeleton(float fSize, Color cColor, string strString)
             {
                 String strModel_Bar = (m_chkVisible.Checked == true) ? "#8" : "#19";
@@ -7611,9 +7622,12 @@ namespace OpenJigWare
                         //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
                         if (m_bGridInit == true)
                         {
-                            for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                            if (m_CHeader != null)
                             {
-                                GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
+                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                {
+                                    GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
+                                }
                             }
                         }
                         //Ojw.CMessage.Write("MouseUp");
@@ -12972,7 +12986,12 @@ namespace OpenJigWare
                     int nGroupA, nGroupB, nGroupC, nInverseKinematics;
                     Color cColor = OjwDisp.cColor;
                     GetPickingData(out nGroupA, out nGroupB, out nGroupC, out nInverseKinematics);
-                    float fAlpha = (m_bAlpha) ? m_fAlpha : OjwDisp.fAlpha;
+                    float fAlpha = OjwDisp.fAlpha;
+                    if (m_bAlpha == true)
+                    {
+                        if (m_fAlpha < 1.0f) fAlpha = m_fAlpha;
+                    }
+                    //float fAlpha = (m_bAlpha) ? m_fAlpha : OjwDisp.fAlpha;
                     bool bPicked = false;
                     //if (m_bPickColor == true)
                     //{

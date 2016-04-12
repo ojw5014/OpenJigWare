@@ -41,13 +41,15 @@ namespace OpenJigWare
             {
                 #region 중복실행 체크
                 System.Diagnostics.Process ps = new System.Diagnostics.Process();
-                Process[] processes = System.Diagnostics.Process.GetProcessesByName(strProgram);
+                String strTitle = Ojw.CFile.GetTitle(strProgram);
+                Process[] processes = System.Diagnostics.Process.GetProcesses();//System.Diagnostics.Process.GetProcessesByName(Ojw.CFile.GetTitle(strProgram));
                 bool bStarted = false;
-                foreach (System.Diagnostics.Process process in processes) { if (process.MainWindowTitle == strProgram) bStarted = true; }
+                //foreach (System.Diagnostics.Process process in processes) { if (process.MainWindowTitle == strProgram) bStarted = true; }
+                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName == strTitle) bStarted = true; }
                 if (bStarted == true)
                 {
-                    Ojw.CMessage.Write_Error("Still program is running... Can't run it. Check process first");
-                    MessageBox.Show(Ojw.CMessage.GetLastErrorMessage());
+                    Ojw.CMessage.Write("[warning]Still program is running... Can't run it. Check process first");
+                    //MessageBox.Show(Ojw.CMessage.GetLastErrorMessage());
                     //Application.Exit();
                     return true; // Error
                 }
@@ -57,6 +59,42 @@ namespace OpenJigWare
                 }
                 return false;
                 #endregion 중복실행 체크
+            }
+
+            // nRunningMode == 0 : Normal(중복허용, 안죽임), 1 : killothers(다른것 다 죽이고 혼자 살아남음), 2 : 중복시 안띄움)
+            public static void RunProgram(string strProgram, int nRunningMode) { RunProgram(strProgram, null, nRunningMode); }
+            public static void RunProgram(string strProgram, string strArgument, int nRunningMode)
+            {
+                //string strFileName = Ojw.CFile.GetTitle(strProgram);
+                System.Diagnostics.Process ps = new System.Diagnostics.Process();
+                String strTitle = Ojw.CFile.GetTitle(strProgram);
+                //this.Cursor = Cursors.Hand;
+                Process[] processes = System.Diagnostics.Process.GetProcesses();//GetProcessesByName(strProgram);
+
+                // 동일한 이름을 가진 Process를 모두 kill함.
+                bool bRunning = false;
+                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName == strTitle) { if (nRunningMode == 1) process.CloseMainWindow(); else bRunning = true; } }
+                if (bRunning == true)
+                {
+                    if (nRunningMode != 2)
+                    {
+                        ps.StartInfo.FileName = strProgram;
+                        if (strArgument != null) ps.StartInfo.Arguments = strArgument;
+                        ps.Start();
+                    }
+                }
+                else
+                {
+                    ps.StartInfo.FileName = strProgram;
+                    if (strArgument != null) ps.StartInfo.Arguments = strArgument;
+                    ps.Start();
+                }
+                
+
+                if (bRunning == true)
+                {
+
+                }
             }
         }
     }

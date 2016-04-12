@@ -38,6 +38,9 @@ namespace OpenJigWare.Docking
         #region UserFunction
         public delegate void UserFunction();
         private UserFunction m_FUser;
+        public Form GetForm() { return this; }
+        public int GetPort() { return Ojw.CConvert.StrToInt(txtPort.Text); }
+        public int GetBaudrate() { return Ojw.CConvert.StrToInt(txtBaudrate.Text); }
         public Ojw.C3d GetC3d() { return m_C3d; }
         public void SetUserButton(UserFunction FUser) { if (FUser != null) { m_FUser = new UserFunction(FUser); btnUserButton.Visible = true; } }
         #endregion UserFunction
@@ -1725,7 +1728,7 @@ namespace OpenJigWare.Docking
         {
             Connection();
         }
-        private void Connect()
+        public void Connect()
         {
             m_C3d.m_CMotor.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
             if (m_C3d.m_CMotor.IsConnect() == true)
@@ -1744,14 +1747,14 @@ namespace OpenJigWare.Docking
             }
             //m_C3d.OjwGrid_SetHandle_Herculex(m_CMotor);
         }
-        private void Disconnect()
+        public void Disconnect()
         {
             m_C3d.m_CMotor.DisConnect();
 
             btnConnect_Serial.Text = "Connect";
             Ojw.CMessage.Write("Disconnected");
         }
-        private void Connection()
+        public void Connection()
         {
             if (m_C3d.m_CMotor.IsConnect() == false) Connect();
             else Disconnect();
@@ -4485,9 +4488,12 @@ namespace OpenJigWare.Docking
         private void listviewMotion_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             int nPos = listviewMotion.SelectedItems.Count - 1;
-            int nNum = listviewMotion.SelectedItems[nPos].Index;
-            m_C3d.m_CMotor.Mpsu_Play_Motion(m_lstDownload[nNum].nIndex);
-            //MessageBox.Show(String.Format("FileNumber - {0}", m_lstDownload[nNum].nIndex));
+            if (nPos >= 0)
+            {
+                int nNum = listviewMotion.SelectedItems[nPos].Index;
+                m_C3d.m_CMotor.Mpsu_Play_Motion(m_lstDownload[nNum].nIndex);
+                //MessageBox.Show(String.Format("FileNumber - {0}", m_lstDownload[nNum].nIndex));
+            }
         }
 
         private void btnMotion_Delete_Click(object sender, EventArgs e)
@@ -4512,9 +4518,12 @@ namespace OpenJigWare.Docking
         private void btnMotion_Play_Click(object sender, EventArgs e)
         {
             int nPos = listviewMotion.SelectedItems.Count - 1;
-            int nNum = listviewMotion.SelectedItems[nPos].Index;
-            m_C3d.m_CMotor.Mpsu_Play_Motion(m_lstDownload[nNum].nIndex);
-            //MessageBox.Show(String.Format("FileNumber - {0}", m_lstDownload[nNum].nIndex));
+            if (nPos >= 0)
+            {
+                int nNum = listviewMotion.SelectedItems[nPos].Index;
+                m_C3d.m_CMotor.Mpsu_Play_Motion(m_lstDownload[nNum].nIndex);
+                //MessageBox.Show(String.Format("FileNumber - {0}", m_lstDownload[nNum].nIndex));
+            }
         }
 
         private void btnDirRefresh_Click(object sender, EventArgs e)

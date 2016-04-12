@@ -412,7 +412,7 @@
             // 
             this.btnMotion_Download2.BackgroundImage = global::OpenJigWare.Properties.Resources.download;
             this.btnMotion_Download2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.btnMotion_Download2.Location = new System.Drawing.Point(430, 47);
+            this.btnMotion_Download2.Location = new System.Drawing.Point(433, 47);
             this.btnMotion_Download2.Name = "btnMotion_Download2";
             this.btnMotion_Download2.Size = new System.Drawing.Size(33, 32);
             this.btnMotion_Download2.TabIndex = 1;
@@ -456,7 +456,7 @@
             // 
             this.btnMotion_GetList2.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
             this.btnMotion_GetList2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.btnMotion_GetList2.Location = new System.Drawing.Point(430, 5);
+            this.btnMotion_GetList2.Location = new System.Drawing.Point(433, 5);
             this.btnMotion_GetList2.Name = "btnMotion_GetList2";
             this.btnMotion_GetList2.Size = new System.Drawing.Size(33, 32);
             this.btnMotion_GetList2.TabIndex = 1;
@@ -499,7 +499,7 @@
             this.btnConnect.Enabled = false;
             this.btnConnect.Location = new System.Drawing.Point(357, 42);
             this.btnConnect.Name = "btnConnect";
-            this.btnConnect.Size = new System.Drawing.Size(71, 42);
+            this.btnConnect.Size = new System.Drawing.Size(77, 42);
             this.btnConnect.TabIndex = 634;
             this.btnConnect.Text = "Connect [Wifi]";
             this.btnConnect.UseVisualStyleBackColor = true;
@@ -604,7 +604,7 @@
             // 
             this.btnConnect_Serial.Location = new System.Drawing.Point(357, 0);
             this.btnConnect_Serial.Name = "btnConnect_Serial";
-            this.btnConnect_Serial.Size = new System.Drawing.Size(71, 42);
+            this.btnConnect_Serial.Size = new System.Drawing.Size(77, 42);
             this.btnConnect_Serial.TabIndex = 632;
             this.btnConnect_Serial.Text = "Connect";
             this.btnConnect_Serial.UseVisualStyleBackColor = true;

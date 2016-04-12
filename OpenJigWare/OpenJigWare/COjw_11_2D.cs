@@ -432,7 +432,56 @@ namespace OpenJigWare
                     Ojw.CMessage.Write(e.ToString());
                 }
             }
-
+            public void TextC(Color cData, int nFontSize, string str, double dCx, double dCy, double dCz, bool bCenter)
+            {
+                try
+                {
+                    SolidBrush br = new SolidBrush(cData);
+                    int nX, nY;
+                    Rotation(m_dAngleX, m_dAngleY, m_dAngleZ, dCx, dCy, dCz, out nX, out nY);
+                    if (bCenter)
+                    {
+                        ///////// Center ////////////////////
+                        StringFormat sf = new StringFormat();
+                        sf.LineAlignment = StringAlignment.Center;
+                        sf.Alignment = StringAlignment.Center;
+                        /////////////////////////////////////
+                        m_gr.DrawString(str, new Font("Georgia", nFontSize, System.Drawing.FontStyle.Regular), br, nX, nY, sf);
+                        //m_gr.DrawString(str, new Font("굴림", 9, System.Drawing.FontStyle.Regular), br, nX, nY, sf);
+                    }
+                    else
+                        m_gr.DrawString(str, new Font("Georgia", nFontSize, System.Drawing.FontStyle.Regular), br, nX, nY);
+                }
+                catch (Exception e)
+                {
+                    Ojw.CMessage.Write(e.ToString());
+                }
+            }
+            public void TextC(Color cData, string strFontName, int nFontSize, string str, double dCx, double dCy, double dCz, bool bCenter)
+            {
+                try
+                {
+                    SolidBrush br = new SolidBrush(cData);
+                    int nX, nY;
+                    Rotation(m_dAngleX, m_dAngleY, m_dAngleZ, dCx, dCy, dCz, out nX, out nY);
+                    if (bCenter)
+                    {
+                        ///////// Center ////////////////////
+                        StringFormat sf = new StringFormat();
+                        sf.LineAlignment = StringAlignment.Center;
+                        sf.Alignment = StringAlignment.Center;
+                        /////////////////////////////////////
+                        m_gr.DrawString(str, new Font(strFontName, nFontSize, System.Drawing.FontStyle.Regular), br, nX, nY, sf);
+                        //m_gr.DrawString(str, new Font("굴림", 9, System.Drawing.FontStyle.Regular), br, nX, nY, sf);
+                    }
+                    else
+                        m_gr.DrawString(str, new Font(strFontName, nFontSize, System.Drawing.FontStyle.Regular), br, nX, nY);
+                }
+                catch (Exception e)
+                {
+                    Ojw.CMessage.Write(e.ToString());
+                }
+            }
             public void TopBox(double ax, double ay, double az, double nCx, double nCy, double nCz, double w, double h, double d)
             {
                 try

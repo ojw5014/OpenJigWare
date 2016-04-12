@@ -345,7 +345,7 @@ namespace OpenJigWare.Docking
             }
             #endregion MouseClick
         }
-
+        //public static Form SetItem() {  }
         public static void ShowCalculator(TextBox txt)
         {
             Rectangle rc = txt.RectangleToScreen(new Rectangle(new Point(0, 0), txt.Size));

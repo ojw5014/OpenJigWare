@@ -6,7 +6,7 @@
  * supported by Daesung-Choi, Dongjoon-Chang (Advise)
  * supported by Chulhee-yun(Motion Download & Advise)
  * supported by Mohssin (icons)
- * supported by Aram-Lee (all of the keypad images)
+ * supported by Aram-Lee (all of the keypad & Virtual Keyboard images)
  * supported by Donghyeon-Lee (3 dof parallel Delta robot Kinematics function made)
  * supported by JhoYoung-Choi (Motion Editor advise = beta testing = - tajo27@naver.com) & Debugging & recommend new feature(simulation... and so on)
  * supported by Daniel Park, from DevTree (Motion Editor advise = beta testing = - www.facebook.com/DevTree)
@@ -71,8 +71,17 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.02.00";
+        public const string strVersion = "01.02.02";
         public const string strHistory = (String)(
+                "[V01.02.02]\r\n" +
+                "CTools_Keyboard 클래스와 ShowKeyboard 함수 기능 추가, 즉, 가상키보드 기능 업그레이드\r\n" +
+                "========================================\r\n" + // NoReleased
+                "[V01.02.01]\r\n" +
+                "SetMot_WIthInverseKinematics() 함수 기능 추가, C3d 함수이기 때문에 모델링에서 바로 움직임 구현 가능\r\n" +
+                "MotionTool 에서 다운로드 탭에 Play 버튼이 아무것도 선택 안될시 에러나는 버그 수정\r\n" +
+                "C2D 에서 TextC 함수 기능 추가\r\n" + 
+                "fAlpha 값이 전체 변경시에만 변경되고 개별 오브젝트가 변경시에 적용이 안되던 버그 해결\r\n" +
+                "========================================\r\n" + // NoReleased
                 "[V01.02.00]\r\n" +
                 "========================================\r\n" + // Released            
                 "[V01.01.65]\r\n" +
@@ -394,6 +403,39 @@ namespace OpenJigWare
             public void SetUserButton(Docking.frmMotionEditor.UserFunction FUser) { m_frmMotion.SetUserButton(FUser); }
             public void SetIcon(Icon UserIcon) { m_frmMotion.Icon = UserIcon; }
             public void SetTitleImage(Bitmap bmp, Rectangle rc) { m_frmMotion.SetTitleImage(bmp, rc); }
+        }
+        public class CTools_Keyboard
+        {
+            public Docking.frmKeyPad m_frmKeyPad = new Docking.frmKeyPad();
+            public void SetOpacity(double dRatio)
+            {
+                m_frmKeyPad.Opacity = dRatio;
+            }
+            public void SetCloseEvent(bool bApplicationExit) { m_frmKeyPad.SetCloseEvent(bApplicationExit); }
+            public void ShowKeyboard(Image img, int nX, int nY) { ShowKeyboard(img, nX, nY, 1.0f); }
+            public void ShowKeyboard(Image img, int nX, int nY, float fScale)
+            {
+                m_frmKeyPad.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+                m_frmKeyPad.Show();
+                m_frmKeyPad.SetImage(img);
+                m_frmKeyPad.SetPosition(nX, nY);
+                m_frmKeyPad.Scale(new SizeF(fScale, fScale));
+            }
+            public void ShowKeyboard(int nX, int nY) { ShowKeyboard(nX, nY, 1.0f); }
+            public void ShowKeyboard(int nX, int nY, float fScale)
+            {
+                m_frmKeyPad.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+                m_frmKeyPad.Show();
+                m_frmKeyPad.SetPosition(nX, nY);
+                m_frmKeyPad.Scale(new SizeF(fScale, fScale));
+            }
+            public void ShowKeyboard() { ShowKeyboard(1.0f); }
+            public void ShowKeyboard(float fScale)
+            {
+                m_frmKeyPad.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+                m_frmKeyPad.Show();
+                m_frmKeyPad.Scale(new SizeF(fScale, fScale));
+            }
         }
         #region ModelingTool
         public class CTools

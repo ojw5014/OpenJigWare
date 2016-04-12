@@ -152,6 +152,54 @@ D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\Ope
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmFolder.resources
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmFolder.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Microsoft.Contracts.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\MyoSharp.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.FreeGlut.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Ode.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.OpenGl.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Platform.Windows.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Interop.WMPLib.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AxInterop.WMPLib.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\Interop.WMPLib.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\AxInterop.WMPLib.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.ResolveComReference.cache
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmFolder.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.CKeyPad_t.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmKeyPad.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmModel.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmMotionEditor.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmPlayer.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Properties.Resources.resources
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.GenerateResource.Cache
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Microsoft.Contracts.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\MyoSharp.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.FreeGlut.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Ode.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.OpenGl.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Platform.Windows.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Interop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AxInterop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\Interop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\AxInterop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.ResolveComReference.cache
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmFolder.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.CKeyPad_t.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmKeyPad.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmModel.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmMotionEditor.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmPlayer.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Properties.Resources.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.GenerateResource.Cache
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.FreeGlut.dll
@@ -166,6 +214,7 @@ Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigW
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.ResolveComReference.cache
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmFolder.resources
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.CKeyPad_t.resources
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmKeyPad.resources
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmModel.resources
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmMotionEditor.resources
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmPlayer.resources
