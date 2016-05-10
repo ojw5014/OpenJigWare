@@ -199,16 +199,14 @@ Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.GenerateResource.Cache
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
-Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.FreeGlut.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Ode.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.OpenGl.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Platform.Windows.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Interop.WMPLib.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AxInterop.WMPLib.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Controls.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Video.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.dll
+D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Imaging.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Controls.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Video.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Imaging.dll
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\Interop.WMPLib.dll
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\AxInterop.WMPLib.dll
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.ResolveComReference.cache
@@ -220,5 +218,17 @@ Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigW
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Docking.frmPlayer.resources
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.Properties.Resources.resources
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csproj.GenerateResource.Cache
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\OpenJigWare.pdb
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Controls.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Video.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.FreeGlut.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Ode.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.OpenGl.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Tao.Platform.Windows.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AForge.Imaging.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\Interop.WMPLib.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Release\AxInterop.WMPLib.dll
+Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll

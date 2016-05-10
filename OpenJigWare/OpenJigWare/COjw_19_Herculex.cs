@@ -2388,6 +2388,19 @@ namespace OpenJigWare
                 //             return (nTestSize > 0) ? true : false;
             }
 
+            #region Read Position
+            public void ReadMot_Angle(int nAxis)
+            {
+                ReadMot(nAxis, _ADDRESS_TORQUE_CONTROL, 8);
+                //bool bOk = WaitReceive(nAxis, 40);
+                //if (bOk == false)
+                //{
+                    
+                //}
+                //return GetPos_Angle(nAxis);
+            }
+            #endregion Read Position
+
             #region MPSU
             public void Mpsu_Write_Rom(int nMpsuID, int nStartAddress, byte byteData)
             {

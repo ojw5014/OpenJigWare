@@ -716,7 +716,7 @@ namespace OpenJigWare
                 private const int _ADDRESS_V = _ADDRESS_X + 3;
                 private const int _ADDRESS_M = 0x2000;
 
-                private const int _CNT_ADDRESS = 0xffffff;//0xfffff;
+                private const int _CNT_ADDRESS = 0xfffff;//0xfffff;
 
                 public const int _CNT_MOTOR = _ADDRESS_X - _ADDRESS_MOTOR;
                 public const int _CNT_VAR_V = _ADDRESS_M - _ADDRESS_V;
@@ -2613,6 +2613,13 @@ namespace OpenJigWare
                     //////                 fTmp_Data = 0;
                     //////                 fValue = fTmp_Value + fTmp_Data;
                     //           }
+#endif
+#if false // for test
+                        if (dValue == 0)
+                        {
+                            MessageBox.Show("[Warning]Check CalcCode()");
+                            Ojw.CMessage.Write("[Warning]Check CalcCode()");
+                        }
 #endif
 
                         #region Error Exception

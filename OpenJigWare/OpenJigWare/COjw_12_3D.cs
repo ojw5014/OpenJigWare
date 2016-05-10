@@ -9097,6 +9097,7 @@ namespace OpenJigWare
                 ////////////////
             }
 #endif
+                private int m_nTorq = 0;
                 private int m_nKeyCommand = 0;
                 public void KeyCommand_Clear() { m_nKeyCommand = 0; }
                 public int KeyCommand_Get() { int nKey = m_nKeyCommand; m_nKeyCommand = 0; return nKey; }
@@ -9275,6 +9276,44 @@ namespace OpenJigWare
                             }
                             break;
                         #endregion Keys.F1 - 위치값 가져오기
+                        #region Keys.F2 - (해당 모터 Servo(1,3,5 등 홀수회) / Driver(2,4,6 등 짝수회) Off
+                        case Keys.F2:
+                            {
+                                //int nLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                //int nCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                int nLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                //if (dgGrid[0, nLine].Selected == true)
+                                //{
+
+                                //}
+                                for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                                {
+                                    if (dgGrid[nAxis + 1, nLine].Selected == true)
+                                    {
+                                        m_CMotor.DrvSrv(nAxis, false, false);
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.F2 - (해당 모터 Servo(1,3,5 등 홀수회) / Driver(2,4,6 등 짝수회) Off
+                        #region Keys.F3 - 해당 모터 Servo/Driver On
+                        case Keys.F3:
+                            {
+                                int nLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                //if (dgGrid[0, nLine].Selected == true)
+                                //{
+
+                                //}
+                                for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                                {
+                                    if (dgGrid[nAxis + 1, nLine].Selected == true)
+                                    {
+                                        m_CMotor.DrvSrv(nAxis, true, true);
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.F3 - 해당 모터 Servo/Driver On
                         #region Keys.Delete: - 삭제하기
                         case Keys.Delete:
                             {
@@ -12997,7 +13036,7 @@ namespace OpenJigWare
                     //{
                     
                     bool bSelectObject_DrawClass = SelectObject_Check(m_nDrawClass_Pos);
-                    bool bMouseClick = (((nGroupA + nGroupB) > 0) &&
+                    bool bMouseClick = ((nGroupA > 0) &&//(((nGroupA + nGroupB) > 0) && // 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결
                         (OjwDisp.nPickGroup_A == nGroupA) &&
                         (OjwDisp.nPickGroup_B == nGroupB)
                         ) ? true : false;
@@ -13027,9 +13066,9 @@ namespace OpenJigWare
                             ((bMouseClick == true) && (m_bMousePickEnable == true)) ||
                             ((bSelectObject_DrawClass == true) && (SelectObject_Enable() == true))
                             ||
-                            ((m_nSelectedInverseKinematics < 0) && ((m_nSelectedMotor >= 0) && (OjwDisp.nPickGroup_B == m_nSelectedMotor)))
+                            ((m_nSelectedInverseKinematics < 0) && ((m_nSelectedMotor >= 0) && (OjwDisp.nPickGroup_B == m_nSelectedMotor)) && (OjwDisp.nPickGroup_A > 0)) // 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결
                             ||
-                            ((m_nSelectedInverseKinematics >= 0) && (OjwDisp.nInverseKinematicsNumber == m_nSelectedInverseKinematics))                            
+                            ((m_nSelectedInverseKinematics >= 0) && (OjwDisp.nInverseKinematicsNumber == m_nSelectedInverseKinematics) && (OjwDisp.nPickGroup_A > 0))     // 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결                        
                         )
                         {
                             if (m_bPickColor) cColor = m_cPickColor;// Color.FromArgb(50, 50, 255);// Color.FromArgb(100, 0, 0);
@@ -13055,6 +13094,7 @@ namespace OpenJigWare
                             int nGA = m_anSecondColor_GroupA[i];
                             int nGB = m_anSecondColor_GroupB[i];
                             if (((nGA + nGB) > 0) &&
+                            (nGA > 0) && // 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결
                             (nGA == OjwDisp.nPickGroup_A) &&
                             (nGB == OjwDisp.nPickGroup_B)
                             )

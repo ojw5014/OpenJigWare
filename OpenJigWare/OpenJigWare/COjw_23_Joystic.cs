@@ -315,6 +315,31 @@ namespace OpenJigWare
 
             public double Slide { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
 
+            #region 위의 데이타들은 XBox 기준으로 생성이 되어 있으므로 Default 설정으로 재설정
+            public double GetPos0 { get { return (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin); } }
+            public double GetPos1 { get { return (double)(info.dwYpos - caps.wYmin) / (caps.wYmax - caps.wYmin); } }
+            public double GetPos2 { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
+            public double GetPos3 { get { return (double)(info.dwRpos - caps.wRmin) / (caps.wRmax - caps.wRmin); } }
+            public double GetPos4 { get { return (double)(info.dwUpos - caps.wUmin) / (caps.wUmax - caps.wUmin); } }
+            public double GetPos5 { get { return (double)(info.dwVpos - caps.wVmin) / (caps.wVmax - caps.wVmin); } }
+            public double GetPos(int nNum)
+            {
+                double dValue = 0;
+                switch (nNum)
+                {
+                    case 0: dValue = GetPos0; break;
+                    case 1: dValue = GetPos1; break;
+                    case 2: dValue = GetPos2; break;
+                    case 3: dValue = GetPos3; break;
+                    case 4: dValue = GetPos4; break;
+                    case 5: dValue = GetPos5; break;
+                    default: break;
+                }
+                return dValue;
+            }
+            #endregion
+
+
             private bool m_bValid = false;
             public bool IsValid //{ get; private set; }
             {

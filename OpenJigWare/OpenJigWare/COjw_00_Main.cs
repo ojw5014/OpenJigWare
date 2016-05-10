@@ -71,11 +71,18 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.02.02";
+        public const string strVersion = "01.02.03";
         public const string strHistory = (String)(
+                "[V01.02.03]\r\n" +
+                "COjw_26_Streaming.cs 추가(AForge.Controls.dll, AForge.Video.DirectShow.dll, AForge.Video.dll 파일 추가)\r\n" + 
+                "Joystick 의 GetPos() 함수 추가 - XBox 에 특화된 데이타를 정상화\r\n" +
+                "모션툴에서 F2(해당 모터 Servo(1,3,5 등 홀수회) / Driver(2,4,6 등 짝수회) Off, F3 - 해당 모터 Servo/Driver On 기능 추가 - \r\n" + 
+                "// 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결\r\n" + 
+                "ReadMot_Angle() 기능 추가\r\n" + 
+                "========================================\r\n" + // Released
                 "[V01.02.02]\r\n" +
                 "CTools_Keyboard 클래스와 ShowKeyboard 함수 기능 추가, 즉, 가상키보드 기능 업그레이드\r\n" +
-                "========================================\r\n" + // NoReleased
+                "========================================\r\n" + // Released
                 "[V01.02.01]\r\n" +
                 "SetMot_WIthInverseKinematics() 함수 기능 추가, C3d 함수이기 때문에 모델링에서 바로 움직임 구현 가능\r\n" +
                 "MotionTool 에서 다운로드 탭에 Play 버튼이 아무것도 선택 안될시 에러나는 버그 수정\r\n" +

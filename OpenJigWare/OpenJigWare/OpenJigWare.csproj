@@ -37,6 +37,12 @@
     <ApplicationIcon>oroca.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AForge.Controls">
+      <HintPath>Lib\AForge.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="AForge.Video">
+      <HintPath>Lib\AForge.Video.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Contracts">
       <HintPath>..\..\Released_DLL\Microsoft.Contracts.dll</HintPath>
     </Reference>
@@ -73,7 +79,7 @@
     <Compile Include="COjw_04_Convert.cs" />
     <Compile Include="COjw_02_InputBox.cs" />
     <Compile Include="COjw_01_Struct.cs" />
-    <Compile Include="COjw_xx_User.cs" />
+    <Compile Include="COjw_26_Streaming.cs" />
     <Compile Include="Docking\frmFolder.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -138,6 +144,7 @@
     <Compile Include="COjw_23_Joystic.cs" />
     <Compile Include="COjw_24_System.cs" />
     <Compile Include="COjw_25_Genibo.cs" />
+    <Compile Include="COjw_xx_User.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Docking\frmFolder.resx">
