@@ -16,6 +16,15 @@ namespace OpenJigWare
         {
             [DllImport("kernel32.dll")]
             public static extern bool IsWow64Process(System.IntPtr hProcess, out bool lpSystemInfo);
+            
+            [DllImport("user32.dll", EntryPoint = "SetWindowText")]
+            private static extern int SetWindowText(IntPtr hWnd, string text);
+
+            [DllImport("user32.dll", EntryPoint = "FindWindowEx")]
+            private static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+            [DllImport("User32.dll", EntryPoint = "SendMessage")]
+            private static extern int SendMessage(IntPtr hWnd, int uMsg, int wParam, string lParam);
 
             public static bool Is64Bits_byApi()
             {                
@@ -94,6 +103,25 @@ namespace OpenJigWare
                 if (bRunning == true)
                 {
 
+                }
+            }
+
+            // 출처 : http://stackoverflow.com/questions/7613576/how-to-open-text-in-notepad-from-net
+            public static void SendText_To_Program(string strProgram, string strText = null, string strTitle = null)
+            {
+                Process Pcs = Process.Start(new ProcessStartInfo(strProgram));
+                if (Pcs != null)
+                {
+                    Pcs.WaitForInputIdle();
+
+                    if (!string.IsNullOrEmpty(strTitle))
+                        SetWindowText(Pcs.MainWindowHandle, strTitle);
+
+                    if (!string.IsNullOrEmpty(strText))
+                    {
+                        IntPtr child = FindWindowEx(Pcs.MainWindowHandle, new IntPtr(0), "Edit", null);
+                        SendMessage(child, 0x000C, 0, strText);
+                    }
                 }
             }
         }

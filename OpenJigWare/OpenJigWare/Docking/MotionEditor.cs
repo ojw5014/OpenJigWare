@@ -458,7 +458,7 @@ namespace OpenJigWare.Docking
         }
         ////// -- treeview 탐색기 ///////
         #endregion Treeview
-
+        private float m_fScale = 1.0f;
         private int m_nLeft_Title = 0;
         private int m_nTop_Title = 0;
         private void frmMotionEditor_Load(object sender, EventArgs e)
@@ -486,7 +486,7 @@ namespace OpenJigWare.Docking
             m_C3d.Prop_Set_Main_MouseControlMode(0);
             m_C3d.GridMotionEditor_Init(dgAngle, 40, 999);
             m_C3d.GridMotionEditor_Init_Panel(pnButton);
-
+            //dgAngle.Scale(new SizeF(0.5f, 0.5f));
             m_C3d.SelectMotor_Sync_With_Mouse(true);
 
             if (m_CFile.Load(100, Application.StartupPath + _STR_FILENAME) > 0)
@@ -584,6 +584,14 @@ namespace OpenJigWare.Docking
                 }
                 if (Ojw.CConvert.StrToInt(txtPercent.Text) <= 0) txtPercent.Text = "70";
                 if (bFile == false) { txtMotionCounter.Text = "1"; }
+
+                //float fScale = 0.5f;
+                //SizeF SScale = new SizeF();
+                //SScale.Width = fScale;
+                //SScale.Height = fScale;
+                //this.Scale(SScale);
+                ////tabPage1.Scale(SScale);
+                ////dgAngle.Scale(SScale);
             }
             //if (m_C3d.FileOpen(@"16dof_ecoHead.ojw") == true) // 모델링 파일이 잘 로드 되었다면 
             //if (m_C3d.FileOpen(@"robolink-spider.ojw") == true) // 모델링 파일이 잘 로드 되었다면 
@@ -736,7 +744,7 @@ namespace OpenJigWare.Docking
             tmrDraw.Enabled = true;
             m_bTimer = false;
         }
-
+        
         private int m_nGroup, m_nMotor, m_nServeGroup;
         private int m_nKinematicsNumber;
         private bool m_bPick;
@@ -859,7 +867,9 @@ namespace OpenJigWare.Docking
             // Serial
             if (m_C3d.m_CMotor.IsConnect() == true)
                 Disconnect();
-
+            // Socket
+            if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+                m_C3d.m_CMotor2.Close_Socket();
             m_nSeq_ProgEnd = 2;
             return true;
         }
@@ -1002,7 +1012,7 @@ namespace OpenJigWare.Docking
         private bool m_bEms = false; // 비상정지 용, 아직 사용 안함
         private bool m_bMotionEnd = false;
 
-        private Thread m_thRun;
+        //private Thread m_thRun;
         private void btnRun_Click(object sender, EventArgs e)
         {
             //btnRun.Enabled = false;
@@ -1038,7 +1048,7 @@ namespace OpenJigWare.Docking
         }
         private void StartMotion()
         {
-
+            bool bSock = m_C3d.m_CMotor2.IsOpen_Socket();
             if (m_bStart == true)
             {
                 lbMotion_Message.Text = "Motion Running...";//Motion 운전 중입니다.";
@@ -1082,7 +1092,7 @@ namespace OpenJigWare.Docking
             //    //}
             //}
 
-            if (m_C3d.m_CMotor.IsEms() == true)
+            if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor2.IsEms() == true))
             {
                 lbMotion_Message.Text = "Check you Emergency Status";//비상정지 알람이 켜져 있습니다.";
                 Ojw.CMessage.Write(lbMotion_Message.Text);
@@ -1090,9 +1100,9 @@ namespace OpenJigWare.Docking
             }
             if (m_C3d.GetSimulation_With_PlayFrame() == false)
             {
-                if (m_C3d.m_CMotor.IsConnect() == false)// && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false))
+                if ((m_C3d.m_CMotor.IsConnect() == false) && (bSock == false))// && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false))
                 {
-                    lbMotion_Message.Text = "Serial Port Error - Not Connected.";
+                    lbMotion_Message.Text = "Serial Port & Socket Error - Not Connected.";
                     Ojw.CMessage.Write(lbMotion_Message.Text);
                     return;
                 }
@@ -1145,6 +1155,7 @@ namespace OpenJigWare.Docking
 
             m_bMotionEnd = false;
             m_C3d.m_CMotor.ResetStop();
+            if (bSock == true) m_C3d.m_CMotor2.Reset();
             //if (CheckWifi() == true)
             //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_reset_stop();
 
@@ -1169,19 +1180,24 @@ namespace OpenJigWare.Docking
                 Ojw.CTimer.Wait(Ojw.CConvert.StrToLong(txtMp3TimeDelay.Text));
             }
 
-            m_C3d.m_CMotor.ResetStop();
+            //m_C3d.m_CMotor.ResetStop();
             // Servo / Driver On
             m_C3d.m_CMotor.DrvSrv(true, true);
+            if (bSock == true) m_C3d.m_CMotor2.SetTorque(true, true);
             int nStep = m_nMotion_Step;
             m_nLoop = 0;
             while (
                     ((nLimitCount <= 0) || (nLimitCount > nCnt)) &&
                     ((m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false)) &&
+                    ((m_C3d.m_CMotor2.IsEms() == false) && (m_C3d.m_CMotor2.IsStop() == false)) &&
                     //((frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_stop() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == false)) &&
                      (m_bMotionEnd == false)
                     )
             {
-                if ((m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false))
+                if (
+                    (m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false) &&
+                    (m_C3d.m_CMotor2.IsEms() == false) && (m_C3d.m_CMotor2.IsStop() == false)
+                    )
                 {
                     // 카운터 디스플레이
                     nCnt++;
@@ -1218,11 +1234,11 @@ namespace OpenJigWare.Docking
 
             //// Motion End ////
             #region 종료처리
-            if (m_C3d.m_CMotor.IsEms() == true)
+            if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor2.IsEms() == true))
             {
                 lbMotion_Status.Text = "비상정지";
             }
-            else if (m_C3d.m_CMotor.IsStop() == true)
+            else if ((m_C3d.m_CMotor.IsStop() == true) || (m_C3d.m_CMotor2.IsStop() == true))
             {
                 strMessage = "Motion Stop";
                 lbMotion_Status.Text = "일시정지";
@@ -1342,9 +1358,10 @@ namespace OpenJigWare.Docking
 #if false
                                     (m_C3d.m_CMotor.IsConnect() == false) ||
 #else
-                                    ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false)) ||
+                                    ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false) && (m_C3d.m_CMotor2.IsOpen_Socket() == false)) ||
 #endif
                                     ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) ||
+                                    ((m_C3d.m_CMotor2.IsEms() == true) || (m_C3d.m_CMotor2.IsStop() == true)) ||
                                     (m_bStart == false)
                                     )
                                     return (temp_Line - 1);
@@ -1362,11 +1379,12 @@ namespace OpenJigWare.Docking
 #if false
                     (m_C3d.m_CMotor.IsConnect() == false) ||
 #else
-                    ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false)) ||
+                    ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false) && (m_C3d.m_CMotor2.IsOpen_Socket() == false)) ||
 #endif
                     //((m_C3d.m_CMotor.IsConnect() == false) && (frmMain.m_aDrSock[m_nCurrentRobot].drsock_client_connected() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false)) ||
                     //((frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_stop() == true) || (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == true)) ||
                     ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) ||
+                    ((m_C3d.m_CMotor2.IsEms() == true) || (m_C3d.m_CMotor2.IsStop() == true)) ||
                     (m_bStart == false)
                     )
                     return (temp_Line - 1);
@@ -1424,6 +1442,7 @@ namespace OpenJigWare.Docking
             
             if (m_bMp3Play == true) Mp3Stop();
             m_C3d.m_CMotor.Stop();
+            if (m_C3d.m_CMotor2.IsOpen_Socket() == true) m_C3d.m_CMotor2.Stop();
             m_C3d.WaitAction_KillTimer();
             m_bMotionEnd = true;
             Ojw.CTimer.Stop();
@@ -1735,11 +1754,12 @@ namespace OpenJigWare.Docking
             {
                 btnConnect_Serial.Text = "Disconnect";
                 Ojw.CMessage.Write("Connected");
-
+                btnConnect.Enabled = false;
             }
             else
             {
                 m_C3d.m_CMotor.DisConnect();
+                btnConnect.Enabled = true;
                 btnConnect_Serial.Text = "Connect";
                 Ojw.CMessage.Write_Error("Connect Fail -> Check your COMPORT first");
 
@@ -1750,6 +1770,7 @@ namespace OpenJigWare.Docking
         public void Disconnect()
         {
             m_C3d.m_CMotor.DisConnect();
+            btnConnect.Enabled = true;
 
             btnConnect_Serial.Text = "Connect";
             Ojw.CMessage.Write("Disconnected");
@@ -1955,6 +1976,10 @@ namespace OpenJigWare.Docking
             m_C3d.m_CMotor.ResetEms();
             m_C3d.m_CMotor.ResetStop();
             m_C3d.m_CMotor.Reset();
+            if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+            {
+                m_C3d.m_CMotor2.Reset();
+            }
         }
 
         private void btnMotionEnd_Click(object sender, EventArgs e)
@@ -1967,6 +1992,7 @@ namespace OpenJigWare.Docking
             Stop();
             //if (m_bMp3Play == true) Mp3Stop();
             m_C3d.m_CMotor.Ems();
+            m_C3d.m_CMotor2.Ems();
         }
         private void btnEms_Click(object sender, EventArgs e)
         {
@@ -2015,7 +2041,12 @@ namespace OpenJigWare.Docking
         private void btnTextSave_Click(object sender, EventArgs e)
         {
             //int nVer = ((chkFileVersionForSave.Checked == true) ? _V_11 : ((chkFileVersionForSave_1_0.Checked == true) ? _V_10 : _V_12));
-            m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), false);
+            if (chkRmt.Checked == true)
+            {
+                m_C3d.RmtFileSave(GetMotionFileName(txtFileName.Text));//, false);
+            }
+            else
+                m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), false);
             m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             m_CTmr_Save.Set();            
         }
@@ -2060,9 +2091,10 @@ namespace OpenJigWare.Docking
             }
             m_C3d.m_CGridMotionEditor.SetSelectedGroup(0);
             OpenFileDialog ofdMotion = new OpenFileDialog();
-            ofdMotion.FileName = "*.dmt";
-            ofdMotion.Filter = "모션 파일(*.dmt)|*.dmt";
-            ofdMotion.DefaultExt = "dmt";
+            string strExe = (chkRmt.Checked == true) ? "rmt" : "dmt";
+            ofdMotion.FileName = "*." + strExe;
+            ofdMotion.Filter = string.Format("모션 파일(*.{0})|*.{0}", strExe);
+            ofdMotion.DefaultExt = strExe;// "dmt";
             SetDirectory(ofdMotion, m_strWorkDirectory_Dmt);
             if (ofdMotion.ShowDialog() == DialogResult.OK)
             {
@@ -2072,18 +2104,44 @@ namespace OpenJigWare.Docking
                 if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
 
                 txtFileName.Text = fileName;
-                if (m_C3d.DataFileOpen(fileName, null) == false)
+
+
+                if (chkRmt.Checked == true)
                 {
-                    MessageBox.Show(ofdMotion.DefaultExt.ToUpper() + " 모션 파일이 아닙니다.");
+                    //TextBox txtFile = new TextBox();
+                    //Ojw.CFile.Read(fileName, txtFile);
+                    //MessageBox.Show(txtFile.Text);
+
+                    if (m_C3d.RmtFileOpen(fileName) == false)
+                    {
+                        MessageBox.Show(ofdMotion.DefaultExt.ToUpper() + " 모션 파일이 아닙니다.");
+                    }
+                    else
+                    {
+                        Modify(false);
+                        Grid_DisplayTime();
+
+                        txtTableName.Text = m_C3d.GetMotionFile_Title();
+                        txtComment.Text = m_C3d.GetMotionFile_Comment();
+                        cmbStartPosition.SelectedIndex = m_C3d.GetMotionFile_StartPosition();
+                    }
                 }
                 else
                 {
-                    Modify(false);
-                    Grid_DisplayTime();
 
-                    txtTableName.Text = m_C3d.GetMotionFile_Title();
-                    txtComment.Text = m_C3d.GetMotionFile_Comment();
-                    cmbStartPosition.SelectedIndex = m_C3d.GetMotionFile_StartPosition();
+                    if (m_C3d.DataFileOpen(fileName, null) == false)
+                    {
+                        MessageBox.Show(ofdMotion.DefaultExt.ToUpper() + " 모션 파일이 아닙니다.");
+                    }
+                    else
+                    {
+                        Modify(false);
+                        Grid_DisplayTime();
+
+                        txtTableName.Text = m_C3d.GetMotionFile_Title();
+                        txtComment.Text = m_C3d.GetMotionFile_Comment();
+                        cmbStartPosition.SelectedIndex = m_C3d.GetMotionFile_StartPosition();
+                    }
                 }
             }
 
@@ -2099,7 +2157,12 @@ namespace OpenJigWare.Docking
 
         private void btnBinarySave_Click(object sender, EventArgs e)
         {
-            m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), true);
+            if (chkRmt.Checked == true)
+            {
+                m_C3d.RmtFileSave(GetMotionFileName(txtFileName.Text));//, true);
+            }
+            else
+                m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), true);
             m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             m_CTmr_Save.Set(); 
         }
@@ -2133,6 +2196,20 @@ namespace OpenJigWare.Docking
                     m_C3d.m_CMotor.SetMot(1000);
                 }
             }
+            else if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+            {
+                dlgRet = MessageBox.Show("Do you want to Move your InitPos?", "Move Init(Default) Motion", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dlgRet != DialogResult.OK)
+                {
+                }
+                else
+                {
+                    m_C3d.m_CMotor2.Reset();
+                    m_C3d.m_CMotor2.SetTorque(true, true);
+                    for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) { m_C3d.m_CMotor2.Set_Angle(i, m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle); }
+                    m_C3d.m_CMotor2.Send_Motor(1000);
+                }
+            }
         }
 
         private void btnInitpos2_Click(object sender, EventArgs e)
@@ -2162,6 +2239,20 @@ namespace OpenJigWare.Docking
                     m_C3d.m_CMotor.DrvSrv(true, true);
                     for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) { m_C3d.m_CMotor.SetCmd_Angle(i, m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle2); }
                     m_C3d.m_CMotor.SetMot(1000);
+                }
+            }
+            else if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+            {
+                dlgRet = MessageBox.Show("Do you want to Move your InitPos?", "Move Init(second) Motion", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dlgRet != DialogResult.OK)
+                {
+                }
+                else
+                {
+                    m_C3d.m_CMotor2.Reset();
+                    m_C3d.m_CMotor2.SetTorque(true, true);
+                    for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) { m_C3d.m_CMotor2.Set_Angle(i, m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle2); }
+                    m_C3d.m_CMotor2.Send_Motor(1000);
                 }
             }
         }
@@ -3906,7 +3997,7 @@ namespace OpenJigWare.Docking
                 strVersion += (char)((nTmp & 0xFF00) >> 8);
 		        //cVersion[6] = '\0';
 
-                //strVersion.sprintf("%s", cVersion);
+                //strVersion.sOjw.CMessage.Write("%s", cVersion);
                 if (strVersion == "DMT1.0")
                 {
                     nFlashTableNameIdx = _FLASH_MTN_DMT10_HEADER_TABLE_NAME_IDX;
@@ -4454,6 +4545,13 @@ namespace OpenJigWare.Docking
             }
             return bRet;
         }
+        private void SendPacket(byte[] pbyteData)
+        {
+            //if (m_CSock.IsConnect() == true) 
+            //    m_CSock.Send(pbyteData);
+            //else 
+                m_CSerial.SendPacket(pbyteData);
+        }
         private bool SendPacket_And_Wait(byte byteData)
         {
             if (m_CSerial.IsConnect() == false) return false;
@@ -4461,7 +4559,8 @@ namespace OpenJigWare.Docking
             Ojw.CTimer CTmr = new Ojw.CTimer();
             byte[] pbyteData = new byte[1];
             pbyteData[0] = byteData;
-            m_CSerial.SendPacket(pbyteData);
+            //m_CSerial.SendPacket(pbyteData);
+            SendPacket(pbyteData);
             CTmr.Set();
             while (CTmr.Get() < 1000)
             {
@@ -4475,7 +4574,8 @@ namespace OpenJigWare.Docking
             if (m_CSerial.IsConnect() == false) return false;
             bool bRet = false;
             Ojw.CTimer CTmr = new Ojw.CTimer();
-            m_CSerial.SendPacket(pbyteData);
+            //m_CSerial.SendPacket(pbyteData);
+            SendPacket(pbyteData);
             CTmr.Set();
             while (CTmr.Get() < 1000)
             {
@@ -4893,6 +4993,97 @@ namespace OpenJigWare.Docking
             //int nCol = m_C3d.m_CGridMotionEditor.m_nCurrntColumn;
             //int nLine = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
             //m_C3d.Grid_SetFlag_En(nLine, nCol + 1, b
+        }
+
+        private void txtTableName_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+        //// CHerkuleX2 변수에 소켓 몰아주기... 라즈베리처럼
+        //Ojw.CSocket m_CSock = new Ojw.CSocket();
+        //private Ojw.CHerkulex2 m_CMotor2 = new Ojw.CHerkulex2();
+        private void btnConnect_Click(object sender, EventArgs e)
+        {
+            bool bClose = false;
+            if (m_C3d.m_CMotor2.IsOpen_Socket() == false)
+            {
+                m_C3d.m_CMotor2.Open_Socket(txtIp.Text, 5002);
+            }
+            else
+            {
+                bClose = true;
+                m_C3d.m_CMotor2.Close_Socket();
+            }
+
+            if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+            {
+                btnConnect_Serial.Enabled = false;
+                //m_lstReceive.Clear();
+                Ojw.CMessage.Write("Connected {0}(TCP)");
+                btnConnect.Text = "DisConnect(Tcp)";
+                //m_CSock.RunThread(FReceive_TCP);
+            }
+            else
+            {
+                btnConnect_Serial.Enabled = true;
+                btnConnect.Text = "Connect(Tcp)";
+                if (bClose)
+                    Ojw.CMessage.Write("Disconnected {0}(TCP)");
+                else
+                    Ojw.CMessage.Write_Error("Cannot connect{0}(TCP)");
+            }
+        }
+
+        private void txtPort_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txtIp_Click(object sender, EventArgs e)
+        {
+            txtIp.Enabled = true;
+            txtPort.Enabled = false;
+            
+            //bool bClose = false;
+            //if (m_CSock0.IsConnect() == false)
+            //{
+            //    m_CSock0.Connect(txtTcp_Ip0.Text, Ojw.CConvert.StrToInt(txtTcp_Port0.Text));
+            //}
+            //else
+            //{
+            //    bClose = true;
+            //    m_CSock0.DisConnect();
+            //}
+
+            //if (m_CSock0.IsConnect() == true)
+            //{
+            //    m_lstReceive.Clear();
+            //    Ojw.CMessage.Write("Connected {0}(TCP)");
+            //    btnConnect_Tcp0.Text = "DisConnect";
+            //    m_CSock0.RunThread(FReceive_TCP);
+            //}
+            //else
+            //{
+            //    btnConnect_Tcp0.Text = "Connect";
+            //    if (bClose)
+            //        Ojw.CMessage.Write("Disconnected {0}(TCP)");
+            //    else
+            //        Ojw.CMessage.Write_Error("Cannot connect{0}(TCP)");
+            //}
+            
+        }
+
+        private void chkRmt_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkRmt.Checked == true)
+            {
+                byte[] pBuff = new byte[256];
+                pBuff[0] = 0xf1;
+                m_C3d.m_CMotor.SendPacket(pBuff, 1);
+                Ojw.CTimer.Wait(100);
+                pBuff[0] = 0xf0;
+                m_C3d.m_CMotor.SendPacket(pBuff, 1);
+            }
         }
 #else
         private void btnDownload_Click(object sender, EventArgs e)

@@ -71,8 +71,29 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "01.02.03";
+        public const string strVersion = "02.00.00";
         public const string strHistory = (String)(
+
+                "[V02.00.00]\r\n" +
+                "개발자대회 응시 최종\r\n" +
+                " - 칼만필터 알고리즘 추가(장동준 주임연구원 LG)\r\n" +
+                "========================================\r\n" + // Released
+                "[V01.02.05]\r\n" +
+                "IronPython import 기능 강화\r\n" +
+                "RmtFileOpen(), RmtFileSave() 함수 추가 - 로보링크 모션 파일포맷\r\n" +
+                "========================================\r\n" + // NoReleased
+
+                "[V01.02.04]\r\n" +
+                "CTools_MouseDoubleClick() 내의 더블클릭시 모델링 확대/축소 시 축소가 안되는 문제 해결\\r\n" +
+                "IronPython 을 이용한 Inverse Kinematics 수식 기능 추가\r\n" +
+                "socket(server,client) 기능 강화 - stringpacket 기능도 추가\r\n" +
+                "CHerkulex2 class 추가\r\n" +  
+                "CConvert 에 IsValidAlpha() 함수 추가 - 유효한 문자테이블인지 검사\r\n" +
+                "GetSerialPort 함수 수정. 시리얼 포트 검색조건 변경\r\n" + 
+                "MotionTool Scale 수정 중...\r\n" +
+                "조이스틱 데이타 예제 Tool 에 작성\r\n" +
+                "========================================\r\n" + // NoReleased
+                
                 "[V01.02.03]\r\n" +
                 "COjw_26_Streaming.cs 추가(AForge.Controls.dll, AForge.Video.DirectShow.dll, AForge.Video.dll 파일 추가)\r\n" + 
                 "Joystick 의 GetPos() 함수 추가 - XBox 에 특화된 데이타를 정상화\r\n" +
@@ -404,8 +425,10 @@ namespace OpenJigWare
             public void ShowTools(float fScale)
             {
                 m_frmMotion.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-                m_frmMotion.Show();
                 m_frmMotion.Scale(new SizeF(fScale, fScale));
+                //GetC3d().m_CGridMotionEditor.GetHandle().Scale(new SizeF(fScale, fScale));
+
+                m_frmMotion.Show();
             }
             public void SetUserButton(Docking.frmMotionEditor.UserFunction FUser) { m_frmMotion.SetUserButton(FUser); }
             public void SetIcon(Icon UserIcon) { m_frmMotion.Icon = UserIcon; }
@@ -1355,8 +1378,8 @@ namespace OpenJigWare
                 ///////////////////////////////////
                 m_nSize_W = (int)Math.Round(_SIZE_W * fScale);// frmTool_Designer.Width;
                 m_nSize_H = (int)Math.Round(_SIZE_H * fScale);// frmTool_Designer.Height;
-                m_nDrawWidth = (int)Math.Round(m_nSize_DRAW_W * fScale);// m_pnDrawModel.Width;
-                m_nDrawHeight = (int)Math.Round(m_nSize_DRAW_H * fScale);//m_pnDrawModel.Height;
+                m_nDrawWidth = (int)Math.Round(m_nSize_DRAW_W * fScale2);// m_pnDrawModel.Width;
+                m_nDrawHeight = (int)Math.Round(m_nSize_DRAW_H * fScale2);//m_pnDrawModel.Height;
 
                 m_pntPos_TabParam.X = m_tbCtrl.Left;
                 m_pntPos_TabParam.Y = m_tbCtrl.Top;
@@ -2365,12 +2388,16 @@ namespace OpenJigWare
                 if (m_bExpand == true)
                 {
                     m_bExpand = false;
-                    m_pnDrawModel.Size = new Size(m_nDrawWidth, m_nDrawHeight);                    
+                    m_pnDrawModel.Size = new Size(m_nDrawWidth, m_nDrawHeight);
+                    //m_pnDrawModel.Size = new Size((int)Math.Round(_SIZE_W * m_fFormScale), (int)Math.Round(_SIZE_H * m_fFormScale));               
                 }
                 else
                 {
                     m_bExpand = true;
                     m_pnDrawModel.Size = new Size((int)Math.Round(_SIZE_W * m_fFormScale), (int)Math.Round(_SIZE_H * m_fFormScale));
+
+
+                    //frmTool_Designer.Size = new Size((int)Math.Round((float)_SIZE_W * fScale2) + 10, (int)Math.Round((float)_SIZE_H * fScale2) + 10);
 
                     //m_nSize_W = (int)Math.Round(_SIZE_W * fScale);// frmTool_Designer.Width;
                     //m_nSize_H = (int)Math.Round(_SIZE_H * fScale);// frmTool_Designer.Height;

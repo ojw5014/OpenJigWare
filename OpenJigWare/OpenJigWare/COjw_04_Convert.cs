@@ -11,6 +11,7 @@ namespace OpenJigWare
     {
         public class CConvert
         {
+            public static bool IsValidAlpha(byte byData) { return (((char)(byData) < (char)(' ')) || (byData >= 127)) ?false : true; }
             // Check Numeric or ...
             public static bool IsDigit(char cValue) { if (!Char.IsNumber(cValue)) return false; else return true; }
             public static bool IsDigit(string strValue)

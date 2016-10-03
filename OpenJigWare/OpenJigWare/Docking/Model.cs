@@ -524,5 +524,22 @@ namespace OpenJigWare.Docking
                 }
             }            
         }
+
+        private void btnMakeDat_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd3d = new OpenFileDialog();
+            ofd3d.Filter = "3d Files(*.stl,*.ase,*.obj,*.dat)|*.stl;*.ase;*.obj;*.dat";
+            //ofd3d.DefaultExt = "mp3";
+            ofd3d.InitialDirectory = Application.StartupPath + m_C3d.GetAseFile_Path();
+            if (ofd3d.ShowDialog() == DialogResult.OK)
+            {
+                String fileName = ofd3d.FileName;
+
+                if (fileName.ToLower().IndexOf(".stl") > 0) // 파일명 없이 확장자만 있는것도 에러
+                {
+                    m_C3d.OjwFileConvert_STL_to_Dat(fileName);
+                }
+            }      
+        }
     }
 }

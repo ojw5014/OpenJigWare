@@ -5,6 +5,24 @@ using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
 
+// 참고소스 : http://www.secretgeek.net/host_ironpython
+// IronPython.dll, IronPython.Modules.dll, Microsoft.Scripting.dll 을 참조해야 함.
+using IronPython.Hosting;
+using IronPython.Modules;
+
+using Microsoft.Scripting;
+using Microsoft.Scripting.Hosting;
+//using Microsoft.Scripting
+
+using Microsoft.Scripting.Math;
+using Microsoft.Scripting.Runtime;
+//using IronPython.Runtime;
+//using IronPython.Runtime.Operations;
+//using IronPython.Runtime.Types;
+//using System.Collections;
+
+//using OjwPythonModules;
+
 namespace OpenJigWare
 {
     partial class Ojw
@@ -704,7 +722,635 @@ namespace OpenJigWare
                 #endregion Math - 행렬연산, DH T 함수 만들기 함수
 #endif
             }
+#if false
+            public class CPythonMath
+            {
 
+
+
+/* ****************************************************************************
+*
+* Copyright (c) Microsoft Corporation. 
+*
+* This source code is subject to terms and conditions of the Microsoft Public License. A 
+* copy of the license can be found in the License.html file at the root of this distribution. If 
+* you cannot locate the  Microsoft Public License, please send an email to 
+* ironpy@microsoft.com. By using this source code in any fashion, you are agreeing to be bound 
+* by the terms of the Microsoft Public License.
+*
+* You must not remove this notice, or any other, from this software.
+*
+*
+* ***************************************************************************/
+
+[assembly: PythonModule("math", typeof(IronPython.Modules.PythonMath))]
+namespace IronPython.Modules {
+public static partial class PythonMath {
+public const string __doc__ = "Provides common mathematical functions.";
+
+public const double pi = Math.PI;
+public const double e = Math.E;
+
+private const double degreesToRadians = Math.PI / 180.0;
+private const int Bias = 0x3FE;
+
+public static double degrees(double radians) {
+    return Check(radians, radians / degreesToRadians);
+}
+
+public static double radians(double degrees) {
+    return Check(degrees, degrees * degreesToRadians);
+}
+
+public static double fmod(double v, double w) {
+    return Check(v, w, v % w);
+}
+
+public static double fsum(IEnumerable e) {
+    IEnumerator en = e.GetEnumerator();
+    double value = 0.0;
+    while (en.MoveNext()) {
+        value += Converter.ConvertToDouble(en.Current);
+    }
+    return value;
+}
+
+public static PythonTuple frexp(double v) {
+    if (Double.IsInfinity(v) || Double.IsNaN(v)) {
+        return PythonTuple.MakeTuple(v, 0.0);
+    }
+    int exponent = 0;
+    double mantissa = 0;
+
+    if (v == 0) {
+        mantissa = 0;
+        exponent = 0;
+    } 
+    else {
+        byte[] vb = BitConverter.GetBytes(v);
+        if (BitConverter.IsLittleEndian) {
+            DecomposeLe(vb, out mantissa, out exponent);
+        } else {
+            throw new NotImplementedException();
+        }
+    }
+
+    return PythonTuple.MakeTuple(mantissa, exponent);
+}
+
+public static PythonTuple modf(double v) {
+    if (double.IsInfinity(v)) {
+        return PythonTuple.MakeTuple(0.0, v);
+    }
+    double w = v % 1.0;
+    v -= w;
+    return PythonTuple.MakeTuple(w, v);
+}
+
+public static double ldexp(double v, BigInteger w) {
+    if (v == 0.0 || double.IsInfinity(v)) {
+        return v;
+    }
+    return Check(v, v * Math.Pow(2.0, w));
+}
+
+public static double hypot(double v, double w) {
+00098             if (double.IsInfinity(v) || double.IsInfinity(w)) {
+00099                 return double.PositiveInfinity;
+00100             }
+00101             return Check(v, w, Complex64.Hypot(v, w));
+00102         }
+00103 
+00104         public static double pow(double v, double exp) {
+00105             if (v == 1.0 || exp == 0.0) {
+00106                 return 1.0;
+00107             } else if (double.IsNaN(v) || double.IsNaN(exp)) {
+00108                 return double.NaN;
+00109             } else if (v == 0.0) {
+00110                 if (exp > 0.0) {
+00111                     return 0.0;
+00112                 }
+00113                 throw PythonOps.ValueError("math domain error");
+00114             } else if (double.IsPositiveInfinity(exp)) {
+00115                 if (v > 1.0 || v < -1.0) {
+00116                     return double.PositiveInfinity;
+00117                 } else if (v == -1.0) {
+00118                     return 1.0;
+00119                 } else {
+00120                     return 0.0;
+00121                 }
+00122             } else if (double.IsNegativeInfinity(exp)) {
+00123                 if (v > 1.0 || v < -1.0) {
+00124                     return 0.0;
+00125                 } else if (v == -1.0) {
+00126                     return 1.0;
+00127                 } else {
+00128                     return double.PositiveInfinity;
+00129                 }
+00130             }
+00131             return Check(v, exp, Math.Pow(v, exp));
+00132         }
+00133 
+00134         public static double log(double v0) {
+00135             if (v0 <= 0.0) {
+00136                 throw PythonOps.ValueError("math domain error");
+00137             }
+00138             return Check(v0, Math.Log(v0));
+00139         }
+00140 
+00141         public static double log(double v0, double v1) {
+00142             if (v0 <= 0.0 || v1 == 0.0) {
+00143                 throw PythonOps.ValueError("math domain error");
+00144             } else if (v1 == 1.0) {
+00145                 throw PythonOps.ZeroDivisionError("float division");
+00146             } else if (v1 == Double.PositiveInfinity) {
+00147                 return 0.0;
+00148             }
+00149             return Check(Math.Log(v0, v1));
+00150         }
+00151 
+00152         public static double log(BigInteger value) {
+00153             return Check(value.Log());
+00154         }
+00155 
+00156         public static double log(object value) {
+00157             // CPython tries float first, then double, so we need
+00158             // an explicit overload which properly matches the order here
+00159             double val;
+00160             if (Converter.TryConvertToDouble(value, out val)) {
+00161                 return log(val);
+00162             } else {
+00163                 return log(Converter.ConvertToBigInteger(value));
+00164             }
+00165         }
+00166 
+00167         public static double log(BigInteger value, double newBase) {
+00168             if (newBase <= 0.0 || value <= 0) {
+00169                 throw PythonOps.ValueError("math domain error");
+00170             } else if (newBase == 1.0) {
+00171                 throw PythonOps.ZeroDivisionError("float division");
+00172             } else if (newBase == Double.PositiveInfinity) {
+00173                 return 0.0;
+00174             }
+00175             return Check(value.Log(newBase));
+00176         }
+00177 
+00178         public static double log(object value, double newBase) {
+00179             // CPython tries float first, then double, so we need
+00180             // an explicit overload which properly matches the order here
+00181             double val;
+00182             if (Converter.TryConvertToDouble(value, out val)) {
+00183                 return log(val, newBase);
+00184             } else {
+00185                 return log(Converter.ConvertToBigInteger(value), newBase);
+00186             }
+00187         }
+00188 
+00189         public static double log10(double v0) {
+00190             if (v0 <= 0.0) {
+00191                 throw PythonOps.ValueError("math domain error");
+00192             }
+00193             return Check(v0, Math.Log10(v0));
+00194         }
+00195 
+00196         public static double log10(BigInteger value) {
+00197             return Check(value.Log10());
+00198         }
+00199 
+00200         public static double log10(object value) {
+00201             // CPython tries float first, then double, so we need
+00202             // an explicit overload which properly matches the order here
+00203             double val;
+00204             if (Converter.TryConvertToDouble(value, out val)) {
+00205                 return log10(val);
+00206             } else {
+00207                 return log10(Converter.ConvertToBigInteger(value));
+00208             }
+00209         }
+00210 
+00211         public static double log1p(double v0) {
+00212             return log(v0 + 1.0);
+00213         }
+00214 
+00215         public static double log1p(BigInteger value) {
+00216             return log(value + (BigInteger)1);
+00217         }
+00218 
+00219         public static double log1p(object value) {
+00220             // CPython tries float first, then double, so we need
+00221             // an explicit overload which properly matches the order here
+00222             double val;
+00223             if (Converter.TryConvertToDouble(value, out val)) {
+00224                 return log(val + 1.0);
+00225             } else {
+00226                 return log(Converter.ConvertToBigInteger(value) + (BigInteger)1);
+00227             }
+00228         }
+00229 
+00230         public static double asinh(double v0) {
+00231             if (v0 == 0.0 || double.IsInfinity(v0)) {
+00232                 return v0;
+00233             }
+00234             // rewrote ln(v0 + sqrt(v0**2 + 1)) for precision
+00235             if (Math.Abs(v0) > 1.0) {
+00236                 return Math.Log(v0) + Math.Log(1.0 + Complex64.Hypot(1.0, 1.0 / v0));
+00237             } else {
+00238                 return Math.Log(v0 + Complex64.Hypot(1.0, v0));
+00239             }
+00240         }
+00241 
+00242         public static double asinh(BigInteger value) {
+00243             if (value == 0) {
+00244                 return 0;
+00245             }
+00246             // rewrote ln(v0 + sqrt(v0**2 + 1)) for precision
+00247             if (value.Abs() > 1) {
+00248                 return value.Log() + Math.Log(1.0 + Complex64.Hypot(1.0, 1.0 / value));
+00249             } else {
+00250                 return Math.Log(value + Complex64.Hypot(1.0, value));
+00251             }
+00252         }
+00253 
+00254         public static double asinh(object value) {
+00255             // CPython tries float first, then double, so we need
+00256             // an explicit overload which properly matches the order here
+00257             double val;
+00258             if (Converter.TryConvertToDouble(value, out val)) {
+00259                 return asinh(val);
+00260             } else {
+00261                 return asinh(Converter.ConvertToBigInteger(value));
+00262             }
+00263         }
+00264 
+00265         public static double acosh(double v0) {
+00266             if (v0 < 1.0) {
+00267                 throw PythonOps.ValueError("math domain error");
+00268             } else if (double.IsPositiveInfinity(v0)) {
+00269                 return double.PositiveInfinity;
+00270             }
+00271             // rewrote ln(v0 + sqrt(v0**2 - 1)) for precision
+00272             double c = Math.Sqrt(v0 + 1.0);
+00273             return Math.Log(c) + Math.Log(v0 / c + Math.Sqrt(v0 - 1.0));
+00274         }
+00275 
+00276         public static double acosh(BigInteger value) {
+00277             if (value <= 0) {
+00278                 throw PythonOps.ValueError("math domain error");
+00279             }
+00280             // rewrote ln(v0 + sqrt(v0**2 - 1)) for precision
+00281             double c = Math.Sqrt(value + (BigInteger)1);
+00282             return Math.Log(c) + Math.Log(value / c + Math.Sqrt(value - (BigInteger)1));
+00283         }
+00284 
+00285         public static double acosh(object value) {
+00286             // CPython tries float first, then double, so we need
+00287             // an explicit overload which properly matches the order here
+00288             double val;
+00289             if (Converter.TryConvertToDouble(value, out val)) {
+00290                 return acosh(val);
+00291             } else {
+00292                 return acosh(Converter.ConvertToBigInteger(value));
+00293             }
+00294         }
+00295 
+00296         public static double atanh(double v0) {
+00297             if (v0 >= 1.0 || v0 <= -1.0) {
+00298                 throw PythonOps.ValueError("math domain error");
+00299             } else if (v0 == 0.0) {
+00300                 // preserve +/-0.0
+00301                 return v0;
+00302             }
+00303 
+00304             return Math.Log((1.0 + v0) / (1.0 - v0)) * 0.5;
+00305         }
+00306 
+00307         public static double atanh(BigInteger value) {
+00308             if (value == 0) {
+00309                 return 0;
+00310             } else {
+00311                 throw PythonOps.ValueError("math domain error");
+00312             }
+00313         }
+00314 
+00315         public static double atanh(object value) {
+00316             // CPython tries float first, then double, so we need
+00317             // an explicit overload which properly matches the order here
+00318             double val;
+00319             if (Converter.TryConvertToDouble(value, out val)) {
+00320                 return atanh(val);
+00321             } else {
+00322                 return atanh(Converter.ConvertToBigInteger(value));
+00323             }
+00324         }
+00325 
+00326         public static double atan2(double v0, double v1) {
+00327             if (double.IsNaN(v0) || double.IsNaN(v1)) {
+00328                 return double.NaN;
+00329             } else if (double.IsInfinity(v0)) {
+00330                 if (double.IsPositiveInfinity(v1)) {
+00331                     return pi * 0.25 * Math.Sign(v0);
+00332                 } else if (double.IsNegativeInfinity(v1)) {
+00333                     return pi * 0.75 * Math.Sign(v0);
+00334                 } else {
+00335                     return pi * 0.5 * Math.Sign(v0);
+00336                 }
+00337             } else if (double.IsInfinity(v1)) {
+00338                 return v1 > 0.0 ? 0.0 : pi * DoubleOps.Sign(v0);
+00339             }
+00340             return Math.Atan2(v0, v1);
+00341         }
+00342 
+00343         public static object factorial(double v0) {
+00344             if ((BigInteger)v0 != v0) {
+00345                 throw PythonOps.ValueError("factorial() only accepts integral values");
+00346             }
+00347             if (v0 < 0.0) {
+00348                 throw PythonOps.ValueError("factorial() not defined for negative values");
+00349             }
+00350 
+00351             BigInteger val = 1;
+00352             for (BigInteger mul = (BigInteger)v0; mul > (BigInteger)1; mul -= (BigInteger)1) {
+00353                 val *= mul;
+00354             }
+00355 
+00356             if (val > SysModule.maxint) {
+00357                 return val;
+00358             }
+00359             return (int)val;
+00360         }
+00361 
+00362         public static object factorial(BigInteger value) {
+00363             if (value < 0) {
+00364                 throw PythonOps.ValueError("factorial() not defined for negative values");
+00365             }
+00366 
+00367             BigInteger val = 1;
+00368             for (BigInteger mul = value; mul > (BigInteger)1; mul -= (BigInteger)1) {
+00369                 val *= mul;
+00370             }
+00371 
+00372             if (val > SysModule.maxint) {
+00373                 return val;
+00374             }
+00375             return (int)val;
+00376         }
+00377 
+00378         public static object factorial(object value) {
+00379             // CPython tries float first, then double, so we need
+00380             // an explicit overload which properly matches the order here
+00381             double val;
+00382             if (Converter.TryConvertToDouble(value, out val)) {
+00383                 return factorial(val);
+00384             } else {
+00385                 return factorial(Converter.ConvertToBigInteger(value));
+00386             }
+00387         }
+00388 
+00389         public static object trunc(CodeContext context, object value) {
+00390             object func;
+00391             if (PythonOps.TryGetBoundAttr(value, Symbols.Truncate, out func)) {
+00392                 return PythonOps.CallWithContext(context, func);
+00393             } else {
+00394                 throw PythonOps.AttributeError("__trunc__");
+00395             }
+00396         }
+00397 
+00398         public static bool isinf(double v0) {
+00399             return double.IsInfinity(v0);
+00400         }
+00401 
+00402         public static bool isinf(BigInteger value) {
+00403             return false;
+00404         }
+00405 
+00406         public static bool isinf(object value) {
+00407             // CPython tries float first, then double, so we need
+00408             // an explicit overload which properly matches the order here
+00409             double val;
+00410             if (Converter.TryConvertToDouble(value, out val)) {
+00411                 return isinf(val);
+00412             }
+00413             return false;
+00414         }
+00415 
+00416         public static bool isnan(double v0) {
+00417             return double.IsNaN(v0);
+00418         }
+00419 
+00420         public static bool isnan(BigInteger value) {
+00421             return false;
+00422         }
+00423 
+00424         public static bool isnan(object value) {
+00425             // CPython tries float first, then double, so we need
+00426             // an explicit overload which properly matches the order here
+00427             double val;
+00428             if (Converter.TryConvertToDouble(value, out val)) {
+00429                 return isnan(val);
+00430             }
+00431             return false;
+00432         }
+00433 
+00434         public static double copysign(object x, object y) {
+00435             double val, sign;
+00436             if (!Converter.TryConvertToDouble(x, out val) ||
+00437                 !Converter.TryConvertToDouble(y, out sign)) {
+00438                 throw PythonOps.TypeError("TypeError: a float is required");
+00439             }
+00440             return DoubleOps.Sign(sign) * Math.Abs(val);
+00441         }
+00442 
+00443         private static void SetExponentLe(byte[] v, int exp) {
+00444             exp += Bias;
+00445             ushort oldExp = LdExponentLe(v);
+00446             ushort newExp = (ushort)(oldExp & 0x800f | (exp << 4));
+00447             StExponentLe(v, newExp);
+00448         }
+00449 
+00450         private static int IntExponentLe(byte[] v) {
+00451             ushort exp = LdExponentLe(v);
+00452             return ((int)((exp & 0x7FF0) >> 4) - Bias);
+00453         }
+00454 
+00455         private static ushort LdExponentLe(byte[] v) {
+00456             return (ushort)(v[6] | ((ushort)v[7] << 8));
+00457         }
+00458 
+00459         private static long LdMantissaLe(byte[] v) {
+00460             int i1 = (v[0] | (v[1] << 8) | (v[2] << 16) | (v[3] << 24));
+00461             int i2 = (v[4] | (v[5] << 8) | ((v[6] & 0xF) << 16));
+00462 
+00463             return i1 | (i2 << 32);
+00464         }
+00465 
+00466         private static void StExponentLe(byte[] v, ushort e) {
+00467             v[6] = (byte)e;
+00468             v[7] = (byte)(e >> 8);
+00469         }
+00470 
+00471         private static bool IsDenormalizedLe(byte[] v) {
+00472             ushort exp = LdExponentLe(v);
+00473             long man = LdMantissaLe(v);
+00474 
+00475             return ((exp & 0x7FF0) == 0 && (man != 0));
+00476         }
+00477 
+00478         private static void DecomposeLe(byte[] v, out double m, out int e) {
+00479             if (IsDenormalizedLe(v)) {
+00480                 throw new NotImplementedException();
+00481             } else {
+00482                 e = IntExponentLe(v);
+00483                 SetExponentLe(v, 0);
+00484                 m = BitConverter.ToDouble(v, 0);
+00485             }
+00486         }
+00487 
+00488         private static double Check(double v) {
+0489             return PythonOps.CheckMath(v);
+0490         }
+0491 
+0492         private static double Check(double input, double output) {
+0493             if (double.IsInfinity(input) && double.IsInfinity(output) ||
+0494                 double.IsNaN(input) && double.IsNaN(input)) {
+0495                 return output;
+0496             } else {
+0497                 return PythonOps.CheckMath(output);
+0498             }
+0499         }
+0500 
+0501         private static double Check(double in0, double in1, double output) {
+0502             if ((double.IsInfinity(in0) || double.IsInfinity(in1)) && double.IsInfinity(output) ||
+0503                 (double.IsNaN(in0) || double.IsNaN(in1)) && double.IsNaN(output)) {
+0504                 return output;
+0505             } else {
+506                 return PythonOps.CheckMath(output);
+0507             }
+0508         }
+0509     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            }
+#endif
+            
+            public class CPython
+            {
+                public const int _CNT_MOTOR = 1000;
+                public const int _CNT_VAR_V = 1000;
+
+                public static bool CalcCode(ref SOjwCode_t SCode, ref double x, ref double y, ref double z, ref double [] adV, ref double [] adMot, ref string strErrorMsg)
+                {
+                    if (SCode.bInit == false) return false;
+                    //if (SCode.nMotor_Max <= 0) return false;
+
+                    try
+                    {
+                        ScriptEngine engine = Python.CreateEngine();
+                        ScriptScope scope = engine.Runtime.CreateScope();
+
+
+
+                        scope.ContainsVariable("x");
+                        scope.ContainsVariable("y");
+                        scope.ContainsVariable("z");
+                        scope.SetVariable("x", x);
+                        scope.SetVariable("y", y);
+                        scope.SetVariable("z", z);
+                        int i;
+                        int nLength_v = 0;
+                        int nLength_t = 0;
+                        i = 0; foreach (double dv in SCode.pnVar_Number) { scope.ContainsVariable("v" + i.ToString()); scope.SetVariable("v" + i.ToString(), dv); i++; }
+                        nLength_v = i;
+                        i = 0; foreach (double dt in SCode.pnMotor_Number) { scope.ContainsVariable("t" + i.ToString()); scope.SetVariable("t" + i.ToString(), dt); i++; }
+                        nLength_t = i;
+
+                        int nNum = 0;
+                        for (i = 0; i < SCode.nMotor_Max; i++)
+                        {
+                            nNum = SCode.pnMotor_Number[i];
+                            scope.ContainsVariable("t" + nNum.ToString());
+                            scope.SetVariable("t" + nNum, adMot[nNum]);
+                        }
+
+                        for (i = 0; i < SCode.nVar_Max; i++)
+                        {
+                            nNum = SCode.pnVar_Number[i];
+                            scope.ContainsVariable("v" + nNum.ToString());
+                            scope.SetVariable("v" + nNum, adV[nNum]);
+                        }
+                        
+                        string code = SCode.strPython.Trim();
+                        string strTmp = "import sys\r\n";
+                        strTmp += "sys.path.append(r'";
+                        strTmp += Application.StartupPath;// +"\\lib";
+                        strTmp += "')\r\n";
+                        //string strTmp = "import System.Math as Math\r\n";// +  //"import math\r\n";// "import System.Math as math\r\n";
+                       //string strTmp = "import numerics\r\nfrom math import *\r\nfrom System import Math\r\n\r\nfrom Extreme.Mathematics.Calculus import *\r\nfrom Extreme.Mathematics import *\r\n";
+                        //strTmp += "import numerics\r\n";
+                        //strTmp += "from math import *\r\n";
+
+                        //"def Radians(val):\r\n" +
+                        //"  return val * Math.PI() / 180.0\r\n" + 
+                        //"def Degrees(val):\r\n" +
+                        //"  return val * 180.0 / Math.PI()\r\n";
+                        //ScriptSource source = engine.CreateScriptSourceFromString(code, Microsoft.Scripting.SourceCodeKind.AutoDetect);//SourceCodeKind.SingleStatement);
+                        //ScriptSource source = engine.CreateScriptSourceFromString("import math\r\n" + code, Microsoft.Scripting.SourceCodeKind.AutoDetect);//.AutoDetect);//SourceCodeKind.SingleStatement);
+                        //ScriptSource source = engine.CreateScriptSourceFromString("import System.Math as Math\r\n" + code, Microsoft.Scripting.SourceCodeKind.AutoDetect);
+                        ScriptSource source = engine.CreateScriptSourceFromString(strTmp + code, Microsoft.Scripting.SourceCodeKind.AutoDetect);
+                        //ScriptSource source = engine.CreateScriptSourceFromString("import Math\r\n" + code, Microsoft.Scripting.SourceCodeKind.AutoDetect);
+                        
+                        source.Execute(scope);
+                        dynamic dy_x = scope.GetVariable("x");
+                        dynamic dy_y = scope.GetVariable("y");
+                        dynamic dy_z = scope.GetVariable("z");
+
+                        x = (double)dy_x;
+                        y = (double)dy_y;
+                        z = (double)dy_z;
+
+
+                        for (i = 0; i < SCode.nMotor_Max; i++)
+                        {
+                            nNum = SCode.pnMotor_Number[i];
+                            adMot[nNum] = (double)scope.GetVariable("t" + nNum.ToString());
+                        }
+
+                        for (i = 0; i < SCode.nVar_Max; i++)
+                        {
+                            nNum = SCode.pnVar_Number[i];
+                            adV[nNum] = (double)scope.GetVariable("v" + nNum.ToString());
+                        }
+
+                        //Ojw.CMessage.Write("Result = x[{0}], y[{1}], z[{2}]", dy_x, dy_y, dy_z);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        //Ojw.CMessage.Write_Error("Python compile error - {0}", ex.ToString());
+                        strErrorMsg = ex.ToString();
+                        return false;
+                    }
+
+                    //return true;
+                }
+            }
+            
             // there are All compiling models (Kor: 수식구조를 컴파일 해서 바이너리 코드로 만드는 과정 전반이 여기 있다.)
             public class CInverse
             {
@@ -1812,6 +2458,10 @@ namespace OpenJigWare
                     SCode.alOperation_Cmd.Initialize();
                     SCode.adOperation_Data.Initialize();
                     SCode.bInit = true;
+                    
+                    // 20160816
+                    SCode.bPython = false;
+                    SCode.strPython = String.Empty;
 
                     SCode.nMotor_Max = 0;
                     SCode.nVar_Max = 0;
@@ -2098,6 +2748,11 @@ namespace OpenJigWare
 
                     #region Class Code structure Initialize
                     SCode.bInit = false;
+
+                    // 20160816
+                    SCode.bPython = false;
+                    SCode.strPython = String.Empty;
+
                     SCode.nCnt_Operation = 0;
                     SCode.adOperation_Data = null;
                     SCode.alOperation_Cmd = null;
@@ -2110,6 +2765,131 @@ namespace OpenJigWare
                     #endregion Class Code structure Initialize
 
                     #endregion Init
+
+                    if (strData != null)
+                    {
+                        if (strData.Length > 0)
+                        {
+                            if (strData[0] == '!')
+                            {
+                                SCode.bPython = true;
+                                SCode.strPython = strData.Substring(1);
+
+                                string strTmp = SCode.strPython.ToLower();
+                                strTmp = Ojw.CConvert.RemoveString(strTmp, "\r");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "\n", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, " ", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "=", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "+", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "-", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "*", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "/", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "%", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "sqrt", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "pow", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "sin", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "cos", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "tan", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "asin2", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "acos2", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "atan2", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "asin", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "acos", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "atan", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "=", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "(", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, ")", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "#", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "mod", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "abs", ",");
+                                string [] pstrTmp = strTmp.Split(',');
+                                // v 변수, mot 변수 체크
+                                int[] pnV = new int[1];
+                                int[] pnT = new int[1];
+                                pnV[0] = -1;
+                                pnT[0] = -1;
+                                int nCnt_V = 0;
+                                int nCnt_T = 0;
+                                foreach (string strItem in pstrTmp)
+                                {
+                                    if (String.IsNullOrEmpty(strItem) == false)
+                                    {
+                                        if (strItem.Length > 1)
+                                        {
+                                            if (strItem[0] == 'v')
+                                            {
+                                                if (Ojw.CConvert.IsDigit(strItem.Substring(1)) == true)
+                                                {
+                                                    int nTmp = Ojw.CConvert.StrToInt(strItem.Substring(1));
+                                                    bool bOk = true;
+                                                    foreach (int nV in pnV)
+                                                    {
+                                                        if (nV == nTmp)
+                                                        {
+                                                            bOk = false;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (bOk == true)
+                                                    {
+                                                        Array.Resize<int>(ref pnV, nCnt_V+1);
+                                                        pnV[nCnt_V++] = nTmp;
+                                                    }
+                                                }
+                                            }
+                                            else if (strItem[0] == 't')
+                                            {
+                                                if (Ojw.CConvert.IsDigit(strItem.Substring(1)) == true)
+                                                {
+                                                    int nTmp = Ojw.CConvert.StrToInt(strItem.Substring(1));
+                                                    bool bOk = true;
+                                                    foreach (int nT in pnT)
+                                                    {
+                                                        if (nT == nTmp)
+                                                        {
+                                                            bOk = false;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (bOk == true)
+                                                    {
+                                                        Array.Resize<int>(ref pnT, nCnt_T + 1);
+                                                        pnT[nCnt_T++] = nTmp;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                SCode.nMotor_Max = nCnt_T;
+                                SCode.pnMotor_Number = new int[((nCnt_T < 1) ? 1 : nCnt_T)];
+                                SCode.nVar_Max = nCnt_V;
+                                SCode.pnVar_Number = new int[((nCnt_V < 1) ? 1 : nCnt_V)];
+
+                                Array.Copy(pnT, SCode.pnMotor_Number, nCnt_T);
+                                Array.Copy(pnV, SCode.pnVar_Number, nCnt_V);
+
+                                SCode.bInit = true;
+
+                                pnT = null;
+                                pnV = null;
+                                return m_nErrorCode;
+                            }
+                        }
+                        else
+                        {
+                            //"There are no any letters in here"                                                                      
+                            //"수식에 사용할 문장이 없습니다."
+                            m_nErrorCode = 10;
+                            if (bOut_Message == true)
+                            {
+                                strMessage = m_pstrError[m_nErrorCode] + m_strError_Etc;
+                                m_strCompilePath += "(Error" + CConvert.IntToStr(m_nErrorCode) + ")";
+                            }
+                            return m_nErrorCode;
+                        }
+                    }
 
                     try
                     {
@@ -2367,6 +3147,30 @@ namespace OpenJigWare
                 public static double[] GetValue_V() { return m_adV; }
                 public static double[] GetValue_Motor() { return m_adMot; }
 
+                //public static bool CalcCode_Python(string strPython, ref SOjwCode_t SCode)
+                //{
+                //    if (SCode.bInit == false)
+                //    {
+                //        m_nErrorCode = 9;
+                //        m_strError_Etc += "[CalcCode]" + "Variable[SOjwCode_t] is not initialized (the first compilation required)";// "SOjwCode_t 변수가 초기화(최초컴파일 필요)되지 않았습니다.";
+                //        return false;
+                //    }
+
+                //    if (SCode.bPython == false)
+                //    {                        
+                //        m_nErrorCode = 9;
+                //        m_strError_Etc += "[CalcCode]" + "the variable(bPython) is no checked";// "Python code 로 정의 되지 않았습니다."
+                //        return false;                       
+                //    }
+                //    if (CPython.CalcCode(strPython, ref SCode, ref m_dX, ref m_dY, ref m_dZ, ref m_adV, ref m_adMot) == false)
+                //    {
+                //        m_nErrorCode = 9;
+                //        m_strError_Etc += "[CalcCode-Python] Check your Python code";
+                //        return false;
+                //    }
+
+                //    return true;
+                //}
                 public static bool CalcCode(ref SOjwCode_t SCode)
                 {
                     if (SCode.bInit == false)
@@ -2375,76 +3179,114 @@ namespace OpenJigWare
                         m_strError_Etc += "[CalcCode]" + "Variable[SOjwCode_t] is not initialized (the first compilation required)";// "SOjwCode_t 변수가 초기화(최초컴파일 필요)되지 않았습니다.";
                         return false;
                     }
-                    try
-                    {
-                        Array.Copy(m_adMot, 0, SCode.adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
-                        SCode.adOperation_Memory[_ADDRESS_X] = GetValue_X();
-                        SCode.adOperation_Memory[_ADDRESS_Y] = GetValue_Y();
-                        SCode.adOperation_Memory[_ADDRESS_Z] = GetValue_Z();
-                        Array.Copy(m_adV, 0, SCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
 
-                        int nSize = SCode.nCnt_Operation;
-                        int nAddress = -1;
-                        for (int i = 0; i < nSize; i++)
+                    if (SCode.bPython == true)
+                    {
+                        m_strError_Etc = String.Empty;
+                        //SCode.adOperation_Data = new double[1];
+                        //SCode.adOperation_Memory = new double[1];
+                        //SCode.alOperation_Cmd = new long[1];
+                        //double dX = m_dX;
+                        //double dY = m_dY;
+                        //double dZ = m_dZ;
+                        //double[] adV = new double[CPython._CNT_VAR_V];
+                        //Array.Copy(m_adV, adV, CPython._CNT_VAR_V);
+                        //double[] adT = new double[CPython._CNT_MOTOR];
+                        //Array.Copy(m_adMot, adT, CPython._CNT_MOTOR);
+                        //SOjwCode_t SCode2 = new SOjwCode_t();
+                        //SCode2.bPython = SCode.bPython;
+                        //SCode2.strPython = SCode.strPython;
+                        //CPy Cp = new CPy();
+                        String strErrorMsg = String.Empty;
+                        if (CPython.CalcCode(ref SCode, ref m_dX, ref m_dY, ref m_dZ, ref m_adV, ref m_adMot, ref strErrorMsg
+                                                //SCode.strPython//, //ref m_dX, ref m_dY, ref m_dZ,
+                                                //SCode.nVar_Max, SCode.pnVar_Number, //ref adV, 
+                                                //SCode.nMotor_Max, SCode.pnMotor_Number//, ref adT
+                                                ) == false
+                            )
                         {
-                            long lOperation_Cmd = SCode.alOperation_Cmd[i];
-                            // If the [Var] address values are written to the data(Kor: Var 인 경우 해당 데이타엔 번지값이 기록)
-                            if ((lOperation_Cmd & 0x0000ff) == 1) // 번지 측정은 0xff 에서만 하기에 ...
-                            {
-                                // get the address(Kor: 번지값을 가져온다.)
-                                nAddress = (int)(SCode.adOperation_Data[i]);
-                                continue;
-                            }
-                            if (nAddress < 0)
-                            {
-                                m_nErrorCode = 9;
-                                m_strError_Etc += "[CalcCode]" + "Import address fails";// "번지값 가져오기 실패";
-                                return false;//Error
-                            }
-
-                            double dData;
-                            long lAddrCheck = lOperation_Cmd & 0xffff0000;
-
-                            lOperation_Cmd &= 0x0000ffff;
-                            if (lAddrCheck != 0)
-                            {
-                                int nTmp = (int)SCode.adOperation_Data[i];
-                                dData = SCode.adOperation_Memory[nTmp];
-                            }
-                            else dData = SCode.adOperation_Data[i];
-
-                            // First computation(Kor: 1차연산)
-                            long lCmd = ((lOperation_Cmd >> 8) & 0x00ff);
-                            if (lCmd > 0)
-                            {
-                                CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]]);
-                                dData = SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]];
-                            }
-
-                            // Second computation(Kor: 2차연산)
-                            lCmd = (lOperation_Cmd & 0x00ff);
-                            CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[nAddress]);
-                            //lCmd = 0;
+                            m_nErrorCode = 9;
+                            m_strError_Etc += String.Format("[CalcCode-Python] Check your Python code - {0}", strErrorMsg);
+                            return false;
                         }
-                        //Array.Copy(SCode.adOperation_Memory, m_afMot, _CNT_MOTOR);
-                        m_dX = SCode.adOperation_Memory[_ADDRESS_X];
-                        m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
-                        m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
-                        Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
-                        Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+                        //Array.Copy(adV, m_adV, CPython._CNT_VAR_V);
+                        //Array.Copy(adT, m_adMot, CPython._CNT_MOTOR);
 
-
-                        Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
-                        SetValue_X(SCode.adOperation_Memory[_ADDRESS_X]);
-                        SetValue_Y(SCode.adOperation_Memory[_ADDRESS_Y]);
-                        SetValue_Z(SCode.adOperation_Memory[_ADDRESS_Z]);
-                        Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+                        
                     }
-                    catch (System.Exception e)
+                    else
                     {
-                        m_nErrorCode = 9;
-                        m_strError_Etc += "[CalcCode]" + e.ToString();
-                        return false;
+                        try
+                        {
+                            Array.Copy(m_adMot, 0, SCode.adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
+                            SCode.adOperation_Memory[_ADDRESS_X] = GetValue_X();
+                            SCode.adOperation_Memory[_ADDRESS_Y] = GetValue_Y();
+                            SCode.adOperation_Memory[_ADDRESS_Z] = GetValue_Z();
+                            Array.Copy(m_adV, 0, SCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
+
+                            int nSize = SCode.nCnt_Operation;
+                            int nAddress = -1;
+                            for (int i = 0; i < nSize; i++)
+                            {
+                                long lOperation_Cmd = SCode.alOperation_Cmd[i];
+                                // If the [Var] address values are written to the data(Kor: Var 인 경우 해당 데이타엔 번지값이 기록)
+                                if ((lOperation_Cmd & 0x0000ff) == 1) // 번지 측정은 0xff 에서만 하기에 ...
+                                {
+                                    // get the address(Kor: 번지값을 가져온다.)
+                                    nAddress = (int)(SCode.adOperation_Data[i]);
+                                    continue;
+                                }
+                                if (nAddress < 0)
+                                {
+                                    m_nErrorCode = 9;
+                                    m_strError_Etc += "[CalcCode]" + "Import address fails";// "번지값 가져오기 실패";
+                                    return false;//Error
+                                }
+
+                                double dData;
+                                long lAddrCheck = lOperation_Cmd & 0xffff0000;
+
+                                lOperation_Cmd &= 0x0000ffff;
+                                if (lAddrCheck != 0)
+                                {
+                                    int nTmp = (int)SCode.adOperation_Data[i];
+                                    dData = SCode.adOperation_Memory[nTmp];
+                                }
+                                else dData = SCode.adOperation_Data[i];
+
+                                // First computation(Kor: 1차연산)
+                                long lCmd = ((lOperation_Cmd >> 8) & 0x00ff);
+                                if (lCmd > 0)
+                                {
+                                    CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]]);
+                                    dData = SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]];
+                                }
+
+                                // Second computation(Kor: 2차연산)
+                                lCmd = (lOperation_Cmd & 0x00ff);
+                                CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[nAddress]);
+                                //lCmd = 0;
+                            }
+                            //Array.Copy(SCode.adOperation_Memory, m_afMot, _CNT_MOTOR);
+                            m_dX = SCode.adOperation_Memory[_ADDRESS_X];
+                            m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
+                            m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
+                            Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
+                            Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+
+
+                            Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
+                            SetValue_X(SCode.adOperation_Memory[_ADDRESS_X]);
+                            SetValue_Y(SCode.adOperation_Memory[_ADDRESS_Y]);
+                            SetValue_Z(SCode.adOperation_Memory[_ADDRESS_Z]);
+                            Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+                        }
+                        catch (System.Exception e)
+                        {
+                            m_nErrorCode = 9;
+                            m_strError_Etc += "[CalcCode]" + e.ToString();
+                            return false;
+                        }
                     }
                     return true;
                 }

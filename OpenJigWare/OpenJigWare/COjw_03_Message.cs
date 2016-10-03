@@ -194,7 +194,7 @@ namespace OpenJigWare
                 }
             }
             private static string m_strSecondFile = "";
-            public static void Write(TextBox txtOjwMessage, string msg, string strFileTitle, params object[] objects)
+            public static void Write_secondFile(TextBox txtOjwMessage, string msg, string strFileTitle, params object[] objects)
             {
                 try
                 {
@@ -222,7 +222,7 @@ namespace OpenJigWare
                     MessageBox.Show("[Message]" + e.ToString() + "\r\n");
                 }
             }
-            public static void Write2(TextBox txtOjwMessage, string msg, string strFileTitle, params object[] objects)
+            public static void Write2_secondFile(TextBox txtOjwMessage, string msg, string strFileTitle, params object[] objects)
             {
                 try
                 {

@@ -196,6 +196,7 @@ namespace OpenJigWare
         public struct SOjwCode_t
         {
             public bool bInit;
+            public bool bPython; // bPython == false : normal, true : python code
             public int nCnt_Operation;
             public long[] alOperation_Cmd;
             public double[] adOperation_Memory;
@@ -206,8 +207,57 @@ namespace OpenJigWare
             public int[] pnMotor_Number;
             public int nVar_Max;
             public int[] pnVar_Number;
+            public string strPython;
         }        
         #endregion Define structure for motor(SParam_t. SParam_Axis_t)
+        #region Herkulex2
+        public struct SRead_t
+        {
+            public bool bEnable;
+            public int nID;
+            public int nAddress_First;
+            public int nAddress_Length;
+        }
+        //public struct SParam_Axis_t
+        //{
+        //    public int nID;
+
+        //    public int nDir;
+
+        //    public float fLimitUp;    // limit Max value - 0: No use
+        //    public float fLimitDn;    // limit Min value - 0: No use
+        //    // Center position(Evd : Engineering value of degree)
+        //    public float fCenterPos;
+
+        //    public float fOffsetAngle_Display; // 보여지는 화면상의 각도 Offset
+
+        //    // gear ratio
+        //    public float fMechMove;
+        //    public float fDegree;
+        //}
+        //public struct SMot_t
+        //{
+        //    public bool bEn;
+
+        //    public int nDir;
+        //    //Center
+        //    public float fCenterPos;
+
+        //    public float fMechMove;
+        //    public float fDegree;
+
+        //    public float fLimitUp;    // Limit - 0: Ignore
+        //    public float fLimitDn;    // Limit - 0: Ignore
+
+        //    public int nID;
+        //    //float fPos;
+        //    public int nPos;
+        //    public float fTime;
+        //    public float fSpeed;
+
+        //    public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
+        //}
+        #endregion Herkulex2
         #endregion Structure
 
         #region UserEvent

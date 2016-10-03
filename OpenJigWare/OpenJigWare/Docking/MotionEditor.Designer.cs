@@ -34,6 +34,7 @@
             this.pnProperty = new System.Windows.Forms.Panel();
             this.tcControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.chkRmt = new System.Windows.Forms.CheckBox();
             this.chkFreeze_Z = new System.Windows.Forms.CheckBox();
             this.chkFreeze_Swing = new System.Windows.Forms.CheckBox();
             this.chkFreeze_Y = new System.Windows.Forms.CheckBox();
@@ -288,6 +289,7 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.chkRmt);
             this.tabPage1.Controls.Add(this.chkFreeze_Z);
             this.tabPage1.Controls.Add(this.chkFreeze_Swing);
             this.tabPage1.Controls.Add(this.chkFreeze_Y);
@@ -359,6 +361,17 @@
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Control";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // chkRmt
+            // 
+            this.chkRmt.AutoSize = true;
+            this.chkRmt.Location = new System.Drawing.Point(409, 87);
+            this.chkRmt.Name = "chkRmt";
+            this.chkRmt.Size = new System.Drawing.Size(46, 16);
+            this.chkRmt.TabIndex = 674;
+            this.chkRmt.Text = "Rmt";
+            this.chkRmt.UseVisualStyleBackColor = true;
+            this.chkRmt.CheckedChanged += new System.EventHandler(this.chkRmt_CheckedChanged);
             // 
             // chkFreeze_Z
             // 
@@ -496,13 +509,13 @@
             // 
             // btnConnect
             // 
-            this.btnConnect.Enabled = false;
             this.btnConnect.Location = new System.Drawing.Point(357, 42);
             this.btnConnect.Name = "btnConnect";
             this.btnConnect.Size = new System.Drawing.Size(77, 42);
             this.btnConnect.TabIndex = 634;
             this.btnConnect.Text = "Connect [Wifi]";
             this.btnConnect.UseVisualStyleBackColor = true;
+            this.btnConnect.Click += new System.EventHandler(this.btnConnect_Click);
             // 
             // txtMotionCounter
             // 
@@ -529,12 +542,12 @@
             // 
             // txtIp
             // 
-            this.txtIp.Enabled = false;
             this.txtIp.Location = new System.Drawing.Point(274, 42);
             this.txtIp.Name = "txtIp";
             this.txtIp.Size = new System.Drawing.Size(82, 21);
             this.txtIp.TabIndex = 635;
             this.txtIp.Text = "192.168.1.100";
+            this.txtIp.Click += new System.EventHandler(this.txtIp_Click);
             // 
             // label128
             // 
@@ -1535,6 +1548,7 @@
             this.txtPort.Size = new System.Drawing.Size(48, 21);
             this.txtPort.TabIndex = 633;
             this.txtPort.Text = "1";
+            this.txtPort.Click += new System.EventHandler(this.txtPort_Click);
             // 
             // chkSmooth
             // 
@@ -1652,12 +1666,11 @@
             // 
             // txtSocket_Port
             // 
-            this.txtSocket_Port.Enabled = false;
             this.txtSocket_Port.Location = new System.Drawing.Point(308, 63);
             this.txtSocket_Port.Name = "txtSocket_Port";
             this.txtSocket_Port.Size = new System.Drawing.Size(48, 21);
             this.txtSocket_Port.TabIndex = 633;
-            this.txtSocket_Port.Text = "1";
+            this.txtSocket_Port.Text = "5002";
             // 
             // cmbStartPosition
             // 
@@ -1802,6 +1815,7 @@
             this.txtTableName.Name = "txtTableName";
             this.txtTableName.Size = new System.Drawing.Size(70, 20);
             this.txtTableName.TabIndex = 641;
+            this.txtTableName.TextChanged += new System.EventHandler(this.txtTableName_TextChanged);
             // 
             // label13
             // 
@@ -1841,7 +1855,7 @@
             this.txtFileName.Location = new System.Drawing.Point(307, 84);
             this.txtFileName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtFileName.Name = "txtFileName";
-            this.txtFileName.Size = new System.Drawing.Size(153, 20);
+            this.txtFileName.Size = new System.Drawing.Size(98, 20);
             this.txtFileName.TabIndex = 648;
             // 
             // label5
@@ -2827,8 +2841,6 @@
         private System.Windows.Forms.TextBox txtBaudrate;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.TextBox txtSocket_Port;
-        private System.Windows.Forms.Label label6;
         private System.Windows.Forms.CheckBox chkFreeze_Swing;
         private System.Windows.Forms.CheckBox chkFreeze_Z;
         private System.Windows.Forms.CheckBox chkFreeze_Pan;
@@ -2984,5 +2996,8 @@
         private System.Windows.Forms.ImageList imglstSmall;
         private System.Windows.Forms.ImageList imglstTree;
         private System.Windows.Forms.ImageList imageList1;
+        private System.Windows.Forms.CheckBox chkRmt;
+        private System.Windows.Forms.TextBox txtSocket_Port;
+        private System.Windows.Forms.Label label6;
     }
 }

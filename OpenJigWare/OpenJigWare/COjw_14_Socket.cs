@@ -103,9 +103,10 @@ namespace OpenJigWare
                 }
                 return bRet;
             }
+            public int GetBuffer_Length() { return sock_get_size_buffer(); }
             public int sock_get_size_buffer()
             {
-                return m_tcpServer_Client.ReceiveBufferSize;
+                return m_tcpServer_Client.Available;//.ReceiveBufferSize;
             }
             #region 비공개 - thread ...
             public void WaitClient(bool bBlockingMode)
@@ -302,11 +303,45 @@ namespace OpenJigWare
                 else return 0;
             }
             // Size 만큼을 읽어감
+            //public long GetBuffer_Length()
+            //{
+            //    try
+            //    {
+            //        return m_bwServer_inData.BaseStream.Length;
+            //    }
+            //    catch
+            //    {
+            //        return 0;
+            //    }
+            //}
             public byte[] sock_get_bytes(int nSize)
             {
                 return m_bwServer_inData.ReadBytes(nSize);
                 //if (sock_connected()) return inData.ReadBytes(nSize);
                 //else return null;
+            }
+
+            public byte[] GetBytes(int nSize)
+            {
+                if (sock_connected()) return m_bwServer_inData.ReadBytes(nSize);
+                else return null;
+            }
+            public byte[] GetBytes()
+            {
+                if (sock_connected())
+                {
+                    return m_bwServer_inData.ReadBytes(GetBuffer_Length());
+                }
+                else return null;
+            }
+
+            private Thread Reader;             // 읽기 쓰레드
+            public bool RunThread(ThreadStart FThread)
+            {
+                if (sock_started() == false) return false;
+                Reader = new Thread(new ThreadStart(FThread));
+                Reader.Start();
+                return true;
             }
             #endregion 공개
         }
@@ -514,6 +549,143 @@ namespace OpenJigWare
                 }
             }
 
+            #region String Packet
+            private List<Ojw.CPacket> m_lstPacket = new List<Ojw.CPacket>();
+
+            private bool IsValid_Index(int nIndex) { return (((nIndex >= 0) && (nIndex < m_lstPacket.Count) && (m_lstPacket.Count > 0)) ? true : false); }
+            public CPacket[] GetStringPacket() { return m_lstPacket.ToArray(); }
+            public CPacket GetStringPacket(int nIndex) { if (IsValid_Index(nIndex) == true) return m_lstPacket[nIndex]; return null; }
+            public byte[] GetStringPacket_Bytes(int nIndex) { if (IsValid_Index(nIndex) == true) return m_lstPacket[nIndex].GetBuffers(); return null; }
+            public int GetStringPacket_ByteSize(int nIndex) { if (IsValid_Index(nIndex) == true) return m_lstPacket[nIndex].GetBuffers_Count(); return 0; }
+            public int GetStringPacket_Size() { return m_lstPacket.Count; }
+            public void SendStringPacket_Line(int nLine)
+            {
+                if (IsConnect() == true)
+                {
+                    if (GetStringPacket_Size() >= nLine + 1)
+                    {
+                        //SendPacket(GetStringPacket(nLine));
+                        Send(GetStringPacket_Bytes(nLine));
+                    }
+                }
+            }
+            public void MakingData(string strPacket, int nMode) // nMode == 0 : (), 1 : {}, 2 : []
+            {
+                char cStart = '(';
+                char cEnd = ')';
+                if (nMode == 1)
+                {
+                    cStart = '{';
+                    cEnd = '}';
+                }
+                else if (nMode == 2)
+                {
+                    cStart = '[';
+                    cEnd = ']';
+                }
+                char cSeparation = ',';
+                //if (txtSeparation.Text != null)
+                //{
+                //    if (txtSeparation.Text.Length >= 1)
+                //    {
+                //        cSeparation = txtSeparation.Text[0];
+                //        Ojw.CMessage.Write("Separation 문자 = \' {0} \'", cSeparation);
+                //    }
+                //    else// if (txtSeparation.Text.Length < 1)
+                //    {
+                //        cSeparation = ',';
+                //        Ojw.CMessage.Write("[Warning]Separation Length < 0, Changed \' {0} \'", cSeparation);
+                //    }
+                //}
+                m_lstPacket.Clear();
+                string strData = CPacket.MakeSeparation(strPacket, cStart, cEnd);
+                strData = Ojw.CConvert.ChangeString(strData, "\r\n", "\n");
+                string[] pstrLine = strData.Split('\n');
+                //int i = 0;
+
+                byte byData;
+                foreach (string strLine in pstrLine)
+                {
+                    strLine.TrimEnd('\r');
+                    CPacket CPack = new CPacket();
+                    CPack.strLine = strLine;
+                    CPack.lstBuffer.Clear();
+
+                    CPack.lstChecksum_IsChecksum.Clear();
+                    CPack.lstChecksum_String.Clear();
+                    CPack.lstChecksum_Data.Clear();
+                    CPack.strLine_Bytes = String.Empty;
+                    CPack.strLine_Bytes_Disp = String.Empty;
+
+                    foreach (string strItem in strLine.Split(cSeparation))
+                    {
+                        //int nType = 0;
+                        if (strItem != null)
+                        {
+                            if (strItem.Length > 0)
+                            {
+                                if (strItem[0] == cStart)
+                                {
+                                    if (strItem[strItem.Length - 1] == cEnd)
+                                    {
+                                        if (strItem[1] == '#')
+                                        {
+                                            // Checksum
+                                            CPack.lstChecksum_IsChecksum.Add(true);
+                                            CPack.lstChecksum_String.Add(strItem.Substring(2, strItem.Length - 3));
+
+                                            byte byChecksum = CPack.CheckSum_Make(strItem.Substring(2, strItem.Length - 3), cStart, cEnd);
+                                            CPack.lstChecksum_Data.Add(byChecksum);
+
+                                            CPack.lstBuffer.Add(byChecksum);
+
+                                            CPack.strLine_Bytes += String.Format("0x{0},", Ojw.CConvert.IntToHex(byChecksum, 2));
+                                            CPack.strLine_Bytes_Disp += String.Format("(CHK:0x{0})", Ojw.CConvert.IntToHex(byChecksum, 2));
+                                        }
+                                        else
+                                        {
+                                            int nRet = CPacket.CheckData(strItem.Substring(1, strItem.Length - 2), out byData);
+                                            if ((nRet == 0) || (nRet == 1))
+                                            {
+                                                //nType = 1;
+                                                CPack.lstBuffer.Add(byData);
+                                                CPack.strLine_Bytes += String.Format("0x{0},", Ojw.CConvert.IntToHex(byData, 2));
+                                                CPack.strLine_Bytes_Disp += ((Ojw.CConvert.IsValidAlpha(byData) == true) ? String.Format("{0}", (char)byData) : String.Format("(0x{0})", Ojw.CConvert.IntToHex(byData, 2)));
+
+                                                CPack.lstChecksum_IsChecksum.Add(false);
+                                                CPack.lstChecksum_String.Add(string.Empty);
+                                                CPack.lstChecksum_Data.Add(0);
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    foreach (char cData in strItem)
+                                    {
+                                        byData = (byte)((byte)cData & 0xff);
+                                        CPack.lstBuffer.Add(byData);
+                                        CPack.strLine_Bytes += String.Format("0x{0},", Ojw.CConvert.IntToHex(byData, 2));
+                                        CPack.strLine_Bytes_Disp += ((Ojw.CConvert.IsValidAlpha(byData) == true) ? String.Format("{0}", (char)byData) : String.Format("(0x{0})", Ojw.CConvert.IntToHex(byData, 2)));
+
+                                        CPack.lstChecksum_IsChecksum.Add(false);
+                                        CPack.lstChecksum_String.Add(string.Empty);
+                                        CPack.lstChecksum_Data.Add(0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+                    m_lstPacket.Add(CPack);
+
+                    //m_lstPacket.Add(
+                    //Ojw.CMessage.Write("[{0}]{1}", i++, strLine);
+                }
+            }
+            #endregion String Packet
+
             // 벌크데이타를 보냄
             public bool Send(byte[] byteData)
             {
@@ -564,11 +736,54 @@ namespace OpenJigWare
                 else return 0;
             }
 
+            public int GetBuffer_Length()
+            //{
+            //    return m_nLength;
+            //}
+            {
+                try
+                {
+                    //return stream.Length;
+                    return m_tcpClient.Available;//inData.BaseStream.Length;
+                }
+                catch
+                {
+                    return -1;
+                }
+            }
+            
             // Size 만큼을 읽어감
             public byte[] GetBytes(int nSize)
-            {
+            {                
                 if (m_bConnect) return inData.ReadBytes(nSize);
                 else return null;
+            }
+            private int m_nLength = 0;
+            public byte[] GetBytes()
+            {
+                byte[] buffer = new byte[GetBuffer_Length()];
+
+                if (m_bConnect)
+                {
+                    int nLength = inData.Read(buffer, 0, buffer.Length);//inData.Read(;//m_tcpClient.Client.Receive(buffer);
+
+                    //m_nLength = nLength;
+                    return buffer;
+                    //return inData.ReadBytes(nSize);
+                }
+                else return null;
+            }
+            public bool SetThreadFunction(ThreadStart FThread)
+            {
+                return RunThread(FThread);
+            }
+            private Thread Reader;             // 읽기 쓰레드
+            public bool RunThread(ThreadStart FThread)
+            {
+                if (IsConnect() == false) return false;
+                Reader = new Thread(new ThreadStart(FThread));
+                Reader.Start();
+                return true;
             }
         }
     }

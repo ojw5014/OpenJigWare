@@ -37,14 +37,40 @@
     <ApplicationIcon>oroca.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AForge.Controls">
-      <HintPath>Lib\AForge.Controls.dll</HintPath>
+    <Reference Include="AForge.Controls, Version=2.2.5.0, Culture=neutral, PublicKeyToken=a8ac264d1dc6b9d9, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Released_DLL\AForge.Controls.dll</HintPath>
     </Reference>
-    <Reference Include="AForge.Video">
-      <HintPath>Lib\AForge.Video.dll</HintPath>
+    <Reference Include="AForge.Video, Version=2.2.5.0, Culture=neutral, PublicKeyToken=cbfb6e07d173c401, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Released_DLL\AForge.Video.dll</HintPath>
+    </Reference>
+    <Reference Include="IronPython, Version=2.7.6.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\IronPython.dll</HintPath>
+    </Reference>
+    <Reference Include="IronPython.Modules, Version=2.7.0.40, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\IronPython.Modules.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Contracts">
       <HintPath>..\..\Released_DLL\Microsoft.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Dynamic, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Microsoft.Dynamic.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Microsoft.Scripting.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting.AspNet">
+      <HintPath>Lib\Microsoft.Scripting.AspNet.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting.Metadata, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Microsoft.Scripting.Metadata.dll</HintPath>
     </Reference>
     <Reference Include="MyoSharp">
       <HintPath>..\..\Released_DLL\MyoSharp.dll</HintPath>
@@ -145,6 +171,12 @@
     <Compile Include="COjw_24_System.cs" />
     <Compile Include="COjw_25_Genibo.cs" />
     <Compile Include="COjw_xx_User.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Include="COjw_27_Herkulex2.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Docking\frmFolder.resx">
@@ -467,6 +499,10 @@
     <None Include="KeyPad\한글쌍자음_over\ks_over_ㅆ.png" />
     <None Include="KeyPad\한글쌍자음_over\ks_over_ㅉ.png" />
     <Content Include="oroca.ico" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
     <None Include="Resources\a_normal_3_9.png" />
     <None Include="Resources\a_normal_3_8.png" />
     <None Include="Resources\a_normal_3_7.png" />
@@ -600,8 +636,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
+echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
+echo *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

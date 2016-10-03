@@ -129,6 +129,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.btnMakeSstl = new System.Windows.Forms.Button();
+            this.btnMakeDat = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -1307,11 +1308,22 @@
             this.btnMakeSstl.UseVisualStyleBackColor = true;
             this.btnMakeSstl.Click += new System.EventHandler(this.btnMakeSstl_Click);
             // 
+            // btnMakeDat
+            // 
+            this.btnMakeDat.Location = new System.Drawing.Point(232, 72);
+            this.btnMakeDat.Name = "btnMakeDat";
+            this.btnMakeDat.Size = new System.Drawing.Size(75, 36);
+            this.btnMakeDat.TabIndex = 120;
+            this.btnMakeDat.Text = "Stl->Dat";
+            this.btnMakeDat.UseVisualStyleBackColor = true;
+            this.btnMakeDat.Click += new System.EventHandler(this.btnMakeDat_Click);
+            // 
             // frmModel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(316, 303);
+            this.Controls.Add(this.btnMakeDat);
             this.Controls.Add(this.btnRot_Z);
             this.Controls.Add(this.btnOffset_Rot_Z);
             this.Controls.Add(this.btnRot_Y);
@@ -1460,5 +1472,6 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Button btnMakeSstl;
+        private System.Windows.Forms.Button btnMakeDat;
     }
 }

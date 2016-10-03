@@ -284,6 +284,7 @@ namespace OpenJigWare
                 SpinDown,
                 SpinLeft,
                 SpinRight,
+                //_Count
             }
             #endregion Define
 

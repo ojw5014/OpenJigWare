@@ -7,6 +7,9 @@
 // contacts@aforgenet.com
 //========================================
 
+// app.config : 설정 탭에 들어가면 "이 프로젝트에는 기본 설정파일이 없습니다. 기본 설정 파일을 만들려면 여기를 클릭하십시오." 가 있다. 이걸 클릭하면 app.config 가 생성
+//  - 여기서 이름 -> SettingSome, 값 -> SomeValue 로 하면 파일이 생성됨
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -182,6 +185,9 @@ namespace OpenJigWare
                 }
             }
             #endregion Stop Command
+
+            public Bitmap GetImage_FromStream() { return (IsStreaming) ? m_afgPlayer.GetCurrentVideoFrame() : null; }
+            public bool SaveImage_FromStream(String strFileName) { try { Bitmap bmp = GetImage_FromStream(); bmp.Save(strFileName, System.Drawing.Imaging.ImageFormat.Bmp); if (bmp == null) return false; else return true; } catch { return false; } }
         }
     }
 }

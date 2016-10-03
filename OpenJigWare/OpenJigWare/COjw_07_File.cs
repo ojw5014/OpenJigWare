@@ -371,6 +371,55 @@ namespace OpenJigWare
             public bool SetData_double(int nIndex, double dValue) { try { m_lstFile[nIndex] = "d" + CConvert.DoubleToStr(dValue); return true; } catch { return false; } }
             public bool SetData_Bool(int nIndex, bool bValue) { try { m_lstFile[nIndex] = "b" + CConvert.BoolToStr(bValue); return true; } catch { return false; } }
             #endregion Files(Data) & List
+
+            public static void Delete(String strFileName) { FileInfo file = new FileInfo(strFileName); if (file.Exists) { System.IO.File.Delete(strFileName); } }
+            public static bool Write(String strFileName, String strMsg, bool bNew)
+            {
+                FileInfo f = null;
+                StreamWriter fs = null;
+
+                try
+                {
+                    f = new FileInfo(strFileName);
+                    fs = new StreamWriter(strFileName, !bNew, Encoding.Default);
+                    fs.Flush(); 
+
+                    fs.Write(strMsg);
+
+                    fs.Close();
+                    return true;
+                }
+                catch
+                {
+                    if (fs != null) fs.Close();
+                    return false;
+                }
+            }
+            public static bool Read(String strFileName, TextBox txtFile)
+            {                
+                FileInfo f = null;
+                //StreamReader fs = null;
+                FileStream fs = null;
+
+                try
+                {
+                    f = new FileInfo(strFileName);
+                    //fs = new StreamReader(strFileName, Encoding.Default);
+                    fs = f.OpenRead();
+
+                    byte [] pbyteData = new byte[fs.Length];
+                    fs.Read(pbyteData, 0, pbyteData.Length);                    
+                    foreach(byte byteData in pbyteData) { txtFile.Text += (char)byteData; }
+                    fs.Close();
+
+                    return true;
+                }
+                catch
+                {
+                    if (fs != null) fs.Close();
+                    return false;
+                }
+            }
         }
         #endregion COjwFile
     }

@@ -1391,7 +1391,7 @@ namespace OpenJigWare
                     {
                         dX = dY = dZ = 0;
                         return false;
-                        //printf("Error\n");
+                        //Ojw.CMessage.Write("Error\n");
                     }
                 }
 
@@ -1436,5 +1436,1539 @@ namespace OpenJigWare
             }
             #endregion Delta Parallel 3 dof - 제작 : 이동현 차장(동부로봇)
         }
+        /// <summary>
+        /// made by Dongjune Chang, 
+        /// reference : 책 - "칼만필터의 이해" in Korea,
+        /// </summary>
+        #region Kalman Filter - made by Dongjune Chang from the book - "MATLAB 활용 칼만필터의 이해(저자 김성필)"
+        public class CKalman
+        {
+
+            public class AvgFilter : FilterBase<double>
+            {
+                double prevAvg = 0.0;
+                int k = 0;
+                bool bFirstRun = true;
+
+                public AvgFilter()
+                {
+
+                }
+
+                public override void Init()
+                {
+                    k = 0;
+                    prevAvg = 0.0;
+                }
+
+                public override bool Do(double input, ref double output)
+                {
+                    if (bFirstRun)
+                    {
+                        k = 1;
+                        prevAvg = 0.0;
+                        bFirstRun = false;
+                    }
+
+                    double x = input;
+                    output = 0.0;
+
+                    double alpha = (double)(k - 1) / (double)k;
+                    double avg = alpha * prevAvg + (1 - alpha) * x;
+
+                    output = avg;
+                    prevAvg = avg;
+                    k++;
+
+                    return true;
+                }
+            }
+            public class DeDvKalman : FilterBase<double[]>
+            {
+                bool bFirstRun = true;
+
+                public double[,] A, H, Q, R;
+                public double[] x;
+                public double[,] P;
+                public double[,] K;
+                private int nDim = 1;
+                private double dt = 0.1;
+
+                public DeDvKalman(int nDim, double dt)
+                {
+                    this.nDim = nDim;
+                    this.dt = dt;
+                }
+
+                public override void Init()
+                {
+                    A = new double[nDim, nDim];
+                    H = new double[nDim, nDim];
+                    Q = new double[nDim, nDim];
+                    R = new double[nDim, nDim];
+                    K = new double[nDim, nDim];
+
+                    x = new double[nDim];
+                    P = new double[nDim, nDim];
+                }
+
+                public void GetValue(ref double pos, ref double vel)
+                {
+                    pos = x[0];
+                    vel = x[1];
+                }
+
+                public override bool Do(double[] input, ref double[] output)
+                {
+                    double[] z = (double[])input.Clone();
+
+                    if (bFirstRun)
+                    {
+                        A = new double[,] { { 1, dt }, { 0, 1 } };
+                        H = new double[,] { { 1, 0 } };
+                        Q = new double[,] { { 1, 0 }, { 0, 3 } };
+                        R = new double[,] { { 10 } };
+
+                        x = new double[] { 0, 20 };
+                        P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
+
+                        bFirstRun = false;
+                    }
+                    double[] xp = CMatrix.Multiply(A, x);
+                    double[,] Pp = CMatrix.Add(
+                        CMatrix.Multiply(CMatrix.Multiply(A, P), CMatrix.Trans(A)), Q);
+
+                    double[,] Pp_H_T = CMatrix.Multiply(Pp, CMatrix.Trans(H));
+
+                    //K = 1 / (Pp(1,1) + R) * [Pp(1,1) Pp(2,1)]';  % Pp*H'*inv(H*Pp*H' + R);
+                    K = CMatrix.ScalarMultiply(1 / (Pp[0, 0] + R[0, 0]),
+                        new double[,] { { Pp[0, 0] }, { Pp[1, 0] } }
+                        );
+
+                    x = CMatrix.Add(xp, CMatrix.Multiply(K,
+                        CMatrix.Substract(z, CMatrix.Multiply(H, xp))
+                        ));
+
+                    P = CMatrix.Substract(Pp, CMatrix.Multiply(CMatrix.Multiply(K, H), Pp));
+
+                    output = (double[])x.Clone();
+
+                    return true;
+                }
+            }
+            public class DvKalman : FilterBase<double[]>
+            {
+                bool bFirstRun = true;
+
+                public double[,] A, H, Q, R;
+                public double[] x;
+                public double[,] P;
+                public double[,] K;
+                private int nDim = 1;
+                private double dt = 0.1;
+
+                public DvKalman(int nDim, double dt)
+                {
+                    this.nDim = nDim;
+                    this.dt = dt;
+                }
+
+                public override void Init()
+                {
+                    A = new double[nDim, nDim];
+                    H = new double[nDim, nDim];
+                    Q = new double[nDim, nDim];
+                    R = new double[nDim, nDim];
+                    K = new double[nDim, nDim];
+
+                    x = new double[nDim];
+                    P = new double[nDim, nDim];
+                }
+
+                public void GetValue(ref double pos, ref double vel)
+                {
+                    pos = x[0];
+                    vel = x[1];
+                }
+
+                public override bool Do(double[] input, ref double[] output)
+                {
+                    double[] z = (double[])input.Clone();
+
+                    if (bFirstRun)
+                    {
+                        A = new double[,] { { 1, dt }, { 0, 1 } };
+                        H = new double[,] { { 1, 0 } };
+                        Q = new double[,] { { 1, 0 }, { 0, 3 } };
+                        R = new double[,] { { 10 } };
+
+                        x = new double[] { 0, 20 };
+                        P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
+
+                        bFirstRun = false;
+                    }
+                    double[] xp = CMatrix.Multiply(A, x);
+                    double[,] Pp = CMatrix.Add(
+                        CMatrix.Multiply(CMatrix.Multiply(A, P), CMatrix.Trans(A)), Q);
+
+                    double[,] Pp_H_T = CMatrix.Multiply(Pp, CMatrix.Trans(H));
+
+                    K = CMatrix.Multiply(
+                        Pp_H_T, CMatrix.Inverse(
+                            CMatrix.Add(
+                                CMatrix.Multiply(H, Pp_H_T), R)
+                                )
+                            );
+
+                    x = CMatrix.Add(xp, CMatrix.Multiply(K,
+                        CMatrix.Substract(z, CMatrix.Multiply(H, xp))
+                        ));
+
+                    P = CMatrix.Substract(Pp, CMatrix.Multiply(CMatrix.Multiply(K, H), Pp));
+
+                    output = (double[])x.Clone();
+
+                    return true;
+                }
+            }
+            public class EulerEKF : FilterBase<double[]>
+            {
+                bool bFirstRun = true;
+
+                public double[,] A, H, Q, R;
+                public double[] x;
+                public double[,] P;
+                public double[,] K;
+                private int nDim = 1;
+                private double dt = 0.1;
+
+                public EulerEKF(double dt)
+                {
+                    this.dt = dt;
+                }
+
+                public void SetCMatrix_A(double[,] val)
+                {
+                    A = (double[,])val.Clone();
+                }
+
+                public override void Init()
+                {
+                    H = new double[2, 3];
+                    Q = new double[3, 3];
+                    R = new double[2, 2];
+                    K = new double[3, 3];
+
+                    x = new double[3];
+                    P = new double[3, 3];
+                }
+
+
+                public double[] fx(double[] xhat, double[] rates, double dt)
+                {
+                    double[] xp = new double[3];
+
+                    double phi = xhat[0];
+                    double theta = xhat[1];
+
+                    double p = rates[0];
+                    double q = rates[1];
+                    double r = rates[2];
+
+                    double[] xdot = new double[3];
+                    double sec_theta = 1 / Math.Cos(theta);
+                    xdot[0] = p + q * Math.Sin(phi) * Math.Tan(theta) + r * Math.Cos(phi) * Math.Tan(theta);
+                    xdot[1] = q * Math.Cos(phi) - r * Math.Sin(phi);
+                    xdot[2] = q * Math.Sin(phi) * sec_theta + r * Math.Cos(phi) * sec_theta;
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        xp[i] = xhat[i] + xdot[i] * dt;
+                    }
+                    return xp;
+                }
+                public double[,] Ajacob(double[] xhat, double[] rates, double dt)
+                {
+                    double[,] A = new double[3, 3];
+
+                    double phi = xhat[0];
+                    double theta = xhat[1];
+
+                    double p = rates[0];
+                    double q = rates[1];
+                    double r = rates[2];
+
+                    double sec_theta = 1 / Math.Cos(theta);
+
+                    A[0, 0] = q * Math.Cos(phi) * Math.Tan(theta) - r * Math.Sin(phi) * Math.Tan(theta);
+                    A[0, 1] = q * Math.Sin(phi) * sec_theta * sec_theta + r * Math.Cos(phi) * sec_theta * sec_theta;
+                    A[0, 2] = 0;
+
+                    A[1, 0] = -q * Math.Sin(phi) - r * Math.Cos(phi);
+                    A[1, 1] = 0;
+                    A[1, 2] = 0;
+
+                    A[2, 0] = q * Math.Cos(phi) * sec_theta - r * Math.Sin(phi) * sec_theta;
+                    A[2, 1] = q * Math.Sin(phi) * sec_theta * Math.Tan(theta) + r * Math.Cos(phi) * sec_theta * Math.Tan(theta);
+                    A[2, 2] = 0;
+
+                    return CMatrix.Add(CMatrix.eye(3), CMatrix.ScalarMultiply(dt, A));
+                }
+
+                //public override bool Do(double[] input, ref double[] output)
+                //{
+                //    double[] z = (double[])input.Clone();
+
+                //    if (bFirstRun)
+                //    {
+                //        H = new double[,] { { 1, 0, 0 }, { 0, 1, 0 } };
+                //        Q = new double[,] { { 0.0001, 0, 0 }, { 0, 0.0001, 0 }, { 0, 0, 1 } };
+                //        R = new double[,] { { 6, 0 }, { 0, 6 } };
+
+                //        x = new double[] { 0, 0, 0 };
+                //        P = CMatrix.ScalarMultiply(10.0, CMatrix.eye(3));
+
+                //        bFirstRun = false;
+                //    }
+
+                //    A = Ajacob(x, rates, dt);
+
+                //    double[] xp = CMatrix.Multiply(A, x);
+                //    double[,] Pp = CMatrix.Add(
+                //        CMatrix.Multiply(CMatrix.Multiply(A, P), CMatrix.Trans(A)), Q);
+
+                //    double[,] Pp_H_T = CMatrix.Multiply(Pp, CMatrix.Trans(H));
+
+                //    K = CMatrix.Multiply(
+                //        Pp_H_T, CMatrix.Inverse(
+                //            CMatrix.Add(
+                //                CMatrix.Multiply(H, Pp_H_T), R)
+                //                )
+                //            );
+
+                //    x = CMatrix.Add(xp, CMatrix.Multiply(K,
+                //        CMatrix.Substract(z, CMatrix.Multiply(H, xp))
+                //        ));
+
+                //    P = CMatrix.Substract(Pp, CMatrix.Multiply(CMatrix.Multiply(K, H), Pp));
+
+                //    output = (double[])x.Clone();
+
+                //    return true;
+                //}
+            }
+            public class EulerKalman : FilterBase<double[]>
+            {
+                bool bFirstRun = true;
+
+                public double[,] A, H, Q, R;
+                public double[] x;
+                public double[,] P;
+                public double[,] K;
+                private int nDim = 4;
+                private double dt = 0.1;
+
+                public EulerKalman(int nDim, double dt)
+                {
+                    this.nDim = nDim;
+                    this.dt = dt;
+                }
+
+                public override void Init()
+                {
+                    A = new double[nDim, nDim];
+                    H = new double[nDim, nDim];
+                    Q = new double[nDim, nDim];
+                    R = new double[nDim, nDim];
+                    K = new double[nDim, nDim];
+
+                    x = new double[nDim];
+                    P = new double[nDim, nDim];
+                }
+
+                public void GetValue(ref double pos, ref double vel)
+                {
+                    pos = x[0];
+                    vel = x[1];
+                }
+
+                public void SetMatrix_A(double[,] val)
+                {
+                    A = (double[,])val.Clone();
+                }
+
+                public void GetEuler(double[] x, ref double phi, ref double theta, ref double psi)
+                {
+                    phi = Math.Atan2(2 * (x[2] * x[3] + x[0] * x[1]), 1 - 2 * (x[1] * x[1] + x[2] * x[2]));
+                    theta = -Math.Asin(2 * (x[1] * x[3] - x[0] * x[2]));
+                    psi = Math.Atan2(2 * (x[1] * x[2] + x[0] * x[3]), 1 - 2 * (x[2] * x[2] + x[3] * x[3]));
+                }
+
+                public override bool Do(double[] input, ref double[] output)
+                {
+                    double[] z = (double[])input.Clone();
+
+                    if (bFirstRun)
+                    {
+                        H = CMatrix.eye(4);
+                        Q = CMatrix.ScalarMultiply(0.0001, CMatrix.eye(4));
+                        R = CMatrix.ScalarMultiply(10, CMatrix.eye(4));
+
+                        x = new double[] { 1, 0, 0, 0 };
+                        P = CMatrix.eye(4);
+
+                        bFirstRun = false;
+                    }
+                    double[] xp = CMatrix.Multiply(A, x);
+                    double[,] Pp = CMatrix.Add(
+                        CMatrix.Multiply(CMatrix.Multiply(A, P), CMatrix.Trans(A)), Q);
+
+                    double[,] Pp_H_T = CMatrix.Multiply(Pp, CMatrix.Trans(H));
+
+                    K = CMatrix.Multiply(
+                   Pp_H_T, CMatrix.Inverse(
+                       CMatrix.Add(
+                           CMatrix.Multiply(H, Pp_H_T), R)
+                           )
+                       );
+
+                    x = CMatrix.Add(xp, CMatrix.Multiply(K,
+                        CMatrix.Substract(z, CMatrix.Multiply(H, xp))
+                        ));
+
+                    P = CMatrix.Substract(Pp, CMatrix.Multiply(CMatrix.Multiply(K, H), Pp));
+
+                    output = (double[])x.Clone();
+
+                    return true;
+                }
+            }
+            public class IntKalman : FilterBase<double[]>
+            {
+                bool bFirstRun = true;
+
+                public double[,] A, H, Q, R;
+                public double[] x;
+                public double[,] P;
+                public double[,] K;
+                private int nDim = 1;
+                private double dt = 0.1;
+
+                public IntKalman(int nDim, double dt)
+                {
+                    this.nDim = nDim;
+                    this.dt = dt;
+                }
+
+                public override void Init()
+                {
+                    A = new double[nDim, nDim];
+                    H = new double[nDim, nDim];
+                    Q = new double[nDim, nDim];
+                    R = new double[nDim, nDim];
+                    K = new double[nDim, nDim];
+
+                    x = new double[nDim];
+                    P = new double[nDim, nDim];
+                }
+
+                public void GetValue(ref double pos, ref double vel)
+                {
+                    pos = x[0];
+                    vel = x[1];
+                }
+
+                public override bool Do(double[] input, ref double[] output)
+                {
+                    double[] z = (double[])input.Clone();
+
+                    if (bFirstRun)
+                    {
+                        A = new double[,] { { 1, dt }, { 0, 1 } };
+                        H = new double[,] { { 0, 1 } };
+                        Q = new double[,] { { 1, 0 }, { 0, 3 } };
+                        R = new double[,] { { 10 } };
+
+                        x = new double[] { 0, 20 };
+                        P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
+
+                        bFirstRun = false;
+                    }
+                    double[] xp = CMatrix.Multiply(A, x);
+                    double[,] Pp = CMatrix.Add(
+                        CMatrix.Multiply(CMatrix.Multiply(A, P), CMatrix.Trans(A)), Q);
+
+                    double[,] Pp_H_T = CMatrix.Multiply(Pp, CMatrix.Trans(H));
+
+                    K = CMatrix.Multiply(
+                        Pp_H_T, CMatrix.Inverse(
+                            CMatrix.Add(
+                                CMatrix.Multiply(H, Pp_H_T), R)
+                                )
+                            );
+
+                    x = CMatrix.Add(xp, CMatrix.Multiply(K,
+                        CMatrix.Substract(z, CMatrix.Multiply(H, xp))
+                        ));
+
+                    P = CMatrix.Substract(Pp, CMatrix.Multiply(CMatrix.Multiply(K, H), Pp));
+
+                    output = (double[])x.Clone();
+
+                    return true;
+                }
+            }
+            public class LPF : FilterBase<double>
+            {
+                double prevX = 0.0;
+                bool bFirstRun = true;
+                public double Alpha
+                {
+                    get;
+                    set;
+                }
+                public LPF()
+                {
+                    Alpha = 0.7;
+                }
+
+                public override void Init()
+                {
+                    prevX = 0.0;
+                }
+
+                public override bool Do(double input, ref double output)
+                {
+                    if (bFirstRun)
+                    {
+                        prevX = 0.0;
+                        bFirstRun = false;
+                    }
+
+                    output = Alpha * prevX + (1 - Alpha) * input;
+                    prevX = output;
+
+                    return true;
+                }
+
+            }
+            public class MovingAvgFilter : FilterBase<double>
+            {
+                //double prevAvg = 0.0;
+                int n = 10;
+                bool bFirstRun = true;
+                double[] xMABuf = null;
+
+                public MovingAvgFilter(int nBuf)
+                {
+                    n = nBuf;
+                }
+
+                public override void Init()
+                {
+                    //prevAvg = 0.0;
+                }
+
+                public override void DeInit()
+                {
+                    if (xMABuf != null)
+                    {
+                        xMABuf = null;
+                    }
+                }
+
+                public override bool Do(double input, ref double output)
+                {
+                    double x = input;
+
+                    if (bFirstRun)
+                    {
+                        if (xMABuf == null)
+                        {
+                            xMABuf = new double[n];
+                        }
+                        //prevAvg = x;
+                        bFirstRun = false;
+                    }
+
+                    // 값 새로 받고 Buffer 밀기
+                    for (int m = 1; m < n; m++)
+                    {
+                        xMABuf[m - 1] = xMABuf[m];
+                    }
+                    xMABuf[n - 1] = x;
+
+                    // MovAvgFilter.m
+                    //{
+                    //    double avg = prevAvg + (x - xMABuf[0]) / (double)n;
+                    //}
+
+                    // MovAvgFilter2.m
+                    double avg = xMABuf.ToList<double>().Sum() / (double)n;
+
+                    output = avg;
+                    //prevAvg = avg;
+
+                    return true;
+                }
+            }
+            public class SimpleKalman : FilterBase<double[]>
+            {
+                bool bFirstRun = true;
+
+                public double[,] A, H, Q, R;
+                public double[] x;
+                public double[,] P;
+                public double[,] K;
+                private int nDim = 1;
+
+                public SimpleKalman(int nDim)
+                {
+                    this.nDim = nDim;
+                }
+
+                public override void Init()
+                {
+                    A = new double[nDim, nDim];
+                    H = new double[nDim, nDim];
+                    Q = new double[nDim, nDim];
+                    R = new double[nDim, nDim];
+                    K = new double[nDim, nDim];
+
+                    x = new double[nDim];
+                    P = new double[nDim, nDim];
+                }
+
+                public void GetMatrix(ref double[,] Px, ref double[,] Kx)
+                {
+                    Px = (double[,])P.Clone();
+                    Kx = (double[,])K.Clone();
+                }
+
+                public override bool Do(double[] input, ref double[] output)
+                {
+                    double[] z = (double[])input.Clone();
+
+                    if (bFirstRun)
+                    {
+                        for (int i = 0; i < nDim; i++)
+                        {
+                            A[i, i] = 1;
+                            H[i, i] = 1;
+
+                            R[i, i] = 4;
+
+                            x[i] = 14;
+                            P[i, i] = 6;
+                        }
+                        bFirstRun = false;
+                    }
+                    double[] xp = CMatrix.Multiply(A, x);
+                    double[,] Pp = CMatrix.Add(
+                        CMatrix.Multiply(CMatrix.Multiply(A, P), CMatrix.Trans(A)), Q);
+
+                    double[,] Pp_H_T = CMatrix.Multiply(Pp, CMatrix.Trans(H));
+
+                    K = CMatrix.Multiply(
+                        Pp_H_T, CMatrix.Inverse(
+                            CMatrix.Add(
+                                CMatrix.Multiply(H, Pp_H_T), R)
+                                )
+                            );
+
+                    x = CMatrix.Add(xp, CMatrix.Multiply(K,
+                        CMatrix.Substract(z, CMatrix.Multiply(H, xp))
+                        ));
+
+                    P = CMatrix.Substract(Pp, CMatrix.Multiply(CMatrix.Multiply(K, H), Pp));
+
+                    output = (double[])x.Clone();
+
+                    return true;
+                }
+            }
+            private class CMatrix
+            {
+                //********************************************************/
+                // Function for double values
+                //********************************************************/
+                public static double[,] Multiply(double[,] matrix1, double[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    double[,] ansMat;
+
+                    if (mCol1 == mRow2)
+                    {
+                        ansMat = new double[mRow1, mCol2];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol2; j++)
+                            {
+                                for (int k = 0; k < mRow2; k++)
+                                {
+                                    ansMat[i, j] += matrix1[i, k] * matrix2[k, j];
+                                }
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for multiplication");
+                    }
+                }
+
+                // 이 함수는 Vector가 matrix size = A by 1 일 때 사용 가능
+                public static double[] Multiply(double[,] matrix, double[] vector)
+                {
+                    int mRow1 = matrix.GetLength(0);
+                    int mCol1 = matrix.GetLength(1);
+                    int mRow2 = vector.GetLength(0);
+                    //int mCol2 = vector.GetLength(1); //1
+
+                    double[] ansMat;
+
+                    if (mCol1 == mRow2)
+                    {
+                        ansMat = new double[mRow1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int k = 0; k < mRow2; k++)
+                            {
+                                ansMat[i] += matrix[i, k] * vector[k];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for multiplication");
+                    }
+                }
+                public static double[,] ScalarMultiply(double scalar, double[,] matrix)
+                {
+                    double[,] ansMat;
+                    int mRow = matrix.GetLength(0);
+                    int mCol = matrix.GetLength(1);
+
+                    ansMat = new double[mRow, mCol];
+                    for (int i = 0; i < mRow; i++)
+                    {
+                        for (int j = 0; j < mCol; j++)
+                        {
+                            ansMat[i, j] = scalar * matrix[i, j];
+                        }
+                    }
+                    return ansMat;
+                }
+
+                public static double[,] eye(int iSize)
+                {   // Identity matrix
+                    double[,] ansMat = new double[iSize, iSize];
+                    for (int i = 0; i < iSize; i++)
+                    {
+                        for (int j = 0; j < iSize; j++)
+                        {
+                            if (i == j) ansMat[i, j] = 1;
+                        }
+                    }
+                    return ansMat;
+                }
+
+                public static double[] Add(double[] vector1, double[] vector2)
+                {
+                    int mRow1 = vector1.GetLength(0);
+                    int mRow2 = vector2.GetLength(0);
+
+                    double[] ansMat;
+
+                    if (mRow1 == mRow2)
+                    {
+                        ansMat = new double[mRow1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            ansMat[i] = vector1[i] + vector2[i];
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Addition");
+                    }
+                }
+
+                public static double[,] Add(double[,] matrix1, double[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    double[,] ansMat;
+
+                    if (mCol1 == mCol2 && mRow1 == mRow2)
+                    {
+                        ansMat = new double[mRow1, mCol1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol1; j++)
+                            {
+                                ansMat[i, j] = matrix1[i, j] + matrix2[i, j];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Addition");
+                    }
+                }
+
+                public static double[] Substract(double[] vector1, double[] vector2)
+                {
+                    int mRow1 = vector1.GetLength(0);
+                    int mRow2 = vector2.GetLength(0);
+
+                    double[] ansMat;
+
+                    if (mRow1 == mRow2)
+                    {
+                        ansMat = new double[mRow1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            ansMat[i] = vector1[i] - vector2[i];
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Substraction");
+                    }
+                }
+
+                public static double[,] Substract(double[,] matrix1, double[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    double[,] ansMat;
+
+                    if (mCol1 == mCol2 && mRow1 == mRow2)
+                    {
+                        ansMat = new double[mRow1, mCol1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol1; j++)
+                            {
+                                ansMat[i, j] = matrix1[i, j] - matrix2[i, j];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Substraction");
+                    }
+                }
+
+                public static double Determinant(double[,] matrix)
+                {
+                    double ans = 0;
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        if (length > 2)
+                        {
+                            double[,] tempMat = new double[length - 1, length - 1];
+                            for (int j = 0; j < length; j++)
+                            {
+                                int x = 0, y;
+                                for (int i1 = 1; i1 < length; i1++)
+                                {
+                                    y = 0;
+                                    for (int j1 = 0; j1 < length; j1++)
+                                    {
+                                        if (j1 != j)
+                                        {
+                                            tempMat[x, y] = matrix[i1, j1];
+                                            y++;
+                                        }
+                                    }
+                                    x++;
+                                }
+                                ans += Math.Pow(-1, j) * matrix[0, j] * Determinant(tempMat);
+                            }
+                            return ans;
+                        }
+                        else if (length == 2)
+                        {
+                            ans = matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0];
+                            return ans;
+                        }
+                        else if (length == 1)
+                        {
+                            return matrix[0, 0];
+                        }
+                        else
+                        {
+                            return 0;
+                        }
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix doesn't has Determinant");
+                    }
+                }
+
+                /*!
+                 * Transpose current matrix
+                 */
+                //public static void Transpose(double[,] matrix)
+                //{
+                //    double tempVal;
+                //    if (matrix.GetLength(0) == matrix.GetLength(1))
+                //    {
+                //        int length = matrix.GetLength(0);
+                //        for (int i = 0; i < length; i++)
+                //        {
+                //            for (int j = i; j < length; j++)
+                //            {
+                //                tempVal = matrix[i, j];
+                //                matrix[i, j] = matrix[j, i];
+                //                matrix[j, i] = tempVal;
+                //            }
+                //        }
+                //    }
+                //    else
+                //    {
+                //        throw new CMatrixException("This Matrix can't be transpose");
+                //    }
+                //}
+
+                public static double[,] Trans(double[,] matrix)
+                {
+                    int mCol = matrix.GetLength(0);  // matrix의 Row
+                    int mRow = matrix.GetLength(1); // matrix의 Column
+
+                    double[,] ansMat = new double[mRow, mCol];
+
+                    for (int i = 0; i < mRow; i++)
+                    {
+                        for (int j = 0; j < mCol; j++)
+                        {
+                            ansMat[i, j] = matrix[j, i];
+                        }
+                    }
+                    return ansMat;
+                }
+                public static double[,] Copy(double[,] matrix)
+                {
+                    int mRow = matrix.GetLength(0);
+                    int mCol = matrix.GetLength(1);
+
+                    double[,] ansMat = new double[mRow, mCol];
+
+                    for (int i = 0; i < mRow; i++)
+                    {
+                        for (int j = 0; j < mCol; j++)
+                        {
+                            ansMat[i, j] = matrix[i, j];
+                        }
+                    }
+                    return ansMat;
+                }
+
+                public static double[,] Inverse(double[,] matrix)
+                {
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+
+                        if (length > 1)
+                        {
+                            double[,] tempAnsMat = new double[length, length];
+                            double ans = 0;
+
+                            double[,] tempMat = new double[length - 1, length - 1];
+
+                            for (int i = 0; i < length; i++)
+                            {
+                                for (int j = 0; j < length; j++)
+                                {
+                                    int x = 0, y;
+                                    for (int i1 = 0; i1 < length; i1++)
+                                    {
+                                        if (i != i1)
+                                        {
+                                            y = 0;
+                                            for (int j1 = 0; j1 < length; j1++)
+                                            {
+                                                if (j1 != j)
+                                                {
+                                                    tempMat[x, y] = matrix[i1, j1];
+                                                    y++;
+                                                }
+                                            }
+                                            x++;
+                                        }
+                                    }
+                                    //It is saved as transpose matrix in temperary matrix
+                                    tempAnsMat[j, i] = Math.Pow(-1, i + j) * Determinant(tempMat);
+                                    if (i == 0)
+                                        ans += matrix[i, j] * tempAnsMat[j, i];
+                                }
+                            }
+                            if (ans != 0)
+                                return ScalarMultiply(1 / ans, tempAnsMat);
+                            else
+                                throw new CMatrixException("This matrix Determiant is 0. no inverse matrix");
+                        }
+                        else if (length == 1)
+                        {
+                            double dVal = 0.0;
+                            dVal = matrix[0, 0];
+                            if (Math.Abs(dVal) < 0.0001) return new double[,] { { 0 } };
+                            else return new double[,] { { 1 / dVal } };
+                        }
+                        else
+                            throw new CMatrixException("This is a Null matrix");
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix can't be inverse");
+                    }
+                }
+
+                //********************************************************/
+                // Function for float values
+                //********************************************************/
+                public static float[,] Multiply(float[,] matrix1, float[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    float[,] ansMat;
+
+                    if (mCol1 == mRow2)
+                    {
+                        ansMat = new float[mRow1, mCol2];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol2; j++)
+                            {
+                                for (int k = 0; k < mRow2; k++)
+                                {
+                                    ansMat[i, j] += matrix1[i, k] * matrix2[k, j];
+                                }
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for multiplication");
+                    }
+                }
+
+                public static float[,] ScalarMultiply(float scalar, float[,] matrix)
+                {
+                    float[,] ansMat;
+                    int mRow = matrix.GetLength(0);
+                    int mCol = matrix.GetLength(1);
+
+                    ansMat = new float[mRow, mCol];
+                    for (int i = 0; i < mRow; i++)
+                    {
+                        for (int j = 0; j < mCol; j++)
+                        {
+                            ansMat[i, j] = scalar * matrix[i, j];
+                        }
+                    }
+                    return ansMat;
+                }
+
+                public static float[,] Add(float[,] matrix1, float[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    float[,] ansMat;
+
+                    if (mCol1 == mCol2 && mRow1 == mRow2)
+                    {
+                        ansMat = new float[mRow1, mCol1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol1; j++)
+                            {
+                                ansMat[i, j] = matrix1[i, j] + matrix2[i, j];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Addition");
+                    }
+                }
+
+                public static float[,] Substract(float[,] matrix1, float[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    float[,] ansMat;
+
+                    if (mCol1 == mCol2 && mRow1 == mRow2)
+                    {
+                        ansMat = new float[mRow1, mCol1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol1; j++)
+                            {
+                                ansMat[i, j] = matrix1[i, j] - matrix2[i, j];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Substraction");
+                    }
+                }
+
+                public static float Determinant(float[,] matrix)
+                {
+                    float ans = 0;
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        if (length > 2)
+                        {
+                            float[,] tempMat = new float[length - 1, length - 1];
+                            for (int j = 0; j < length; j++)
+                            {
+                                int x = 0, y;
+                                for (int i1 = 1; i1 < length; i1++)
+                                {
+                                    y = 0;
+                                    for (int j1 = 0; j1 < length; j1++)
+                                    {
+                                        if (j1 != j)
+                                        {
+                                            tempMat[x, y] = matrix[i1, j1];
+                                            y++;
+                                        }
+                                    }
+                                    x++;
+                                }
+                                ans += (float)Math.Pow(-1, j) * matrix[0, j] * Determinant(tempMat);
+                            }
+                            return ans;
+                        }
+                        else if (length == 2)
+                        {
+                            ans = matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0];
+                            return ans;
+                        }
+                        else if (length == 1)
+                        {
+                            return matrix[0, 0];
+                        }
+                        else
+                        {
+                            return 0;
+                        }
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix doesn't has Determinant");
+                    }
+                }
+
+                /*!
+                 * Transpose current matrix
+                 */
+                public static void Transpose(float[,] matrix)
+                {
+                    float tempVal;
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        for (int i = 0; i < length; i++)
+                        {
+                            for (int j = i; j < length; j++)
+                            {
+                                tempVal = matrix[i, j];
+                                matrix[i, j] = matrix[j, i];
+                                matrix[j, i] = tempVal;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix can't be transpose");
+                    }
+                }
+
+                public static float[,] Inverse(float[,] matrix)
+                {
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        if (length > 1)
+                        {
+                            float[,] tempAnsMat = new float[length, length];
+                            float ans = 0;
+
+                            float[,] tempMat = new float[length - 1, length - 1];
+                            for (int i = 0; i < length; i++)
+                            {
+                                for (int j = 0; j < length; j++)
+                                {
+                                    int x = 0, y;
+                                    for (int i1 = 0; i1 < length; i1++)
+                                    {
+                                        if (i != i1)
+                                        {
+                                            y = 0;
+                                            for (int j1 = 0; j1 < length; j1++)
+                                            {
+                                                if (j1 != j)
+                                                {
+                                                    tempMat[x, y] = matrix[i1, j1];
+                                                    y++;
+                                                }
+                                            }
+                                            x++;
+                                        }
+                                    }
+                                    //It is saved as transpose matrix in temperary matrix
+                                    tempAnsMat[j, i] = (float)Math.Pow(-1, i + j) * Determinant(tempMat);
+                                    if (i == 0)
+                                        ans += matrix[i, j] * tempAnsMat[j, i];
+                                }
+                            }
+                            if (ans != 0)
+                                return ScalarMultiply(1 / ans, tempAnsMat);
+                            else
+                                throw new CMatrixException("This matrix Determiant is 0. no inverse matrix");
+                        }
+                        else if (length == 1)
+                            return new float[,] { { 0 } };
+                        else
+                            throw new CMatrixException("This is a Null matrix");
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix can't be inverse");
+                    }
+                }
+
+                //********************************************************/
+                // Function for int values
+                //********************************************************/
+                public static int[,] Multiply(int[,] matrix1, int[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    int[,] ansMat;
+
+                    if (mCol1 == mRow2)
+                    {
+                        ansMat = new int[mRow1, mCol2];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol2; j++)
+                            {
+                                for (int k = 0; k < mRow2; k++)
+                                {
+                                    ansMat[i, j] += matrix1[i, k] * matrix2[k, j];
+                                }
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for multiplication");
+                    }
+                }
+
+                public static int[,] ScalarMultiply(int scalar, int[,] matrix)
+                {
+                    int[,] ansMat;
+                    int mRow = matrix.GetLength(0);
+                    int mCol = matrix.GetLength(1);
+
+                    ansMat = new int[mRow, mCol];
+                    for (int i = 0; i < mRow; i++)
+                    {
+                        for (int j = 0; j < mCol; j++)
+                        {
+                            ansMat[i, j] = scalar * matrix[i, j];
+                        }
+                    }
+                    return ansMat;
+                }
+
+                public static double[,] ScalarMultiply(double scalar, int[,] matrix)
+                {
+                    double[,] ansMat;
+                    int mRow = matrix.GetLength(0);
+                    int mCol = matrix.GetLength(1);
+
+                    ansMat = new double[mRow, mCol];
+                    for (int i = 0; i < mRow; i++)
+                    {
+                        for (int j = 0; j < mCol; j++)
+                        {
+                            ansMat[i, j] = scalar * (double)matrix[i, j];
+                        }
+                    }
+                    return ansMat;
+                }
+
+                public static int[,] Add(int[,] matrix1, int[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    int[,] ansMat;
+
+                    if (mCol1 == mCol2 && mRow1 == mRow2)
+                    {
+                        ansMat = new int[mRow1, mCol1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol1; j++)
+                            {
+                                ansMat[i, j] = matrix1[i, j] + matrix2[i, j];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Addition");
+                    }
+                }
+
+                public static int[,] Substract(int[,] matrix1, int[,] matrix2)
+                {
+                    int mRow1 = matrix1.GetLength(0);
+                    int mCol1 = matrix1.GetLength(1);
+                    int mRow2 = matrix2.GetLength(0);
+                    int mCol2 = matrix2.GetLength(1);
+
+                    int[,] ansMat;
+
+                    if (mCol1 == mCol2 && mRow1 == mRow2)
+                    {
+                        ansMat = new int[mRow1, mCol1];
+                        for (int i = 0; i < mRow1; i++)
+                        {
+                            for (int j = 0; j < mCol1; j++)
+                            {
+                                ansMat[i, j] = matrix1[i, j] - matrix2[i, j];
+                            }
+                        }
+                        return ansMat;
+                    }
+                    else
+                    {
+                        throw new CMatrixException("Matrices are not supported for Substraction");
+                    }
+                }
+
+                public static int Determinant(int[,] matrix)
+                {
+                    int ans = 0;
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        if (length > 2)
+                        {
+                            int[,] tempMat = new int[length - 1, length - 1];
+                            for (int j = 0; j < length; j++)
+                            {
+                                int x = 0, y;
+                                for (int i1 = 1; i1 < length; i1++)
+                                {
+                                    y = 0;
+                                    for (int j1 = 0; j1 < length; j1++)
+                                    {
+                                        if (j1 != j)
+                                        {
+                                            tempMat[x, y] = matrix[i1, j1];
+                                            y++;
+                                        }
+                                    }
+                                    x++;
+                                }
+                                ans += (int)Math.Pow(-1, j) * matrix[0, j] * Determinant(tempMat);
+                            }
+                            return ans;
+                        }
+                        else if (length == 2)
+                        {
+                            ans = matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0];
+                            return ans;
+                        }
+                        else if (length == 1)
+                        {
+                            return matrix[0, 0];
+                        }
+                        else
+                        {
+                            return 0;
+                        }
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix doesn't has Determinant");
+                    }
+                }
+
+                /*!
+                 * Transpose current matrix
+                 */
+                public static void Transpose(int[,] matrix)
+                {
+                    int tempVal;
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        for (int i = 0; i < length; i++)
+                        {
+                            for (int j = i; j < length; j++)
+                            {
+                                tempVal = matrix[i, j];
+                                matrix[i, j] = matrix[j, i];
+                                matrix[j, i] = tempVal;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix can't be transpose");
+                    }
+                }
+
+                public static double[,] Inverse(int[,] matrix)
+                {
+                    if (matrix.GetLength(0) == matrix.GetLength(1))
+                    {
+                        int length = matrix.GetLength(0);
+                        if (length > 1)
+                        {
+                            double[,] tempAnsMat = new double[length, length];
+                            double ans = 0;
+
+                            int[,] tempMat = new int[length - 1, length - 1];
+                            for (int i = 0; i < length; i++)
+                            {
+                                for (int j = 0; j < length; j++)
+                                {
+                                    int x = 0, y;
+                                    for (int i1 = 0; i1 < length; i1++)
+                                    {
+                                        if (i != i1)
+                                        {
+                                            y = 0;
+                                            for (int j1 = 0; j1 < length; j1++)
+                                            {
+                                                if (j1 != j)
+                                                {
+                                                    tempMat[x, y] = matrix[i1, j1];
+                                                    y++;
+                                                }
+                                            }
+                                            x++;
+                                        }
+                                    }
+                                    //It is saved as transpose matrix in temperary matrix
+                                    tempAnsMat[j, i] = Math.Pow(-1, i + j) * Determinant(tempMat);
+                                    if (i == 0)
+                                        ans += matrix[i, j] * tempAnsMat[j, i];
+                                }
+                            }
+                            if (ans != 0)
+                                return ScalarMultiply(1 / ans, tempAnsMat);
+                            else
+                                throw new CMatrixException("This matrix Determiant is 0. no inverse matrix");
+                        }
+                        else if (length == 1)
+                            return new double[,] { { 0 } };
+                        else
+                            throw new CMatrixException("This is a Null matrix");
+                    }
+                    else
+                    {
+                        throw new CMatrixException("This Matrix can't be inverse");
+                    }
+                }
+            }
+            public class CMatrixException : Exception
+            {
+                public CMatrixException()
+                {
+                    errorMsg = "Input matrix is wrong";
+                }
+                public CMatrixException(string message)
+                {
+                    errorMsg = message;
+                }
+                public string GetErrorMessage()
+                {
+                    return errorMsg;
+                }
+                private string errorMsg;
+            }
+            public void test()
+            {
+                
+            }
+        }
+        public class FilterBase<T>
+        {
+            public FilterBase()
+            {
+                Init();
+            }
+
+            public virtual void Init()
+            {
+
+            }
+
+            public virtual void DeInit()
+            {
+
+            }
+
+            public virtual bool Do(T input, ref T output)
+            {
+                throw new NotImplementedException();
+            }
+        }
+        #endregion Kalman Filter - made by Dongjune Chang from the book - "MATLAB 활용 칼만필터의 이해(저자 김성필)"
     }
 }
