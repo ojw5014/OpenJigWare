@@ -9143,7 +9143,11 @@ namespace OpenJigWare
                 private DataGridView m_dgAngle = new DataGridView();
                 private void GridMotionEditor_Init(int nWidth, int nLines)
                 {
-                    if (m_bGridInit == true) GridMotionEditor_Init(m_dgAngle, nWidth, nLines);
+                    GridMotionEditor_Init(nWidth, nLines, true);
+                }
+                private void GridMotionEditor_Init(int nWidth, int nLines, bool bEventSet)
+                {
+                    if (m_bGridInit == true) GridMotionEditor_Init(m_dgAngle, nWidth, nLines, bEventSet);
                     //else CMessage.Write_Error("Grid Init Error");
                 }
 
@@ -9164,6 +9168,10 @@ namespace OpenJigWare
                 }
                 private bool m_bGridEvent = false;
                 public void GridMotionEditor_Init(DataGridView dgAngle, int nWidth, int nLines)
+                {
+                    GridMotionEditor_Init(dgAngle, nWidth, nLines, true);
+                }
+                public void GridMotionEditor_Init(DataGridView dgAngle, int nWidth, int nLines, bool bEventSet)
                 {
                     int nWidth_Interval = 11;
                     //m_CGridMotionEditor.GetHandle().Dispose();
@@ -9293,7 +9301,7 @@ namespace OpenJigWare
                     
 #endif
                     m_CGridMotionEditor = new CGridView();
-                    m_CGridMotionEditor.Create(dgAngle, nLines, aSTable);
+                    m_CGridMotionEditor.Create(dgAngle, nLines, bEventSet, aSTable);
 
                     //int nLine;
                     //int nMotPos;
@@ -9312,6 +9320,7 @@ namespace OpenJigWare
                     }
 
 
+#if false
                     m_CGridMotionEditor.Events_Remove_KeyDown();
                     m_CGridMotionEditor.Events_Remove_KeyUp();
                     //m_CGridMotionEditor.Events_Remove_CellEnter();
@@ -9320,7 +9329,6 @@ namespace OpenJigWare
                     //m_CGridMotionEditor.Events_Remove_MouseDown();
                     //m_CGridMotionEditor.Events_Remove_MouseMove();
                     //m_CGridMotionEditor.Events_Remove_MouseUp();
-
                     if (m_bGridInit == true)
                     {
                         m_CGridMotionEditor.GetHandle().CellEnter -= new System.Windows.Forms.DataGridViewCellEventHandler(GridMotionEditor_Event_CellEnter);
@@ -9348,7 +9356,36 @@ namespace OpenJigWare
                     //m_CGridMotionEditor.Ignore_CellEnter(true); // 속도 버벅거림을 없애기 위해 모션 수행시만 이게 들어간다.
 
                     m_CGridMotionEditor.GetHandle().Scroll += new ScrollEventHandler(GridMotionEditor_Scroll);
-                    
+#else
+                    if (bEventSet == true)
+                    {
+                        if (m_bGridInit == false)
+                        {
+                            m_CGridMotionEditor.Events_Remove_KeyDown();
+                            m_CGridMotionEditor.Events_Remove_KeyUp();
+                            //m_CGridMotionEditor.Events_Remove_CellEnter();
+                            //m_CGridMotionEditor.Events_Remove_MouseDoubleClick();
+
+                            //m_CGridMotionEditor.Events_Remove_MouseDown();
+                            //m_CGridMotionEditor.Events_Remove_MouseMove();
+                            //m_CGridMotionEditor.Events_Remove_MouseUp();
+
+                            m_CGridMotionEditor.GetHandle().CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(GridMotionEditor_Event_CellEnter);
+                            m_CGridMotionEditor.GetHandle().MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseDoubleClick);
+
+                            m_CGridMotionEditor.GetHandle().KeyDown += new System.Windows.Forms.KeyEventHandler(GridMotionEditor_Event_KeyDown);
+                            m_CGridMotionEditor.GetHandle().KeyUp += new System.Windows.Forms.KeyEventHandler(GridMotionEditor_Event_KeyUp);
+
+                            m_CGridMotionEditor.GetHandle().MouseDown += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseDown);
+                            m_CGridMotionEditor.GetHandle().MouseUp += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseUp);
+                            m_CGridMotionEditor.GetHandle().MouseMove += new System.Windows.Forms.MouseEventHandler(GridMotionEditor_MouseMove);
+
+                            //m_CGridMotionEditor.Ignore_CellEnter(true); // 속도 버벅거림을 없애기 위해 모션 수행시만 이게 들어간다.
+
+                            m_CGridMotionEditor.GetHandle().Scroll += new ScrollEventHandler(GridMotionEditor_Scroll);
+                        }
+                    }
+#endif
                     m_nWidth_GridItem = nWidth;
 
                     CheckFlag(0);
@@ -9662,6 +9699,17 @@ namespace OpenJigWare
                             {
                                 if (dgGrid.Focused == true)
                                 {
+                                    bool bOk = false;
+                                    //if (m_CMotor2.IsOpen_Socket() == true)
+                                    //{
+                                    //    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) m_CMotor2.Read_Motor_Push(nAxis);
+                                    //    m_CMotor2.Wait_Delay(1000);
+                                    //    bOk = true;
+                                    //}
+                                    if (m_CMotor2.IsOpen_Socket() == true)
+                                    {
+                                        m_CMotor.SetSocket(m_CMotor2.m_CSocket);
+                                    }
                                     int _ADDRESS_TORQUE_CONTROL = 52;
                                     for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
                                     {
@@ -9671,8 +9719,15 @@ namespace OpenJigWare
                                         //}
                                         //else
                                         //{
+                                        //bool bOk;
+                                        //if (m_CMotor2.IsOpen_Socket() == true)
+                                        //{
+                                        //    GridMotionEditor_SetMotor(m_CGridMotionEditor.m_nCurrntCell, nAxis, m_CMotor2.Get_Pos_Angle(nAxis));
+                                        //}
+                                        //else
+                                        {
                                             m_CMotor.ReadMot(nAxis, _ADDRESS_TORQUE_CONTROL, 8);
-                                            bool bOk = m_CMotor.WaitReceive(nAxis, 40);
+                                            bOk = m_CMotor.WaitReceive(nAxis, 40);
                                             if (bOk == false)
                                             {
                                                 //bPass = false;
@@ -9681,7 +9736,12 @@ namespace OpenJigWare
                                             {
                                                 GridMotionEditor_SetMotor(m_CGridMotionEditor.m_nCurrntCell, nAxis, m_CMotor.GetPos_Angle(nAxis));
                                             }
+                                        }
                                         //}
+                                    }
+                                    if (m_CMotor2.IsOpen_Socket() == true)
+                                    {
+                                        m_CMotor.SetSocket(null);
                                     }
                                     //Grid_DisplayLine(m_nCurrntCell);
                                 }
@@ -9750,7 +9810,7 @@ namespace OpenJigWare
                                             CheckFlag(nLine);
                                         }
                                         //m_CGridMotionEditor.GetHandle().GetCellDisplayRectangle(
-                                        m_CGridMotionEditor.ChangePos(m_CGridMotionEditor.GetHandle(), nLine, nCol);
+                                        m_CGridMotionEditor.ChangePos(m_CGridMotionEditor.GetHandle(), nLine, 1);//nCol); // OJW5014_20161031
                                     }
                                     else
                                     {
@@ -10517,127 +10577,7 @@ namespace OpenJigWare
                     //int nCol = CGrid.m_nCurrntColumn;
 
                     PlayFrame(m_CGridMotionEditor.m_nCurrntCell);
-                }
-
-                public void PlayFrame(int nLine)
-                {
-                    float fVal;
-                    CGridView OjwGrid = m_CGridMotionEditor;
-                    int nRow = OjwGrid.m_nCurrntCell;
-                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
-                    {
-                        if (
-                            //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // 엔코더이거나
-                            (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
-                            //(m_abEnc[nAxis] == true) || // 엔코더이거나
-                            //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // 위치제어가 아니라면
-                            )
-                        {                            
-                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
-                            m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
-                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
-
-                            //if (CheckWifi() == true)
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
-
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
-
-                            //int nRow = CGrid.m_nCurrntCell;
-                            //int nCol = CGrid.m_nCurrntColumn;
-
-                            float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nRow, nAxis)));
-                            int nVal = CalcAngle2Evd(nAxis, fTmpVal);
-                            //int nVal2 = nVal;
-                            if (nVal < 0)
-                            {
-                                nVal *= -1;
-                                nVal |= 0x4000;
-                            }
-                            m_CMotor.SetCmd(nAxis, nVal);
-                            //if (CheckWifi() == true)
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
-
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
-
-                            bool bRed = (Grid_GetFlag_Led(nRow, nAxis) == 1) ? true : false;
-                            bool bBlue = (Grid_GetFlag_Led(nRow, nAxis) == 2) ? true : false;
-                            bool bGreen = (Grid_GetFlag_Led(nRow, nAxis) == 4) ? true : false;
-                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
-
-                            if (m_CMotor2.IsOpen_Socket() == true)
-                            {
-                                m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
-                                m_CMotor2.Set_Turn(nAxis, nVal);
-                                m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
-                            }
-                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nRow, nAxis));
-                            //if (CheckWifi() == true)
-                            //{
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
-                            //}
-
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
-                        }
-                        else
-                        {
-                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
-                            m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
-                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
-                            //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
-                            //if (CheckWifi() == true)
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
-
-                            fVal = (float)Math.Round((float)OjwGrid.Get(nRow, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
-                            m_CMotor.SetCmd_Angle(nAxis, fVal);
-                            //if (CheckWifi() == true)
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_angle(nAxis, fVal);
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_angle(nAxis, fVal);
-                            bool bRed = (Grid_GetFlag_Led(nRow, nAxis) == 1) ? true : false;
-                            bool bBlue = (Grid_GetFlag_Led(nRow, nAxis) == 2) ? true : false;
-                            bool bGreen = (Grid_GetFlag_Led(nRow, nAxis) == 4) ? true : false;
-                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
-                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nRow, nAxis));
-
-                            if (m_CMotor2.IsOpen_Socket() == true)
-                            {
-                                m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
-                                m_CMotor2.Set_Angle(nAxis, fVal);
-                                m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
-                            }
-                            //if (CheckWifi() == true)
-                            //{
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
-                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
-                            //}
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
-                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
-                        }
-                    }
-                    //m_CTmr_Interval_X.Set_Interval((double)fX, (double)m_afAnimation[nAxis, 0], (double)Math.Abs(fX - m_afAnimation[nAxis, 0]) / m_dInterval_Value, m_lInterval_Time);
-            
-                    m_CMotor.SetMot((int)OjwGrid.GetTime(nRow));//m_CGridMotionEditor.GetTime(m_nCurrntCell));
-                    if (m_CMotor2.IsOpen_Socket() == true)
-                    {
-                        m_CMotor2.Send_Motor((int)OjwGrid.GetTime(nRow));
-                    }
-                    //m_CMotor.Mpsu_Play_HeadLed_Buzz(Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
-
-
-                    // Sound & Buzz
-                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
-
-                    //if (CheckWifi() == true)
-                    //{
-                    //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_request_move(m_CGridMotionEditor.GetTime(m_nCurrntCell));
-                    //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_mpsu_play_headled_buzz(253, Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
-                    //}
-                    //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
-                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_move(m_CGridMotionEditor.GetTime(m_nCurrntCell));
-                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(253, Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
-                }
+                }                            
 #if true
                 // 
                 public void Motion_Stop()
@@ -10703,8 +10643,45 @@ namespace OpenJigWare
                         Ojw.CMessage.Write_Error("Error -> PlayMotion(), " + ex.ToString());
                     }
                 }
+
+                private SMotionTable_t LineToMotionTable(int nLine)
+                {
+                    SMotionTable_t STable = new SMotionTable_t();
+                    STable.bEn = GridMotionEditor_GetEnable(nLine);
+                    STable.nCmd = GridMotionEditor_GetCommand(nLine);
+                    STable.nGroup = GridMotionEditor_GetGroup(nLine);
+
+                    STable.nTime = GridMotionEditor_GetTime(nLine);
+                    STable.nDelay = GridMotionEditor_GetDelay(nLine);
+
+                    STable.nData0 = GridMotionEditor_GetData0(nLine);
+                    STable.nData1 = GridMotionEditor_GetData1(nLine);
+                    STable.nData2 = GridMotionEditor_GetData2(nLine);
+                    STable.nData3 = GridMotionEditor_GetData3(nLine);
+                    STable.nData4 = GridMotionEditor_GetData4(nLine);
+                    STable.nData5 = GridMotionEditor_GetData5(nLine);
+
+                    STable.strCaption = m_CGridMotionEditor.GetCaption(nLine);
+
+                    STable.abEn = new bool[m_CHeader.nMotorCnt];
+                    STable.abType = new bool[m_CHeader.nMotorCnt];
+                    STable.anLed = new int[m_CHeader.nMotorCnt];
+                    STable.anMot = new int[m_CHeader.nMotorCnt];
+                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                    {
+                        STable.abEn[i] = Grid_GetFlag_En(nLine, i);
+                        STable.abType[i] = Grid_GetFlag_Type(nLine, i);
+                        STable.anLed[i] = Grid_GetFlag_Led(nLine, i);
+                        STable.anMot[i] = CalcAngle2Evd(i, CalcLimit(i, m_CGridMotionEditor.Get(nLine, i)));
+                    }
+                    return STable;
+                }
+
                 public void PlayFrame(int nLine, SMotion_t SMotion, bool b3D_Display)
                 {
+#if true
+                    PlayFrame(nLine, LineToMotionTable(nLine), b3D_Display, 0);
+#else
                     if (SMotion.nFrameSize <= 0) return;
                     if ((nLine < 0) || (nLine >= SMotion.nFrameSize)) return;
 
@@ -10718,13 +10695,13 @@ namespace OpenJigWare
                         {
                             if (
                                 //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // 엔코더이거나
-                                (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                                //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
                                 //(m_abEnc[nAxis] == true) || // 엔코더이거나
-                                //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // 위치제어가 아니라면
+                                (Grid_GetFlag_Type(nLine, nAxis) == true) // 위치제어가 아니라면
                                 )
                             {
                                 // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
-                                m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
                                 m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
 
                                 //float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)));
@@ -10741,6 +10718,19 @@ namespace OpenJigWare
                                     GetFlag_Led_Blue(SMotion.STable[nLine].anLed[nAxis]),
                                     GetFlag_Led_Red(SMotion.STable[nLine].anLed[nAxis])
                                     );
+                                m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nLine, nAxis));
+
+                                if ((m_CMotor2.IsOpen_Socket() == true) && (Grid_GetFlag_En(nLine, nAxis) == true))
+                                //if (m_CMotor2.IsOpen_Socket() == true)
+                                {
+                                    m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                    m_CMotor2.Set_Turn(nAxis, nVal);
+                                    m_CMotor2.Set_Flag_Led(nAxis,
+                                            GetFlag_Led_Green(SMotion.STable[nLine].anLed[nAxis]),
+                                            GetFlag_Led_Blue(SMotion.STable[nLine].anLed[nAxis]),
+                                            GetFlag_Led_Red(SMotion.STable[nLine].anLed[nAxis])
+                                        );
+                                }
                             }
                             else
                             {
@@ -10760,9 +10750,13 @@ namespace OpenJigWare
                         // Sound & Buzz
                         if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(SMotion.STable[nLine].nData4, SMotion.STable[nLine].nData3);
                     }
+#endif
                 }
                 public void PlayFrame(SMotionTable_t STable, bool b3D_Display)
                 {
+#if true
+                    PlayFrame(STable, b3D_Display, 0);
+#else
                     if ((m_bStop == false) && (m_bEms == false) && (m_bMotionEnd == false))
                     {
                         m_CMotor.ResetStop();
@@ -10771,13 +10765,14 @@ namespace OpenJigWare
                         {
                             if (
                                 //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // 엔코더이거나
-                                (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                                //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
                                 //(m_abEnc[nAxis] == true) || // 엔코더이거나
                                 //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // 위치제어가 아니라면
+                                (STable.abType[nAxis] == true) // 위치제어가 아니라면
                                 )
                             {
                                 // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
-                                m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
                                 m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
 
                                 //float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)));
@@ -10794,6 +10789,19 @@ namespace OpenJigWare
                                     GetFlag_Led_Blue(STable.anLed[nAxis]),
                                     GetFlag_Led_Red(STable.anLed[nAxis])
                                     );
+                                m_CMotor.SetCmd_Flag_NoAction(nAxis, !STable.abEn[nAxis]);
+
+                                if ((m_CMotor2.IsOpen_Socket() == true) && (STable.abEn[nAxis] == true))
+                                //if (m_CMotor2.IsOpen_Socket() == true)
+                                {
+                                    m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                    m_CMotor2.Set_Turn(nAxis, nVal);
+                                    m_CMotor2.Set_Flag_Led(nAxis,
+                                            GetFlag_Led_Green(STable.anLed[nAxis]),
+                                            GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                            GetFlag_Led_Red(STable.anLed[nAxis])
+                                        );
+                                }
                             }
                             else
                             {
@@ -10813,48 +10821,138 @@ namespace OpenJigWare
                         // Sound & Buzz
                         if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(STable.nData4, STable.nData3);
                     }
-                }
-                public bool GetFlag_En(int nFlag) { return (((nFlag & 0x10) != 0) ? true : false); }
-                public bool GetFlag_Type(int nFlag) { return (((nFlag & 0x08) != 0) ? true : false); }
-                public int GetFlag_Led(int nFlag) { return nFlag & 0x07; }
-                public bool GetFlag_Led_Red(int nFlag) { return (((nFlag & 0x01) != 0) ? true : false); }
-                public bool GetFlag_Led_Blue(int nFlag) { return (((nFlag & 0x02) != 0) ? true : false); }
-                public bool GetFlag_Led_Green(int nFlag) { return (((nFlag & 0x04) != 0) ? true : false); }
-                
 #endif
-                private bool m_bSimulation = false;
-                private bool m_bSimulation_Smooth = true;
-                public void SetSimulation_Smooth(bool bOn) { m_bSimulation_Smooth = bOn; } 
-                public void SetSimulation_With_PlayFrame(bool bOn) { m_bSimulation = bOn; }
-                public bool GetSimulation_With_PlayFrame() {return m_bSimulation; }
-                public bool m_bControl_Tracking = false;
-                //public void GridMotionEditor_Set_ControlTracking(bool bTrackOn) { m_bControl_Tracking = bTrackOn; }
-
-
-                private Ojw.CTimer [] m_aCTmr_Simul = new CTimer[254];
-                private float[] m_afMot_Next = new float[256];
-                private float[] m_afMot_Curr = new float[256];
-                public void SetSimulation_SetCurrentData() { for (int i = 0; i < m_CHeader.nMotorCnt; i++) m_aCTmr_Simul[i] = new CTimer(); Array.Copy(GetData(), m_afMot_Curr, m_CHeader.nMotorCnt); }
-                //private void SetSimulation_SetNextData() { Array.Copy(m_afMot, m_afMot_Next, m_CHeader.nMotorCnt); }
-                public void SetSimulation_SetNextData(int nAxis, float fValue) { m_afMot_Next[nAxis] = fValue; }
-                public int m_nSimulTime_For_Last = 0;
-                public void SetSimulation_Calc(int nTime, double dDiffTime)
-                {
-                    double dInverval_Value = nTime / dDiffTime;// -1;
-                    if (dInverval_Value == 0) dInverval_Value = 1;
-                    long lInverval_Time = (long)Math.Round((double)nTime / dInverval_Value);
-                    //for (int i = 0; i < m_CHeader.nMotorCnt; i++) { m_aCTmr_Simul[i].Set_Interval((double)m_afMot_Curr[i], (double)m_afMot_Next[i], (double)Math.Abs(m_afMot_Curr[i] - m_afMot_Next[i]) / dInverval_Value, lInverval_Time); }
-                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
-                    {
-                        double dDiff = (double)Math.Abs(m_afMot_Curr[i] - m_afMot_Next[i]) / dInverval_Value;
-                        m_aCTmr_Simul[i].Set_Interval((double)m_afMot_Curr[i], (double)m_afMot_Next[i], dDiff, lInverval_Time); 
-                    }
                 }
-                public float GetSimulation_Value(int nAxis) { return (float)m_aCTmr_Simul[nAxis].Get_Interval(); }
-                public float GetSimulation_Value_Next(int nAxis) { return m_afMot_Next[nAxis]; }
+                public void PlayFrame(int nLine)
+                {
+#if true
+                    PlayFrame(nLine, LineToMotionTable(nLine), false, 0);
+#else
+                    float fVal;
+                    CGridView OjwGrid = m_CGridMotionEditor;
+                    int nRow = nLine;// OjwGrid.m_nCurrntCell;
+                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                    {
+                        if (
+                            //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // 엔코더이거나
+                            //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                            //(m_abEnc[nAxis] == true) || // 엔코더이거나
+                            (Grid_GetFlag_Type(nRow, nAxis) == true) // 위치제어가 아니라면
+                            )
+                        {
+                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
 
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
+
+                            //int nRow = CGrid.m_nCurrntCell;
+                            //int nCol = CGrid.m_nCurrntColumn;
+
+                            float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nRow, nAxis)));
+                            int nVal = CalcAngle2Evd(nAxis, fTmpVal);
+                            //int nVal2 = nVal;
+                            if (nVal < 0)
+                            {
+                                nVal *= -1;
+                                nVal |= 0x4000;
+                            }
+                            m_CMotor.SetCmd(nAxis, nVal);
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            bool bRed = (Grid_GetFlag_Led(nRow, nAxis) == 1) ? true : false;
+                            bool bBlue = (Grid_GetFlag_Led(nRow, nAxis) == 2) ? true : false;
+                            bool bGreen = (Grid_GetFlag_Led(nRow, nAxis) == 4) ? true : false;
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nRow, nAxis));
+
+                            if ((m_CMotor2.IsOpen_Socket() == true) && (Grid_GetFlag_En(nRow, nAxis) == true))
+                            //if (m_CMotor2.IsOpen_Socket() == true)
+                            {
+                                m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                m_CMotor2.Set_Turn(nAxis, nVal);
+                                m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            }
+                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nRow, nAxis));
+                            //if (CheckWifi() == true)
+                            //{
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                            //}
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                        }
+                        else
+                        {
+                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                            //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(m_nCurrntCell, nAxis));
+
+                            fVal = (float)Math.Round((float)OjwGrid.Get(nRow, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
+                            m_CMotor.SetCmd_Angle(nAxis, fVal);
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_angle(nAxis, fVal);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_angle(nAxis, fVal);
+                            bool bRed = (Grid_GetFlag_Led(nRow, nAxis) == 1) ? true : false;
+                            bool bBlue = (Grid_GetFlag_Led(nRow, nAxis) == 2) ? true : false;
+                            bool bGreen = (Grid_GetFlag_Led(nRow, nAxis) == 4) ? true : false;
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nRow, nAxis));
+
+                            if ((m_CMotor2.IsOpen_Socket() == true) && (Grid_GetFlag_En(nRow, nAxis) == true))
+                            {
+                                m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                m_CMotor2.Set_Angle(nAxis, fVal);
+                                m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            }
+                            //if (CheckWifi() == true)
+                            //{
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                            //}
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                        }
+                    }
+                    //m_CTmr_Interval_X.Set_Interval((double)fX, (double)m_afAnimation[nAxis, 0], (double)Math.Abs(fX - m_afAnimation[nAxis, 0]) / m_dInterval_Value, m_lInterval_Time);
+
+                    m_CMotor.SetMot((int)OjwGrid.GetTime(nRow));//m_CGridMotionEditor.GetTime(m_nCurrntCell));
+                    if (m_CMotor2.IsOpen_Socket() == true)
+                    {
+                        m_CMotor2.Send_Motor((int)OjwGrid.GetTime(nRow));
+                    }
+                    //m_CMotor.Mpsu_Play_HeadLed_Buzz(Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
+
+
+                    // Sound & Buzz
+                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nRow), GridMotionEditor_GetExtBuzz(nRow));
+
+                    //if (CheckWifi() == true)
+                    //{
+                    //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_request_move(m_CGridMotionEditor.GetTime(m_nCurrntCell));
+                    //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_mpsu_play_headled_buzz(253, Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
+                    //}
+                    //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
+                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_move(m_CGridMotionEditor.GetTime(m_nCurrntCell));
+                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(253, Grid_GetExtLed(m_nCurrntCell), Grid_GetExtBuzz(m_nCurrntCell));
+#endif
+                }
                 public void PlayFrame(int nLine, int nAddSpeedPercent) // 100% + nAddSpeedPercent
                 {
+#if true                    
+                    PlayFrame(nLine, LineToMotionTable(nLine), false, nAddSpeedPercent);
+#else
                     bool bSock = m_CMotor2.IsOpen_Socket();
                     CGridView OjwGrid = m_CGridMotionEditor;
                     //int nRow = OjwGrid.m_nCurrntCell;
@@ -10881,14 +10979,14 @@ namespace OpenJigWare
                     {
                         if (
                             //(m_abEnc[nAxis] == true) || // 엔코더이거나
-                            (m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
-                            //(Grid_GetFlag_Type(nLine, nAxis) == true) // 위치제어가 아니라면
+                            //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                            (Grid_GetFlag_Type(nLine, nAxis) == true) // 위치제어가 아니라면
                             //((m_CMotor.GetCmd_Flag_Mode(nAxis) != 0) && (m_CMotor.GetCmd_Flag_Mode(nAxis) != 2)) // 위치제어가 아니라면
                             )//((nAxis >= 6) && (nAxis <= 8)) ojw5014 20120417
                         {
                             //// 동작 ////
                             // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
-                            m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
                             m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
                             //if (CheckWifi() == true)
                             //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
@@ -10914,6 +11012,14 @@ namespace OpenJigWare
                             bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
                             bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
                             m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+
+
+
+
+                            //////// 여기 함수 다시 한번 체크해라.
+
+
+
                             if (bSock == true)
                             {
                                 m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
@@ -10976,25 +11082,25 @@ namespace OpenJigWare
 
                             m_CMotor.SetCmd_Flag_Stop(nAxis, false);
 
-                           // //// 동작 ////
-                           // // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
-                           // //m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
-                           //// m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir); // 굳이 안넣어도 된다. 이젠... 그냥 잊어버릴까봐 불필요 코드 집어넣은 정도...
-                            
-                           // //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
-                           // //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            // //// 동작 ////
+                            // // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            // //m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            //// m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir); // 굳이 안넣어도 된다. 이젠... 그냥 잊어버릴까봐 불필요 코드 집어넣은 정도...
 
-                           // fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //fVal = GridMotionEditor_GetMotor(nLine, nAxis);
-                           // m_CMotor.SetCmd_Angle(nAxis, fVal);
-                           // //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_angle(nAxis, fVal);
+                            // //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            // //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
 
-                           // bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
-                           // bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
-                           // bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
-                           // m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            // fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //fVal = GridMotionEditor_GetMotor(nLine, nAxis);
+                            // m_CMotor.SetCmd_Angle(nAxis, fVal);
+                            // //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_angle(nAxis, fVal);
 
-                           // m_CMotor.SetCmd_Flag_Stop(nAxis, false);
-                            
+                            // bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            // bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            // bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            // m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+
+                            // m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+
                             //m_CMotor.SetCmd_Flag_NoAction(nAxis, !GridMotionEditor_GetFlag_En(nLine, nAxis));
                             //if (CheckWifi() == true)
                             //{
@@ -11008,13 +11114,13 @@ namespace OpenJigWare
                             if (m_bSimulation == true)
                             {
                                 //SetData(nAxis, (float)fVal);
-                                if (GetSimulation_With_PlayFrame() == true) 
+                                if (GetSimulation_With_PlayFrame() == true)
                                 {
                                     if (m_bSimulation_Smooth == false)
                                     {
                                         SetData(nAxis, (float)fVal);
                                     }
-                                    SetSimulation_SetNextData(nAxis, fVal); 
+                                    SetSimulation_SetNextData(nAxis, fVal);
                                 }
                             }
                         }
@@ -11053,7 +11159,630 @@ namespace OpenJigWare
 
                     //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
                     //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(0xfe, Grid_GetExtLed(nLine), Grid_GetExtBuzz(nLine));
+#endif
                 }
+            
+                public void PlayFrame(SMotionTable_t STable, bool b3D_Display, int nAddSpeedPercent) // 100% + nAddSpeedPercent
+                {
+                    PlayFrame(-1, STable, b3D_Display, nAddSpeedPercent);
+                }
+                public void PlayFrame(int nLine, SMotionTable_t STable, bool b3D_Display, int nAddSpeedPercent) // 100% + nAddSpeedPercent
+                {
+#if false
+                    bool bSock = m_CMotor2.IsOpen_Socket();
+                    CGridView OjwGrid = m_CGridMotionEditor;
+                    //int nRow = OjwGrid.m_nCurrntCell;
+                    if (m_bStart == true)
+                    {
+#if !_COLOR_GRID_IN_PAINT
+                        //GridMotionEditor_SetColorGrid(nLine - 1, 1);
+#endif
+                        if (m_bControl_Tracking)
+                        {
+                            if ((GetSimulation_With_PlayFrame() == false) || ((m_bSimulation_Smooth == false) && (GetSimulation_With_PlayFrame() == true))) for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) SetData(nAxis, GridMotionEditor_GetMotor(nLine, nAxis)); // 이거 나중에 실시간으로 하고 싶으면 시작단계에서 미리 계산하도록 수정하도록 한다. - 아직은 생각없음.
+                            m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[1];
+                        }
+                    }
+
+                    float fPercent = 1.0f + (float)nAddSpeedPercent / 100.0f;
+
+                    float fVal;
+                    bool bRed, bBlue, bGreen;
+
+                    if (GetSimulation_With_PlayFrame() == true) { SetSimulation_SetCurrentData(); }
+
+                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                    {
+                        if (
+                            //(m_abEnc[nAxis] == true) || // 엔코더이거나
+                            //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                            (Grid_GetFlag_Type(nLine, nAxis) == true) // 위치제어가 아니라면
+                            //((m_CMotor.GetCmd_Flag_Mode(nAxis) != 0) && (m_CMotor.GetCmd_Flag_Mode(nAxis) != 2)) // 위치제어가 아니라면
+                            )//((nAxis >= 6) && (nAxis <= 8)) ojw5014 20120417
+                        {
+                            //// 동작 ////
+                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            if (bSock == true) m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            float fTmpVal = (float)Math.Round(Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)));
+                            int nVal = CalcAngle2Evd(nAxis, fTmpVal);
+
+                            //int nVal = (int)Math.Round(GridMotionEditor_GetMotor(nLine, nAxis));
+                            if (bSock == true) m_CMotor2.Set_Turn(nAxis, nVal);
+                            if (nVal < 0)
+                            {
+                                nVal *= -1;
+                                nVal |= 0x4000;
+                            }
+                            m_CMotor.SetCmd(nAxis, nVal);
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+
+
+
+
+                            //////// 여기 함수 다시 한번 체크해라.
+
+
+
+                            if (bSock == true)
+                            {
+                                m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                                if (fTmpVal == 0) m_CMotor2.Set_Flag_Stop(nAxis, true);
+                                else m_CMotor2.Set_Flag_Stop(nAxis, false);
+                            }
+                            if (fTmpVal == 0) m_CMotor.SetCmd_Flag_Stop(nAxis, true);
+                            else m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+                            //m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);                            
+#if false
+                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nLine, nAxis));
+                    
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_stop();
+                            //if (fTmpVal == 0) frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_stop(nAxis, true);
+                            //else frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_stop(nAxis, false);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(nLine, nAxis));
+
+                            ///////////
+                            
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            
+                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, true);//!Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                            //if (CheckWifi() == true)
+                            //{
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                            //}
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+#endif
+                            if (m_bSimulation == true)
+                            {
+                                SetData(nAxis, (float)nVal);
+                            }
+                        }
+                        else
+                        {
+                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            if (bSock == true) m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
+                            m_CMotor.SetCmd_Angle(nAxis, fVal);
+                            if (bSock == true) m_CMotor2.Set_Angle(nAxis, fVal);
+
+                            bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            if (bSock == true) m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            /////////////////////////////////////
+
+                            m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+
+                            // //// 동작 ////
+                            // // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            // //m_CMotor.SetCmd_Flag_Mode(nAxis, Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            //// m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir); // 굳이 안넣어도 된다. 이젠... 그냥 잊어버릴까봐 불필요 코드 집어넣은 정도...
+
+                            // //m_CMotor.SetCmd_Flag_Mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            // //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+
+                            // fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //fVal = GridMotionEditor_GetMotor(nLine, nAxis);
+                            // m_CMotor.SetCmd_Angle(nAxis, fVal);
+                            // //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_angle(nAxis, fVal);
+
+                            // bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                            // bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                            // bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            // m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+
+                            // m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+
+                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, !GridMotionEditor_GetFlag_En(nLine, nAxis));
+                            //if (CheckWifi() == true)
+                            //{
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_stop(nAxis, false);
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(nLine, nAxis));
+                            //}
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_stop(nAxis, false);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !GridMotionEditor_GetFlag_En(nLine, nAxis));
+                            if (m_bSimulation == true)
+                            {
+                                //SetData(nAxis, (float)fVal);
+                                if (GetSimulation_With_PlayFrame() == true)
+                                {
+                                    if (m_bSimulation_Smooth == false)
+                                    {
+                                        SetData(nAxis, (float)fVal);
+                                    }
+                                    SetSimulation_SetNextData(nAxis, fVal);
+                                }
+                            }
+                        }
+                    }
+                    int nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
+                    int nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+
+                    if (GetSimulation_With_PlayFrame() == false)
+                    {
+                        m_CMotor.SetMot(nSpeedValue);
+                        if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
+                    }
+                    
+                    if (GridMotionEditor_GetCommand(nLine) != 2) // if it is not a "sync"
+                    {
+                        int nDelay = nSpeedValue + nDelayValue;
+                        m_nSimulTime_For_Last = -nDelayValue;// nSpeedValue - nDelay;
+                        if (GetSimulation_With_PlayFrame() == true) { SetSimulation_Calc(nSpeedValue, 1.0f); }
+
+                        if (nDelay > 0) WaitAction_ByTimer(nDelay);
+                        else
+                        {
+                            if (GetSimulation_With_PlayFrame() == true)
+                            {
+                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                    SetData(i, GetSimulation_Value(i));
+                                //OjwDraw();
+                            }
+                        }
+                    }
+
+                    // Sound & Buzz
+                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
+#else
+
+
+
+#if true
+                    bool bSock = m_CMotor2.IsOpen_Socket();
+                    CGridView OjwGrid = m_CGridMotionEditor;
+                    //int nRow = OjwGrid.m_nCurrntCell;
+                    if (m_bStart == true)
+                    {
+#if !_COLOR_GRID_IN_PAINT
+                        //GridMotionEditor_SetColorGrid(nLine - 1, 1);
+#endif
+
+                        if (nLine >= 0)
+                        {
+                            if (m_bControl_Tracking)
+                            {
+                                if ((GetSimulation_With_PlayFrame() == false) || ((m_bSimulation_Smooth == false) && (GetSimulation_With_PlayFrame() == true))) for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                                        SetData(nAxis, GridMotionEditor_GetMotor(nLine, nAxis)); // 이거 나중에 실시간으로 하고 싶으면 시작단계에서 미리 계산하도록 수정하도록 한다. - 아직은 생각없음.
+                                m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[1];
+                            }
+                        }
+                    }
+
+                    float fPercent = 1.0f + (float)nAddSpeedPercent / 100.0f;
+
+                    float fVal;
+                    bool bRed, bBlue, bGreen;
+
+                    if (GetSimulation_With_PlayFrame() == true) { SetSimulation_SetCurrentData(); }
+
+                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                    {
+                        if (
+                            //(m_abEnc[nAxis] == true) || // 엔코더이거나
+                            //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                            
+                            ((nLine < 0) ? (STable.abType[nAxis] == true) : (Grid_GetFlag_Type(nLine, nAxis) == true)) // 위치제어가 아니라면
+                            
+                            //((m_CMotor.GetCmd_Flag_Mode(nAxis) != 0) && (m_CMotor.GetCmd_Flag_Mode(nAxis) != 2)) // 위치제어가 아니라면
+                            )//((nAxis >= 6) && (nAxis <= 8)) ojw5014 20120417
+                        {
+                            //// 동작 ////
+                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_mode(nAxis, Grid_GetFlag_Type(nLine, nAxis));
+                            if (bSock == true) m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            float fTmpVal = (float)Math.Round(Convert.ToSingle(
+                                ((nLine < 0) ? STable.anMot[nAxis] : OjwGrid.GetData(nLine, nAxis))
+                                ));
+                            int nVal = CalcAngle2Evd(nAxis, fTmpVal);
+
+                            //int nVal = (int)Math.Round(GridMotionEditor_GetMotor(nLine, nAxis));
+                            if (bSock == true) m_CMotor2.Set_Turn(nAxis, nVal);
+                            if (nVal < 0)
+                            {
+                                nVal *= -1;
+                                nVal |= 0x4000;
+                            }
+                            m_CMotor.SetCmd(nAxis, nVal);
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            if (nLine < 0)
+                            {
+                                bRed = GetFlag_Led_Red(STable.anLed[nAxis]);//(nLine, nAxis) == 1) ? true : false;
+                                bBlue = GetFlag_Led_Blue(STable.anLed[nAxis]); //(Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                                bGreen = GetFlag_Led_Green(STable.anLed[nAxis]); //(Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            }
+                            else
+                            {
+                                bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                                bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                                bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                            }
+                            m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                                                        
+                            if (bSock == true)
+                            {
+                                m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                                if (fTmpVal == 0) m_CMotor2.Set_Flag_Stop(nAxis, true);
+                                else m_CMotor2.Set_Flag_Stop(nAxis, false);
+                            }
+                            if (fTmpVal == 0) m_CMotor.SetCmd_Flag_Stop(nAxis, true);
+                            else m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+                            //m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);                            
+#if false
+                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, !Grid_GetFlag_En(nLine, nAxis));
+                    
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_request_stop();
+                            //if (fTmpVal == 0) frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_stop(nAxis, true);
+                            //else frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_stop(nAxis, false);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(nLine, nAxis));
+
+                            ///////////
+                            
+                            //if (CheckWifi() == true)
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd(nAxis, nVal);
+
+                            
+                            //m_CMotor.SetCmd_Flag_NoAction(nAxis, true);//!Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                            //if (CheckWifi() == true)
+                            //{
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+                            //}
+
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_led(nAxis, bGreen, bBlue, bRed);
+                            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_set_cmd_flag_no_action(nAxis, !Grid_GetFlag_En(m_nCurrntCell, nAxis));
+#endif
+                            if (m_bSimulation == true)
+                            {
+                                SetData(nAxis, (float)nVal);
+                            }
+                        }
+                        else
+                        {
+                            // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                            m_CMotor.SetCmd_Flag_Mode(nAxis, false);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                            m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            if (bSock == true) m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+
+                            //fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
+                            //m_CMotor.SetCmd_Angle(nAxis, fVal);
+                            //if (bSock == true) m_CMotor2.Set_Angle(nAxis, fVal);
+
+                            if (nLine < 0)
+                            {
+                                m_CMotor.SetCmd(nAxis, STable.anMot[nAxis]);
+                                if (bSock == true) m_CMotor2.Set(nAxis, STable.anMot[nAxis]);
+                                bRed = GetFlag_Led_Red(STable.anLed[nAxis]);
+                                bBlue = GetFlag_Led_Blue(STable.anLed[nAxis]); 
+                                bGreen = GetFlag_Led_Green(STable.anLed[nAxis]);
+                            }
+                            else
+                            {
+                                fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
+                                m_CMotor.SetCmd_Angle(nAxis, fVal);
+                                if (bSock == true) m_CMotor2.Set_Angle(nAxis, fVal);
+
+                                bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                                bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                                bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                                m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            }
+                            if (bSock == true) m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            /////////////////////////////////////
+
+                            m_CMotor.SetCmd_Flag_Stop(nAxis, false);
+
+                            // //// 동작 ////
+                            if (m_bSimulation == true)
+                            {
+                                //SetData(nAxis, (float)fVal);
+                                if (GetSimulation_With_PlayFrame() == true)
+                                {
+                                    if (m_bSimulation_Smooth == false)
+                                    {
+                                        SetData(nAxis, (float)CalcEvd2Angle(nAxis, STable.anMot[nAxis]));
+                                    }
+                                    SetSimulation_SetNextData(nAxis, (float)CalcEvd2Angle(nAxis, STable.anMot[nAxis]));
+                                }
+                            }
+                        }
+                    }
+                    int nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
+                    int nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+
+                    if (GetSimulation_With_PlayFrame() == false)
+                    {
+                        m_CMotor.SetMot(nSpeedValue);
+                        if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
+                    }
+
+                    if (GridMotionEditor_GetCommand(nLine) != 2) // if it is not a "sync"
+                    {
+                        int nDelay = nSpeedValue + nDelayValue;
+                        m_nSimulTime_For_Last = -nDelayValue;// nSpeedValue - nDelay;
+                        if (GetSimulation_With_PlayFrame() == true) { SetSimulation_Calc(nSpeedValue, 1.0f); }
+
+                        if (nDelay > 0) WaitAction_ByTimer(nDelay);
+                        else
+                        {
+                            if (GetSimulation_With_PlayFrame() == true)
+                            {
+                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                    SetData(i, GetSimulation_Value(i));
+                                //OjwDraw();
+                            }
+                        }
+                    }
+
+                    // Sound & Buzz
+                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
+
+                    //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
+                    //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(0xfe, Grid_GetExtLed(nLine), Grid_GetExtBuzz(nLine));
+#else
+                    if ((m_bStop == false) && (m_bEms == false) && (m_bMotionEnd == false))
+                    {
+                        bool bSock = m_CMotor2.IsOpen_Socket();
+                        if (m_bStart == true)
+                        {
+#if !_COLOR_GRID_IN_PAINT
+                            //GridMotionEditor_SetColorGrid(nLine - 1, 1);
+#endif
+                            if (nLine >= 0)
+                            {
+                                if (m_bControl_Tracking)
+                                {
+                                    if ((GetSimulation_With_PlayFrame() == false) || ((m_bSimulation_Smooth == false) && (GetSimulation_With_PlayFrame() == true))) for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) SetData(nAxis, GridMotionEditor_GetMotor(nLine, nAxis)); // 이거 나중에 실시간으로 하고 싶으면 시작단계에서 미리 계산하도록 수정하도록 한다. - 아직은 생각없음.
+                                    m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[1];
+                                }
+                            }
+                        }
+
+                        if (GetSimulation_With_PlayFrame() == true) { SetSimulation_SetCurrentData(); }
+                        
+                        float fPercent = 1.0f + (float)nAddSpeedPercent / 100.0f;
+                        int nDelayValue = (int)Math.Round((float)fPercent * (float)STable.nDelay);
+
+                        m_CMotor.ResetStop();
+                        m_CMotor.DrvSrv(true, true);
+                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
+                        {
+                            if (
+                                //(m_CHeader.pSMotorInfo[nAxis]. == EType_t._0102) || // 엔코더이거나
+                                //(m_CHeader.pSMotorInfo[nAxis].nMotorControlType != 0) // 위치제어가 아니라면 //// Motor Control type => 0: Position, 1: Speed type
+                                //(m_abEnc[nAxis] == true) || // 엔코더이거나
+                                //(Grid_GetFlag_Type(m_nCurrntCell, nAxis) == true) // 위치제어가 아니라면
+                                (STable.abType[nAxis] == true) // 위치제어가 아니라면
+                                )
+                            {
+                                // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, true);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                                              
+                                int nVal = (int)Math.Round((float)fPercent * (float) STable.anMot[nAxis]);
+                                
+                                if (nVal < 0)
+                                {
+                                    nVal *= -1;
+                                    nVal |= 0x4000;
+                                }
+
+                                m_CMotor.SetCmd(nAxis, nVal);
+
+                                m_CMotor.SetCmd_Flag_Led(nAxis,
+                                    GetFlag_Led_Green(STable.anLed[nAxis]),
+                                    GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                    GetFlag_Led_Red(STable.anLed[nAxis])
+                                    );
+                                m_CMotor.SetCmd_Flag_NoAction(nAxis, !STable.abEn[nAxis]);
+
+                                if ((m_CMotor2.IsOpen_Socket() == true) && (STable.abEn[nAxis] == true))
+                                {
+                                    m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                    m_CMotor2.Set_Turn(nAxis, nVal);
+                                    m_CMotor2.Set_Flag_Led(nAxis,
+                                            GetFlag_Led_Green(STable.anLed[nAxis]),
+                                            GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                            GetFlag_Led_Red(STable.anLed[nAxis])
+                                        );
+                                }
+                                //m_CMotor.SetMot(STable.nTime);
+                                
+                                if (m_bSimulation == true)
+                                {
+                                    SetData(nAxis, (float)nVal);
+                                }
+
+                                if (GetSimulation_With_PlayFrame() == false)
+                                {
+                                    int nSpeedValue = (int)Math.Round((float)fPercent * (float)STable.nTime);
+                                    m_CMotor.SetMot(nSpeedValue);
+                                    if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
+                                }
+                            }
+                            else
+                            {
+                                int nSpeedValue = (int)Math.Round((float)fPercent * (float)STable.nTime);
+
+                                // 모드에 따라 계산법이 틀려지기에 모드 셋팅부터 먼저 한다.
+                                m_CMotor.SetCmd_Flag_Mode(nAxis, false);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
+                                m_CMotor.SetParam_Item_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                                m_CMotor.SetCmd_Flag_NoAction(nAxis, !STable.abEn[nAxis]);
+
+                                m_CMotor.SetCmd(nAxis, STable.anMot[nAxis]);
+                                m_CMotor.SetCmd_Flag_Led(nAxis,
+                                    GetFlag_Led_Green(STable.anLed[nAxis]),
+                                    GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                    GetFlag_Led_Red(STable.anLed[nAxis])
+                                    );
+
+                                if ((m_CMotor2.IsOpen_Socket() == true) && (STable.abEn[nAxis] == true))
+                                {
+                                    m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                    m_CMotor2.Set(nAxis, STable.anMot[nAxis]);
+                                    m_CMotor2.Set_Flag_Led(nAxis,
+                                            GetFlag_Led_Green(STable.anLed[nAxis]),
+                                            GetFlag_Led_Blue(STable.anLed[nAxis]),
+                                            GetFlag_Led_Red(STable.anLed[nAxis])
+                                        );
+                                }
+                                //m_CMotor.SetMot(nSpeedValue);//STable.nTime);
+                                
+                                if (m_bSimulation == true)
+                                {
+                                    //SetData(nAxis, (float)fVal);
+                                    if (GetSimulation_With_PlayFrame() == true)
+                                    {
+                                        if (m_bSimulation_Smooth == false)
+                                        {
+                                            SetData(nAxis, (float)nSpeedValue);
+                                        }
+                                        SetSimulation_SetNextData(nAxis, nSpeedValue);
+                                    }
+                                }
+
+                                if (GetSimulation_With_PlayFrame() == false)
+                                {
+                                    m_CMotor.SetMot(nSpeedValue);
+                                    if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
+                                }
+                            }
+                        }
+
+
+                        //if (GetSimulation_With_PlayFrame() == false)
+                        //{
+                        //    int nSpeedValue = (int)Math.Round((float)fPercent * (float)STable.nTime);
+                        //    m_CMotor.SetMot(nSpeedValue);
+                        //    if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
+                        //}
+                        if (nLine >= 0)
+                        {
+                            if (GridMotionEditor_GetCommand(nLine) != 2) // if it is not a "sync"
+                            {
+                                int nSpeedValue = (int)Math.Round((float)fPercent * (float)STable.nTime);
+                                int nDelay = nSpeedValue + nDelayValue;
+                                m_nSimulTime_For_Last = -nDelayValue;// nSpeedValue - nDelay;
+                                if (GetSimulation_With_PlayFrame() == true) { SetSimulation_Calc(nSpeedValue, 1.0f); }
+
+                                if (nDelay > 0) WaitAction_ByTimer(nDelay);
+                                else
+                                {
+                                    if (GetSimulation_With_PlayFrame() == true)
+                                    {
+                                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                            SetData(i, GetSimulation_Value(i));
+                                        //OjwDraw();
+                                    }
+                                }
+                            }
+                        }
+                        // Sound & Buzz
+                        if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(STable.nData4, STable.nData3);
+                    }
+#endif
+#endif
+                }
+            
+                public bool GetFlag_En(int nFlag) { return (((nFlag & 0x10) != 0) ? true : false); }
+                public bool GetFlag_Type(int nFlag) { return (((nFlag & 0x08) != 0) ? true : false); }
+                public int GetFlag_Led(int nFlag) { return nFlag & 0x07; }
+                public bool GetFlag_Led_Red(int nFlag) { return (((nFlag & 0x01) != 0) ? true : false); }
+                public bool GetFlag_Led_Blue(int nFlag) { return (((nFlag & 0x02) != 0) ? true : false); }
+                public bool GetFlag_Led_Green(int nFlag) { return (((nFlag & 0x04) != 0) ? true : false); }
+                
+#endif
+                private bool m_bSimulation = false;
+                private bool m_bSimulation_Smooth = true;
+                public void SetSimulation_Smooth(bool bOn) { m_bSimulation_Smooth = bOn; } 
+                public void SetSimulation_With_PlayFrame(bool bOn) { m_bSimulation = bOn; }
+                public bool GetSimulation_With_PlayFrame() {return m_bSimulation; }
+                public bool m_bControl_Tracking = false;
+                //public void GridMotionEditor_Set_ControlTracking(bool bTrackOn) { m_bControl_Tracking = bTrackOn; }
+
+
+                private Ojw.CTimer [] m_aCTmr_Simul = new CTimer[254];
+                private float[] m_afMot_Next = new float[256];
+                private float[] m_afMot_Curr = new float[256];
+                public void SetSimulation_SetCurrentData() { for (int i = 0; i < m_CHeader.nMotorCnt; i++) m_aCTmr_Simul[i] = new CTimer(); Array.Copy(GetData(), m_afMot_Curr, m_CHeader.nMotorCnt); }
+                //private void SetSimulation_SetNextData() { Array.Copy(m_afMot, m_afMot_Next, m_CHeader.nMotorCnt); }
+                public void SetSimulation_SetNextData(int nAxis, float fValue) { m_afMot_Next[nAxis] = fValue; }
+                public int m_nSimulTime_For_Last = 0;
+                public void SetSimulation_Calc(int nTime, double dDiffTime)
+                {
+                    double dInverval_Value = nTime / dDiffTime;// -1;
+                    if (dInverval_Value == 0) dInverval_Value = 1;
+                    long lInverval_Time = (long)Math.Round((double)nTime / dInverval_Value);
+                    //for (int i = 0; i < m_CHeader.nMotorCnt; i++) { m_aCTmr_Simul[i].Set_Interval((double)m_afMot_Curr[i], (double)m_afMot_Next[i], (double)Math.Abs(m_afMot_Curr[i] - m_afMot_Next[i]) / dInverval_Value, lInverval_Time); }
+                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                    {
+                        double dDiff = (double)Math.Abs(m_afMot_Curr[i] - m_afMot_Next[i]) / dInverval_Value;
+                        m_aCTmr_Simul[i].Set_Interval((double)m_afMot_Curr[i], (double)m_afMot_Next[i], dDiff, lInverval_Time); 
+                    }
+                }
+                public float GetSimulation_Value(int nAxis) { return (float)m_aCTmr_Simul[nAxis].Get_Interval(); }
+                public float GetSimulation_Value_Next(int nAxis) { return m_afMot_Next[nAxis]; }
+                                            
 #endif
                 #region Timer ID - TID
                 public const int _CNT_ROBOT = 20;
@@ -11205,7 +11934,8 @@ namespace OpenJigWare
                         //m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[nPos].Style.BackColor = Color.Red;
                         //m_bClick_dbAngle = true;
                         //if ((e.ColumnIndex == m_CGridMotionEditor.OjwGrid_GetCurrentColumn()) && (e.RowIndex == m_CGridMotionEditor.OjwGrid_GetCurrentLine())) return;
-                        m_CGridMotionEditor.SetChangeCurrentCol(e.ColumnIndex);
+                        m_CGridMotionEditor.SetChangeCurrentCol(nPos); // OJW5014_20161031
+                        m_CGridMotionEditor.SetChangeCurrentLine(nLine); // OJW5014_20161031
                         if (m_CGridMotionEditor.GetHandle().Focused == true)
                         {
                             //m_CGridMotionEditor.SetChangeCurrentLine(e.RowIndex);
@@ -20535,7 +21265,7 @@ namespace OpenJigWare
 
                     m_rtxtDraw.Text = GetHeader_strDrawModel();
                     int nWidth = (IsGridInit() == true) ? GetWidth_GridItem() : 70;
-                    GridMotionEditor_Init(nWidth, 999);
+                    GridMotionEditor_Init(nWidth, 999, false);
                     StringListToGrid(); // 현재는 사용 안하지만 그래도 일단 넣고 계속 테스트...
 
                     //if (m_cmbDh.Items.Count < 512)

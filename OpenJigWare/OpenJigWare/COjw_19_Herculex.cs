@@ -1704,7 +1704,8 @@ namespace OpenJigWare
                 {
                     try
                     {
-                        if (IsZigBee() == true) SendPacket_with_zigbee(GetZigBee_Address(), buffer, nLength);
+                        if (IsSocket() == true) m_CSocket.Send(buffer);
+                        else if (IsZigBee() == true) SendPacket_with_zigbee(GetZigBee_Address(), buffer, nLength);
                         else m_SerialPort.Write(buffer, 0, nLength);
                     }
                     catch (Exception ex)
@@ -1920,7 +1921,7 @@ namespace OpenJigWare
             private byte m_byteLastPacket = 0;
             private void ReceiveDataCallback()		/* Callback 함수 */
             {
-                while ((IsConnect() == true) && (m_bClassEnd == false))
+                while (((IsConnect() == true) || (IsSocket() == true)) && (m_bClassEnd == false))
                 {
                     try
                     {
@@ -1944,7 +1945,8 @@ namespace OpenJigWare
                         byte RxData;
                         int nPacketSize = 0;
 
-                        int nLength = GetBuffer_Length();
+                        int nLength = (IsSocket() == true) ? m_CSocket.GetBuffer_Length() : GetBuffer_Length();
+                        
                         if (nLength > 0)
                         {
                             m_nCntTick_Receive_Event_All++;
@@ -1958,7 +1960,10 @@ namespace OpenJigWare
                             //for (int i = 0; i < nLength; i++) m_pbyteReceiveData[nFirst + i] = (byte)(m_SerialPort.ReadByte() & 0xff);
                             for (i = 0; i < nLength; i++)
                             {
-                                RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                if (IsSocket() == true)
+                                    RxData = (byte)(m_CSocket.GetByte() & 0xff);
+                                else
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
                                 m_byteLastPacket = RxData; // LastPacket
                                 if ((RxData == 0xFF) && (m_nRxIndex == 0xFF))
                                 {
@@ -2257,6 +2262,10 @@ namespace OpenJigWare
                 }
             }
             #endregion
+
+            private CSocket m_CSocket = null;
+            public void SetSocket(CSocket CSock) { m_CSocket = CSock; }
+            public bool IsSocket() { return m_CSocket.IsConnect(); }
 
             private bool m_bBusy = false;
             // 통신의 혼선이 일지 않게 끔 외부적으로 Busy 상태인지 아닌지를 확인하는 함수
@@ -3643,16 +3652,24 @@ namespace OpenJigWare
             // 전체 정지 - 이걸로 멈추면 반드시 리셋이 필요(Stop 변수만 리셋하면 됨)
             public void Stop()
             {
-                m_bStop = true;
 
 #if true
 #if true
+                m_bStop = true;
                 for (int i = 0; i < m_nMotor_Max; i++)
                 {
-                    if (GetSpeedType(i) == true) SetCmd(i, 0);
-                    SetCmd_Flag_Stop(i, true);
+                    //if (GetSpeedType(i) == true) SetCmd(i, 0);
+                    SetCmd(i, 0);
+                    SetCmd_Flag_Mode(i, true);
+                    //SetCmd_Flag_Stop(i, true);
                 }
-                SetMot(1000);
+                //bool bStop = m_bStop;
+                //bool bEms = m_bEms;
+                //m_bStop = false;
+                //m_bEms = false;
+                SetMot_Stop(0xfe);//SetMot(1000);
+
+                //m_bEms = bEms;
 #else
             int nPos = 0;
             int nTime = 0;
@@ -3719,8 +3736,19 @@ namespace OpenJigWare
             // 이건 그냥 멈추기만 할 뿐 변수를 셋하지는 않는다.
             public void Stop(int nAxis)
             {
+                m_bStop = true;
                 SetCmd_Flag_Stop(nAxis, true);
-                SetMot(nAxis, 1000);
+                SetCmd_Flag_Mode(nAxis, true);
+                SetCmd(nAxis, 0);
+                //bool bStop = m_bStop;
+                //bool bEms = m_bEms;
+                //m_bStop = false;
+                //m_bEms = false;
+
+                SetMot_Stop(nAxis);//nAxis, 1000);
+
+                //m_bEms = bEms;
+                //m_bStop = true;
             }
             #endregion
 
@@ -3962,6 +3990,26 @@ namespace OpenJigWare
 
                 //Make_And_Send_Packet(0xfe, 0x05, i, pbyteBuffer);
                 Make_And_Send_Packet(0xfe, 0x06, i, pbyteBuffer);
+                pbyteBuffer = null;
+            }
+            public void SetMot_Stop(int nAxis)
+            {
+                //int nID = 254;// GetID_By_Axis(nAxis);//m_pSMot[nAxis].nID;
+                int i = 0;
+                int nCalcTime = CalcTime_ms(1000);
+                ////////////////////////////////////////////////
+
+                byte[] pbyteBuffer = new byte[5];//[255];
+                pbyteBuffer[i++] = 0;// (byte)(nPos & 0xff);
+                pbyteBuffer[i++] = 0;// (byte)((nPos >> 8) & 0xff);
+                pbyteBuffer[i++] = (byte)(_FLAG_MODE_SPEED | _FLAG_STOP);// (byte)(nCalcTime & 0xff);
+                // - 모터당 아이디(후면에 붙는다)
+                pbyteBuffer[i++] = (byte)(nAxis & 0xff);// (254 & 0xff);
+                pbyteBuffer[i++] = (byte)((nCalcTime >> 8) & 0xff);
+                ////////////////////////////////////////////////
+
+                Make_And_Send_Packet(0xfe, 0x05, i, pbyteBuffer);
+
                 pbyteBuffer = null;
             }
 

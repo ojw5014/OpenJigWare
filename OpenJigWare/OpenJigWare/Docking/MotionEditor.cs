@@ -484,7 +484,7 @@ namespace OpenJigWare.Docking
             m_C3d.AddMouseEvent_Move(OjwMouseMove);
             m_C3d.AddMouseEvent_Up(OjwMouseUp);
             m_C3d.Prop_Set_Main_MouseControlMode(0);
-            m_C3d.GridMotionEditor_Init(dgAngle, 40, 999);
+            m_C3d.GridMotionEditor_Init(dgAngle, 40, 999, true);
             m_C3d.GridMotionEditor_Init_Panel(pnButton);
             //dgAngle.Scale(new SizeF(0.5f, 0.5f));
             m_C3d.SelectMotor_Sync_With_Mouse(true);

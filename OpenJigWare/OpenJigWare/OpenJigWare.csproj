@@ -636,12 +636,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
-echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
-echo *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
+    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

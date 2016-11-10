@@ -1461,32 +1461,41 @@ namespace OpenJigWare
                                             Color.Coral     
                                         };
             #endregion Var
+            private bool m_bEventSet = false;
             private void Events_Set()
             {
-                dgAngle.RowPostPaint += new System.Windows.Forms.DataGridViewRowPostPaintEventHandler(dgAngle_RowPostPaint);
-                dgAngle.CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellEnter);
-                dgAngle.KeyDown += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown);
-                dgAngle.KeyUp += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyUp);
-                dgAngle.MouseClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseClick);
-                dgAngle.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
-                dgAngle.MouseDown += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
-                dgAngle.MouseMove += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseMove);
-                dgAngle.MouseUp += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);                
+                if (m_bEventSet == false)
+                {
+                    dgAngle.RowPostPaint += new System.Windows.Forms.DataGridViewRowPostPaintEventHandler(dgAngle_RowPostPaint);
+                    dgAngle.CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellEnter);
+                    dgAngle.KeyDown += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown);
+                    dgAngle.KeyUp += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyUp);
+                    dgAngle.MouseClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseClick);
+                    dgAngle.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
+                    dgAngle.MouseDown += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
+                    dgAngle.MouseMove += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseMove);
+                    dgAngle.MouseUp += new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);
 
-                dgAngle.CellLeave += new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);
+                    dgAngle.CellLeave += new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);
+                    m_bEventSet = true;
+                }
             }
             private void Events_Remove()
             {
-                dgAngle.RowPostPaint -= new System.Windows.Forms.DataGridViewRowPostPaintEventHandler(dgAngle_RowPostPaint);
-                dgAngle.CellEnter -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellEnter);
-                dgAngle.KeyDown -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown);
-                dgAngle.KeyUp -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyUp);
-                dgAngle.MouseClick -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseClick);
-                dgAngle.MouseDoubleClick -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
-                dgAngle.MouseDown -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
-                dgAngle.MouseMove -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseMove);
-                dgAngle.MouseUp -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);
-                dgAngle.CellLeave -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);                
+                //if (m_bEventSet == true)
+                //{
+                    dgAngle.RowPostPaint -= new System.Windows.Forms.DataGridViewRowPostPaintEventHandler(dgAngle_RowPostPaint);
+                    dgAngle.CellEnter -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellEnter);
+                    dgAngle.KeyDown -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown);
+                    dgAngle.KeyUp -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyUp);
+                    dgAngle.MouseClick -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseClick);
+                    dgAngle.MouseDoubleClick -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDoubleClick);
+                    dgAngle.MouseDown -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseDown);
+                    dgAngle.MouseMove -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseMove);
+                    dgAngle.MouseUp -= new System.Windows.Forms.MouseEventHandler(dgAngle_MouseUp);
+                    dgAngle.CellLeave -= new System.Windows.Forms.DataGridViewCellEventHandler(dgAngle_CellLeave);
+                    m_bEventSet = false;
+                //}
             }
             public void Events_Remove_KeyDown() { dgAngle.KeyDown -= new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown); }
             public void Events_Set_KeyDown() { dgAngle.KeyDown += new System.Windows.Forms.KeyEventHandler(dgAngle_KeyDown); }
@@ -1580,8 +1589,13 @@ namespace OpenJigWare
             private int m_nLineCnt = 0;
             public void Create(DataGridView dg, int nLineCnt, params SGridTable_t[] aSGridTable)
             {
+                Create(dg, nLineCnt, true, aSGridTable);
+            }
+            public void Create(DataGridView dg, int nLineCnt, bool bEventSet, params SGridTable_t[] aSGridTable)
+            {
                 int nDefaultWidth = 10;
-                Events_Remove();
+                if (bEventSet == true) 
+                    Events_Remove();
                 m_nLineCnt = nLineCnt;
                 int nOffsetSize = 2;// 9; // Speed, Delay
 
@@ -1698,7 +1712,8 @@ namespace OpenJigWare
                 //return dgAngle.Width;
 
                 SetColorGrid(0, 30);//nLineCnt);
-                Events_Set();
+                if (bEventSet == true) 
+                    Events_Set();
             }
             private void dgAngle_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
             {

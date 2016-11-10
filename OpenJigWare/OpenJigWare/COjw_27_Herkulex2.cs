@@ -84,7 +84,7 @@ namespace OpenJigWare
 	        private CTimer m_CTmr_Timeout = new CTimer();
 	        private Thread m_thReceive;
 
-            private CSocket m_CSocket = new CSocket();
+            public CSocket m_CSocket = new CSocket();
             private Thread m_thSock;
 
 
@@ -253,8 +253,8 @@ namespace OpenJigWare
                     if (nSize > 0)
                     {
                         byte[] buf = m_CSerial.GetBytes();
-
-                        Parsor(buf, nSize);
+                        if (buf != null)
+                            Parsor(buf, nSize);
                     }
 		            Thread.Sleep(1);
 	            }
@@ -302,7 +302,7 @@ namespace OpenJigWare
                     {
                         byCheckSum = 0;
                         nIndexData = 0;
-
+                         
                         nData_Address = 0;
                         nData_Length = 0;
 

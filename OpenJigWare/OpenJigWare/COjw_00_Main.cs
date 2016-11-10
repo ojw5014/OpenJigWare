@@ -71,9 +71,19 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "02.00.00";
+        public const string strVersion = "02.00.03";
         public const string strHistory = (String)(
-
+                "[V02.00.03]\r\n" +
+                "모션툴 휠 제어 버그 수정\r\n" +
+                "CHerculex.cs의 Stop 기능 수정 (SetMot_Stop() 추가) 수정\r\n" +
+                "========================================\r\n" + // No Released
+                "[V02.00.02]\r\n" +
+                "[OJW5014_20161031]모션툴 Insert,Delete 관련 버그 수정 - CellEnter event 내에 m_CGridMotionEditor.SetChangeCurrentLine() 함수 삽입\r\n" +
+                "========================================\r\n" + // No Released
+            
+                "[V02.00.01]\r\n" +
+                "모션툴 이벤트 중복실행 버그 수정\r\n" +
+                "========================================\r\n" + // No Released
                 "[V02.00.00]\r\n" +
                 "개발자대회 응시 최종\r\n" +
                 " - 칼만필터 알고리즘 추가(장동준 주임연구원 LG)\r\n" +

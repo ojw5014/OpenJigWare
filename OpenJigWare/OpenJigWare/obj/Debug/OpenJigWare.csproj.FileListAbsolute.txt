@@ -86,43 +86,43 @@ D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.GenerateResource.Cache
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
 D:\bin\C#\Github\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.pdb
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.Controls.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.Video.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.Modules.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Contracts.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Dynamic.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.AspNet.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\MyoSharp.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.FreeGlut.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.Ode.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.OpenGl.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.Platform.Windows.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.Imaging.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.xml
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.Modules.xml
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Dynamic.xml
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.xml
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.AspNet.xml
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.xml
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Interop.WMPLib.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AxInterop.WMPLib.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\Interop.WMPLib.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\AxInterop.WMPLib.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.ResolveComReference.cache
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmFolder.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.CKeyPad_t.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmKeyPad.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmModel.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmMotionEditor.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmPlayer.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Properties.Resources.resources
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.GenerateResource.Cache
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
-Z:\17.Github전송용\GitHub\OpenJigWare\Source\OpenJigWare\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.pdb
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.Controls.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.Video.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.Modules.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Contracts.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Dynamic.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.AspNet.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\MyoSharp.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.FreeGlut.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.Ode.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.OpenGl.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Tao.Platform.Windows.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AForge.Imaging.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.xml
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\IronPython.Modules.xml
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Dynamic.xml
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.xml
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.AspNet.xml
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.xml
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Interop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\AxInterop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\Interop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\AxInterop.WMPLib.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.ResolveComReference.cache
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmFolder.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.CKeyPad_t.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmKeyPad.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmModel.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmMotionEditor.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmPlayer.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Properties.Resources.resources
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.GenerateResource.Cache
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
+Z:\10.SW\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
