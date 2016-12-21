@@ -71,8 +71,19 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "02.00.03";
+        public const string strVersion = "02.00.04";
         public const string strHistory = (String)(
+                "[V02.00.04]\r\n" +
+                "SendMessage, Shared Memory 구조 지원\r\n" +
+                "CKeyboard 클래스 추가\r\n" +
+                "CMouse 에서 Mouse_Get 함수 추가\r\n" + 
+                "COjw_27_Herkulex2.cs 의 CalcLimit_Evd 함수의 {nValue &= 0x3fff;} 를 삭제\r\n" + // 이게 0402/0602 제어시 에러유발 (나중에 리눅스 버전도 수정할 것)
+                "rob_model2_*.sstl 파일들 추가\r\n" + 
+                "Joystick 보완\r\n" +
+                "Tools 프로젝트의 기능 추가(서버 스트리밍, 웹캠영상출력, 클라이언트 스트리밍 보완\r\n" +
+                "COjw_16_Emgu.cs -> COjw_16_Camera.cs 로 변경, AForge Camera Capture 기능 추가\r\n" +
+                "COjw_26_Streaming.cs 에 CStream_Server Class 삽입. MJPEG streaming 전송기능 추가\r\n" +
+                "========================================\r\n" + // No Released
                 "[V02.00.03]\r\n" +
                 "모션툴 휠 제어 버그 수정\r\n" +
                 "CHerculex.cs의 Stop 기능 수정 (SetMot_Stop() 추가) 수정\r\n" +

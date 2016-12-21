@@ -8813,10 +8813,12 @@ namespace OpenJigWare
                     Gl.glShadeModel(Gl.GL_SMOOTH);							    // Enable Smooth Shading                    
 #endif
                     //glShadeModel(GL_FLAT);							        // Enable Smooth Shading
-                    Gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				    // Black Background
+                    //if (m_bIgnore == false)
+                        Gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				    // Black Background
                     //Gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				    // Black Background
 
-                    Gl.glClearDepth(1.0f);									    // Depth Buffer Setup
+                    //if (m_bIgnore == false) 
+                        Gl.glClearDepth(1.0f);									    // Depth Buffer Setup
                     if (IsPerspectiveMode() == false)
                     {
                         //Gl.glEnable(Gl.GL_DEPTH_TEST);							    // Enables Depth Testing
@@ -8940,6 +8942,8 @@ namespace OpenJigWare
                 }
 
                 public void glFlush() { Gl.glFlush(); }
+                //private bool m_bIgnore = false;
+                //public void IgnoreClear(bool bIgnore) { m_bIgnore = bIgnore; }
                 public void glDraw_Ready()
                 {
                     m_nTrackBall = 0;
@@ -8974,11 +8978,15 @@ namespace OpenJigWare
 
                         SetLight(); // 이거 없애면 큰일난다. -_-;;;
 
-                        Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
+                        //if (m_bIgnore == false) 
+                            Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
                         m_fColor_Back[0] = ((float)(m_BackColor.R) / 255.0f);  // R
                         m_fColor_Back[1] = ((float)(m_BackColor.G) / 255.0f);  // G
                         m_fColor_Back[2] = ((float)(m_BackColor.B) / 255.0f);  // B
-                        Gl.glClearColor(m_fColor_Back[0], m_fColor_Back[1], m_fColor_Back[2], 1.0f);
+                        
+                        //if (m_bIgnore == false) 
+                            Gl.glClearColor(m_fColor_Back[0], m_fColor_Back[1], m_fColor_Back[2], 1.0f);
+                        
                         //Gl.glLoadIdentity();
                     }                    
                 }
@@ -13240,6 +13248,9 @@ namespace OpenJigWare
                         SwapBuffers();
                         //this.SwapBuffers();
                     }
+                    
+                    //m_bIgnore = false;
+                    
                     //this.DrawGLScene();          // draw the scene
                     //SwapBuffers(hDC);            // Swap buffer (double buffering)
                     //this.SwapBuffers();

@@ -37,13 +37,24 @@
     <ApplicationIcon>oroca.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AForge, Version=2.2.5.0, Culture=neutral, PublicKeyToken=c1db6ff4eaa06aeb, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Released_DLL\AForge.dll</HintPath>
+    </Reference>
     <Reference Include="AForge.Controls, Version=2.2.5.0, Culture=neutral, PublicKeyToken=a8ac264d1dc6b9d9, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Released_DLL\AForge.Controls.dll</HintPath>
     </Reference>
+    <Reference Include="AForge.Imaging, Version=2.2.5.0, Culture=neutral, PublicKeyToken=ba8ddea9676ca48b, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Released_DLL\AForge.Imaging.dll</HintPath>
+    </Reference>
     <Reference Include="AForge.Video, Version=2.2.5.0, Culture=neutral, PublicKeyToken=cbfb6e07d173c401, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Released_DLL\AForge.Video.dll</HintPath>
+    </Reference>
+    <Reference Include="AForge.Video.DirectShow">
+      <HintPath>..\..\Released_DLL\AForge.Video.DirectShow.dll</HintPath>
     </Reference>
     <Reference Include="IronPython, Version=2.7.6.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -160,7 +171,7 @@
     <Compile Include="COjw_14_Socket.cs" />
     <Compile Include="COjw_13_Serial.cs" />
     <Compile Include="COjw_15_Mx28.cs" />
-    <Compile Include="COjw_16_EmguCv.cs" />
+    <Compile Include="COjw_16_Camera.cs" />
     <Compile Include="COjw_17_Myo.cs" />
     <Compile Include="COjw_19_Herculex.cs" />
     <Compile Include="COjw_18_Mouse.cs" />
@@ -177,6 +188,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="COjw_27_Herkulex2.cs" />
+    <Compile Include="COjw_28_Keyboard.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Docking\frmFolder.resx">
@@ -636,7 +648,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

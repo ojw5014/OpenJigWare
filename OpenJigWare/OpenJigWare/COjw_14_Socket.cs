@@ -7,6 +7,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Net;
+using System.Net.NetworkInformation;
 
 namespace OpenJigWare
 {
@@ -358,7 +359,36 @@ namespace OpenJigWare
                 //if (IsConnect())
                 //    DisConnect();
             }
+            public static int GetIpAddress_Cnt()
+            {
+                IPAddress[] ipAddressAll = Dns.GetHostAddresses(Dns.GetHostName());
+                return ipAddressAll.Length;
+                //foreach (IPAddress ipAddress in ipAddressAll)
+                //{
+                    
+                //}
+            }
+            public static string GetIpAddress(int nIndex)
+            {
+                IPAddress[] ipAddressAll = Dns.GetHostAddresses(Dns.GetHostName());
+                int nPos = ((nIndex < 0) ? 0 : ((nIndex >= ipAddressAll.Length) ? ipAddressAll.Length : nIndex));
+                if (ipAddressAll.Length == 0) return string.Empty;
+                return ipAddressAll[nIndex].ToString();
+                //IPHostEntry hEnt = Dns.GetHostByName(IPAddress.Any.Address);
+                //return ((IPHostEntry)Dns.GetHostByName(Dns.GetHostName())).AddressList[nIndex].ToString();
+            }
+            public static string GetMacAddress(int nIndex)
+            {
+                //IPAddress[] ipAddressAll = Dns.GetHostAddresses(Dns.GetHostName());
 
+                NetworkInterface[] ntInterfaces = NetworkInterface.GetAllNetworkInterfaces();
+                int nPos = ((nIndex < 0) ? 0 : ((nIndex >= ntInterfaces.Length) ? ntInterfaces.Length : nIndex));
+
+                string strMacAddress = string.Empty;
+                //IPInterfaceProperties ipinterfaceProp = ntInterfaces[nPos].GetIPProperties();
+                //ipinterfaceProp.DnsAddresses.ToString();
+                return ntInterfaces[nPos].GetPhysicalAddress().ToString();
+            }
             private int _CHKSUM_NONE = 0;
             private int _CHKSUM_AND = 1;
             private int _CHKSUM_OR = 2;

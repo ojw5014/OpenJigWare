@@ -17,6 +17,10 @@ namespace OpenJigWare
         {
             public static int _ID_0 = 0;
             public static int _ID_1 = 1;
+            public static int _ID_2 = 2;
+            public static int _ID_3 = 3;
+            public static int _ID_4 = 4;
+            public static int _ID_5 = 5;
 
             public CXBox_t CXBox = new CXBox_t();
             public class CXBox_t

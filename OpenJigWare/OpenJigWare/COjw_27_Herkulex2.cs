@@ -700,7 +700,7 @@ namespace OpenJigWare
                 if ((Get_Flag_Mode(nAxis) == 0) || (Get_Flag_Mode(nAxis) == 2))
                 {
                     int nPulse = nValue & 0x4000;
-                    nValue &= 0x3fff;
+                    //nValue &= 0x3fff;
                     int nUp = 100000;
                     int nDn = -nUp;
                     if (m_aSMot[nAxis].fLimitUp != 0) nUp = CalcAngle2Evd(nAxis, m_aSMot[nAxis].fLimitUp);
@@ -743,6 +743,8 @@ namespace OpenJigWare
                     nData = (int)Math.Round((m_aSMot[nAxis].fMechMove * fValue) / m_aSMot[nAxis].fDegree);
                     nData = nData + (int)Math.Round(m_aSMot[nAxis].fCenterPos);
 
+                    //if (nAxis == 2)
+                    //    Ojw.CMessage.Write("[{0}]Angle(%.2f), Mech(%.2f), Degree(%.2f), Center(%.2f), nData({1})", nAxis, fValue, m_aSMot[nAxis].fMechMove, m_aSMot[nAxis].fDegree, m_aSMot[nAxis].fCenterPos, nData);
                     //Ojw.CMessage.Write("[{0}]Angle(%.2f), Mech(%.2f), Degree(%.2f), Center(%.2f), nData({1})", nAxis, fValue, m_aSMot[nAxis].fMechMove, m_aSMot[nAxis].fDegree, m_aSMot[nAxis].fCenterPos, nData);
                 }
 
@@ -755,7 +757,11 @@ namespace OpenJigWare
                 if (Get_Flag_Mode(nAxis) != 0)   // 속도제어
                     fValue2 = (float)nValue * fValue;
                 else                                // 위치제어
+                {
                     fValue2 = (float)(((m_aSMot[nAxis].fDegree * ((float)(nValue - (int)Math.Round(m_aSMot[nAxis].fCenterPos)))) / m_aSMot[nAxis].fMechMove) * fValue);
+                    //if (nAxis == 2)
+                    //    Ojw.CMessage.Write("[{0}]Angle(%.2f), Mech(%.2f), Degree(%.2f), Center(%.2f), nData({1})", nAxis, fValue, m_aSMot[nAxis].fMechMove, m_aSMot[nAxis].fDegree, m_aSMot[nAxis].fCenterPos, nData);
+                }
                 return fValue2;
             }
             ////////////////////////////////////
