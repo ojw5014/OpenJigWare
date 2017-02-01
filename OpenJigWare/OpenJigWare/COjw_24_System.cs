@@ -70,7 +70,7 @@ namespace OpenJigWare
                 Process[] processes = System.Diagnostics.Process.GetProcesses();//System.Diagnostics.Process.GetProcessesByName(Ojw.CFile.GetTitle(strProgram));
                 bool bStarted = false;
                 //foreach (System.Diagnostics.Process process in processes) { if (process.MainWindowTitle == strProgram) bStarted = true; }
-                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName == strTitle) bStarted = true; }
+                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) bStarted = true; }
                 if (bStarted == true)
                 {
                     Ojw.CMessage.Write("[warning]Still program is running... Can't run it. Check process first");
@@ -112,8 +112,8 @@ namespace OpenJigWare
 
                 foreach (System.Diagnostics.Process process in processes)
                 {
-                    
-                    if (process.ProcessName == strTitle)
+
+                    if (process.ProcessName.ToLower() == strTitle.ToLower())
                     {
                         //IntPtr handle = FindWindowEx(process.MainWindowHandle, new IntPtr(0), strTitle, null);
 
@@ -152,7 +152,17 @@ namespace OpenJigWare
             //{
             //    base.WndProc(ref m);
             //}
-
+            public static void KillProgram(string strProgram)
+            {
+                if (IsRunningProgram(strProgram) == true)
+                {
+                    // 동일한 이름을 가진 Process를 모두 kill함.
+                    String strTitle = Ojw.CFile.GetTitle(strProgram);
+                    Process[] processes = System.Diagnostics.Process.GetProcesses();
+                    foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) { process.Kill(); } }//{ process.CloseMainWindow(); } }
+                }
+            }
+            public static void RunProgram(string strProgram) { RunProgram(strProgram, null, 0); }
             // nRunningMode == 0 : Normal(중복허용, 안죽임), 1 : killothers(다른것 다 죽이고 혼자 살아남음), 2 : 중복시 안띄움)
             public static void RunProgram(string strProgram, int nRunningMode) { RunProgram(strProgram, null, nRunningMode); }
             public static void RunProgram(string strProgram, string strArgument, int nRunningMode)
@@ -165,7 +175,7 @@ namespace OpenJigWare
 
                 // 동일한 이름을 가진 Process를 모두 kill함.
                 bool bRunning = false;
-                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName == strTitle) { if (nRunningMode == 1) process.CloseMainWindow(); else bRunning = true; } }
+                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) { if (nRunningMode == 1) process.Kill(); else bRunning = true; } }//process.CloseMainWindow(); else bRunning = true; } }
                 if (bRunning == true)
                 {
                     if (nRunningMode != 2)
@@ -188,7 +198,21 @@ namespace OpenJigWare
 
                 }
             }
-
+            public static void ShutDown(int nTime)
+            {
+                if (nTime > 0)
+                {
+                    //m_bShutdown = true;
+                    String strTmp = Ojw.CConvert.FillString(nTime.ToString(), "0", 3, false);
+                    String strTmpCmd = "/t " + strTmp;//
+                    System.Diagnostics.Process.Start("shutdown", " /s /f " + strTmpCmd + " /c " + (char)34 + "YOUR COMPUTER WILL BE TURNED OFF IN " + strTmp + " seconds" + (char)34);
+                    //System.Diagnostics.Process.Start("TSSHUTDN", "We will shutdown this computer now.");
+                }
+                else
+                {
+                    System.Diagnostics.Process.Start("shutdown", " /f /P");
+                }
+            }
             // 출처 : http://stackoverflow.com/questions/7613576/how-to-open-text-in-notepad-from-net
             public static void SendText_To_Program(string strProgram, string strText = null, string strTitle = null)
             {
@@ -249,13 +273,33 @@ namespace OpenJigWare
             }
             public static void Docking_Show(int nIndex, bool bShow)
             {
+#if true
                 m_lstpnPage[nIndex].Visible = bShow;
+                if (bShow == true)
+                {
+                    //m_lstpnPage[nIndex].BringToFront();
+                    m_lstpnPage[nIndex].Show();
+                }
+                else
+                {
+                    //m_lstpnPage[nIndex].SendToBack();
+                    m_lstpnPage[nIndex].Hide();
+                }
+#else
+                m_lstpnPage[nIndex].Visible = bShow;
+#endif
             }
             private static int m_nIndex = -1;
             public static void Docking_DispPage(int nIndex)
             {
                 if ((nIndex >= m_lstpnPage.Count) || (nIndex < 0)) return;
-                for (int i = 0; i < m_lstpnPage.Count; i++) Docking_Show(i, (i == nIndex) ? true : false);
+                Docking_Show(nIndex, true);
+                for (int i = 0; i < m_lstpnPage.Count; i++)
+                {
+                    if (i != nIndex) 
+                        Docking_Show(i, false);
+                    //Docking_Show(i, (i == nIndex) ? true : false);
+                }
                 m_nIndex = nIndex;
             }
             public static int Docking_GetCurrentPageIndex() { return m_nIndex; }

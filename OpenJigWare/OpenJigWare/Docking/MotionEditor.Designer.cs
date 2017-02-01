@@ -2463,6 +2463,7 @@
             this.chkFullSize.TabIndex = 664;
             this.chkFullSize.Text = "Full Size";
             this.chkFullSize.UseVisualStyleBackColor = false;
+            this.chkFullSize.CheckedChanged += new System.EventHandler(this.chkFullSize_CheckedChanged);
             // 
             // btnExit
             // 

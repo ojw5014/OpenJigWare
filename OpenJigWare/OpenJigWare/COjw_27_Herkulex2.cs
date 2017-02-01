@@ -31,6 +31,7 @@ namespace OpenJigWare
             public const int _MODEL_DRS_0402                    = 6;
             public const int _MODEL_DRS_0601                    = 7;
             public const int _MODEL_DRS_0602                    = 8;
+            public const int _MODEL_DRS_0603                    = 9;
 
             public readonly int _SIZE_MEMORY                    = 256;
             public readonly int _SIZE_MOTOR_MAX                 = 256;//254 + 1; // Bloadcasting 도 염두
@@ -178,6 +179,44 @@ namespace OpenJigWare
                 for (int i = 0; i < _SIZE_MOTOR_MAX; i++) SetParam(i, _MODEL_DRS_0101);
                 m_bProgEnd = false;	
             }
+            public void Clone(out CHerkulex2 CMotor)
+            {
+                CMotor = new CHerkulex2();
+                Array.Copy(m_abReceivedPos, CMotor.m_abReceivedPos, m_abReceivedPos.Length);
+
+                Array.Copy(m_abyRam, CMotor.m_abyRam, m_abyRam.Length);
+                Array.Copy(m_abyRom, CMotor.m_abyRom, m_abyRom.Length);
+                Array.Copy(m_anPos, CMotor.m_anPos, m_anPos.Length);
+                Array.Copy(m_abyStatus1, CMotor.m_abyStatus1, m_abyStatus1.Length);
+                Array.Copy(m_abyStatus2, CMotor.m_abyStatus2, m_abyStatus2.Length);
+
+                Array.Copy(m_anAxis_By_ID, CMotor.m_anAxis_By_ID, m_anAxis_By_ID.Length);
+                Array.Copy(m_aSRead, CMotor.m_aSRead, m_aSRead.Length);
+                Array.Copy(m_aSParam_Axis, CMotor.m_aSParam_Axis, m_aSParam_Axis.Length);
+                Array.Copy(m_aSMot, CMotor.m_aSMot, m_aSMot.Length);
+                Array.Copy(m_anEn, CMotor.m_anEn, m_anEn.Length);
+
+                CMotor.m_bShowMessage = m_bShowMessage;
+                CMotor.m_nTimeout = m_nTimeout;
+                CMotor.m_nSeq_Motor = m_nSeq_Motor;
+                CMotor.m_nSeq_Motor_Back = m_nSeq_Motor_Back;
+                CMotor.m_nDelay = m_nDelay;
+                CMotor.m_bIgnoredLimit = m_bIgnoredLimit;
+                CMotor.m_nModel = m_nModel;
+                CMotor.m_nSeq_Receive = m_nSeq_Receive;
+                CMotor.m_bStop = m_bStop;
+                CMotor.m_bEms = m_bEms;
+                CMotor.m_bMotionEnd = m_bMotionEnd;
+                CMotor.m_bStart = m_bStart;
+                CMotor.m_nMotorCnt = m_nMotorCnt;
+                CMotor.m_nMotorCnt_Back = m_nMotorCnt_Back;
+
+                CMotor.m_nReadCnt = m_nReadCnt;
+                CMotor.m_nSeq_Receive = m_nSeq_Receive;
+                CMotor.m_nSeq_Receive_Back = m_nSeq_Receive_Back;
+
+                CMotor.m_bProgEnd = m_bProgEnd;
+            }
             public bool IsOpen() { return m_CSerial.IsConnect(); }
 	        public bool IsStop() { return m_bStop; }
 	        public bool IsEms() { return m_bEms; }
@@ -282,23 +321,28 @@ namespace OpenJigWare
 
                 Ojw.CMessage.Write("[Thread_Receive] Closed Thread");
             }
+
+            private int m_nIndex = 0;
+            private byte m_byCheckSum = 0;
+            private byte m_byCheckSum1 = 0;
+            private byte m_byCheckSum2 = 0;
+            private int m_nPacketSize = 0;
+            private int m_nDataLength = 0;
+            private int m_nIndexData = 0;
+            private int m_nCmd = 0;
+            private int m_nId = 0;
+            private int m_nData_Address = 0;
+            private int m_nData_Length = 0;
+            private bool m_bHeader = false;
+
             private void Parsor(byte[] buf, int nSize)
             {
-                int nIndex = 0;
-                byte byCheckSum = 0;
-                byte byCheckSum1 = 0;
-                byte byCheckSum2 = 0;
-                int nPacketSize = 0;
-                int nDataLength = 0;
-                int nIndexData = 0;
-                int nCmd = 0;
-                int nId = 0;
-                int nData_Address = 0;
-                int nData_Length = 0;
-                bool bHeader = false;
+                
                 for (int i = 0; i < nSize; i++)
                 {
+#if false
                     if ((buf[i] == 0xff) && (bHeader == false))
+                    //if (((m_bMultiTurn == true) && ((nIndex == 0) && (buf[i] == 0xff))) || ((m_bMultiTurn == false) && (buf[i] == 0xff)))
                     {
                         byCheckSum = 0;
                         nIndexData = 0;
@@ -311,82 +355,85 @@ namespace OpenJigWare
                         continue;
                     }
                     else bHeader = false;
-
+#endif
                     //Ojw.CMessage.Write("[Index={0}]", nIndex);
                     //Ojw.CMessage.Write("0x%02X,", buf[i]);
 
-                    switch (nIndex)
+                    switch (m_nIndex)
                     {
-                        //case 0 : 
-                        //    if (buf[i] == 0xff) 
-                        //    {
-                        //        byCheckSum = 0;
-                        //        nIndexData = 0;
+#if true
+                        case 0 : 
+                            //if (buf[i] == 0xff) 
+                            if (((m_bMultiTurn == true) && ((m_nIndex == 0) && (buf[i] == 0xff))) || ((m_bMultiTurn == false) && (buf[i] == 0xff)))
+                            {
+                                m_byCheckSum = 0;
+                                m_nIndexData = 0;
 
-                        //        nData_Address = 0;
-                        //        nData_Length = 0;
+                                m_nData_Address = 0;
+                                m_nData_Length = 0;
 
-                        //        nIndex++;
-                        //    }
-                        //    break;
+                                m_nIndex++;
+                            }
+                            break;
+#endif
                         case 1:
-                            if (buf[i] == 0xff) nIndex++;
-                            else nIndex = 0;//-1;
+                            if (buf[i] == 0xff) m_nIndex++;
+                            else m_nIndex = 0;//-1;
                             break;
                         case 2: // Packet Size
-                            nPacketSize = buf[i];
-                            nDataLength = nPacketSize - _SIZE_PACKET_HEADER - 2;
-                            byCheckSum = buf[i];
-                            if (nDataLength < 0) nIndex = 0;
-                            else nIndex++;
+                            m_nPacketSize = buf[i];
+                            m_nDataLength = m_nPacketSize - _SIZE_PACKET_HEADER - 2;
+                            m_byCheckSum = buf[i];
+                            if (m_nDataLength < 0) m_nIndex = 0;
+                            else m_nIndex++;
                             break;
                         case 3: // ID
-                            nId = GetAxis_By_ID(buf[i]);
-                            byCheckSum ^= buf[i];
-                            nIndex++;
+                            m_nId = GetAxis_By_ID(buf[i]);
+                            m_byCheckSum ^= buf[i];
+                            m_nIndex++;
                             break;
                         case 4: // Cmd
-                            nCmd = buf[i];
-                            byCheckSum ^= buf[i];
-                            nIndex++;
+                            m_nCmd = buf[i];
+                            m_byCheckSum ^= buf[i];
+                            m_nIndex++;
                             break;
                         case 5: // CheckSum1
-                            byCheckSum1 = buf[i];
-                            nIndex++;
+                            m_byCheckSum1 = buf[i];
+                            m_nIndex++;
                             break;
                         case 6: // CheckSum2
-                            byCheckSum2 = buf[i];
-                            if ((~byCheckSum1 & 0xfe) != byCheckSum2) nIndex = 0;
-                            else nIndex++;
+                            m_byCheckSum2 = buf[i];
+                            if ((~m_byCheckSum1 & 0xfe) != m_byCheckSum2) m_nIndex = 0;
+                            else m_nIndex++;
                             break;
                         case 7: // Datas...
                             //Ojw.CMessage.Write("[DataLength={0}/{1}]", nIndexData, nDataLength);
-                            if (nIndexData < nDataLength)
+                            if (m_nIndexData < m_nDataLength)
                             {
-                                if (nIndexData == 0) nData_Address = buf[i];
-                                else if (nIndexData == 1) nData_Length = buf[i];
-                                else m_abyRam[nId, nData_Address + nIndexData - 2] = buf[i];
+                                if (m_nIndexData == 0) m_nData_Address = buf[i];
+                                else if (m_nIndexData == 1) m_nData_Length = buf[i];
+                                else m_abyRam[m_nId, m_nData_Address + m_nIndexData - 2] = buf[i];
 
 
 
 
-                                if (++nIndexData >= nDataLength) nIndex++;
+                                if (++m_nIndexData >= m_nDataLength) m_nIndex++;
 
-                                byCheckSum ^= buf[i];
+                                m_byCheckSum ^= buf[i];
                             }
                             else
                             {
                                 //Ojw.CMessage.Write("====== Status1=======");
-                                m_abyStatus1[nId] = buf[i];
-                                byCheckSum ^= buf[i];
-                                nIndex += 2;
+                                m_abyStatus1[m_nId] = buf[i];
+                                m_byCheckSum ^= buf[i];
+                                m_nIndex += 2;
                             }
                             break;
                         case 8: // Status 1		
                             //Ojw.CMessage.Write("====== Status1=======");
-                            m_abyStatus1[nId] = buf[i];
-                            byCheckSum ^= buf[i];
-                            nIndex++;
+                            m_abyStatus1[m_nId] = buf[i];
+                            m_byCheckSum ^= buf[i];
+                            m_nIndex++;
 
 
                             /*
@@ -403,8 +450,8 @@ namespace OpenJigWare
                             break;
                         case 9: // Status 2		
                             //Ojw.CMessage.Write("====== Status2=======(Chk: 0x%02X , 0x%02X", byCheckSum, byCheckSum1);
-                            m_abyStatus2[nId] = buf[i];
-                            byCheckSum ^= buf[i];
+                            m_abyStatus2[m_nId] = buf[i];
+                            m_byCheckSum ^= buf[i];
 
                             /*
                                                     0x01 : Moving flag
@@ -420,27 +467,34 @@ namespace OpenJigWare
 
                             ///////////////////
                             // Done
-                            if ((byCheckSum & 0xFE) == byCheckSum1)
+                            if ((m_byCheckSum & 0xFE) == m_byCheckSum1)
                             {
                                 // test
                                 byte[] abyteData = new byte[2];
-                                abyteData[1] = (byte)(m_abyRam[nId, _ADDRESS_CALIBRATED_POSITION] & 0xff);
-                                abyteData[0] = (byte)(m_abyRam[nId, _ADDRESS_CALIBRATED_POSITION + 1] & 0xff);
+                                abyteData[0] = (byte)(m_abyRam[m_nId, _ADDRESS_CALIBRATED_POSITION + ((m_bMultiTurn == true) ? 4 : 0)] & 0xff);
+                                abyteData[1] = (byte)(m_abyRam[m_nId, _ADDRESS_CALIBRATED_POSITION + ((m_bMultiTurn == true) ? 4 : 0) + 1] & 0xff);
                                 // 0000 0000  0000 0000
-                                m_anPos[nId] = (short)(((abyteData[0] & 0x0f) << 8) | (abyteData[1] << 0) | ((abyteData[0] & 0x10) << (3 + 8)) | ((abyteData[0] & 0x10) << (2 + 8)) | ((abyteData[0] & 0x10) << (1 + 8)));
-                                if (m_bShowMessage == true) Ojw.CMessage.Write("Data Received(<Address({0})Length({1})>Pos[{2}]={3}, Status1 = {4}, Status2 = {5})", nData_Address, nDataLength, nId, m_anPos[nId], m_abyStatus1[nId], m_abyStatus2[nId]);
+                                m_anPos[m_nId] = BitConverter.ToInt16(abyteData, 0);
+                                //m_anPos[m_nId] = (short)(((abyteData[0] & 0x0f) << 8) | (abyteData[1] << 0) | ((abyteData[0] & 0x10) << (3 + 8)) | ((abyteData[0] & 0x10) << (2 + 8)) | ((abyteData[0] & 0x10) << (1 + 8)));
+                                
+                                if (m_bShowMessage == true) Ojw.CMessage.Write("Data Received(<Address({0})Length({1})>Pos[{2}]={3}, Status1 = {4}, Status2 = {5})", m_nData_Address, m_nDataLength, m_nId, m_anPos[m_nId], m_abyStatus1[m_nId], m_abyStatus2[m_nId]);
 
-                                m_abReceivedPos[nId] = true;
+                                m_abReceivedPos[m_nId] = true;
                                 m_nSeq_Receive++;
                             }
 
-                            nIndex = 0;
+                            m_nIndex = 0;
                             break;
                     }
                 }	
             }
             private bool [] m_abReceivedPos;// = new bool[_SIZE_MOTOR_MAX];
 
+            public SParam_Axis_t GetParam(int nAxis)
+            {
+                return m_aSParam_Axis[nAxis];
+            }
+            
             public void SetParam(int nAxis, int nRealID, int nDir, float fLimitUp, float fLimitDn, float fCenterPos, float fOffsetAngle_Display, float fMechMove, float fDegree)
             {
                 //if ((nAxis >= _CNT_MAX_MOTOR) || (nID >= _MOTOR_MAX)) return false;
@@ -454,10 +508,13 @@ namespace OpenJigWare
                 m_aSParam_Axis[nAxis].fMechMove = m_aSMot[nAxis].fMechMove = fMechMove;
                 m_aSParam_Axis[nAxis].fDegree = m_aSMot[nAxis].fDegree = fDegree;
             }
+            private bool m_bMultiTurn = false;
             public void SetParam(int nAxis, int nModel)
             {
                 if (nAxis > _ID_BROADCASTING) nAxis = _ID_BROADCASTING;
                 //Ojw.CMessage.Write("nAxis = {0}, nModel = {1}", nAxis, nModel);
+                if (nModel == _MODEL_DRS_0603) m_bMultiTurn = true;
+                else if (m_bMultiTurn == true) m_bMultiTurn = false;
                 switch (nModel)
                 {
                     case _MODEL_DRS_0101:
@@ -477,7 +534,8 @@ namespace OpenJigWare
                         SetParam_LimitDown(nAxis, 0.0f);
                         SetParam_CenterEvdValue(nAxis, 3196.0f);
                         SetParam_Display(nAxis, 0.0f);
-                        SetParam_MechMove(nAxis, 6392.0f);
+                        //SetParam_MechMove(nAxis, 6392.0f);//6391.605f
+                        SetParam_MechMove(nAxis, 6391.605f);
                         SetParam_Degree(nAxis, 360.0f);
                         break;
                     case _MODEL_DRS_0201:
@@ -497,7 +555,8 @@ namespace OpenJigWare
                         SetParam_LimitDown(nAxis, 0.0f);
                         SetParam_CenterEvdValue(nAxis, 3196.0f);
                         SetParam_Display(nAxis, 0.0f);
-                        SetParam_MechMove(nAxis, 6392.0f);
+                        //SetParam_MechMove(nAxis, 6392.0f);//6391.605f
+                        SetParam_MechMove(nAxis, 6391.605f);
                         SetParam_Degree(nAxis, 360.0f);
                         break;
                     case _MODEL_DRS_0401:
@@ -540,6 +599,16 @@ namespace OpenJigWare
                         SetParam_MechMove(nAxis, 12962.099f);
                         SetParam_Degree(nAxis, 360.0f);
                         break;
+                    //case _MODEL_DRS_0603:
+                    //    SetParam_RealID(nAxis, nAxis);
+                    //    SetParam_Dir(nAxis, 0);
+                    //    SetParam_LimitUp(nAxis, 0);
+                    //    SetParam_LimitDown(nAxis, 0);
+                    //    SetParam_CenterEvdValue(nAxis, 0);
+                    //    SetParam_Display(nAxis, 0);
+                    //    SetParam_MechMove(nAxis, 12962.099);
+                    //    SetParam_Degree(nAxis, 360);
+                    //    break;
                 }
             }
 
@@ -665,7 +734,7 @@ namespace OpenJigWare
 	            int i = 0;
 	            byte [] pbyteBuffer = new byte[3];
 	            // Data
-	            pbyteBuffer[i++] = 48;// 48번 레지스터 명령
+                pbyteBuffer[i++] = (byte)(48 + ((m_bMultiTurn == true) ? 4 : 0)); //48;// 48번 레지스터 명령
 	            ////////
 	            pbyteBuffer[i++] = 0x01;// 이후의 레지스터 사이즈
 	            pbyteBuffer[i++] = 0x00; // led value
@@ -700,6 +769,12 @@ namespace OpenJigWare
                 if ((Get_Flag_Mode(nAxis) == 0) || (Get_Flag_Mode(nAxis) == 2))
                 {
                     int nPulse = nValue & 0x4000;
+                    if (m_bMultiTurn == false)
+                    {
+                        //nValue &= 0x4000;
+                        //nValue &= 0x3fff;
+                    }
+
                     //nValue &= 0x3fff;
                     int nUp = 100000;
                     int nDn = -nUp;
@@ -775,7 +850,7 @@ namespace OpenJigWare
 	            byOn |= (byte)((bSrvOn == true) ? 0x20 : 0x00);
 	            byte [] pbyteBuffer = new byte[50];
 	            // Data
-	            pbyteBuffer[i++] = (byte)(_ADDRESS_TORQUE_CONTROL & 0xff);// 52번 레지스터 명령
+                pbyteBuffer[i++] = (byte)((_ADDRESS_TORQUE_CONTROL & 0xff) + ((m_bMultiTurn == true) ? 4 : 0));//;// 52번 레지스터 명령
 	            ////////
 	            pbyteBuffer[i++] = 0x01;// 이후의 레지스터 사이즈
 	            pbyteBuffer[i++] = byOn;
@@ -828,11 +903,83 @@ namespace OpenJigWare
             public int Get_Turn(int nAxis) { return (int)Math.Round(m_aSMot[nAxis].fPos); }
             public int Get_Pos_Evd(int nAxis)
             {
-	            byte [] abyteData = new byte[2];
-	            abyteData[1] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION] & 0xff);
-	            abyteData[0] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 1] & 0xff);
-	            // 0000 0000  0000 0000
- 	            return (int)(((abyteData[0] & 0x0f) << 8) | (abyteData[1] << 0) | ((abyteData[0] & 0x10) << (3 + 8)) | ((abyteData[0] & 0x10) << (2 + 8)) | ((abyteData[0] & 0x10) << (1 + 8)));	
+                int nValue = 0;
+                if (m_bMultiTurn == false)
+                {
+#if false
+                    byte[] abyteData = new byte[2];
+                    abyteData[1] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION] & 0xff);
+                    abyteData[0] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 1] & 0xff);
+                    // 0000 0000  0000 0000
+                    return (int)(((abyteData[0] & 0x0f) << 8) | (abyteData[1] << 0) | ((abyteData[0] & 0x10) << (3 + 8)) | ((abyteData[0] & 0x10) << (2 + 8)) | ((abyteData[0] & 0x10) << (1 + 8)));
+#else
+                    byte[] abyteData = new byte[2];
+                    abyteData[0] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + ((m_bMultiTurn == true) ? 4 : 0)] & 0xff);
+                    abyteData[1] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + ((m_bMultiTurn == true) ? 4 : 0) + 1] & 0xff);
+		            // 0000 0000  0000 0000
+                    nValue = BitConverter.ToInt16(abyteData, 0);
+                    //nValue = (int)(((abyteData[0] & 0x0f) << 8) | (abyteData[1] << 0) | ((abyteData[0] & 0x10) << (3 + 8)) | ((abyteData[0] & 0x10) << (2 + 8)) | ((abyteData[0] & 0x10) << (1 + 8)));	
+#endif
+                }
+                else
+	            {
+#if false
+		            //bool bMinus = false;
+                    //	0x10 00 00
+                    byte[] abyteData = new byte[4];
+                    abyteData[3] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 3] & 0xff);
+                    abyteData[2] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 2] & 0xff);
+		            /*if (((abyteData[2] & 0x80) != 0) || (abyteData[3] != 0))
+		            {
+			            bMinus = true;
+			            //abyteData[3] |= 0xff;
+			            //abyteData[2] |= 0xf0;
+		            }*/
+                    abyteData[1] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 1] & 0xff);
+                    abyteData[0] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 0] & 0xff);
+		            // 0000 0000  0000 0000
+	 	            nValue = (int)(
+	 					            ((abyteData[3] & 0xff) << 24) | 
+	 					            ((abyteData[2] & 0xff) << 16) | 
+	 					            ((abyteData[1] & 0xff) << 8) | 
+	 					            ((abyteData[0] & 0xff) << 0) 
+	 					            );// | ( ? 0xfffffffffff00000 : 0);
+	 	            /*if ((bMinus == true) && (nValue > 0))
+ 		            {
+ 			            printf("nValue = %d, %d\r\n", nValue , nValue - 0x100000);
+ 			            nValue -= 0xf00000;
+ 		            }*/
+		            //printf("0x%02x%02x%02x%02x:0x%08xf\r\n", abyteData[3], abyteData[2], abyteData[1], abyteData[0], nValue);
+#else
+                    //bool bMinus = false;
+                    //	0x10 00 00
+                    byte[] abyteData = new byte[4];
+                    abyteData[3] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 3] & 0xff);
+                    abyteData[2] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 2] & 0xff);
+		            /*if (((abyteData[2] & 0x80) != 0) || (abyteData[3] != 0))
+		            {
+			            bMinus = true;
+			            //abyteData[3] |= 0xff;
+			            //abyteData[2] |= 0xf0;
+		            }*/
+                    abyteData[1] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 1] & 0xff);
+                    abyteData[0] = (byte)(m_abyRam[nAxis, _ADDRESS_CALIBRATED_POSITION + 4 + 0] & 0xff);
+		            // 0000 0000  0000 0000
+	 	            nValue = (int)(
+	 					            ((abyteData[3] & 0xff) << 24) | 
+	 					            ((abyteData[2] & 0xff) << 16) | 
+	 					            ((abyteData[1] & 0xff) << 8) | 
+	 					            ((abyteData[0] & 0xff) << 0) 
+	 					            );// | ( ? 0xfffffffffff00000 : 0);
+	 	            /*if ((bMinus == true) && (nValue > 0))
+ 		            {
+ 			            printf("nValue = %d, %d\r\n", nValue , nValue - 0x100000);
+ 			            nValue -= 0xf00000;
+ 		            }*/
+		            //printf("0x%02x%02x%02x%02x:0x%08xf\r\n", abyteData[3], abyteData[2], abyteData[1], abyteData[0], nValue);
+#endif
+	            }
+                return nValue;
             }
             public float Get_Pos_Angle(int nAxis) { return CalcEvd2Angle(nAxis, Get_Pos_Evd(nAxis)); }
 
@@ -878,6 +1025,7 @@ namespace OpenJigWare
 	            // region S-Jog Time
 	            int nCalcTime = CalcTime_ms(nMillisecond);
 	            pbyteBuffer[i++] = (byte)(nCalcTime & 0xff);
+                if (m_bMultiTurn == true) pbyteBuffer[i++] = (byte)((nCalcTime >> 8) & 0xff);
 	            int nCnt = m_nMotorCnt;//_SIZE_MOTOR_MAX;//m_nMotorCnt;
 	            for (int nAxis2 = 0; nAxis2 < nCnt; nAxis2++)
 	            {
@@ -889,15 +1037,32 @@ namespace OpenJigWare
 			            //nPos |= _JOG_MODE_SPEED << 10;  // 속도제어 
 			            // Position
 			            nPos = Get(nAxis);
-			            if (nPos < 0)
-			            {
-			                nPos *= -1;
-			                nPos |= 0x4000;
-			            }
+                        if (m_bMultiTurn == false)
+                        {
+                            if (nPos < 0)
+                            {
+                                nPos *= -1;
+                                nPos |= 0x4000;
+                            }
+                        }
+                        else
+                        {
+                        }
 
-			            pbyteBuffer[i++] = (byte)(nPos & 0xff);
-			            pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
-
+                        if (m_bMultiTurn == false)
+                        {
+                            pbyteBuffer[i++] = (byte)(nPos & 0xff);
+                            pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
+                        }
+                        else
+                        {
+                            //printf("nPos=%d\r\n", nPos);
+				            uint unPos = (uint)nPos;
+				            pbyteBuffer[i++] = (byte)(unPos & 0xff);
+				            pbyteBuffer[i++] = (byte)((unPos >> 8) & 0xff);
+				            pbyteBuffer[i++] = (byte)((unPos >> 16) & 0xff);
+				            pbyteBuffer[i++] = (byte)((unPos >> 24) & 0xff);
+                        }
 			            // Set-Flag
 			            nFlag = Get_Flag(nAxis);
 			            pbyteBuffer[i++] = (byte)(nFlag & 0xff);
@@ -918,7 +1083,7 @@ namespace OpenJigWare
 
 	            Clear_Flag();
 	
-	            m_nSeq_Motor++; // reserve;
+	            //m_nSeq_Motor++; // reserve;
                 m_nDelay = nMillisecond;
 	            Wait_Ready();
             }
@@ -955,7 +1120,8 @@ namespace OpenJigWare
                 }
                 while (m_CTmr.Get() < nMilliseconds)
                 {
-                    if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor; return false; }
+                    //if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor; return false; }
+                    if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { Sync_Seq(); return false; }
 
                     if (Read_Motor_IsReceived() == true) Read_Motor();
 #if true
@@ -980,7 +1146,8 @@ namespace OpenJigWare
 
                     Application.DoEvents();//Thread.Sleep(0);
                 }
-                m_nSeq_Motor_Back = m_nSeq_Motor;
+                Sync_Seq();
+                //m_nSeq_Motor_Back = m_nSeq_Motor;
                 return true;
             }
             public bool Wait_Motor()
@@ -1008,7 +1175,8 @@ namespace OpenJigWare
                 }
                 while (m_CTmr.Get() < m_nDelay)
                 {
-                    if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor; return false; }
+                    //if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor; return false; }
+                    if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { Sync_Seq(); return false; }
                     if (Read_Motor_IsReceived() == true) Read_Motor();
                     //else if (m_CTmr_Timeout.Get() > m_nTimeout)
 #if true
@@ -1032,7 +1200,7 @@ namespace OpenJigWare
                     }
                     Application.DoEvents();
                 }
-                m_nSeq_Motor_Back = m_nSeq_Motor;
+                Sync_Seq();//m_nSeq_Motor_Back = m_nSeq_Motor;
                 return true;
             }
 
@@ -1091,7 +1259,9 @@ namespace OpenJigWare
 			            }
 		            }
 
-		            if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor;; return false; }//m_nSeq_Motor_Back = m_nSeq_Motor; return false; }		
+
+                    if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { Sync_Seq(); return false; }
+		            //if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor;; return false; }//m_nSeq_Motor_Back = m_nSeq_Motor; return false; }		
 		            if (Read_Motor_IsReceived() == true) Read_Motor();	
 #if true
 		            else if ((m_nRetrieve < _CNT_RETRIEVE) && (m_nReadCnt > 0))
@@ -1115,7 +1285,8 @@ namespace OpenJigWare
 		            }
 		            Application.DoEvents();
 	            }
-	            m_nSeq_Motor_Back = m_nSeq_Motor; 
+
+                Sync_Seq();//m_nSeq_Motor_Back = m_nSeq_Motor; 
 	            return true;
             }
 
@@ -1145,6 +1316,7 @@ namespace OpenJigWare
                 }
                 while (m_CTmr.Get() < nMilliseconds)
                 {
+#if false
                     if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { m_nSeq_Motor_Back = m_nSeq_Motor; return false; }
                     if (Read_Motor_IsReceived() == true) Read_Motor();
                     //else if (m_CTmr_Timeout.Get() > m_nTimeout)
@@ -1167,11 +1339,35 @@ namespace OpenJigWare
                         //m_nSeq_Receive_Back = m_nSeq_Receive;
                         Read_Motor();
                     }
+#else
+                    if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) { Sync_Seq(); return false; }//m_nSeq_Motor_Back = m_nSeq_Motor; return false; }
+		            if (Read_Motor_IsReceived() == true) Read_Motor();	
+#if true
+		            else if ((m_nRetrieve < _CNT_RETRIEVE) && (m_nReadCnt > 0))
+		            {
+			            if (m_CTmr_Timeout.Get() > m_nTimeout)
+			            {
+				            Read_Motor(m_aSRead[m_nReadMotor_Index].nID);
+				            m_CTmr_Timeout.Set();
+				            m_nRetrieve++;
+			            }
+		            }
+		            else if  (m_CTmr_Timeout.Get() > m_nTimeout)
+#else	
+		            else if (m_CTmr_Timeout.Get() > m_nTimeout)
+#endif	
+		            {
+                        Ojw.CMessage.Write("[Receive-Wait_Delay(ms)] Time out Error({0} ms)- ID[{1}]Seq[{2}]Seq_Back[{3}]Index[{4}]\r\n", m_nTimeout, m_aSRead[m_nReadMotor_Index].nID, m_nSeq_Receive, m_nSeq_Receive_Back, m_nReadMotor_Index);
+			            Read_Motor();	
+		            }
+#endif
                     Application.DoEvents();
                 }
-                m_nSeq_Motor_Back = m_nSeq_Motor;
+                //m_nSeq_Motor_Back = m_nSeq_Motor;
+                Sync_Seq();
                 return true;
             }
+            private void Sync_Seq() { m_nSeq_Receive_Back= m_nSeq_Receive; }
 
             public void Read_Ram(int nAxis, int nAddress, int nLength)
             {
@@ -1207,6 +1403,7 @@ namespace OpenJigWare
 	            MakeCheckSum(nDefaultSize + i, abyteBuffer);//, out abyteBuffer[_CHECKSUM1], out abyteBuffer[_CHECKSUM2]);
 
 	            // 보내기 전에 Tick 을 Set 한다.
+                Sync_Seq();
 	            //Tick_Send(nAxis);
 	            SendPacket(abyteBuffer, nDefaultSize + i);
 
@@ -1214,12 +1411,15 @@ namespace OpenJigWare
                 //Ojw.CMessage.Write("Read_Ram({0})", nID);
             }
 
-            public void Read_Motor(int nAxis) { Read_Ram(nAxis, _ADDRESS_TORQUE_CONTROL, 8); }
+            public void Read_Motor(int nAxis) { Read_Ram(nAxis, _ADDRESS_TORQUE_CONTROL + ((m_bMultiTurn == true) ? 4 : 0), 16); }//8); }{ Read_Ram(nAxis, _ADDRESS_TORQUE_CONTROL, 8); }
             public bool Read_Motor_IsReceived()
             {
                 if (m_nSeq_Receive_Back != m_nSeq_Receive)
                 {
-                    m_nSeq_Receive_Back = m_nSeq_Receive;
+#if false
+                    Sync_Seq();
+#endif
+                    //m_nSeq_Receive_Back = m_nSeq_Receive;
                     //Ojw.CMessage.Write("Read_Motor_IsReceived() == true");
                     return true;
                 }
@@ -1227,13 +1427,20 @@ namespace OpenJigWare
             }
             public void Read_Motor()
             {
-                if ((m_nReadCnt > 0) && (m_nReadMotor_Index >= 0))
-                {
-                    m_nReadMotor_Index = (m_nReadMotor_Index + 1) % m_nReadCnt;
-                    //Ojw.CMessage.Write("Read_Motor()");
-                    m_nSeq_Receive_Back = m_nSeq_Receive;
-                    Read_Motor(m_aSRead[m_nReadMotor_Index].nID);
-                }
+                if (m_nReadCnt <= 0) return;
+                m_nRetrieve = 0;
+
+                m_nReadMotor_Index = (m_nReadMotor_Index + 1) % m_nReadCnt;
+
+                Read_Motor(m_aSRead[m_nReadMotor_Index].nID);
+
+                //if ((m_nReadCnt > 0) && (m_nReadMotor_Index >= 0))
+                //{
+                //    m_nReadMotor_Index = (m_nReadMotor_Index + 1) % m_nReadCnt;
+                //    //Ojw.CMessage.Write("Read_Motor()");
+                //    m_nSeq_Receive_Back = m_nSeq_Receive;
+                //    Read_Motor(m_aSRead[m_nReadMotor_Index].nID);
+                //}
             }
             //////////////////////////////////////
             // Setting
@@ -1243,7 +1450,7 @@ namespace OpenJigWare
             private int Pop_Id() { if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) return -1; if (m_nMotorCnt > 0) return m_anEn[--m_nMotorCnt]; return -1; }
 
             // Push Motor ID for checking(if you set a Motor ID with this function, you can get a feedback data with delay function)
-            public void Read_Motor_Push(int nAxis) { if (m_bProgEnd == true) return; if (Read_Motor_Index(nAxis) >= 0) return; if ((nAxis < 0) || (nAxis >= 254)) return; m_aSRead[m_nReadCnt].nID = nAxis; m_aSRead[m_nReadCnt].bEnable = true; m_aSRead[m_nReadCnt].nAddress_First = _ADDRESS_TORQUE_CONTROL; m_aSRead[m_nReadCnt].nAddress_Length = 8; m_nReadCnt++; }
+            public void Read_Motor_Push(int nAxis) { if (m_bProgEnd == true) return; if (Read_Motor_Index(nAxis) >= 0) return; if ((nAxis < 0) || (nAxis >= 254)) return; m_aSRead[m_nReadCnt].nID = nAxis; m_aSRead[m_nReadCnt].bEnable = true; m_aSRead[m_nReadCnt].nAddress_First = _ADDRESS_TORQUE_CONTROL + ((m_bMultiTurn == true) ? 4 : 0); m_aSRead[m_nReadCnt].nAddress_Length = 8; m_nReadCnt++; }
             // You can check your Motor ID for feedback, which you set or not.
             public int Read_Motor_Index(int nAxis) { if (m_bProgEnd == true) return -1; for (int i = 0; i < m_nReadCnt; i++) { if (m_aSRead[i].nID == nAxis) return i; } return -1; }
 

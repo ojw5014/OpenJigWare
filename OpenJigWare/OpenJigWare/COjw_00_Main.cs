@@ -71,8 +71,15 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "02.00.04";
+        public const string strVersion = "02.00.05";
         public const string strHistory = (String)(
+                "[V02.00.05]\r\n" +
+                "CSystem.Shutdown 추가(그동안 추가했던 것으로 착각... -_-;)\r\n" +
+                "CParam 추가(TextBox, ComboBox, CheckBox, RadioButton)\r\n" +
+                "CSystem 의 KillProgram 추가\r\n" + 
+                "CSystem 의 IsRunning... & RunProgram..., SendMessage, 기능 강화(Case unsensitive)\r\n" +
+                "COjw_16_Camera.cs 의 Grab() 강화\r\n" +
+                "========================================\r\n" + // Released
                 "[V02.00.04]\r\n" +
                 "SendMessage, Shared Memory 구조 지원\r\n" +
                 "CKeyboard 클래스 추가\r\n" +
@@ -87,7 +94,7 @@ namespace OpenJigWare
                 "[V02.00.03]\r\n" +
                 "모션툴 휠 제어 버그 수정\r\n" +
                 "CHerculex.cs의 Stop 기능 수정 (SetMot_Stop() 추가) 수정\r\n" +
-                "========================================\r\n" + // No Released
+                "========================================\r\n" + // Released
                 "[V02.00.02]\r\n" +
                 "[OJW5014_20161031]모션툴 Insert,Delete 관련 버그 수정 - CellEnter event 내에 m_CGridMotionEditor.SetChangeCurrentLine() 함수 삽입\r\n" +
                 "========================================\r\n" + // No Released

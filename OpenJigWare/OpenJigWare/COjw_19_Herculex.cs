@@ -19,6 +19,12 @@ namespace OpenJigWare
             _0101,
             _0102,
             _0201,
+            _0202,
+            _0401,
+            _0402,
+            _0601,
+            _0602,
+            //_0603,
             _Count
         }
         #region Define structure(SParam_t. SParam_Axis_t)
@@ -82,6 +88,11 @@ namespace OpenJigWare
             public static int _DRS_0101 = 0;
             public static int _DRS_0102 = 1;
             public static int _DRS_0201 = 2;
+            public static int _DRS_0202 = 3;
+            public static int _DRS_0401 = 4;
+            public static int _DRS_0402 = 5;
+            public static int _DRS_0601 = 6;
+            public static int _DRS_0602 = 7;
 
             // if you make your class, just write in here
             private const int _MOTOR_MAX = 256;
@@ -122,6 +133,36 @@ namespace OpenJigWare
                     fMechMove = 6391.605f;
                     fDegree = 360.0f;
                     fCenterPos = 2964.0f;
+                }
+                else if (etype == EType_t._0202)
+                {
+                    fMechMove = 6391.605f;
+                    fDegree = 360.0f;
+                    fCenterPos = 2964.0f;
+                }
+                else if (etype == EType_t._0401)
+                {
+                    fMechMove = 2048.0f;
+                    fDegree = 333.3f;
+                    fCenterPos = 1024.0f;
+                }                
+                else if (etype == EType_t._0402)
+                {
+                    fMechMove = 12962.099f;
+                    fDegree = 360.0f;
+                    fCenterPos = 16384.0f;
+                }
+                else if (etype == EType_t._0601)
+                {
+                    fMechMove = 2048.0f;
+                    fDegree = 333.3f;
+                    fCenterPos = 1024.0f;
+                }                
+                else if (etype == EType_t._0602)
+                {
+                    fMechMove = 12962.099f;
+                    fDegree = 360.0f;
+                    fCenterPos = 16384.0f;
                 }
 
                 for (int nAxis = 0; nAxis < _MOTOR_MAX; nAxis++)
@@ -1872,11 +1913,12 @@ namespace OpenJigWare
                 //SetPos(nAxis, GetData_Ram(nAxis, 46));
                 // Signed Data
                 byte[] byteData = new byte[2];
-                byteData[1] = (byte)(GetData_Ram(nAxis, _ADDRESS_CALIBRATED_POSITION) & 0xff);
-                byteData[0] = (byte)(GetData_Ram(nAxis, _ADDRESS_CALIBRATED_POSITION + 1) & 0xff);
+                byteData[0] = (byte)(GetData_Ram(nAxis, _ADDRESS_CALIBRATED_POSITION) & 0xff);
+                byteData[1] = (byte)(GetData_Ram(nAxis, _ADDRESS_CALIBRATED_POSITION + 1) & 0xff);
                 // 0000 0000  0000 0000
                 short sData = 0;
-                sData = (short)(((byteData[0] & 0x0f) << 8) | (byteData[1] << 0) | ((byteData[0] & 0x10) << (3 + 8)) | ((byteData[0] & 0x10) << (2 + 8)) | ((byteData[0] & 0x10) << (1 + 8)));
+                sData = BitConverter.ToInt16(byteData, 0);
+                //sData = (short)(((byteData[0] & 0x0f) << 8) | (byteData[1] << 0) | ((byteData[0] & 0x10) << (3 + 8)) | ((byteData[0] & 0x10) << (2 + 8)) | ((byteData[0] & 0x10) << (1 + 8)));
                 SetPos(nAxis, (int)sData);
                 byteData = null;
                 /////////////////////////////////
@@ -2265,7 +2307,7 @@ namespace OpenJigWare
 
             private CSocket m_CSocket = null;
             public void SetSocket(CSocket CSock) { m_CSocket = CSock; }
-            public bool IsSocket() { return m_CSocket.IsConnect(); }
+            public bool IsSocket() { return (m_CSocket == null) ? false : m_CSocket.IsConnect(); }
 
             private bool m_bBusy = false;
             // 통신의 혼선이 일지 않게 끔 외부적으로 Busy 상태인지 아닌지를 확인하는 함수

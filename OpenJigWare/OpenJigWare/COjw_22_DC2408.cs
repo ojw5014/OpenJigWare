@@ -745,9 +745,99 @@ namespace OpenJigWare
             #endregion IsConnect() - Checking connection
 
             #region Connect
+
+            public void Setting_PositionMode(int nSpeed_Rpm, int nAccTime_ms)
+            {
+                //SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
+                //CTimer.Wait(100);                            
+                //SendCommand("EsA55A;");
+                CTimer.Wait(100);
+                //SendCommand("Sa250,250,250,250;");
+                //CTimer.Wait(100); 
+                // 정속 구간의 이동속도를 3000rpm으로 설정합니다.
+                string strTmp = CConvert.IntToStr(nSpeed_Rpm, 6);
+                SendCommand(String.Format("SS{0},{1};", strTmp, strTmp));
+                CTimer.Wait(100);
+                // 가/감속 구간의 시간을 모터1 100ms, 모터2 100ms로 설정합니다
+                strTmp = CConvert.IntToStr(nAccTime_ms, 6);
+                SendCommand(String.Format("Ss{0},{1};", strTmp, strTmp));
+                //SendCommand("Ss100,100;");
+                CTimer.Wait(100);
+
+                SendCommand("PE0001;");
+                //CTimer.Wait(100);
+
+
+                CTimer.Wait(100);
+                SendCommand("SM0202;");
+                //if (nMode == 0)
+                //{
+                //    SendCommand("SM0202;");
+                //}
+                //else if (nMode == 1)
+                //{
+                //    SendCommand("SM0505;");
+                //}
+                //else if (nMode == 2)
+                //{
+                //    SendCommand("SM0707;");
+                //}
+                //else
+                //{
+                //    // Mode Off
+                //    SendCommand("SM0000;");
+                //}
+            }
+            public void Setting_SpeedMode(int nAcc_rpm_per_ms)
+            {
+                //SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
+                //CTimer.Wait(100);                            
+                //SendCommand("EsA55A;");
+                CTimer.Wait(100);
+
+                //1ms당 모터1의 가속도 250rpm 감속도 200rpm 모터2의 가속도 150rpm 감속도 50rpm의 기울기를 갖는 가/감속률을 설정합니다. [rpm/ms] 
+                //SendCommand("Sa250,200,150,50;");
+
+                //CTimer.Wait(100); 
+                // 정속 구간의 이동속도를 3000rpm으로 설정합니다.
+                string strTmp = CConvert.IntToStr(nAcc_rpm_per_ms);
+                SendCommand(String.Format("Sa{0},{1},{2},{3};", strTmp, strTmp, strTmp, strTmp));
+                CTimer.Wait(100);
+                SendCommand("PE0001;");
+                
+                CTimer.Wait(100);
+                SendCommand("SM0505;");
+                //if (nMode == 0)
+                //{
+                //    SendCommand("SM0202;");
+                //}
+                //else if (nMode == 1)
+                //{
+                //    SendCommand("SM0505;");
+                //}
+                //else if (nMode == 2)
+                //{
+                //    SendCommand("SM0707;");
+                //}
+                //else
+                //{
+                //    // Mode Off
+                //    SendCommand("SM0000;");
+                //}
+            }
+            public void Setting_AmphereMode()
+            {
+                //CTimer.Wait(100); 
+                CTimer.Wait(100);
+                SendCommand("PE0001;");
+
+                CTimer.Wait(100);
+                SendCommand("SM0707;");
+            }
             /////////////////////////////////////////////////
             // Parity - 0 : None, 1 : Odd, 2 : Even, 3 : Mark, 4 : Space
             // StopBit - 0 : None, 1 : One, 2 : Two, 3 : OnePointFive
+            // Mode : 0 - position control, 1 - speed control, 2 - Amphere control
             public bool Connect(int nPort, int nBaudRate)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
                 if (IsConnect() == false)
@@ -770,22 +860,6 @@ namespace OpenJigWare
                         m_SerialPort.Open();
                         if (m_SerialPort.IsOpen == true)
                         {
-
-                            //SendCommand("SQ00005000,00002000,003E8000,4268,00000000,0000,01A0,00000411,1046,038E,00000004;");
-                            //CTimer.Wait(100);                            
-                            //SendCommand("EsA55A;");
-                            CTimer.Wait(100);
-                            SendCommand("SM0202;");
-                            CTimer.Wait(100); 
-                            //SendCommand("Sa250,250,250,250;");
-                            //CTimer.Wait(100); 
-                            SendCommand("SS001000,2000;");
-                            CTimer.Wait(100);
-                            SendCommand("Ss100,200;");
-                            CTimer.Wait(100);
-                            SendCommand("PE0001;");
-                            CTimer.Wait(100);
-
                             m_bConnected = true;
 
                             Reader = new Thread(new ThreadStart(serialPort1_DataReceived));
@@ -852,7 +926,7 @@ namespace OpenJigWare
             public void Stop()
             {
                 m_bStop = true;
-
+                SendCommand("PsA55A;");
                 //for (int i = 0; i < m_nMotor_Max; i++)
                 //    SetCmd_Flag_Stop(i, true);
                 //SetMot(0xfe, 1000);
@@ -864,6 +938,7 @@ namespace OpenJigWare
             {
                 //SetCmd_Flag_Stop(nAxis, true);
                 //SetMot(nAxis, 1000);
+                SendCommand("PsA55A;");
             }
             #endregion Stop
 
@@ -871,7 +946,7 @@ namespace OpenJigWare
             public void Ems()
             {
                 Stop();
-                MotTorq(false);
+                Torq(false);
                 m_bEms = true;
             }
             #endregion Ems - emergency switch(Kor: 비상정지)
@@ -896,14 +971,14 @@ namespace OpenJigWare
 
             #region Torq
             // Torq
-            public void MotTorq(bool bEn)
+            public void Torq(bool bEn)
             {
                 //if ((m_bEms == true) && (bDriver == false) && (bServo == false)) return;
                 //MotTorq(0xfe, bEn); // Broad Casting
 
                 SendCommand("P" + ((bEn == true) ? "E" : "D") + "0001;");
             }
-            public void MotTorq(int nAxis, bool bEn)
+            public void Torq(int nAxis, bool bEn)
             {
                 if (((m_bStop == true) || (m_bEms == true)) && bEn == true) return; // Emergency Block
                 m_bBusy = true; // request answer
@@ -918,7 +993,22 @@ namespace OpenJigWare
                 SendPacket(aBuffer, aBuffer.Length);
             }
             #endregion
+            public void SetMot_Amphere_Raw(int nAxis, int nRaw)
+            {
+                if ((m_bStop == true) || (m_bEms == true)) return;
+                //////////////////////////////////////////////////
 
+                int nID = GetID_By_Axis(nAxis); // Get the real Motor ID from Alias Name
+                SendCommand(String.Format("SC{0},{1};", nRaw, nRaw));
+            }
+            public void SetMot_Speed(int nAxis, int nRpm)
+            {
+                if ((m_bStop == true) || (m_bEms == true)) return;
+                //////////////////////////////////////////////////
+
+                int nID = GetID_By_Axis(nAxis); // Get the real Motor ID from Alias Name
+                SendCommand(String.Format("SV{0},{1};", nRpm, nRpm));                          
+            }
             public void SetMot(int nAxis, float fAngle, int nTime)
             {
                 if ((m_bStop == true) || (m_bEms == true)) return;

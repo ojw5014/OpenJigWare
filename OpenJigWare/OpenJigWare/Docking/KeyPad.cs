@@ -16,9 +16,9 @@ namespace OpenJigWare.Docking
         private bool m_bNumPad = true;
         
         private const int _BUTTON_LEFT = 1;
-        private const int _BUTTON_TOP = 2;
-        private const int _BUTTON_WIDTH = 67;
-        private const int _BUTTON_HEIGHT = 50;
+        private const int _BUTTON_TOP = 1;//2;
+        private const int _BUTTON_WIDTH = 49;//67;
+        private const int _BUTTON_HEIGHT = 43;//50;
 
         public CKeyPad_t()
         {
@@ -348,17 +348,31 @@ namespace OpenJigWare.Docking
         //public static Form SetItem() {  }
         public static void ShowCalculator(TextBox txt)
         {
+            //Int32 currentMonitorCount = Screen.AllScreens.Length;
             Rectangle rc = txt.RectangleToScreen(new Rectangle(new Point(0, 0), txt.Size));
             CKeyPad_t m_frmKeyPad = new CKeyPad_t();//rc.Right, rc.Bottom);
             //m_frmKeyPad.Location = new Point(rc.Right, rc.Bottom);//txt.Left + txt.Width + 1, txt.Top + txt.Height);
             m_frmKeyPad.SetMode(true);
             int nLeft = rc.Right;
             int nTop = rc.Top;
+            int nMonitor = 0;
+            if (Screen.AllScreens.Length > 1)
+            {
+                if (
+                    (nTop < 0) ||
+                    (nTop >= Screen.AllScreens[nMonitor].Bounds.Size.Height) ||
+                    (nLeft < 0) ||
+                    (nLeft >= Screen.AllScreens[nMonitor].Bounds.Size.Width)
+                    )
+                {
+                    nMonitor = 1;
+                }
+            }
             if ((rc.Top + m_frmKeyPad.Height) > 1024) // 일단 모니터 사이즈를 1024로 가정하고 넣어둔다. - 나중에 수정
             {
-                nTop = rc.Top - ((rc.Top + m_frmKeyPad.Height) - 1024);
+                nTop = rc.Top - ((rc.Top + m_frmKeyPad.Height) - Screen.AllScreens[nMonitor].Bounds.Size.Height);
             }
-            if ((rc.Right + m_frmKeyPad.Width) > 1280) // 일단 모니터 사이즈를 1280으로 가정하고 넣어둔다. - 나중에 수정
+            if ((rc.Right + m_frmKeyPad.Width) > Screen.AllScreens[nMonitor].Bounds.Size.Width) // 일단 모니터 사이즈를 1280으로 가정하고 넣어둔다. - 나중에 수정
             {
                 nLeft = rc.Left - m_frmKeyPad.Width;
             }
@@ -374,11 +388,24 @@ namespace OpenJigWare.Docking
             m_frmKeyPad.SetMode(false);
             int nLeft = rc.Right;
             int nTop = rc.Top;
+            int nMonitor = 0;
+            if (Screen.AllScreens.Length > 1)
+            {
+                if (
+                    (nTop < 0) ||
+                    (nTop >= Screen.AllScreens[nMonitor].Bounds.Size.Height) ||
+                    (nLeft < 0) ||
+                    (nLeft >= Screen.AllScreens[nMonitor].Bounds.Size.Width)
+                    )
+                {
+                    nMonitor = 1;
+                }
+            }
             if ((rc.Top + m_frmKeyPad.Height) > 1024)
             {
-                nTop = rc.Top - ((rc.Top + m_frmKeyPad.Height) - 1024);
+                nTop = rc.Top - ((rc.Top + m_frmKeyPad.Height) - Screen.AllScreens[nMonitor].Bounds.Size.Height);
             }
-            if ((rc.Right + m_frmKeyPad.Width) > 1280)
+            if ((rc.Right + m_frmKeyPad.Width) > Screen.AllScreens[nMonitor].Bounds.Size.Width)
             {
                 nLeft = rc.Left - m_frmKeyPad.Width;
             }

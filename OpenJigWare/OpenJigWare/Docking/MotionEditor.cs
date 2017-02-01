@@ -5085,6 +5085,11 @@ namespace OpenJigWare.Docking
                 m_C3d.m_CMotor.SendPacket(pBuff, 1);
             }
         }
+
+        private void chkFullSize_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
 #else
         private void btnDownload_Click(object sender, EventArgs e)
         {

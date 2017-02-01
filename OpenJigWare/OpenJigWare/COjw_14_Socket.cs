@@ -65,6 +65,32 @@ namespace OpenJigWare
                 String strIP = nA.ToString() + "," + nB.ToString() + "," + nC.ToString() + "," + nD.ToString();
                 return sock_start(strIP, nPort);
             }
+            public bool sock_start(int nPort)
+            {
+                int nCnt = Ojw.CSocket.GetIpAddress_Cnt();
+                if (nCnt > 0)
+                {
+                    int nIndex = -1;
+                    for (int i = 0; i < nCnt; i++)
+                    {
+                        string strIp = Ojw.CSocket.GetIpAddress(i);
+                        //if (strIp.IndexOf("192.") >= 0) //nIndex = i;
+                        if ((strIp.ToLower().IndexOf("local") < 0) && (strIp.IndexOf(":") < 0))
+                        {
+                            nIndex = i;
+                            //Ojw.CMessage.Write("http://{0}:{1}", strIp, nPort);
+                            break;
+                        }                        
+                    }
+                    if (nIndex >= 0)
+                    {
+                        return sock_start(Ojw.CSocket.GetIpAddress(nIndex), nPort);
+                        //return true;
+                    }                   
+                    return false;
+                }
+                return false;
+            }
             public bool sock_start(String strIP, int nPort)
             {
                 bool bRet = false;
