@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.IO;
@@ -291,6 +291,10 @@ namespace OpenJigWare
                 {
                     Ojw.CMessage.Write_Error(ex.ToString());
                 }
+            }
+            public void ClearEvent()
+            {
+                UserEvent = null;
             }
         }
         #endregion UserEvent

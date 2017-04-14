@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.IO.Ports;
@@ -76,6 +76,33 @@ namespace OpenJigWare
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
                 m_SerialPort.Parity = Parity.None;
+                m_SerialPort.DataBits = 8;
+                m_SerialPort.StopBits = StopBits.One;
+                m_SerialPort.ReceivedBytesThreshold = 1;
+                m_SerialPort.DtrEnable = bDtrEnable;
+                //m_SerialPort.ReadExisting
+                //m_SerialPort.ReadBufferSize = 256;
+                try
+                {
+                    m_SerialPort.Open();
+
+                    if (IsConnect() == true)
+                    {
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    CMessage.Write_Error("Port Open Error - " + ex.ToString());
+                    //m_bConnect = false;
+                }
+                return IsConnect();
+            }
+            public bool Connect(int nPort, int nBaudRate, bool bDtrEnable, Parity prt)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
+            {
+                m_SerialPort.PortName = "COM" + nPort.ToString();
+                m_SerialPort.BaudRate = nBaudRate;
+                m_SerialPort.Parity = prt;//Parity.None;
                 m_SerialPort.DataBits = 8;
                 m_SerialPort.StopBits = StopBits.One;
                 m_SerialPort.ReceivedBytesThreshold = 1;

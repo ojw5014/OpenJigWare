@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -628,6 +628,10 @@ namespace OpenJigWare
                     strResult = strResult.Remove(nIndex, 1);
                 }
                 return strResult;
+            }
+            public static string ChangeChar(string strText, char cRemoveChar, char cNewChar)
+            {
+                return strText.Replace(cRemoveChar, cNewChar);
             }
 
             // Partially replacing characters(Kor: 부분적 문자 삭제)

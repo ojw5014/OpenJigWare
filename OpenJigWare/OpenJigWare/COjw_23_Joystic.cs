@@ -2,7 +2,11 @@
 // if you know who is key software (Joystick) from, please let me know.
 using System;
 using System.Collections.Generic;
+
+#if _USING_DOTNET_3_5 || _USING_DOTNET_2_0
+#else
 using System.Linq;
+#endif
 using System.Text;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -288,7 +292,11 @@ namespace OpenJigWare
                 SpinDown,
                 SpinLeft,
                 SpinRight,
-                //_Count
+                
+#if _USING_DOTNET_2_0 || _USING_DOTNET_3_5
+                _Count
+#else
+#endif
             }
             #endregion Define
 
@@ -503,7 +511,28 @@ namespace OpenJigWare
                         return (info.dwButtons & (uint)Math.Pow(2, (int)key - 1)) != 0;
                 }
             }
+            
+#if _USING_DOTNET_2_0 || _USING_DOTNET_3_5
 
+            public bool IsDown(IEnumerable<PadKey> all)
+            {
+                foreach (PadKey key in all) { if (isDown[key] == false) return false; }
+                return true;
+            }
+
+            public bool IsDown(params PadKey[] all)
+            {
+                foreach (PadKey key in all) { if (isDown[key] == false) return false; }
+                return true;
+            }
+
+            public bool IsDown(PadKey key)
+            {
+                if (isDown.Count > 0)
+                    return isDown[key];
+                return false;
+            }
+#else
             public bool IsDown(IEnumerable<PadKey> all)
             {
                 return all.All(IsDown);
@@ -520,6 +549,7 @@ namespace OpenJigWare
                     return isDown[key];
                 return false;
             }
+#endif
             public bool IsDown_Event(PadKey key)
             {
                 if (m_anClickEvent_Down[(int)key] == 1)
@@ -529,6 +559,27 @@ namespace OpenJigWare
                 }
                 return false;
             }
+#if _USING_DOTNET_2_0 || _USING_DOTNET_3_5
+
+            public bool IsUp(IEnumerable<PadKey> all)
+            {
+                foreach (PadKey key in all) { if (!isDown[key] == false) return false; }
+                return true;
+            }
+
+            public bool IsUp(params PadKey[] all)
+            {
+                foreach (PadKey key in all) { if (!isDown[key] == false) return false; }
+                return true;
+            }
+
+            public bool IsUp(PadKey key)
+            {
+                if (isDown.Count > 0)
+                    return !isDown[key];
+                return false;
+            }
+#else
             public bool IsUp(IEnumerable<PadKey> all)
             {
                 return all.All(IsUp);
@@ -543,6 +594,7 @@ namespace OpenJigWare
             {
                 return !isDown[key];
             }
+#endif
 
             public bool IsUp_Event(PadKey key)
             {

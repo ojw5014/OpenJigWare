@@ -1,4 +1,5 @@
 ﻿// Dotnet 프레임 4.0 기준이나 3.5 버전으로 컴파일 시 _USING_DOTNET_3_5 를 조건부 컴파일에 선언할 것
+// Dotnet 프레임 2.0 기준시 _USING_DOTNET_2_0 를 조건부 컴파일에 선언할 것
 
 /* This is a Open Source for Jig tools
  * 
@@ -22,7 +23,7 @@ http://blog.daum.net/toyship/112
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -71,15 +72,31 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "02.00.05";
+        public const string strVersion = "02.00.06";
         public const string strHistory = (String)(
+                "[V02.00.06]\r\n" +
+                "음성인식 네거티브(!) 강화\r\n" +
+                "COjw_29_Param.cs 의 multiline 옵션에서 substring(1) 삭제(in Param_Load())\r\n" +
+                "========================================\r\n" + // No Released
                 "[V02.00.05]\r\n" +
+                "CTts, CVoice 기능 추가\r\n" + 
+                "Ojw.CSystem.ScreenKeyboard, ScreenKeyboard2 추가\r\n" + 
+                "CParam 의 멀티라인 저장 기능 추가\r\n" +
+                "CParam 의 에러처리 추가\r\n" + 
+                "StreamServer 에 SetResolution, GetResolution 추가\r\n" +
+                "COjw_16_Camera.cs 의 Init 을 control 이 없는 경우 내부 메모리로 사용하도록 수정, 스트리밍 서버 선언 시 에러 해결\r\n" +
+                "COjw_30_Voice.cs 추가\r\n" +
+                "CSystem.cs 에 RunProgram 기능 강화(Run시 특정 위치-패널-에 실행프로그램 도킹), KillProgram 기능 강화\r\n" +
+                "CSystem.cs 에 ScreenKeyboard, GetPath_Windows, MoveProgram 추가\r\n" +
+                "_USING_DOTNET_2_0 추가: Cannot use => Python, Streaming(?)시 버전이 맞지 않아 삭제처리\r\n" + 
+                "System 클래스의 디스크 용량 알아내는 함수 추가\r\n" +
+                "File 클래스의 파일속성 사이즈 알아내는 함수 추가\r\n" +
                 "CSystem.Shutdown 추가(그동안 추가했던 것으로 착각... -_-;)\r\n" +
                 "CParam 추가(TextBox, ComboBox, CheckBox, RadioButton)\r\n" +
                 "CSystem 의 KillProgram 추가\r\n" + 
                 "CSystem 의 IsRunning... & RunProgram..., SendMessage, 기능 강화(Case unsensitive)\r\n" +
                 "COjw_16_Camera.cs 의 Grab() 강화\r\n" +
-                "========================================\r\n" + // Released
+                "========================================\r\n" + // No Released
                 "[V02.00.04]\r\n" +
                 "SendMessage, Shared Memory 구조 지원\r\n" +
                 "CKeyboard 클래스 추가\r\n" +
@@ -461,6 +478,14 @@ namespace OpenJigWare
             public void SetUserButton(Docking.frmMotionEditor.UserFunction FUser) { m_frmMotion.SetUserButton(FUser); }
             public void SetIcon(Icon UserIcon) { m_frmMotion.Icon = UserIcon; }
             public void SetTitleImage(Bitmap bmp, Rectangle rc) { m_frmMotion.SetTitleImage(bmp, rc); }
+        }
+        public class CTools_Speech
+        {
+            public Docking.frmMsVoice m_frmMsVoice = new Docking.frmMsVoice();
+            public void Show()
+            {
+                m_frmMsVoice.Show();
+            }
         }
         public class CTools_Keyboard
         {

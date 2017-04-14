@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+
+#if _USING_DOTNET_3_5 || _USING_DOTNET_2_0
+#else
 using System.Linq;
+#endif
 using System.Text;
 using System.Drawing;
 
@@ -2004,7 +2008,14 @@ namespace OpenJigWare
                     //}
 
                     // MovAvgFilter2.m
+
+#if _USING_DOTNET_2_0 ||  _USING_DOTNET_3_5
+                    double avg = 0;
+                    foreach (double d in xMABuf) avg += d;
+                    avg /= (double)n;
+#else
                     double avg = xMABuf.ToList<double>().Sum() / (double)n;
+#endif
 
                     output = avg;
                     //prevAvg = avg;

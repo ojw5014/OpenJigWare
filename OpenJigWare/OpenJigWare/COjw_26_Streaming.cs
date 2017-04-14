@@ -24,7 +24,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 
@@ -66,7 +66,8 @@ namespace OpenJigWare
                 if (_Server == null) return false;
                 return _Server.IsRunning; 
             }
-            public void Start(int nPort)
+            public void Start(int nPort) { Start(nPort, 640, 480); }
+            public void Start(int nPort, int nWidth, int nHeight)
             {
                 if (_Server != null)
                 {
@@ -76,11 +77,13 @@ namespace OpenJigWare
                     }
                 }
                 _Server = new ImageStreamingServer();
+                _Server.SetResolution(nWidth, nHeight);
                 //string strAddress = string.Format("http://{0}:{1}", strIpAddress, nPort);//Environment.MachineName);
                 
                 _Server.Start(nPort);
             }
-            public void Start(int nCameraIndex, int nPort)
+            public void Start(int nCameraIndex, int nPort) { Start(nCameraIndex, nPort, 640, 480); }
+            public void Start(int nCameraIndex, int nPort, int nWidth, int nHeight)
             {
                 if (_Server != null) //_Server = new ImageStreamingServer(nCameraIndex);
                 {
@@ -91,6 +94,24 @@ namespace OpenJigWare
                     }
                 }
                 _Server = new ImageStreamingServer(nCameraIndex);
+                _Server.SetResolution(nWidth, nHeight);
+                //string strAddress = string.Format("http://{0}:{1}", strIpAddress, nPort);//Environment.MachineName);
+
+                _Server.Start(nPort);//_Camera(nCameraIndex, nPort);
+            }
+            public void Start(Control ctrlDisp, int nCameraIndex, int nPort) { Start(ctrlDisp, nCameraIndex, nPort, 640, 480); }
+            public void Start(Control ctrlDisp, int nCameraIndex, int nPort, int nWidth, int nHeight)
+            {
+                if (_Server != null) //_Server = new ImageStreamingServer(nCameraIndex);
+                {
+                    if (_Server.IsRunning == true)
+                    {
+                        Stop();
+
+                    }
+                }
+                _Server = new ImageStreamingServer(ctrlDisp, nCameraIndex);
+                _Server.SetResolution(nWidth, nHeight);
                 //string strAddress = string.Format("http://{0}:{1}", strIpAddress, nPort);//Environment.MachineName);
 
                 _Server.Start(nPort);//_Camera(nCameraIndex, nPort);
@@ -105,21 +126,6 @@ namespace OpenJigWare
                 _Server.DestroyImage();
             }
 
-            public void Start(Control ctrlDisp, int nCameraIndex, int nPort)
-            {
-                if (_Server != null) //_Server = new ImageStreamingServer(nCameraIndex);
-                {
-                    if (_Server.IsRunning == true)
-                    {
-                        Stop();
-
-                    }
-                }
-                _Server = new ImageStreamingServer(ctrlDisp, nCameraIndex);
-                //string strAddress = string.Format("http://{0}:{1}", strIpAddress, nPort);//Environment.MachineName);
-
-                _Server.Start(nPort);//_Camera(nCameraIndex, nPort);
-            }
             public Ojw.CCamera GetCamera() { return _Server.GetCamera(); }
             public void Stop()
             {
@@ -348,7 +354,8 @@ namespace rtaNetworking.Streaming
     /// </summary>
     public class ImageStreamingServer : IDisposable
     {
-
+        private static int m_nResolution_Width = 640;
+        private static int m_nResolution_Height = 480;
         private List<Socket> _Clients;
         private Thread _Thread;
         public void SetImage(Bitmap bmp)
@@ -359,8 +366,18 @@ namespace rtaNetworking.Streaming
         {
             Screen.DestroyImage();
         }
+        public void SetResolution(int nWidth, int nHeight)
+        {
+            m_nResolution_Width = nWidth;
+            m_nResolution_Height = nHeight;
+        }
+        public void GetResolution(out int nWidth, out int nHeight)
+        {
+            nWidth = m_nResolution_Width;
+            nHeight = m_nResolution_Height;
+        }
         public ImageStreamingServer()
-            : this(Screen.Snapshots(640, 480, true))
+            : this(Screen.Snapshots(m_nResolution_Width, m_nResolution_Height, true))
         {
             m_bCam = false;
         }
@@ -538,8 +555,13 @@ namespace rtaNetworking.Streaming
                 System.Diagnostics.Debug.WriteLine(string.Format("Server started on port {0}.", state));
 
                 m_bExit = false;
+                
+#if _USING_DOTNET_2_0 || _USING_DOTNET_3_5
+                ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), m_Server);
+#else
                 foreach (Socket client in m_Server.IncommingConnectoins())
                     ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), client);
+#endif
 
             }
             catch(Exception ex) 
@@ -607,12 +629,25 @@ namespace rtaNetworking.Streaming
     static class SocketExtensions
     {
 
+#if _USING_DOTNET_3_5
+        public static IEnumerable<Socket> IncommingConnectoins(Socket server)
+        {
+            while (true)
+                yield return server.Accept();
+        }
+#elif _USING_DOTNET_2_0
+        public static IEnumerable<Socket> IncommingConnectoins(Socket server)
+        {
+            while (true)
+                yield return server.Accept();
+        }
+#else
         public static IEnumerable<Socket> IncommingConnectoins(this Socket server)
         {
             while (true)
                 yield return server.Accept();
         }
-
+#endif
     }
 
 
@@ -754,6 +789,41 @@ namespace rtaNetworking.Streaming
             yield return null;//break;
         }
 
+#if _USING_DOTNET_3_5
+        internal static IEnumerable<MemoryStream> Streams(IEnumerable<Image> source)
+        {
+            MemoryStream ms = new MemoryStream();
+
+            foreach (var img in source)
+            {
+                ms.SetLength(0);
+                img.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                yield return ms;
+            }
+
+            ms.Close();
+            ms = null;
+
+            yield break;
+        }
+#elif _USING_DOTNET_2_0
+        internal static IEnumerable<MemoryStream> Streams(IEnumerable<Image> source)
+        {
+            MemoryStream ms = new MemoryStream();
+
+            foreach (var img in source)
+            {
+                ms.SetLength(0);
+                img.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                yield return ms;
+            }
+
+            ms.Close();
+            ms = null;
+
+            yield break;
+        }
+#else
         internal static IEnumerable<MemoryStream> Streams(this IEnumerable<Image> source)
         {
             MemoryStream ms = new MemoryStream();
@@ -770,7 +840,7 @@ namespace rtaNetworking.Streaming
 
             yield break;
         }
-
+#endif
     }
 }
 

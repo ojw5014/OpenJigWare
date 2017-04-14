@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
@@ -161,7 +161,7 @@ namespace OpenJigWare.Docking
                 }
                 else if (((Keys)vkCode == System.Windows.Forms.Keys.F8) && (Keys.Control == Control.ModifierKeys))
                 {
-                    String strData = "";
+                    //String strData = "";
                     //if (COjwConvert.InputBox("Input your password", "This is [Super Editing Mode]. If you want to use this you need to input your exactly password", ref strData) == DialogResult.OK)
                     //{
                     //    if (strData == "ONJINWOOK")//"OJW5014")

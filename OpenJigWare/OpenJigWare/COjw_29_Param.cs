@@ -1,7 +1,7 @@
 ﻿//#define _USE_TEXTBOX_ONLY
 using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
@@ -139,6 +139,8 @@ namespace OpenJigWare
 #else
         public class CParam
         {
+            private const char _D0 = (char)0x02;
+            private const char _D1 = (char)0x03;
             private Ojw.CFile m_CFile = new Ojw.CFile();
             public string m_strFileName = "param.dat";
             public int m_nCount = 0;
@@ -168,6 +170,36 @@ namespace OpenJigWare
             {
                 Param_Load(m_strFileName, ctrl);
             }
+            public CParam(Encoding Enc)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+                Param_Load(m_strFileName, 100);
+            }
+            public CParam(Encoding Enc, int nParamCount)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+                Param_Load(m_strFileName, nParamCount);
+            }
+            public CParam(Encoding Enc, string strName)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+                Param_Load(strName, 100);
+            }
+            public CParam(Encoding Enc, string strName, int nParamCount)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+                Param_Load(strName, nParamCount);
+            }
+            public CParam(Encoding Enc, string strName, params Control[] ctrl)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+                Param_Load(strName, ctrl);
+            }
+            public CParam(Encoding Enc, params Control[] ctrl)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+                Param_Load(m_strFileName, ctrl);
+            }
             ~CParam()
             {
                 //Param_Save();
@@ -187,7 +219,12 @@ namespace OpenJigWare
                         if (objects[i] is TextBox)
                         {
                             objects[i] = new TextBox();
-                            ((ComboBox)objects[i]).Text = m_CFile.GetData_String(i);
+                            if (((TextBox)objects[i]).Multiline == true)
+                            {
+                                ((TextBox)objects[i]).Text = m_CFile.GetData_String(i).Replace(_D1, '\n').Replace(_D0, '\r');
+                                //((TextBox)objects[i]).Text = Ojw.CConvert.ChangeChar(m_CFile.GetData_String(i), _D1, '\n');
+                            }
+                            else ((TextBox)objects[i]).Text = m_CFile.GetData_String(i);
                             objects[i].TextChanged += new EventHandler(obj_TextChanged);
                         }
                         else if (objects[i] is ComboBox)
@@ -208,10 +245,24 @@ namespace OpenJigWare
                             ((CheckBox)objects[i]).Checked = m_CFile.GetData_Bool(i);
                             ((CheckBox)objects[i]).CheckedChanged += new EventHandler(obj_CheckedChanged);
                         }
+#if false
+                        else if (objects[i] is ListBox)
+                        {     
+                            ((ListBox)m_lstObject[i]).Items.Clear();
+                            string [] pstrItems = m_CFile.GetData_String(i).Split(_D1);
+                            foreach (string strItem in pstrItems) ((ListBox)m_lstObject[i]).Items.Add(strItem);
+                            ((ListBox)m_lstObject[i]).
+                        }
+#endif
                         else
                         {
                             objects[i] = new TextBox();
-                            objects[i].Text = m_CFile.GetData_String(i);
+                            if (((TextBox)objects[i]).Multiline == true)
+                            {
+                                ((TextBox)objects[i]).Text = m_CFile.GetData_String(i).Replace(_D1, '\n').Replace(_D0, '\r');
+                                //((TextBox)objects[i]).Text = Ojw.CConvert.ChangeChar(m_CFile.GetData_String(i), _D1, '\n');
+                            }
+                            else objects[i].Text = m_CFile.GetData_String(i);
                             objects[i].TextChanged += new EventHandler(obj_TextChanged);
                         }
                     }
@@ -469,25 +520,71 @@ namespace OpenJigWare
                 {
                     for (int i = 0; i < m_lstObject.Count; i++)
                     {
-                        if (m_lstObject[i] is TextBox)
+                        try
                         {
-                            m_lstObject[i].Text = m_CFile.GetData_String(i);
+                            if (m_lstObject[i] is TextBox)
+                            {
+                                if (((TextBox)m_lstObject[i]).Multiline == true)
+                                {
+#if false
+                                    string strData = m_CFile.GetData_Raw(i);
+                                    if (strData.IndexOf(_D0) >= 0)
+                                    {
+                                        m_CFile.SetData_Raw(i, strData.Replace(_D1, '\n').Replace(_D0, '\r').Substring(1));
+                                    }
+                                    //strData = strData.Replace(_D1, '\n').Replace(_D0, '\r').Substring(2);
+                                    //m_lstObject[i].Text = strData;
+                                    m_lstObject[i].Text = m_CFile.GetData_String(i);
+                                    //m_lstObject[i].Text = Ojw.CConvert.ChangeChar(m_CFile.GetData_String(i), _D1, '\n');
+#else
+                                    //m_lstObject[i].Text = m_CFile.GetData_String(i).Replace(_D1, '\n').Replace(_D0, '\r').Substring(1);
+                                    m_lstObject[i].Text = m_CFile.GetData_String(i).Replace(_D1, '\n').Replace(_D0, '\r');//.Substring(0);
+#endif
+                                }
+                                else m_lstObject[i].Text = m_CFile.GetData_String(i);
+                            }
+                            else if (m_lstObject[i] is ComboBox)
+                            {
+                                ((ComboBox)m_lstObject[i]).SelectedIndex = m_CFile.GetData_Int(i);
+                            }
+                            else if (m_lstObject[i] is RadioButton)
+                            {
+                                ((RadioButton)m_lstObject[i]).Checked = m_CFile.GetData_Bool(i);
+                            }
+                            else if (m_lstObject[i] is CheckBox)
+                            {
+                                ((CheckBox)m_lstObject[i]).Checked = m_CFile.GetData_Bool(i);
+                            }
+#if false
+                            else if (m_lstObject[i] is ListBox)
+                            {
+                                ((ListBox)m_lstObject[i]).Items.Clear();
+                                string [] pstrItems = m_CFile.GetData_String(i).Split(_D1);
+                                foreach (string strItem in pstrItems) ((ListBox)m_lstObject[i]).Items.Add(strItem);
+                            }
+#endif
+                            else
+                            {
+                                if (((TextBox)m_lstObject[i]).Multiline == true)
+                                {
+                                    m_lstObject[i].Text = m_CFile.GetData_String(i).Replace(_D1, '\n').Replace(_D0, '\r');
+                                    //m_lstObject[i].Text = Ojw.CConvert.ChangeChar(m_CFile.GetData_String(i), _D1, '\n');
+                                }
+                                else m_lstObject[i].Text = m_CFile.GetData_String(i);
+                            }
                         }
-                        else if (m_lstObject[i] is ComboBox)
+                        catch (Exception ex)
                         {
-                            ((ComboBox)m_lstObject[i]).SelectedIndex = m_CFile.GetData_Int(i);
-                        }
-                        else if (m_lstObject[i] is RadioButton)
-                        {
-                            ((RadioButton)m_lstObject[i]).Checked = m_CFile.GetData_Bool(i);
-                        }
-                        else if (m_lstObject[i] is CheckBox)
-                        {
-                            ((CheckBox)m_lstObject[i]).Checked = m_CFile.GetData_Bool(i);
-                        }
-                        else
-                        {
-                            m_lstObject[i].Text = m_CFile.GetData_String(i);
+                            string strType;
+                            if (m_lstObject[i] is TextBox) strType = "TextBox";
+                            else if (m_lstObject[i] is ComboBox) strType = "ComboBox";
+                            else if (m_lstObject[i] is RadioButton) strType = "RadioButton";
+                            else if (m_lstObject[i] is CheckBox) strType = "CheckBox";
+#if false
+                            else if (m_lstObject[i] is ListBox) strType = "ListBox";
+#endif
+                            else strType = "UnKnown";
+                            Ojw.CMessage.Write_Error("Parameter Loading error -> Index : {0}\r\n{1}", strType, ex);
                         }
                     }
                     //int i = 0;
@@ -504,7 +601,12 @@ namespace OpenJigWare
                 {
                     if (m_lstObject[i] is TextBox)
                     {
-                        m_CFile.SetData_String(i, m_lstObject[i].Text);
+                        if (((TextBox)m_lstObject[i]).Multiline == true)
+                        {
+                            m_CFile.SetData_String(i, m_lstObject[i].Text.Replace('\n', _D1).Replace('\r', _D0));
+                            //m_lstObject[i].Text = Ojw.CConvert.ChangeChar(m_lstObject[i].Text, '\n', _D1);
+                        }
+                        else m_CFile.SetData_String(i, m_lstObject[i].Text);
                     }
                     else if (m_lstObject[i] is ComboBox)
                     {
@@ -518,9 +620,26 @@ namespace OpenJigWare
                     {
                         m_CFile.SetData_Int(i, Ojw.CConvert.BoolToInt(((CheckBox)m_lstObject[i]).Checked));
                     }
+#if false
+                    else if (m_lstObject[i] is ListBox)
+                    {
+                        string strData = String.Empty;
+                        for (int j = 0; j < ((ListBox)m_lstObject[i]).Items.Count; i++)
+                        {
+                            strData += (string)((ListBox)m_lstObject[i]).Items[j];
+                            if (j < ((ListBox)m_lstObject[i]).Items.Count) strData += _D1;
+                        }
+                        m_CFile.SetData_String(i, strData);
+                    }
+#endif
                     else
                     {
-                        m_CFile.SetData_String(i, m_lstObject[i].Text); 
+                        if (((TextBox)m_lstObject[i]).Multiline == true)
+                        {
+                            m_CFile.SetData_String(i, m_lstObject[i].Text.Replace('\n', _D1).Replace('\r', _D0));
+                            //m_lstObject[i].Text = Ojw.CConvert.ChangeChar(m_lstObject[i].Text, '\n', _D1);
+                        }
+                        else m_CFile.SetData_String(i, m_lstObject[i].Text); 
                     }
                 }
                 m_CFile.Save(m_strFileName);

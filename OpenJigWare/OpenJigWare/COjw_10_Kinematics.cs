@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
 
+
+#if _USING_DOTNET_3_5
+#elif _USING_DOTNET_2_0
+#else
 // 참고소스 : http://www.secretgeek.net/host_ironpython
 // IronPython.dll, IronPython.Modules.dll, Microsoft.Scripting.dll 을 참조해야 함.
 using IronPython.Hosting;
@@ -22,6 +26,7 @@ using Microsoft.Scripting.Runtime;
 //using System.Collections;
 
 //using OjwPythonModules;
+#endif
 
 namespace OpenJigWare
 {
@@ -1248,7 +1253,10 @@ public static double hypot(double v, double w) {
 
             }
 #endif
-            
+
+
+#if _USING_DOTNET_3_5 || _USING_DOTNET_2_0
+#else
             public class CPython
             {
                 public const int _CNT_MOTOR = 1000;
@@ -1350,7 +1358,7 @@ public static double hypot(double v, double w) {
                     //return true;
                 }
             }
-            
+#endif
             // there are All compiling models (Kor: 수식구조를 컴파일 해서 바이너리 코드로 만드는 과정 전반이 여기 있다.)
             public class CInverse
             {
@@ -3179,7 +3187,9 @@ public static double hypot(double v, double w) {
                         m_strError_Etc += "[CalcCode]" + "Variable[SOjwCode_t] is not initialized (the first compilation required)";// "SOjwCode_t 변수가 초기화(최초컴파일 필요)되지 않았습니다.";
                         return false;
                     }
-
+                    
+#if _USING_DOTNET_3_5 || _USING_DOTNET_2_0
+#else
                     if (SCode.bPython == true)
                     {
                         m_strError_Etc = String.Empty;
@@ -3215,6 +3225,7 @@ public static double hypot(double v, double w) {
                         
                     }
                     else
+#endif
                     {
                         try
                         {

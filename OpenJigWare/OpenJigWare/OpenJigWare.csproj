@@ -12,8 +12,7 @@
     <AssemblyName>OpenJigWare</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -83,6 +82,11 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\Microsoft.Scripting.Metadata.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Speech, Version=11.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Program Files\Microsoft SDKs\Speech\v11.0\Assembly\Microsoft.Speech.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="MyoSharp">
       <HintPath>..\..\Released_DLL\MyoSharp.dll</HintPath>
     </Reference>
@@ -97,18 +101,22 @@
     <Reference Include="Tao.FreeGlut, Version=2.4.0.2, Culture=neutral, PublicKeyToken=6e602a6ad6c0d06d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\Tao.FreeGlut.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="Tao.Ode, Version=0.9.0.0, Culture=neutral, PublicKeyToken=e499629dc69cd531, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\Tao.Ode.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="Tao.OpenGl, Version=2.1.0.12, Culture=neutral, PublicKeyToken=1ca010269a4501ef, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\Tao.OpenGl.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="Tao.Platform.Windows, Version=1.0.0.5, Culture=neutral, PublicKeyToken=701104b2da67a104, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\Tao.Platform.Windows.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +154,12 @@
     </Compile>
     <Compile Include="Docking\MotionEditor.Designer.cs">
       <DependentUpon>MotionEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Docking\MsVoice.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\MsVoice.Designer.cs">
+      <DependentUpon>MsVoice.cs</DependentUpon>
     </Compile>
     <Compile Include="Docking\Player.cs">
       <SubType>Form</SubType>
@@ -190,6 +204,7 @@
     <Compile Include="COjw_27_Herkulex2.cs" />
     <Compile Include="COjw_28_Keyboard.cs" />
     <Compile Include="COjw_29_Param.cs" />
+    <Compile Include="COjw_30_Voice.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Docking\frmFolder.resx">
@@ -206,6 +221,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Docking\MotionEditor.resx">
       <DependentUpon>MotionEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\MsVoice.resx">
+      <DependentUpon>MsVoice.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Docking\Player.resx">
       <DependentUpon>Player.cs</DependentUpon>
@@ -649,8 +667,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

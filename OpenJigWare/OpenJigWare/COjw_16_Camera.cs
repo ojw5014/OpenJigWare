@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 
@@ -34,10 +34,12 @@ namespace OpenJigWare
             private VideoSourcePlayer m_vsPlayer = new VideoSourcePlayer();
             public void Init(Control ctrlDisp, int nCameraIndex)
             {
+                if (ctrlDisp == null) ctrlDisp = new Control();
                 Init(ctrlDisp, nCameraIndex, ctrlDisp.Width, ctrlDisp.Height);
             }
             public void Init(Control ctrlDisp, int nCameraIndex, int nWidth, int nHeight)
             {
+                if (ctrlDisp == null) ctrlDisp = new Control();
                 m_nGrabErrorCount = 0;
 
                 m_ctrlDisp = ctrlDisp;

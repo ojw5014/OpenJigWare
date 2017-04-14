@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.IO;
@@ -18,8 +18,8 @@ namespace OpenJigWare
             #region 변수
             //private byte m_pbyteServer;
             private bool m_bThread_Server = false;
-            private TcpListener m_tcpServer;    // 서버
-            private TcpClient m_tcpServer_Client; // 서버에 붙는 클라이언트
+            public TcpListener m_tcpServer;    // 서버
+            public TcpClient m_tcpServer_Client; // 서버에 붙는 클라이언트
             private Thread m_thServer;          // 스레드
             private BinaryWriter m_bwServer_outData;
             private BinaryReader m_bwServer_inData;
@@ -36,10 +36,36 @@ namespace OpenJigWare
             //서버가 클라이언트와 연결되어 있는지 여부
             public bool sock_connected()
             {
+                //m_tcpServer_Client.Client.Poll(0, System.Net.Sockets.SelectMode.SelectRead);
+                //if (m_tcpServer_Client.Client.Poll(0, System.Net.Sockets.SelectMode.SelectRead) == false) return false;
                 if (sock_started() == false) return false;
                 if (m_tcpServer_Client == null) return false;
-                return m_tcpServer_Client.Connected;
+                return isClientConnected();// m_tcpServer_Client.Client.Connected;
             }
+
+            // 출처 : http://stackoverflow.com/posts/33209626/edit
+            public bool isClientConnected()
+            {
+                IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+                TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections();
+                foreach (TcpConnectionInformation c in tcpConnections)
+                {
+                    TcpState stateOfConnection = c.State;
+                    if (c.LocalEndPoint.Equals(m_tcpServer_Client.Client.LocalEndPoint) && c.RemoteEndPoint.Equals(m_tcpServer_Client.Client.RemoteEndPoint))
+                    {
+                        if (stateOfConnection == TcpState.Established)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                }
+                return false;
+            }
+
             //서버 구동이 시작 되었는지 여부
             public bool sock_started()
             {
@@ -842,5 +868,124 @@ namespace OpenJigWare
                 return true;
             }
         }
+#if false
+        public class CUdpServer
+        {
+            #region 변수
+            //private byte m_pbyteServer;
+            private bool m_bThread_Server = false;
+            public UdpClient m_udpSock;    // 서버
+            private Thread m_thServer;          // 스레드
+            
+            private BinaryWriter m_bwServer_outData;
+            private BinaryReader m_bwServer_inData;
+            
+            //private String m_strOrgPath = "";
+            //private int m_nServer_Seq = 0;
+            //private int m_nReceived_ServerCmd = 0;
+            //private int m_nCntAuth = 0;
+            //private bool m_bAuth = false;
+            #endregion 변수
+
+            #region 공개
+            public bool sock_start(String strIP, int nPort)
+            {
+                bool bRet = false;
+                try
+                {
+                    byte[] pbyIp = new byte[4];
+                    String[] pstrIP = strIP.Split('.');
+                    int i = 0;
+                    foreach (String strItem in pstrIP)
+                    {
+                        int nIp = Convert.ToInt32(strItem);
+                        pbyIp[i++] = (byte)(nIp & 0xff);
+                    }
+                    if (i != 4)
+                    {
+                        return false;
+                    }
+
+                    IPAddress addr = new IPAddress(pbyIp);
+
+                    m_udpSock = new UdpClient(nPort);
+                    IPEndPoint clientpnt = new IPEndPoint(IPAddress.Any, 0);
+                    //클라이언트 생성시 스레드를 생성한다.
+                    //m_thServer = new Thread(new ThreadStart(ThreadServer));
+                    //m_thServer.Start();
+
+                    pbyIp = null;
+                    addr = null;
+
+                    bRet = true;
+                }
+                catch
+                {
+                    bRet = false;
+                }
+                return bRet;
+            }
+            public void sock_stop()
+            {
+                // 열려있는 포트 닫음(Server)
+                //bool bConnected = sock_connected();
+                //bool bStarted = sock_started();
+                //if (bConnected == true) m_udpSock_Client.Close();
+                //if (bStarted == true) m_udpSock.Stop();
+                
+                m_udpSock.Close();
+                m_udpSock = null;
+
+
+                //m_bAuth = false;
+                //m_nCntAuth = 0;
+            }
+            #endregion 공개
+
+        }
+#endif
+
+
+        public class CUDP
+        {
+            // 출처: http://nowonbun.tistory.com/165 [명월 일지]
+            public void Server_Start(int nPort)
+            {
+                IPEndPoint ipep = new IPEndPoint(IPAddress.Any, nPort);
+                Socket server = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                server.Bind(ipep);
+                Ojw.CMessage.Write("Server Start");
+                IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
+                EndPoint remote = (EndPoint)(sender);
+
+                byte[] _data = new byte[1024];
+                server.ReceiveFrom(_data,ref remote);
+                Ojw.CMessage.Write("{0} : Recieve: {1}", remote.ToString(), Encoding.Default.GetString(_data));
+
+                _data = Encoding.Default.GetBytes("Test Return Message from Server");
+                server.SendTo(_data,_data.Length,SocketFlags.None,remote);
+
+                server.Close();                
+            }
+            // 출처: http://nowonbun.tistory.com/165 [명월 일지]
+            public void Client_Start(string strIpAddress, int nPort)
+            {
+                IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(strIpAddress), nPort);
+                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
+                byte[] _data = Encoding.Default.GetBytes("Test Message from Client");
+                client.SendTo(_data, _data.Length, SocketFlags.None, ipep);
+
+                IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
+                EndPoint remote = (EndPoint)(sender);
+
+                _data = new byte[1024];
+                client.ReceiveFrom(_data, ref remote);
+                Ojw.CMessage.Write("{0} : Receive: {1}", remote.ToString(), Encoding.Default.GetString(_data));
+
+                client.Close();
+            }
+        }
+
     }
 }

@@ -149,7 +149,7 @@
             this.tabControl1.Multiline = true;
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(227, 140);
+            this.tabControl1.Size = new System.Drawing.Size(199, 140);
             this.tabControl1.SizeMode = System.Windows.Forms.TabSizeMode.FillToRight;
             this.tabControl1.TabIndex = 114;
             // 
@@ -178,7 +178,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 40);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(219, 96);
+            this.tabPage1.Size = new System.Drawing.Size(191, 96);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Default";
             // 
@@ -431,7 +431,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 40);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(219, 96);
+            this.tabPage2.Size = new System.Drawing.Size(191, 96);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Lite";
             // 
@@ -615,7 +615,7 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 40);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(219, 96);
+            this.tabPage3.Size = new System.Drawing.Size(191, 96);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Eco";
             // 
@@ -844,7 +844,7 @@
             this.tabPage4.Controls.Add(this.btnModel_Ase_34);
             this.tabPage4.Location = new System.Drawing.Point(4, 40);
             this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Size = new System.Drawing.Size(219, 96);
+            this.tabPage4.Size = new System.Drawing.Size(191, 96);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "Genie";
             // 
@@ -910,7 +910,7 @@
             this.tabPage5.Location = new System.Drawing.Point(4, 40);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage5.Size = new System.Drawing.Size(219, 96);
+            this.tabPage5.Size = new System.Drawing.Size(191, 96);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Wow";
             // 
@@ -1142,9 +1142,9 @@
             // 
             // btnMouseMode_Disp
             // 
-            this.btnMouseMode_Disp.Location = new System.Drawing.Point(232, 20);
+            this.btnMouseMode_Disp.Location = new System.Drawing.Point(202, 20);
             this.btnMouseMode_Disp.Name = "btnMouseMode_Disp";
-            this.btnMouseMode_Disp.Size = new System.Drawing.Size(75, 23);
+            this.btnMouseMode_Disp.Size = new System.Drawing.Size(63, 23);
             this.btnMouseMode_Disp.TabIndex = 119;
             this.btnMouseMode_Disp.Text = "Disp";
             this.btnMouseMode_Disp.UseVisualStyleBackColor = true;
@@ -1152,9 +1152,9 @@
             // 
             // btnMouseMode_Control
             // 
-            this.btnMouseMode_Control.Location = new System.Drawing.Point(232, 43);
+            this.btnMouseMode_Control.Location = new System.Drawing.Point(202, 43);
             this.btnMouseMode_Control.Name = "btnMouseMode_Control";
-            this.btnMouseMode_Control.Size = new System.Drawing.Size(75, 23);
+            this.btnMouseMode_Control.Size = new System.Drawing.Size(63, 23);
             this.btnMouseMode_Control.TabIndex = 119;
             this.btnMouseMode_Control.Text = "Control";
             this.btnMouseMode_Control.UseVisualStyleBackColor = true;
@@ -1162,7 +1162,7 @@
             // 
             // btnOffset_Trans_X
             // 
-            this.btnOffset_Trans_X.Location = new System.Drawing.Point(192, 161);
+            this.btnOffset_Trans_X.Location = new System.Drawing.Point(149, 173);
             this.btnOffset_Trans_X.Name = "btnOffset_Trans_X";
             this.btnOffset_Trans_X.Size = new System.Drawing.Size(58, 19);
             this.btnOffset_Trans_X.TabIndex = 119;
@@ -1172,7 +1172,7 @@
             // 
             // btnOffset_Trans_Y
             // 
-            this.btnOffset_Trans_Y.Location = new System.Drawing.Point(192, 179);
+            this.btnOffset_Trans_Y.Location = new System.Drawing.Point(149, 191);
             this.btnOffset_Trans_Y.Name = "btnOffset_Trans_Y";
             this.btnOffset_Trans_Y.Size = new System.Drawing.Size(58, 19);
             this.btnOffset_Trans_Y.TabIndex = 119;
@@ -1182,7 +1182,7 @@
             // 
             // btnOffset_Trans_Z
             // 
-            this.btnOffset_Trans_Z.Location = new System.Drawing.Point(192, 197);
+            this.btnOffset_Trans_Z.Location = new System.Drawing.Point(149, 209);
             this.btnOffset_Trans_Z.Name = "btnOffset_Trans_Z";
             this.btnOffset_Trans_Z.Size = new System.Drawing.Size(58, 19);
             this.btnOffset_Trans_Z.TabIndex = 119;
@@ -1192,7 +1192,7 @@
             // 
             // btnOffset_Rot_X
             // 
-            this.btnOffset_Rot_X.Location = new System.Drawing.Point(249, 161);
+            this.btnOffset_Rot_X.Location = new System.Drawing.Point(206, 173);
             this.btnOffset_Rot_X.Name = "btnOffset_Rot_X";
             this.btnOffset_Rot_X.Size = new System.Drawing.Size(58, 19);
             this.btnOffset_Rot_X.TabIndex = 119;
@@ -1202,7 +1202,7 @@
             // 
             // btnOffset_Rot_Y
             // 
-            this.btnOffset_Rot_Y.Location = new System.Drawing.Point(249, 179);
+            this.btnOffset_Rot_Y.Location = new System.Drawing.Point(206, 191);
             this.btnOffset_Rot_Y.Name = "btnOffset_Rot_Y";
             this.btnOffset_Rot_Y.Size = new System.Drawing.Size(58, 19);
             this.btnOffset_Rot_Y.TabIndex = 119;
@@ -1212,7 +1212,7 @@
             // 
             // btnOffset_Rot_Z
             // 
-            this.btnOffset_Rot_Z.Location = new System.Drawing.Point(249, 197);
+            this.btnOffset_Rot_Z.Location = new System.Drawing.Point(206, 209);
             this.btnOffset_Rot_Z.Name = "btnOffset_Rot_Z";
             this.btnOffset_Rot_Z.Size = new System.Drawing.Size(58, 19);
             this.btnOffset_Rot_Z.TabIndex = 119;
@@ -1222,7 +1222,7 @@
             // 
             // btnTrans_X
             // 
-            this.btnTrans_X.Location = new System.Drawing.Point(192, 218);
+            this.btnTrans_X.Location = new System.Drawing.Point(148, 239);
             this.btnTrans_X.Name = "btnTrans_X";
             this.btnTrans_X.Size = new System.Drawing.Size(58, 19);
             this.btnTrans_X.TabIndex = 119;
@@ -1232,7 +1232,7 @@
             // 
             // btnTrans_Y
             // 
-            this.btnTrans_Y.Location = new System.Drawing.Point(192, 236);
+            this.btnTrans_Y.Location = new System.Drawing.Point(148, 257);
             this.btnTrans_Y.Name = "btnTrans_Y";
             this.btnTrans_Y.Size = new System.Drawing.Size(58, 19);
             this.btnTrans_Y.TabIndex = 119;
@@ -1242,7 +1242,7 @@
             // 
             // btnRot_X
             // 
-            this.btnRot_X.Location = new System.Drawing.Point(249, 218);
+            this.btnRot_X.Location = new System.Drawing.Point(205, 239);
             this.btnRot_X.Name = "btnRot_X";
             this.btnRot_X.Size = new System.Drawing.Size(58, 19);
             this.btnRot_X.TabIndex = 119;
@@ -1252,7 +1252,7 @@
             // 
             // btnTrans_Z
             // 
-            this.btnTrans_Z.Location = new System.Drawing.Point(192, 254);
+            this.btnTrans_Z.Location = new System.Drawing.Point(148, 275);
             this.btnTrans_Z.Name = "btnTrans_Z";
             this.btnTrans_Z.Size = new System.Drawing.Size(58, 19);
             this.btnTrans_Z.TabIndex = 119;
@@ -1262,7 +1262,7 @@
             // 
             // btnRot_Y
             // 
-            this.btnRot_Y.Location = new System.Drawing.Point(249, 236);
+            this.btnRot_Y.Location = new System.Drawing.Point(205, 257);
             this.btnRot_Y.Name = "btnRot_Y";
             this.btnRot_Y.Size = new System.Drawing.Size(58, 19);
             this.btnRot_Y.TabIndex = 119;
@@ -1272,7 +1272,7 @@
             // 
             // btnRot_Z
             // 
-            this.btnRot_Z.Location = new System.Drawing.Point(249, 254);
+            this.btnRot_Z.Location = new System.Drawing.Point(205, 275);
             this.btnRot_Z.Name = "btnRot_Z";
             this.btnRot_Z.Size = new System.Drawing.Size(58, 19);
             this.btnRot_Z.TabIndex = 119;
@@ -1283,7 +1283,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(141, 179);
+            this.label4.Location = new System.Drawing.Point(141, 162);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(37, 12);
             this.label4.TabIndex = 117;
@@ -1292,7 +1292,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(141, 236);
+            this.label5.Location = new System.Drawing.Point(141, 228);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(50, 12);
             this.label5.TabIndex = 117;
@@ -1300,9 +1300,9 @@
             // 
             // btnMakeSstl
             // 
-            this.btnMakeSstl.Location = new System.Drawing.Point(231, 114);
+            this.btnMakeSstl.Location = new System.Drawing.Point(201, 114);
             this.btnMakeSstl.Name = "btnMakeSstl";
-            this.btnMakeSstl.Size = new System.Drawing.Size(75, 41);
+            this.btnMakeSstl.Size = new System.Drawing.Size(63, 41);
             this.btnMakeSstl.TabIndex = 119;
             this.btnMakeSstl.Text = "Make SSTL";
             this.btnMakeSstl.UseVisualStyleBackColor = true;
@@ -1310,9 +1310,9 @@
             // 
             // btnMakeDat
             // 
-            this.btnMakeDat.Location = new System.Drawing.Point(232, 72);
+            this.btnMakeDat.Location = new System.Drawing.Point(202, 72);
             this.btnMakeDat.Name = "btnMakeDat";
-            this.btnMakeDat.Size = new System.Drawing.Size(75, 36);
+            this.btnMakeDat.Size = new System.Drawing.Size(63, 36);
             this.btnMakeDat.TabIndex = 120;
             this.btnMakeDat.Text = "Stl->Dat";
             this.btnMakeDat.UseVisualStyleBackColor = true;

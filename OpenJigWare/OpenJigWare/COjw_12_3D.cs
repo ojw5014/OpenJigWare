@@ -19,7 +19,7 @@
 //#define _GL_FLAT
 using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 
@@ -179,7 +179,15 @@ namespace OpenJigWare
 
                     m_txtAxis_Mirror.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAxis_Mirror);
 
-                    m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType;
+                    try
+                    {
+                        m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType;// % 2;
+                    }
+                    catch (Exception ex)
+                    {
+                        CMessage.Write_Error("Data Error-{0}", ex.ToString());
+                        m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType % m_cmbMotorControlType.Items.Count;
+                    }
                 }
                 else if (((System.Windows.Forms.ComboBox)sender) == m_cmbMotorDir)
                 {
@@ -1447,6 +1455,8 @@ namespace OpenJigWare
                 #region Skeleton
                 StringBuilder sbResult = new StringBuilder();
 #if _USING_DOTNET_3_5
+                sbResult.Remove(0, sbResult.Length);
+#elif _USING_DOTNET_2_0
                 sbResult.Remove(0, sbResult.Length);
 #else
                 sbResult.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -22192,7 +22202,9 @@ namespace OpenJigWare
                         StringBuilder sbAll = new StringBuilder();
 
 #if _USING_DOTNET_3_5
-                            sbAll.Remove(0, sbAll.Length);
+                        sbAll.Remove(0, sbAll.Length);
+#elif _USING_DOTNET_2_0
+                        sbAll.Remove(0, sbAll.Length);
 #else
                         sbAll.Clear(); // Dotnet 4.0 이상에서만 사용
 #endif
@@ -22983,7 +22995,9 @@ namespace OpenJigWare
                         StringBuilder sbAll = new StringBuilder();
 
 #if _USING_DOTNET_3_5
-                            sbAll.Remove(0, sbAll.Length);
+                        sbAll.Remove(0, sbAll.Length);
+#elif _USING_DOTNET_2_0
+                        sbAll.Remove(0, sbAll.Length);
 #else
                         sbAll.Clear(); // Dotnet 4.0 이상에서만 사용
 #endif

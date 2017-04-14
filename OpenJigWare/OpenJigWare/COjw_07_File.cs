@@ -1,7 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.IO;
@@ -22,6 +22,31 @@ namespace OpenJigWare
                 System.IO.FileInfo f = new System.IO.FileInfo(strFile);
                 if (f.Exists == true) return true;
                 return false;
+            }
+            public static long GetFile_Size(String strFile)
+            {
+                System.IO.FileInfo f = new System.IO.FileInfo(strFile);
+                return f.Length;
+            }
+            public static DateTime GetFile_LastWriteTime(String strFile)
+            {
+                System.IO.FileInfo f = new System.IO.FileInfo(strFile);
+                return f.LastWriteTime;
+            }
+            public static DateTime GetFile_LastAccessTime(String strFile)
+            {
+                System.IO.FileInfo f = new System.IO.FileInfo(strFile);
+                return f.LastAccessTime;
+            }
+            public static DateTime GetFile_CreationTime(String strFile)
+            {
+                System.IO.FileInfo f = new System.IO.FileInfo(strFile);
+                return f.CreationTime;
+            }
+            public static FileAttributes GetFile_Attributes(String strFile)
+            {
+                System.IO.FileInfo f = new System.IO.FileInfo(strFile);
+                return f.Attributes;
             }
             public static bool IsFiles(params String[] pstrFile)
             {
@@ -128,6 +153,7 @@ namespace OpenJigWare
             }
             #endregion GetExe(String strPath) - Get the file extension only(without file title)(Kor: 파일의 확장자만 얻는 함수)
 
+
             #endregion File Management
 
             #region File & Folder Management Function[Kor: 파일 및 폴더관리]
@@ -160,6 +186,8 @@ namespace OpenJigWare
                 //strb.Remove(0, strb.Length);
 #if _USING_DOTNET_3_5
                 strb.Remove(0, strb.Length);
+#elif _USING_DOTNET_2_0
+                strb.Remove(0, strb.Length);
 #else
                 strb.Clear(); // Dotnet 4.0 이상에서만 사용
 #endif
@@ -186,6 +214,8 @@ namespace OpenJigWare
                 StringBuilder strb = new StringBuilder();
                 
 #if _USING_DOTNET_3_5
+                strb.Remove(0, strb.Length);
+#elif _USING_DOTNET_2_0
                 strb.Remove(0, strb.Length);
 #else
                 strb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -231,6 +261,10 @@ namespace OpenJigWare
             #endregion Make a folder(Kor: 폴더 생성)
             #endregion File & Folder Management Function[Kor: 파일 및 폴더관리]
 
+            //private int m_nEncType = 0; // 0: default, 1: UTF8, 2: Unicode, 3: 중국어 간체
+            private static Encoding m_Enc = null;
+            public void EncodingType(Encoding Enc) { m_Enc = Enc; }
+
             #region Files(Data) & List
             private List<String> m_lstFile = new List<string>();
             // Move file datas to list memory(Kor: 파일의 내용을 리스트 메모리로 옮겨준다.)
@@ -272,12 +306,15 @@ namespace OpenJigWare
                             //if (strItem != null)
                             if (pbyte.Length > 0)
                             {
+#if false
                                 //if (_ENCODING_UTF8 == nEncodingType)
                                 //strItem = System.Text.Encoding.UTF8.GetString(pbyte, 0, ii);
                                 //else // _ENCODING_DEFAULT
                                 strItem = System.Text.Encoding.Default.GetString(pbyte, 0, ii);
-
-
+#else
+                                if (m_Enc == null) strItem = System.Text.Encoding.Default.GetString(pbyte, 0, ii);
+                                else strItem = m_Enc.GetString(pbyte, 0, ii);
+#endif
                                 strItem = strItem.Trim();
                                 if (strItem.Length >= 1) // o Type 1자리 // x Index 4자리, Type 1자리
                                     m_lstFile.Add(strItem);
@@ -319,6 +356,84 @@ namespace OpenJigWare
                     return nLines;
                 }
             }
+            public int Load(String strFileName)
+            {
+                m_lstFile.Clear();
+
+                int nLines = 0;
+                byte[] aByteData;
+                FileInfo f = null;
+                FileStream fs = null;
+                try
+                {
+                    f = new FileInfo(strFileName);
+                    fs = f.OpenRead();
+                    aByteData = new byte[fs.Length];
+                    fs.Read(aByteData, 0, aByteData.Length);
+
+                    fs.Close();
+                    fs = null;
+                    f = null;
+                    ////////////////////
+                    //int nLines = 0;
+                    //lstParam.Items.Clear();
+                    String strItem = "";
+                    byte[] pbyte = new byte[1024];
+                    int ii = 0;
+                    foreach (byte byteItem in aByteData)
+                    {
+#if true
+                        if (byteItem != 10)
+                        {
+                            //strItem += (char)byteItem;
+                            if ((byteItem != 0) && (byteItem != 13))
+                                pbyte[ii++] = byteItem;
+                        }
+                        else
+                        {
+                            //if (strItem != null)
+                            if (pbyte.Length > 0)
+                            {
+#if false
+                                //if (_ENCODING_UTF8 == nEncodingType)
+                                //strItem = System.Text.Encoding.UTF8.GetString(pbyte, 0, ii);
+                                //else // _ENCODING_DEFAULT
+                                strItem = System.Text.Encoding.Default.GetString(pbyte, 0, ii);
+#else
+                                if (m_Enc == null) strItem = System.Text.Encoding.Default.GetString(pbyte, 0, ii);
+                                else strItem = m_Enc.GetString(pbyte, 0, ii);
+#endif
+                                strItem = strItem.Trim();
+                                if (strItem.Length >= 1) // o Type 1자리 // x Index 4자리, Type 1자리
+                                    m_lstFile.Add(strItem);
+                                nLines++;
+                            }
+                            //strItem = "";
+                            Array.Clear(pbyte, 0, pbyte.Length);
+                            ii = 0;
+                        }
+#else
+                    if (byteItem != 10) strItem += (char)byteItem;
+                    else
+                    {
+                        if (strItem != null)
+                        {
+                            strItem = strItem.Trim();
+                            if (strItem.Length >= 1) // o Type 1자리 // x Index 4자리, Type 1자리
+                                m_lstFile.Add(strItem);
+                            nLines++;
+                        }
+                        strItem = "";
+                    }
+#endif
+                    }                    
+                    return nLines;
+                }
+                catch
+                {
+                    return nLines;
+                }
+            }
             // Save file with list(Kor: 리스트의 내용을 파일로 저장한다.)
             public bool Save(String strFileName)
             {
@@ -328,9 +443,14 @@ namespace OpenJigWare
                 try
                 {
                     f = new FileInfo(strFileName);
+#if false
                     fs = new StreamWriter(strFileName, false, Encoding.Default);
                     //fs = new StreamWriter(strFileName, false, Encoding.UTF8);
-
+                    //fs = new StreamWriter(strFileName, false, Encoding.Unicode);
+#else
+                    if (m_Enc == null) fs = new StreamWriter(strFileName, false, Encoding.Default);
+                    else fs = new StreamWriter(strFileName, false, m_Enc);
+#endif
                     fs.Flush(); // Flush the stream buffers
 
                     for (int i = 0; i < m_lstFile.Count; i++) fs.WriteLine((String)m_lstFile[i]);
@@ -360,11 +480,22 @@ namespace OpenJigWare
                     return "";
                 }
             }
-            public String GetData_String(int nIndex) { try { String strItem = (String)m_lstFile[nIndex]; return strItem.Substring(1); } catch { return ""; } }
+            public int Get_Count() { return m_lstFile.Count; }
+            public String[] Get() { return m_lstFile.ToArray(); }
+            public String Get(int nIndex) { return GetData_String(nIndex); }
+            public String GetData(int nIndex) { return GetData_String(nIndex); }
+            //public String GetData_String(int nIndex) { try { String strItem = (string)m_lstFile[nIndex].Clone(); strItem = strItem.Remove(0, 1); return strItem; } catch { return ""; } }
+            public String GetData_String(int nIndex) { try { String strItem = (String)m_lstFile[nIndex].Substring(1, m_lstFile[nIndex].Length - 1); return strItem; } catch { return ""; } }
+            public String GetData_Raw(int nIndex) { try { return (String)m_lstFile[nIndex]; } catch { return ""; } }
+
             public int GetData_Int(int nIndex) { return CConvert.StrToInt(GetData_String(nIndex)); }
             public float GetData_Float(int nIndex) { return CConvert.StrToFloat(GetData_String(nIndex)); }
             public double GetData_Double(int nIndex) { return CConvert.StrToDouble(GetData_String(nIndex)); }
             public bool GetData_Bool(int nIndex) { return CConvert.StrToBool(GetData_String(nIndex)); }
+            public bool Set(int nIndex, String strValue) { return SetData_String(nIndex, strValue); }
+            public bool SetData(int nIndex, String strValue) { return SetData_String(nIndex, strValue); }
+            
+            public bool SetData_Raw(int nIndex, String strValue) { try { m_lstFile[nIndex] = strValue; return true; } catch { return false; } }
             public bool SetData_String(int nIndex, String strValue) { try { m_lstFile[nIndex] = "s" + strValue; return true; } catch { return false; } }
             public bool SetData_Int(int nIndex, int nValue) { try { m_lstFile[nIndex] = "n" + CConvert.IntToStr(nValue); return true; } catch { return false; } }
             public bool SetData_Float(int nIndex, float fValue) { try { m_lstFile[nIndex] = "f" + CConvert.FloatToStr(fValue); return true; } catch { return false; } }
@@ -381,7 +512,16 @@ namespace OpenJigWare
                 try
                 {
                     f = new FileInfo(strFileName);
+#if false
                     fs = new StreamWriter(strFileName, !bNew, Encoding.Default);
+                    //fs = new StreamWriter(strFileName, !bNew, Encoding.UTF8);
+                    //fs = new StreamWriter(strFileName, !bNew, Encoding.Unicode);
+#else
+                    if (m_Enc == null) fs = new StreamWriter(strFileName, !bNew, Encoding.Default);
+                    else fs = new StreamWriter(strFileName, !bNew, m_Enc);
+#endif
+
+
                     fs.Flush(); 
 
                     fs.Write(strMsg);
@@ -396,7 +536,7 @@ namespace OpenJigWare
                 }
             }
             public static bool Read(String strFileName, TextBox txtFile)
-            {                
+            {
                 FileInfo f = null;
                 //StreamReader fs = null;
                 FileStream fs = null;
@@ -407,9 +547,9 @@ namespace OpenJigWare
                     //fs = new StreamReader(strFileName, Encoding.Default);
                     fs = f.OpenRead();
 
-                    byte [] pbyteData = new byte[fs.Length];
-                    fs.Read(pbyteData, 0, pbyteData.Length);                    
-                    foreach(byte byteData in pbyteData) { txtFile.Text += (char)byteData; }
+                    byte[] pbyteData = new byte[fs.Length];
+                    fs.Read(pbyteData, 0, pbyteData.Length);
+                    foreach (byte byteData in pbyteData) { txtFile.Text += (char)byteData; }
                     fs.Close();
 
                     return true;
@@ -418,6 +558,436 @@ namespace OpenJigWare
                 {
                     if (fs != null) fs.Close();
                     return false;
+                }
+            }
+            public static bool Read(String strFileName, ref String strReturn)
+            {
+                FileInfo f = null;
+                FileStream fs = null;
+
+                try
+                {
+                    f = new FileInfo(strFileName);
+                    fs = f.OpenRead();
+
+                    byte[] pbyteData = new byte[fs.Length];
+                    fs.Read(pbyteData, 0, pbyteData.Length);
+                    foreach (byte byteData in pbyteData) { strReturn += (char)byteData; }
+                    fs.Close();
+
+                    return true;
+                }
+                catch
+                {
+                    if (fs != null) fs.Close();
+                    return false;
+                }
+            }
+
+
+
+
+            public static bool IsValue(string[] pstrOrg, string strValue) { foreach (string strItem in pstrOrg) { if (strItem == strValue) return true; } return false; }
+            public static string[] GetDirectory_list(string strSource, bool bSubDirs)
+            {
+                List<string> lstDirectories = new List<string>();
+                lstDirectories.Clear();
+
+                // Get the subdirectories for the specified directory.
+                DirectoryInfo dir = new DirectoryInfo(strSource);
+
+                if (!dir.Exists)
+                {
+                    throw new DirectoryNotFoundException(
+                        "Source directory does not exist or could not be found: "
+                        + strSource);
+                }
+
+                lstDirectories.Add(dir.FullName);
+
+                DirectoryInfo[] dirs = dir.GetDirectories();
+
+                // Get the files in the directory and copy them to the new location.
+                FileInfo[] files = dir.GetFiles();
+                foreach (FileInfo file in files)
+                {
+                    lstDirectories.Add(String.Format("  \"{0}\"", file.Name));
+                    //Ojw.CMessage.Write2(txtInfo, "  \"{0}\"\r\n", file.Name);
+                }
+
+                // If copying subdirectories, copy them and their contents to new location.
+                if (bSubDirs)
+                {
+                    foreach (DirectoryInfo subdir in dirs)
+                    {
+                        string[] pstrList = GetDirectory_list(subdir.FullName, bSubDirs);
+                        foreach (string strList in pstrList) lstDirectories.Add(strList);
+                    }
+                }
+                if (lstDirectories.Count > 0) return lstDirectories.ToArray();
+                return null;
+            }
+
+            public static bool CompareDirectory_List_Both(string strSrc, string strDst, bool bSubDirs, bool bAddStatusString, ref List<string> lstSrc, ref List<string> lstDst)
+            {
+                bool bChanged = false;
+                if (CompareDirectory_List(strSrc, strDst, bSubDirs, bAddStatusString, ref lstSrc, ref lstDst) == true) bChanged = true;
+                if (CompareDirectory_List(strDst, strSrc, bSubDirs, bAddStatusString, ref lstDst, ref lstSrc) == true) bChanged = true;
+                return bChanged;
+            }
+            public static bool CompareDirectory_List(string strSrc, string strDst, bool bSubDirs, bool bAddStatusString, ref List<string> lstSrc, ref List<string> lstDst)
+            {
+                if ((lstSrc == null) || (lstDst == null)) return false;
+
+                bool bChanged = false;
+                //List<string> lstDirectories = new List<string>();
+                //lstDirectories.Clear();
+
+                // Get the subdirectories for the specified directory.
+                DirectoryInfo dirSrc = new DirectoryInfo(strSrc);
+                DirectoryInfo dirDst = new DirectoryInfo(strDst);
+
+                if (!dirSrc.Exists)
+                {
+                    // 소스의 폴더가 없는 경우
+                    FileInfo[] filesSrc = dirSrc.GetFiles();
+                    foreach (FileInfo file in filesSrc)
+                    {
+                        if (bAddStatusString == true)
+                        {
+                            if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", file.FullName)) == false)
+                                lstSrc.Add(string.Format("[n]{0}", file.FullName));
+                        }
+                        else
+                        {
+                            if (IsValue(lstSrc.ToArray(), file.FullName) == false)
+                                lstSrc.Add(String.Format("{0}", file.FullName));
+                        }
+                    }
+                    //bChanged = true;
+                    return true;
+                }
+                if (!dirDst.Exists)
+                {
+                    // 타겟의 폴더가 없는 경우
+                    FileInfo[] filesDst = dirSrc.GetFiles();
+                    foreach (FileInfo file in filesDst)
+                    {
+                        if (bAddStatusString == true)
+                        {
+                            if (IsValue(lstDst.ToArray(), string.Format("[n]{0}", file.FullName)) == false)
+                                lstDst.Add(string.Format("[n]{0}", file.FullName));
+                        }
+                        else
+                        {
+                            if (IsValue(lstDst.ToArray(), file.FullName) == false)
+                                lstDst.Add(String.Format("{0}", file.FullName));
+                        }
+                    }
+                    //bChanged = true;
+                    return true;
+                }
+
+
+                //if (bChanged == false)
+                {
+                    DirectoryInfo[] pdirSrc = dirSrc.GetDirectories();
+                    DirectoryInfo[] pdirDst = dirDst.GetDirectories();
+
+                    FileInfo[] filesSrc = dirSrc.GetFiles();
+                    FileInfo[] filesDst = dirDst.GetFiles();
+                    if (filesDst.Length > filesSrc.Length)
+                    {
+                        int nError = 0;
+                        for (int j = 0; j < filesDst.Length; j++)
+                        {
+                            int nSrc = -1;
+                            int nDst = -1;
+                            bool bIsFile = false;
+                            bool bFind = false;
+                            for (int i = 0; i < filesSrc.Length; i++)
+                            {
+                                if (filesSrc[i].Name == filesDst[j].Name)
+                                {
+                                    if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[i].FullName) != Ojw.CFile.GetFile_LastWriteTime(filesDst[j].FullName))
+                                    {
+                                        bFind = true;
+                                        nSrc = i;
+                                        nDst = j;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (bFind == true)
+                            {
+                                if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[nSrc].FullName).Ticks > Ojw.CFile.GetFile_LastWriteTime(filesDst[nDst].FullName).Ticks)
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        if (IsValue(lstSrc.ToArray(), string.Format("[m]{0}", filesSrc[nSrc].FullName)) == false)
+                                            lstSrc.Add(string.Format("[m]{0}", filesSrc[nSrc].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstSrc.ToArray(), filesSrc[nSrc].FullName) == false)
+                                            lstSrc.Add(filesSrc[nSrc].FullName);
+                                    }
+                                }
+                                else
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        if (IsValue(lstDst.ToArray(), string.Format("[m]{0}", filesDst[nDst].FullName)) == false)
+                                            lstDst.Add(string.Format("[m]{0}", filesDst[nDst].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstDst.ToArray(), filesDst[nDst].FullName) == false)
+                                            lstDst.Add(filesDst[nDst].FullName);
+                                    }
+                                }
+                            }
+                            else if (bIsFile == false)
+                            {
+                                if (bAddStatusString == true)
+                                {
+                                    // [n] new, [m] modify
+                                    if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", filesSrc[j].FullName)) == false)
+                                        lstSrc.Add(string.Format("[n]{0}", filesSrc[j].FullName));
+                                }
+                                else
+                                {
+                                    if (IsValue(lstSrc.ToArray(), filesSrc[j].FullName) == false)
+                                        lstSrc.Add(filesSrc[j].FullName);
+                                }
+                                nError++;
+                            }
+                        }
+                    }
+                    else if (filesDst.Length < filesSrc.Length)
+                    {
+                        int nError = 0;
+                        for (int i = 0; i < filesSrc.Length; i++)
+                        {
+                            int nSrc = -1;
+                            int nDst = -1;
+                            bool bIsFile = false;
+                            bool bFind = false;
+                            for (int j = 0; j < filesDst.Length; j++)
+                            {
+                                if (filesSrc[i].Name == filesDst[j].Name)
+                                {
+                                    if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[i].FullName) != Ojw.CFile.GetFile_LastWriteTime(filesDst[j].FullName))
+                                    {
+                                        bFind = true;
+                                        nSrc = i;
+                                        nDst = j;
+                                        break;
+                                    }
+                                    //bIsFile = true;
+                                }
+                            }
+                            if (bFind == true)
+                            {
+                                if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[nSrc].FullName).Ticks > Ojw.CFile.GetFile_LastWriteTime(filesDst[nDst].FullName).Ticks)
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        if (IsValue(lstSrc.ToArray(), string.Format("[m]{0}", filesSrc[nSrc].FullName)) == false)
+                                            lstSrc.Add(string.Format("[m]{0}", filesSrc[nSrc].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstSrc.ToArray(), filesSrc[nSrc].FullName) == false)
+                                            lstSrc.Add(filesSrc[nSrc].FullName);
+                                    }
+                                }
+                                else
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        if (IsValue(lstDst.ToArray(), string.Format("[m]{0}", filesDst[nDst].FullName)) == false)
+                                            lstDst.Add(string.Format("[m]{0}", filesDst[nDst].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstDst.ToArray(), filesDst[nDst].FullName) == false)
+                                            lstDst.Add(filesDst[nDst].FullName);
+                                    }
+                                }
+                            }
+                            else if (bIsFile == false)
+                            {
+                                if (bAddStatusString == true)
+                                {
+                                    // [n] new, [m] modify
+                                    if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", filesSrc[i].FullName)) == false)
+                                        lstSrc.Add(string.Format("[n]{0}", filesSrc[i].FullName));
+                                }
+                                else
+                                {
+                                    if (IsValue(lstSrc.ToArray(), filesSrc[i].FullName) == false)
+                                        lstSrc.Add(filesSrc[i].FullName);
+                                }
+                                nError++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int nError = 0;
+                        for (int i = 0; i < filesSrc.Length; i++)
+                        {
+                            int nSrc = -1;
+                            int nDst = -1;
+                            bool bIsFile = false;
+                            bool bFind = false;
+                            for (int j = 0; j < filesDst.Length; j++)
+                            {
+                                if (filesSrc[i].Name == filesDst[j].Name)
+                                {
+                                    if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[i].FullName) != Ojw.CFile.GetFile_LastWriteTime(filesDst[j].FullName))
+                                    {
+                                        bFind = true;
+                                        nSrc = i;
+                                        nDst = j;
+                                        break;
+                                    }
+                                    bIsFile = true;
+                                }
+                            }
+                            //if (bIsFile == false)
+                            if (bFind == true)
+                            {
+                                bChanged = true;
+                                if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[nSrc].FullName).Ticks > Ojw.CFile.GetFile_LastWriteTime(filesDst[nDst].FullName).Ticks)
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        if (IsValue(lstSrc.ToArray(), string.Format("[m]{0}", filesSrc[nSrc].FullName)) == false)
+                                            lstSrc.Add(string.Format("[m]{0}", filesSrc[nSrc].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstSrc.ToArray(), filesSrc[nSrc].FullName) == false)
+                                            lstSrc.Add(filesSrc[nSrc].FullName);
+                                    }
+                                }
+                                else
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        if (IsValue(lstDst.ToArray(), string.Format("[m]{0}", filesDst[nDst].FullName)) == false)
+                                            lstDst.Add(string.Format("[m]{0}", filesDst[nDst].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstDst.ToArray(), filesDst[nDst].FullName) == false)
+                                            lstDst.Add(filesDst[nDst].FullName);
+                                    }
+                                }
+                            }
+                            else if (bIsFile == false)
+                            {
+                                if (bAddStatusString == true)
+                                {
+                                    // [n] new, [m] modify
+                                    if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", filesSrc[i].FullName)) == false)
+                                        lstSrc.Add(string.Format("[n]{0}", filesSrc[i].FullName));
+                                }
+                                else
+                                {
+                                    if (IsValue(lstSrc.ToArray(), filesSrc[i].FullName) == false)
+                                        lstSrc.Add(filesSrc[i].FullName);
+                                }
+                                nError++;
+                            }
+                        }
+                        if (nError > 0)
+                        {
+                            // 파일이 갯수가 같지만 동일하지 않은 경우 매칭을 역으로 진행해서 확인해야 한다.
+                            for (int i = 0; i < filesDst.Length; i++)
+                            {
+                                bool bFind = false;
+                                for (int j = 0; j < filesSrc.Length; j++)
+                                {
+                                    if (filesSrc[i].FullName == filesDst[j].FullName)
+                                    {
+                                        if (Ojw.CFile.GetFile_LastWriteTime(filesSrc[i].FullName) != Ojw.CFile.GetFile_LastWriteTime(filesDst[j].FullName))
+                                        {
+                                            bFind = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (bFind == false)
+                                {
+                                    if (bAddStatusString == true)
+                                    {
+                                        // [n] new, [m] modify
+                                        if (IsValue(lstDst.ToArray(), string.Format("[n]{0}", filesDst[i].FullName)) == false)
+                                            lstDst.Add(string.Format("[n]{0}", filesDst[i].FullName));
+                                    }
+                                    else
+                                    {
+                                        if (IsValue(lstDst.ToArray(), filesDst[i].FullName) == false)
+                                            lstDst.Add(filesDst[i].FullName);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // If copying subdirectories, copy them and their contents to new location.
+                    if (bSubDirs)
+                    {
+                        foreach (DirectoryInfo subdir in pdirSrc)
+                        {
+                            string tmpSrc = Path.Combine(strSrc, subdir.Name);
+                            string tmpDst = Path.Combine(strDst, subdir.Name);
+                            //string[] pstrList = GetDirectory_list(subdir.FullName, bSubDirs);
+                            //foreach (string strList in pstrList) lstDirectories.Add(strList);
+                            if (CompareDirectory_List(tmpSrc, tmpDst, bSubDirs, bAddStatusString, ref lstSrc, ref lstDst) == true) bChanged = true;
+                        }
+                    }
+                }
+                return bChanged;
+            }
+            // https://msdn.microsoft.com/en-us/library/bb762914(v=vs.110).aspx
+            public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+            {
+                // Get the subdirectories for the specified directory.
+                DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+
+                if (!dir.Exists)
+                {
+                    throw new DirectoryNotFoundException(
+                        "Source directory does not exist or could not be found: "
+                        + sourceDirName);
+                }
+
+                DirectoryInfo[] dirs = dir.GetDirectories();
+                // If the destination directory doesn't exist, create it.
+                if (!Directory.Exists(destDirName))
+                {
+                    Directory.CreateDirectory(destDirName);
+                }
+
+                // Get the files in the directory and copy them to the new location.
+                FileInfo[] files = dir.GetFiles();
+                foreach (FileInfo file in files)
+                {
+                    string temppath = Path.Combine(destDirName, file.Name);
+                    file.CopyTo(temppath, true);
+                }
+
+                // If copying subdirectories, copy them and their contents to new location.
+                if (copySubDirs)
+                {
+                    foreach (DirectoryInfo subdir in dirs)
+                    {
+                        string temppath = Path.Combine(destDirName, subdir.Name);
+                        DirectoryCopy(subdir.FullName, temppath, copySubDirs);
+                    }
                 }
             }
         }

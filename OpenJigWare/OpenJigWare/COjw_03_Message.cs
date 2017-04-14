@@ -2,7 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+
+#if _USING_DOTNET_3_5 || _USING_DOTNET_2_0
+#else
 using System.Linq;
+#endif
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
@@ -44,12 +48,18 @@ namespace OpenJigWare
             public static void Init_FilePath_Second(String strPath) { m_strMsgFilePath2 = strPath; }
             // set the text box handle for writing history messages
             public static void Init(TextBox txt) 
-            { 
+            {
                 m_txtMessage = txt;
+                m_nMessageStatus = 0;
                 Write2("==== Open Jig Ware Ver [{0}] ====\r\n", SVersion_T.strVersion);
             }
             // set the text box handle for errors only ...
             public static void Init_Error(TextBox txt) { m_txtMessage_Error = txt; }
+            private static int m_nMessageStatus = 0;
+            public static void Destroy()
+            {
+                m_nMessageStatus = -1;
+            }
             #endregion Initialize functions
 
             // choose file save for errors only ...(default = false)
@@ -94,12 +104,14 @@ namespace OpenJigWare
                 try
                 {
                     m_nMessageStack++;
-                    if (objects != null) 
+                    if ((objects != null) && (m_nMessageStatus >= 0)) 
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -120,12 +132,14 @@ namespace OpenJigWare
                 try
                 {
                     m_nMessageStack++;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -146,12 +160,14 @@ namespace OpenJigWare
                 try
                 {
                     m_nMessageStack++;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -172,12 +188,14 @@ namespace OpenJigWare
                 try
                 {
                     m_nMessageStack++;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -201,12 +219,14 @@ namespace OpenJigWare
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -229,12 +249,14 @@ namespace OpenJigWare
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -257,12 +279,14 @@ namespace OpenJigWare
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -285,12 +309,14 @@ namespace OpenJigWare
                     m_nMessageStack++;
                     m_strSecondFile = strFileTitle;
                     m_bMsgFile_Second = true;
-                    if (objects != null)
+                    if ((objects != null) && (m_nMessageStatus >= 0))
                     {
                         if (objects.Length > 0)
                         {
                             StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
+                            sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
                             sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
@@ -316,13 +342,15 @@ namespace OpenJigWare
                 m_bErrorMessage = true;
 
                 m_nMessageStack++;
-                if (objects != null)
+                if ((objects != null) && (m_nMessageStatus >= 0))
                 {
                     if (objects.Length > 0)
                     {
                         StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
                         sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
+                            sb.Remove(0, sb.Length);
 #else
                             sb.Clear(); // Dotnet 4.0 이상에서만 사용
 #endif
@@ -342,15 +370,17 @@ namespace OpenJigWare
                 m_bErrorMessage = true;
 
                 m_nMessageStack++;// = 1;
-                if (objects != null)
+                if ((objects != null) && (m_nMessageStatus >= 0))
                 {
                     if (objects.Length > 0)
                     {
                         StringBuilder sb = new StringBuilder();
 #if _USING_DOTNET_3_5
                         sb.Remove(0, sb.Length);
+#elif _USING_DOTNET_2_0
+                        sb.Remove(0, sb.Length);
 #else
-                            sb.Clear(); // Dotnet 4.0 이상에서만 사용
+                        sb.Clear(); // Dotnet 4.0 이상에서만 사용
 #endif
                         sb.AppendFormat(msg, objects);
                         msg = sb.ToString();
@@ -509,22 +539,24 @@ namespace OpenJigWare
             {
                 try
                 {
-                    if (txtOjwMessage.InvokeRequired)
+                    if (m_nMessageStatus >= 0)
                     {
-                        Ctrl_Involk CI = new Ctrl_Involk(OjwDebugMessage);
-                        txtOjwMessage.Invoke(CI, txtOjwMessage, bFile, bFunction, bLine, bTime, bLinefeed, msg);
-                    }
-                    else
-                    {
-                        // 뮤텍스 대기(다중스레드 공유 위반 방지)
-                        m_mtxMessage.WaitOne();
-
-                        bool bValid = true;
-                        try
+                        if (txtOjwMessage.InvokeRequired)
                         {
-                            #region Try
+                            Ctrl_Involk CI = new Ctrl_Involk(OjwDebugMessage);
+                            txtOjwMessage.Invoke(CI, txtOjwMessage, bFile, bFunction, bLine, bTime, bLinefeed, msg);
+                        }
+                        else
+                        {
+                            // 뮤텍스 대기(다중스레드 공유 위반 방지)
+                            m_mtxMessage.WaitOne();
 
-                            if (m_bProgEnd == true) return;
+                            bool bValid = true;
+                            try
+                            {
+                                #region Try
+
+                                if (m_bProgEnd == true) return;
 
 #if _NO_DISPLAY_WARNING // Warning message remover
                     if (msg.ToUpper().IndexOf("WARN") >= 0)
@@ -533,101 +565,111 @@ namespace OpenJigWare
                         return;
                     }
 #endif
-                            #region Line Limit
-                            int nLimit = m_nLimitLines;
-                            if (txtOjwMessage.IsDisposed == false)
-                            {
-                                int nLength = 0;
-                                try
+                                #region Line Limit
+                                int nLimit = m_nLimitLines;
+                                if (txtOjwMessage.IsDisposed == false)
                                 {
-                                    nLength = txtOjwMessage.Lines.Length;
-                                }
-                                catch //(Exception e)
-                                {
-                                    bValid = false;
-                                    //MessageBox.Show(nLength.ToString() + ":[Message]" + e.ToString() + "\r\n");
-                                }
-                                if (bValid == true)//(txtOjwMessage.Text != "")
-                                {
-                                    if (txtOjwMessage.Lines.Length > nLimit)
+                                    int nLength = 0;
+                                    try
                                     {
-                                        LinkedList<String> tmpLines = new LinkedList<string>(txtOjwMessage.Lines);
-                                        while ((tmpLines.Count - nLimit) > 0) { tmpLines.RemoveFirst(); }
-                                        txtOjwMessage.Lines = tmpLines.ToArray();
+                                        nLength = txtOjwMessage.Lines.Length;
+                                    }
+                                    catch //(Exception e)
+                                    {
+                                        bValid = false;
+                                        //MessageBox.Show(nLength.ToString() + ":[Message]" + e.ToString() + "\r\n");
+                                    }
+                                    if (bValid == true)//(txtOjwMessage.Text != "")
+                                    {
+                                        if (txtOjwMessage.Lines.Length > nLimit)
+                                        {
+                                            LinkedList<String> tmpLines = new LinkedList<string>(txtOjwMessage.Lines);
+                                            while ((tmpLines.Count - nLimit) > 0) { tmpLines.RemoveFirst(); }
+
+#if _USING_DOTNET_3_5 || _USING_DOTNET_2_0
+                                        txtOjwMessage.Clear();
+                                        foreach (string strData in tmpLines)
+                                        { 
+                                            txtOjwMessage.Text += strData + "\r\n";
+                                        }
+#else
+                                            txtOjwMessage.Lines = tmpLines.ToArray();
+#endif
+                                        }
                                     }
                                 }
-                            }
-                            #endregion Line Limit
-                            m_nMessageStack++;
-                            String strMsg = String.Empty;
-                            int nDepth = 0;
-                            for (int i = 0; i < m_nCount_DisplayStack; i++)
-                            {
-                                nDepth = m_nMessageStack - i;
-                                // Write(2) / Debug...(1) Invisible functions
-                                if (nDepth <= 2) break;
-                                System.Diagnostics.StackFrame sf = new System.Diagnostics.StackTrace(true).GetFrame(nDepth);
-                                //System.Reflection.MethodBase method = sf.GetMethod();//new System.Diagnostics.StackTrace(true).GetFrame(nDepth).GetMethod();
-                                //String strTime = DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString();
-                                if (bFile && (sf.GetFileName() != null)) strMsg += "{" + Ojw.CFile.GetName(sf.GetFileName()) + "}";
-                                if (bFunction && (sf.GetMethod().Name != null)) strMsg += "{" + sf.GetMethod().Name + "}";//method.Name + "}";
-                                if (bLine) strMsg += "{" + sf.GetFileLineNumber().ToString() + "}";
-                            }
-                            if (bTime) strMsg += "{" + DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString() + "}";
-                            if (bLinefeed == true) msg += "\r\n";
-                            if (bValid == true)
-                            {
-                                SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, false, 0); // Block Redraw : Block Refresh
-                                //txtOjwMessage.AppendText(strMsg + msg + ((bLinefeed == true) ? "\r\n" : ""));       
-                                txtOjwMessage.AppendText(strMsg + msg);       // add your letters to chatting list window
-                                SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
-                                //txtOjwMessage.Select(txtOjwMessage.Text.Length, 0);
-                                txtOjwMessage.ScrollToCaret();                // 'scroll' -> move to current caret
-                            }
-                            m_nMessageStack = 0;
+                                #endregion Line Limit
+                                m_nMessageStack++;
+                                String strMsg = String.Empty;
+                                int nDepth = 0;
+                                for (int i = 0; i < m_nCount_DisplayStack; i++)
+                                {
+                                    nDepth = m_nMessageStack - i;
+                                    // Write(2) / Debug...(1) Invisible functions
+                                    if (nDepth <= 2) break;
+                                    System.Diagnostics.StackFrame sf = new System.Diagnostics.StackTrace(true).GetFrame(nDepth);
+                                    //System.Reflection.MethodBase method = sf.GetMethod();//new System.Diagnostics.StackTrace(true).GetFrame(nDepth).GetMethod();
+                                    //String strTime = DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString();
+                                    if (bFile && (sf.GetFileName() != null)) strMsg += "{" + Ojw.CFile.GetName(sf.GetFileName()) + "}";
+                                    if (bFunction && (sf.GetMethod().Name != null)) strMsg += "{" + sf.GetMethod().Name + "}";//method.Name + "}";
+                                    if (bLine) strMsg += "{" + sf.GetFileLineNumber().ToString() + "}";
+                                }
+                                if (bTime) strMsg += "{" + DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString() + "}";
+                                if (bLinefeed == true) msg += "\r\n";
+                                if (bValid == true)
+                                {
+                                    SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, false, 0); // Block Redraw : Block Refresh
+                                    //txtOjwMessage.AppendText(strMsg + msg + ((bLinefeed == true) ? "\r\n" : ""));       
+                                    txtOjwMessage.AppendText(strMsg + msg);       // add your letters to chatting list window
+                                    SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
+                                    //txtOjwMessage.Select(txtOjwMessage.Text.Length, 0);
+                                    txtOjwMessage.ScrollToCaret();                // 'scroll' -> move to current caret
+                                }
+                                m_nMessageStack = 0;
 
-                            if (m_bMsgFile == true)
-                            {
-                                String strFile = ((m_bMsgFile_Second == true) ? m_strMsgFilePath2 : m_strMsgFilePath);
-                                String strTitle = ((m_bMsgFile_Second == true) ? m_strSecondFile : "history");
-                                //// File ////
-                                // get the folder name by time informations without tree
-                                string strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
-                                string strName = "";
-                                if (m_bMsgFile_Second == false)
+                                if (m_bMsgFile == true)
                                 {
-                                    strName = strPath + "\\" + strTitle + ".log";
-                                }
-                                else
-                                {
-                                    strName = strPath + "\\" + strTitle;
-                                }
-                                MsgFileSave(strName, strMsg + msg);
-                                if (txtOjwMessage == m_txtMessage_Error)
-                                {
+                                    String strFile = ((m_bMsgFile_Second == true) ? m_strMsgFilePath2 : m_strMsgFilePath);
+                                    String strTitle = ((m_bMsgFile_Second == true) ? m_strSecondFile : "history");
                                     //// File ////
                                     // get the folder name by time informations without tree
-                                    strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
-                                    strName = strPath + "\\" + strTitle + "_Error.log";
+                                    string strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
+                                    string strName = "";
+                                    if (m_bMsgFile_Second == false)
+                                    {
+                                        strName = strPath + "\\" + strTitle + ".log";
+                                    }
+                                    else
+                                    {
+                                        strName = strPath + "\\" + strTitle;
+                                    }
                                     MsgFileSave(strName, strMsg + msg);
-                                    if (IsError_Accumulation() == false) ClearErrorMessage();
+                                    if (txtOjwMessage == m_txtMessage_Error)
+                                    {
+                                        //// File ////
+                                        // get the folder name by time informations without tree
+                                        strPath = CFile.CheckAndMakeFolder(strFile, false, true, true, true, false);
+                                        strName = strPath + "\\" + strTitle + "_Error.log";
+                                        MsgFileSave(strName, strMsg + msg);
+                                        if (IsError_Accumulation() == false) ClearErrorMessage();
+                                    }
+                                    m_bMsgFile_Second = false;
                                 }
-                                m_bMsgFile_Second = false;
+                                #endregion Try
                             }
-                            #endregion Try
-                        }
-                        catch (Exception e)
-                        {
-                            MessageBox.Show("[Message]" + e.ToString() + "\r\n");
-                            if (bValid == true)
+                            catch (Exception e)
                             {
-                                SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
+                                MessageBox.Show("[Message]" + e.ToString() + "\r\n");
+                                if (bValid == true)
+                                {
+                                    SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, true, 0); // set Redraw
+                                }
+                                m_nMessageStack = 0;
                             }
-                            m_nMessageStack = 0;
-                        }
 
-                        // 뮤텍스 해제
-                        m_mtxMessage.ReleaseMutex();
+                            // 뮤텍스 해제
+                            m_mtxMessage.ReleaseMutex();
+                        }
                     }
                 }
                 catch (Exception ex)
