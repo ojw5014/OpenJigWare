@@ -46,6 +46,9 @@ namespace OpenJigWare
             // 출처 : http://stackoverflow.com/posts/33209626/edit
             public bool isClientConnected()
             {
+                if (m_tcpServer_Client == null) return false;
+                if (m_tcpServer_Client.Client == null) return false;
+
                 IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
                 TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections();
                 foreach (TcpConnectionInformation c in tcpConnections)

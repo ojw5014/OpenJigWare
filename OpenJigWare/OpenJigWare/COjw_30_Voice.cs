@@ -4,8 +4,12 @@ using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
 
+//using System.Speech.Recognition;
+
 using Microsoft.Speech.Recognition;
 using Microsoft.Speech.Synthesis;
+
+using System.Speech.Synthesis;
 using System.Diagnostics;
 using System.Windows.Forms;
 
@@ -26,8 +30,9 @@ namespace OpenJigWare
                 "Microsoft Server Speech Text to Speech Voice (en-US, Helen)", 
                 "Microsoft Server Speech Text to Speech Voice (zh-CN, HuiHui)" 
             };
-
-            private SpeechSynthesizer m_ttsCmd;
+            private ELanguage_t m_ELang = ELanguage_t._ENGLISH_US;
+            private System.Speech.Synthesis.SpeechSynthesizer m_ttsCmd_System;
+            private Microsoft.Speech.Synthesis.SpeechSynthesizer m_ttsCmd;
             public void Init(int nLan) { if (nLan < 0) nLan = (int)ELanguage_t._KOREAN; else if (nLan >= 3) nLan = (int)ELanguage_t._CHINA; Init((ELanguage_t)nLan, 100); }
             public void Init(ELanguage_t ELan) { Init( ELan, 100); }
             public void Init(ELanguage_t ELan, int nVolum_100)
@@ -36,12 +41,25 @@ namespace OpenJigWare
                 {
                     if (nVolum_100 < 0) nVolum_100 = 0;
                     else if (nVolum_100 > 100) nVolum_100 = 100;
-                    m_ttsCmd = new SpeechSynthesizer();
+                    m_ELang = ELan;
+                    if (ELan == ELanguage_t._CHINA)
+                    {
+                        m_ttsCmd_System = new System.Speech.Synthesis.SpeechSynthesizer();
 
-                    m_ttsCmd.SelectVoice(m_pstrLang_Val[(int)ELan]);
-                
-                    m_ttsCmd.SetOutputToDefaultAudioDevice();
-                    m_ttsCmd.Volume = nVolum_100;
+                        m_ttsCmd_System.SelectVoice(m_pstrLang_Val[(int)ELan]);
+
+                        m_ttsCmd_System.SetOutputToDefaultAudioDevice();
+                        m_ttsCmd_System.Volume = nVolum_100;
+                    }
+                    else
+                    {
+                        m_ttsCmd = new Microsoft.Speech.Synthesis.SpeechSynthesizer();
+
+                        m_ttsCmd.SelectVoice(m_pstrLang_Val[(int)ELan]);
+
+                        m_ttsCmd.SetOutputToDefaultAudioDevice();
+                        m_ttsCmd.Volume = nVolum_100;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -51,7 +69,14 @@ namespace OpenJigWare
             }
             public void Tts(string strData)
             {
-                m_ttsCmd.Speak(strData);
+                if (m_ELang == ELanguage_t._CHINA)
+                {
+                    m_ttsCmd_System.Speak(strData);
+                }
+                else
+                {
+                    m_ttsCmd.Speak(strData);
+                }
                 CMessage.Write(strData);
             }
         }
@@ -150,8 +175,8 @@ namespace OpenJigWare
                 m_lstVoice_Result.Clear();
                 m_lstVoice_Str.Clear();
 
-                SpeechSynthesizer sSynth = new SpeechSynthesizer();
-                PromptBuilder pBuilder = new PromptBuilder();
+                //SpeechSynthesizer sSynth = new SpeechSynthesizer();
+                //PromptBuilder pBuilder = new PromptBuilder();
                 m_sRecognize = new SpeechRecognitionEngine(new System.Globalization.CultureInfo(strLanguage));
                 m_strLanguage = strLanguage;
                 try
@@ -169,8 +194,9 @@ namespace OpenJigWare
                     m_sRecognize.RecognizeAsync(RecognizeMode.Multiple);
                     CMessage.Write("FInitRecog() - {0}", strLanguage);
                 }
-                catch
+                catch(Exception ex)
                 {
+                    Ojw.CMessage.Write_Error(ex.ToString());
                 }
                 m_bInit = true;
             }

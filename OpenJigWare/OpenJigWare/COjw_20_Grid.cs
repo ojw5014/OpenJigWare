@@ -1380,7 +1380,11 @@ namespace OpenJigWare
             _Y_Plus,
             _Y_Minus,
             _Z_Plus,
-            _Z_Minus
+            _Z_Minus,
+            _X_Input,
+            _Y_Input,
+            _Z_Input,
+            _XYZ_Input
         }
         public struct SGridTable_t
         {
@@ -1779,10 +1783,10 @@ namespace OpenJigWare
                     int nS = (nValue / 1000) % 60;
                     int nM = (nValue / 60000) % 60;
                     int nH = (nValue / 3600000);
-                    String strData = String.Format("{0}:{1}:{2}.{3}", CConvert.IntToStr(nH, 2), CConvert.IntToStr(nM, 2), CConvert.IntToStr(nS, 2), CConvert.IntToStr(nMs, 2));
+                    String strData = String.Format("{0}:{1}:{2}.{3}", CConvert.IntToStr(nH, 2), CConvert.IntToStr(nM, 2), CConvert.IntToStr(nS, 2), CConvert.IntToStr(nMs, 3));
                     //rect.Inflate(70, 0);
                     //rect.Inflate(500, 0);
-                    int nOffset = 0;
+                    int nOffset = -10;// 0;
                     rect = new Rectangle(e.RowBounds.Location.X + nOffset,
                     e.RowBounds.Location.Y,
                     dgAngle.RowHeadersWidth - nOffset - 4, //200,//dgAngle.RowHeadersWidth - 4,
@@ -2640,10 +2644,11 @@ namespace OpenJigWare
             // 20, 21, 22 - LED Change(20-Red, 21-Green, 22-Blue) - 0 일때 클리어, 1 일때 동작
             // 23 - Motor Enable() - LED 와 동일
             // 24 - MotorType() - LED 와 동일
-            // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)     
+            // 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-) 
+            // 31 - (X[Input]), 32 - (Y[Input]), 33 - (Z[Input]), 34 - (XYZ[Input])  
             public DataGridView GetHandle() { return dgAngle; }
-            public void Calc(int nType, float fValue) { Calc(dgAngle, nType, fValue); }
-            public void Calc(DataGridView OjwDataGrid, int nType, float fValue)
+            public void Calc(int nType, params float [] afValue) { Calc(dgAngle, nType, afValue); }
+            public void Calc(DataGridView OjwDataGrid, int nType, params float [] afValue)
             {
                 int nPos_Start_X = 0, nPos_Start_Y = 0;
                 int nPos_End_X = 0, nPos_End_Y = 0;
@@ -2717,7 +2722,7 @@ namespace OpenJigWare
                                     #region 덧셈 (+)
                                     if (nType == 0)
                                     {
-                                        OjwDataGrid[j, k].Value = fValueTmp + fValue;   // +
+                                        OjwDataGrid[j, k].Value = fValueTmp + afValue[0];   // +
                                         // 수정된 놈이 있으면 체크
                                         abModify[j, k] = true;
                                     }
@@ -2725,7 +2730,7 @@ namespace OpenJigWare
                                     #region 뺄셈 (-)
                                     else if (nType == 1)
                                     {
-                                        OjwDataGrid[j, k].Value = fValueTmp - fValue;  // -
+                                        OjwDataGrid[j, k].Value = fValueTmp - afValue[0];  // -
                                         // 수정된 놈이 있으면 체크
                                         abModify[j, k] = true;
                                     }
@@ -2733,7 +2738,7 @@ namespace OpenJigWare
                                     #region 곱하기
                                     else if (nType == 2)
                                     {
-                                        OjwDataGrid[j, k].Value = fValueTmp * fValue;  // *
+                                        OjwDataGrid[j, k].Value = fValueTmp * afValue[0];  // *
                                         // 수정된 놈이 있으면 체크
                                         abModify[j, k] = true;
                                     }
@@ -2741,9 +2746,9 @@ namespace OpenJigWare
                                     #region 나누기
                                     else if (nType == 3)
                                     {
-                                        if (fValue != 0)
+                                        if (afValue[0] != 0)
                                         {
-                                            OjwDataGrid[j, k].Value = fValueTmp / fValue;  // /
+                                            OjwDataGrid[j, k].Value = fValueTmp / afValue[0];  // /
                                             // 수정된 놈이 있으면 체크
                                             abModify[j, k] = true;
                                         }
@@ -2754,7 +2759,7 @@ namespace OpenJigWare
                                     {
                                         if (k != nPos_Start_X)
                                         {
-                                            fTmp += fValue;
+                                            fTmp += afValue[0];
                                             OjwDataGrid[j, k].Value = fValue_Start + fTmp;
                                             // 수정된 놈이 있으면 체크
                                             abModify[j, k] = true;
@@ -2766,7 +2771,7 @@ namespace OpenJigWare
                                     {
                                         if (k != nPos_Start_X)
                                         {
-                                            fTmp += fValue;
+                                            fTmp += afValue[0];
                                             OjwDataGrid[j, k].Value = fValue_Start - fTmp;
                                             // 수정된 놈이 있으면 체크
                                             abModify[j, k] = true;
@@ -2776,7 +2781,7 @@ namespace OpenJigWare
                                     #region 변경
                                     else if (nType == 6) // Change
                                     {
-                                        OjwDataGrid[j, k].Value = fValue;
+                                        OjwDataGrid[j, k].Value = afValue[0];
                                         // 수정된 놈이 있으면 체크
                                         abModify[j, k] = true;
                                     }
@@ -2785,8 +2790,8 @@ namespace OpenJigWare
                                     else if (nType == 7) // Flip
                                     {
                                         // 현재 값
-                                        float fTemp1 = fValue - Ojw.CConvert.StrToFloat(OjwDataGrid[j, k].Value.ToString());
-                                        float fTemp2 = fValue + fTemp1;
+                                        float fTemp1 = afValue[0] - Ojw.CConvert.StrToFloat(OjwDataGrid[j, k].Value.ToString());
+                                        float fTemp2 = afValue[0] + fTemp1;
                                         OjwDataGrid[j, k].Value = fTemp2;  // /
                                         // 수정된 놈이 있으면 체크
                                         abModify[j, k] = true;
@@ -2795,10 +2800,10 @@ namespace OpenJigWare
                                     #region Interpolation
                                     else if (nType == 8) // Interpolation
                                     {
-                                        fValue = fValue_Start - fValue_End;
+                                        afValue[0] = fValue_Start - fValue_End;
                                         float fTemp1 = 0;
                                         float fTemp2 = (float)(nPos_End_X - nPos_Start_X);
-                                        if (((k - nPos_Start_X) != 0) && (fTemp2 > 0)) fTemp1 = (float)(fValue) / fTemp2 * (float)(k - nPos_Start_X);
+                                        if (((k - nPos_Start_X) != 0) && (fTemp2 > 0)) fTemp1 = (float)(afValue[0]) / fTemp2 * (float)(k - nPos_Start_X);
                                         OjwDataGrid[j, k].Value = fValue_Start - fTemp1;
                                         // 수정된 놈이 있으면 체크
                                         abModify[j, k] = true;
@@ -2807,17 +2812,17 @@ namespace OpenJigWare
                                     #region 'S'Curve
                                     else if (nType == 9)
                                     {
-                                        fValue = (fValue_Start - fValue_End) / 2.0f;
+                                        afValue[0] = (fValue_Start - fValue_End) / 2.0f;
                                         float fAngle = 0;
                                         if ((k - nPos_Start_X) <= nLen / 2)
                                         {
                                             fAngle = (float)(k - nPos_Start_X) * 90.0f / ((float)(nLen) / 2.0f);
-                                            fTmp = fValue - fValue * (float)Ojw.CMath.Cos(fAngle);
+                                            fTmp = afValue[0] - afValue[0] * (float)Ojw.CMath.Cos(fAngle);
                                         }
                                         else
                                         {
                                             fAngle = (float)((float)(k - nPos_Start_X) - (float)nLen / 2.0f) * 90.0f / ((float)(nLen) / 2);
-                                            fTmp = fValue + (fValue * (float)Ojw.CMath.Sin(fAngle));
+                                            fTmp = afValue[0] + (afValue[0] * (float)Ojw.CMath.Sin(fAngle));
                                         }
                                         OjwDataGrid[j, k].Value = fValue_Start - fTmp;
                                         // 수정된 놈이 있으면 체크
@@ -2931,8 +2936,8 @@ namespace OpenJigWare
                                     #endregion
 #endif
 #if true
-                                    #region 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-)
-                                    else if ((nType >= 25) && (nType <= 30))
+                                    #region 25 - X(+), 26 - X(-), 27 - Y(+), 28 - (Y-), 29 - Z(+), 30 - Z(-), 31 - X(Input), 32 - Y(Input), 33 - Z(Input), 34 - X,Y,Z(Input)
+                                    else if ((nType >= 25) && (nType <= 34))//((nType >= 25) && (nType <= 30))
                                     {
                                         //Array.Clear(abEquation, 0, abEquation.Length);
 
@@ -2957,12 +2962,24 @@ namespace OpenJigWare
                                             {
                                                 if (abEquation[nLine, nNum] == false)
                                                 {
-                                                    //float fValue = Ojw.CConvert.StrToFloat(txtChangeValue.Text);
-                                                    float fX = ((nType == 25) ? fValue : ((nType == 26) ? -fValue : 0));
-                                                    float fY = ((nType == 27) ? fValue : ((nType == 28) ? -fValue : 0));
-                                                    float fZ = ((nType == 29) ? fValue : ((nType == 30) ? -fValue : 0));
-                                                    //Grid_Xyz2Angle_Inc(i, m_nInverseKinematicsNumber_Test, fX, fY, fZ);
-                                                    Grid_Xyz2Angle_Inc(nLine, nNum, fX, fY, fZ);
+                                                    if ((nType >= 31) && (nType <= 33))
+                                                    {
+                                                        switch(nType)
+                                                        {
+                                                            case 31: Grid_Xyz2Angle_X(nLine, nNum, afValue[0]); break;
+                                                            case 32: Grid_Xyz2Angle_Y(nLine, nNum, afValue[0]); break;
+                                                            case 33: Grid_Xyz2Angle_Z(nLine, nNum, afValue[0]); break;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        //float fValue = Ojw.CConvert.StrToFloat(txtChangeValue.Text);
+                                                        float fX = ((nType == 25) ? afValue[0] : ((nType == 26) ? -afValue[0] : 0));
+                                                        float fY = ((nType == 27) ? afValue[0] : ((nType == 28) ? -afValue[0] : 0));
+                                                        float fZ = ((nType == 29) ? afValue[0] : ((nType == 30) ? -afValue[0] : 0));
+                                                        //Grid_Xyz2Angle_Inc(i, m_nInverseKinematicsNumber_Test, fX, fY, fZ);
+                                                        Grid_Xyz2Angle_Inc(nLine, nNum, fX, fY, fZ);
+                                                    }
                                                     // 수정된 놈이 있으면 체크
                                                     abModify[j, k] = true;
 
@@ -3031,6 +3048,234 @@ namespace OpenJigWare
                     //}
                 }
                 return nNum;
+            }
+            public static void Grid_Xyz2Angle_X(C3d OjwC3d, int nLine, int nInverseKinematicsNumber, float fVal)
+            {
+                float[] afMot = new float[OjwC3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < OjwC3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(OjwC3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(OjwC3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                OjwC3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_X = fVal;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    OjwC3d.m_CGridMotionEditor.SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public static void Grid_Xyz2Angle_Y(C3d OjwC3d, int nLine, int nInverseKinematicsNumber, float fVal)
+            {
+                float[] afMot = new float[OjwC3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < OjwC3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(OjwC3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(OjwC3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                OjwC3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_Y = fVal;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    OjwC3d.m_CGridMotionEditor.SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public static void Grid_Xyz2Angle_Z(C3d OjwC3d, int nLine, int nInverseKinematicsNumber, float fVal)
+            {
+                float[] afMot = new float[OjwC3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < OjwC3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(OjwC3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(OjwC3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                OjwC3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_Z = fVal;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    OjwC3d.m_CGridMotionEditor.SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public static void Grid_Xyz2Angle(C3d OjwC3d, int nLine, int nInverseKinematicsNumber, float fX, float fY, float fZ)
+            {
+                float[] afMot = new float[OjwC3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < OjwC3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(OjwC3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(OjwC3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                OjwC3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_X = fX;
+                fPos_Y = fY;
+                fPos_Z = fZ;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    OjwC3d.m_CGridMotionEditor.SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public void Grid_Xyz2Angle_X(int nLine, int nInverseKinematicsNumber, float fVal)
+            {
+                float[] afMot = new float[m_C3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(m_C3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(m_C3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                m_C3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_X = fVal;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public void Grid_Xyz2Angle_Y(int nLine, int nInverseKinematicsNumber, float fVal)
+            {
+                float[] afMot = new float[m_C3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(m_C3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(m_C3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                m_C3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_Y = fVal;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public void Grid_Xyz2Angle_Z(int nLine, int nInverseKinematicsNumber, float fVal)
+            {
+                float[] afMot = new float[m_C3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(m_C3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(m_C3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                m_C3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_Z = fVal;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public void Grid_Xyz2Angle(int nLine, int nInverseKinematicsNumber, float fX, float fY, float fZ)
+            {
+                float[] afMot = new float[m_C3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(m_C3d.m_CGridMotionEditor.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                //Ojw.CKinematics.CForward.CalcKinematics(m_C3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                m_C3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_X = fX;
+                fPos_Y = fY;
+                fPos_Z = fZ;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    SetData(nLine, nMotNum, fValue);
+                }
             }
             public void Grid_Xyz2Angle_Inc(int nLine, int nInverseKinematicsNumber, float fX, float fY, float fZ)
             {
@@ -3539,6 +3784,7 @@ namespace OpenJigWare
                                                     break;
                                                 }
                                             }
+                                            if (bPass == true) break;
                                         }
                                         #endregion
 
@@ -7135,6 +7381,7 @@ namespace OpenJigWare
                                                     break;
                                                 }
                                             }
+                                            if (bPass == true) break;
                                         }
 #endregion
 

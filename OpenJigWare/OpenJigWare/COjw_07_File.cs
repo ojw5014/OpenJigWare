@@ -426,12 +426,47 @@ namespace OpenJigWare
                         strItem = "";
                     }
 #endif
-                    }                    
+                    }
+                    // line == 0 인경우
+                    if ((nLines == 0) && (aByteData.Length > 0))
+                    {
+                        strItem = strItem.Trim();
+                        if (strItem.Length >= 1) // o Type 1자리 // x Index 4자리, Type 1자리
+                            m_lstFile.Add(strItem);
+                        nLines++;
+                    }
                     return nLines;
                 }
                 catch
                 {
                     return nLines;
+                }
+            }
+            public bool Load(String strFileName, out byte[] aByteData)
+            {
+                aByteData = null;
+                FileInfo f = null;
+                FileStream fs = null;
+                try
+                {
+                    f = new FileInfo(strFileName);
+                    fs = f.OpenRead();
+                    aByteData = new byte[fs.Length];
+                    fs.Read(aByteData, 0, aByteData.Length);
+
+                    fs.Close();
+                    fs = null;
+                    f = null;
+                    if (aByteData != null)
+                    {
+                        if (aByteData.Length > 0)
+                            return true;
+                    }
+                    return false;
+                }
+                catch
+                {
+                    return false;
                 }
             }
             // Save file with list(Kor: 리스트의 내용을 파일로 저장한다.)
@@ -504,7 +539,8 @@ namespace OpenJigWare
             #endregion Files(Data) & List
 
             public static void Delete(String strFileName) { FileInfo file = new FileInfo(strFileName); if (file.Exists) { System.IO.File.Delete(strFileName); } }
-            public static bool Write(String strFileName, String strMsg, bool bNew)
+            public static bool Write(String strFileName, string strMsg, bool bNew) { return Write(Encoding.Unicode, strFileName, strMsg, bNew); }
+            public static bool Write(Encoding Enc, String strFileName, String strMsg, bool bNew)
             {
                 FileInfo f = null;
                 StreamWriter fs = null;
@@ -517,8 +553,8 @@ namespace OpenJigWare
                     //fs = new StreamWriter(strFileName, !bNew, Encoding.UTF8);
                     //fs = new StreamWriter(strFileName, !bNew, Encoding.Unicode);
 #else
-                    if (m_Enc == null) fs = new StreamWriter(strFileName, !bNew, Encoding.Default);
-                    else fs = new StreamWriter(strFileName, !bNew, m_Enc);
+                    if (Enc == null) fs = new StreamWriter(strFileName, !bNew, Encoding.Default);
+                    else fs = new StreamWriter(strFileName, !bNew, Enc);
 #endif
 
 
@@ -535,7 +571,8 @@ namespace OpenJigWare
                     return false;
                 }
             }
-            public static bool Read(String strFileName, TextBox txtFile)
+            public static bool Read(String strFileName, TextBox txtFile) { return Read(Encoding.Unicode,  strFileName,  txtFile); }
+            public static bool Read(Encoding Enc, String strFileName, TextBox txtFile)
             {
                 FileInfo f = null;
                 //StreamReader fs = null;
@@ -549,7 +586,13 @@ namespace OpenJigWare
 
                     byte[] pbyteData = new byte[fs.Length];
                     fs.Read(pbyteData, 0, pbyteData.Length);
+                    
+#if true
+                    if (Enc == null) txtFile.Text = System.Text.Encoding.Default.GetString(pbyteData, 0, pbyteData.Length);
+                    else txtFile.Text = Enc.GetString(pbyteData, 0, pbyteData.Length);
+#else
                     foreach (byte byteData in pbyteData) { txtFile.Text += (char)byteData; }
+#endif               
                     fs.Close();
 
                     return true;
@@ -560,7 +603,8 @@ namespace OpenJigWare
                     return false;
                 }
             }
-            public static bool Read(String strFileName, ref String strReturn)
+            public static bool Read(String strFileName, ref String strReturn) { return Read(Encoding.Unicode, strFileName, ref strReturn); }
+            public static bool Read(Encoding Enc, String strFileName, ref String strReturn)
             {
                 FileInfo f = null;
                 FileStream fs = null;
@@ -572,7 +616,13 @@ namespace OpenJigWare
 
                     byte[] pbyteData = new byte[fs.Length];
                     fs.Read(pbyteData, 0, pbyteData.Length);
+
+#if true
+                    if (Enc == null) strReturn = System.Text.Encoding.Default.GetString(pbyteData, 0, pbyteData.Length);
+                    else strReturn = Enc.GetString(pbyteData, 0, pbyteData.Length);
+#else
                     foreach (byte byteData in pbyteData) { strReturn += (char)byteData; }
+#endif
                     fs.Close();
 
                     return true;
@@ -627,7 +677,7 @@ namespace OpenJigWare
                 if (lstDirectories.Count > 0) return lstDirectories.ToArray();
                 return null;
             }
-
+            
             public static bool CompareDirectory_List_Both(string strSrc, string strDst, bool bSubDirs, bool bAddStatusString, ref List<string> lstSrc, ref List<string> lstDst)
             {
                 bool bChanged = false;
@@ -635,6 +685,7 @@ namespace OpenJigWare
                 if (CompareDirectory_List(strDst, strSrc, bSubDirs, bAddStatusString, ref lstDst, ref lstSrc) == true) bChanged = true;
                 return bChanged;
             }
+            public static bool IsDirectory(string strPath) { DirectoryInfo dirSrc = new DirectoryInfo(strPath); return dirSrc.Exists; }
             public static bool CompareDirectory_List(string strSrc, string strDst, bool bSubDirs, bool bAddStatusString, ref List<string> lstSrc, ref List<string> lstDst)
             {
                 if ((lstSrc == null) || (lstDst == null)) return false;
@@ -647,12 +698,17 @@ namespace OpenJigWare
                 DirectoryInfo dirSrc = new DirectoryInfo(strSrc);
                 DirectoryInfo dirDst = new DirectoryInfo(strDst);
 
+
+                if ((!dirSrc.Exists) && (!dirDst.Exists)) return false;
+
                 if (!dirSrc.Exists)
                 {
+                    bChanged = true;
                     // 소스의 폴더가 없는 경우
-                    FileInfo[] filesSrc = dirSrc.GetFiles();
+                    FileInfo[] filesSrc = dirDst.GetFiles();
                     foreach (FileInfo file in filesSrc)
                     {
+#if false
                         if (bAddStatusString == true)
                         {
                             if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", file.FullName)) == false)
@@ -663,16 +719,7 @@ namespace OpenJigWare
                             if (IsValue(lstSrc.ToArray(), file.FullName) == false)
                                 lstSrc.Add(String.Format("{0}", file.FullName));
                         }
-                    }
-                    //bChanged = true;
-                    return true;
-                }
-                if (!dirDst.Exists)
-                {
-                    // 타겟의 폴더가 없는 경우
-                    FileInfo[] filesDst = dirSrc.GetFiles();
-                    foreach (FileInfo file in filesDst)
-                    {
+#else
                         if (bAddStatusString == true)
                         {
                             if (IsValue(lstDst.ToArray(), string.Format("[n]{0}", file.FullName)) == false)
@@ -683,9 +730,70 @@ namespace OpenJigWare
                             if (IsValue(lstDst.ToArray(), file.FullName) == false)
                                 lstDst.Add(String.Format("{0}", file.FullName));
                         }
+#endif
+                    } 
+                    if (bSubDirs)
+                    {
+                        DirectoryInfo[] pdirDst = dirDst.GetDirectories();
+                        foreach (DirectoryInfo subdir in pdirDst)
+                        {
+                            string tmpSrc = Path.Combine(strSrc, subdir.Name);
+                            string tmpDst = Path.Combine(strDst, subdir.Name);
+                            //string[] pstrList = GetDirectory_list(subdir.FullName, bSubDirs);
+                            //foreach (string strList in pstrList) lstDirectories.Add(strList);
+                            if (CompareDirectory_List(tmpSrc, tmpDst, bSubDirs, bAddStatusString, ref lstSrc, ref lstDst) == true) bChanged = true;
+                        }
                     }
+                    return bChanged;
                     //bChanged = true;
-                    return true;
+                    //return true;
+                }
+                if (!dirDst.Exists)
+                {
+                    bChanged = true;
+                    // 타겟의 폴더가 없는 경우
+                    FileInfo[] filesDst = dirSrc.GetFiles();
+                    foreach (FileInfo file in filesDst)
+                    {
+#if false
+                        if (bAddStatusString == true)
+                        {
+                            if (IsValue(lstDst.ToArray(), string.Format("[n]{0}", file.FullName)) == false)
+                                lstDst.Add(string.Format("[n]{0}", file.FullName));
+                        }
+                        else
+                        {
+                            if (IsValue(lstDst.ToArray(), file.FullName) == false)
+                                lstDst.Add(String.Format("{0}", file.FullName));
+                        }
+#else
+                        if (bAddStatusString == true)
+                        {
+                            if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", file.FullName)) == false)
+                                lstSrc.Add(string.Format("[n]{0}", file.FullName));
+                        }
+                        else
+                        {
+                            if (IsValue(lstSrc.ToArray(), file.FullName) == false)
+                                lstSrc.Add(String.Format("{0}", file.FullName));
+                        }
+#endif
+                    }
+                    if (bSubDirs)
+                    {
+                        DirectoryInfo[] pdirSrc = dirSrc.GetDirectories();
+                        foreach (DirectoryInfo subdir in pdirSrc)
+                        {
+                            string tmpSrc = Path.Combine(strSrc, subdir.Name);
+                            string tmpDst = Path.Combine(strDst, subdir.Name);
+                            //string[] pstrList = GetDirectory_list(subdir.FullName, bSubDirs);
+                            //foreach (string strList in pstrList) lstDirectories.Add(strList);
+                            if (CompareDirectory_List(tmpSrc, tmpDst, bSubDirs, bAddStatusString, ref lstSrc, ref lstDst) == true) bChanged = true;
+                        }
+                    }
+                    return bChanged;
+                    //bChanged = true;
+                    //return true;
                 }
 
 
@@ -752,13 +860,13 @@ namespace OpenJigWare
                                 if (bAddStatusString == true)
                                 {
                                     // [n] new, [m] modify
-                                    if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", filesSrc[j].FullName)) == false)
-                                        lstSrc.Add(string.Format("[n]{0}", filesSrc[j].FullName));
+                                    if (IsValue(lstSrc.ToArray(), string.Format("[n]{0}", filesDst[j].FullName)) == false)
+                                        lstSrc.Add(string.Format("[n]{0}", filesDst[j].FullName));
                                 }
                                 else
                                 {
-                                    if (IsValue(lstSrc.ToArray(), filesSrc[j].FullName) == false)
-                                        lstSrc.Add(filesSrc[j].FullName);
+                                    if (IsValue(lstSrc.ToArray(), filesDst[j].FullName) == false)
+                                        lstSrc.Add(filesDst[j].FullName);
                                 }
                                 nError++;
                             }

@@ -24,6 +24,9 @@ namespace OpenJigWare.Docking
             if (C3d_Model != null)
             {
                 m_C3d = C3d_Model;
+
+                m_CLeap.Set3D(m_C3d);
+
                 float fX, fY, fZ;
                 float fPan, fTilt, fSwing;
                 m_C3d.GetPos_Display(out fX, out fY, out fZ);
@@ -540,6 +543,26 @@ namespace OpenJigWare.Docking
                     m_C3d.OjwFileConvert_STL_to_Dat(fileName);
                 }
             }      
+        }
+
+        private Ojw.CLeap m_CLeap = new Ojw.CLeap();
+        private void chkLeap_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkLeap.Checked == true)
+            {
+                m_CLeap.InitLeap();
+                tmrLeap.Enabled = true;
+            }
+            else
+            {
+                m_CLeap.DInitLeap();
+                tmrLeap.Enabled = false;
+            }
+        }
+
+        private void tmrLeap_Tick(object sender, EventArgs e)
+        {
+
         }
     }
 }

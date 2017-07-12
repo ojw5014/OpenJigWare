@@ -72,6 +72,7 @@
             this.cmbLanguage.Name = "cmbLanguage";
             this.cmbLanguage.Size = new System.Drawing.Size(121, 20);
             this.cmbLanguage.TabIndex = 31;
+            this.cmbLanguage.SelectedIndexChanged += new System.EventHandler(this.cmbLanguage_SelectedIndexChanged);
             // 
             // txtKeyword
             // 

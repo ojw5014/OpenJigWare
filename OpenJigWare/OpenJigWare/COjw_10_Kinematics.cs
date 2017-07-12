@@ -1259,6 +1259,54 @@ public static double hypot(double v, double w) {
 #else
             public class CPython
             {
+                /// <summary>
+                /// //////////////////////////////////////
+                //public static bool Run_IronPython(string strData)
+                //{
+                //    ScriptEngine engine = Python.CreateEngine();
+                //    ScriptScope scope = engine.Runtime.CreateScope();
+                    
+                //    scope.ContainsVariable("x");
+                //    scope.ContainsVariable("y");
+                //    scope.ContainsVariable("z");
+                //    scope.SetVariable("x", x);
+                //    scope.SetVariable("y", y);
+                //    scope.SetVariable("z", z);
+                //    int i;
+                //    int nLength_v = 0;
+                //    int nLength_t = 0;
+                //    i = 0; foreach (double dv in SCode.pnVar_Number) { scope.ContainsVariable("v" + i.ToString()); scope.SetVariable("v" + i.ToString(), dv); i++; }
+                //    nLength_v = i;
+                //    i = 0; foreach (double dt in SCode.pnMotor_Number) { scope.ContainsVariable("t" + i.ToString()); scope.SetVariable("t" + i.ToString(), dt); i++; }
+                //    nLength_t = i;
+
+                //    int nNum = 0;
+                //    for (i = 0; i < SCode.nMotor_Max; i++)
+                //    {
+                //        nNum = SCode.pnMotor_Number[i];
+                //        scope.ContainsVariable("t" + nNum.ToString());
+                //        scope.SetVariable("t" + nNum, adMot[nNum]);
+                //    }
+
+                //    for (i = 0; i < SCode.nVar_Max; i++)
+                //    {
+                //        nNum = SCode.pnVar_Number[i];
+                //        scope.ContainsVariable("v" + nNum.ToString());
+                //        scope.SetVariable("v" + nNum, adV[nNum]);
+                //    }
+
+                //    string code = SCode.strPython.Trim();
+                //    string strTmp = "import sys\r\n";
+                //    strTmp += "sys.path.append(r'";
+                //    strTmp += Application.StartupPath;// +"\\lib";
+                //    strTmp += "')\r\n";
+
+                //    ScriptSource source = engine.CreateScriptSourceFromString(strTmp + code, Microsoft.Scripting.SourceCodeKind.AutoDetect);
+                    
+                //    source.Execute(scope);
+                //}
+                /// //////////////////////////////////////
+                /// </summary>
                 public const int _CNT_MOTOR = 1000;
                 public const int _CNT_VAR_V = 1000;
 

@@ -6,11 +6,3593 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 using System.Net;
+using System.IO.Ports;
+using System.IO;
 
 namespace OpenJigWare
 {
     partial class Ojw
     {
+        public class CGenibo_Bt
+        {
+            #region 생성자/소멸자
+        public CGenibo_Bt()
+        {
+            m_SerialPort = new SerialPort();
+            m_strOrgPath = Directory.GetCurrentDirectory();
+        }
+        ~CGenibo_Bt()
+        {
+            disconnect();
+        }
+        #endregion 생성자/소멸자
+
+        #region 선언
+
+        public const int _RET_RECEIVE_OK = 0;
+        public const int _RET_PROCESS_END = 1;
+        public const int _RET_PROCESS_FAILED = 2;
+        public const int _RET_CHECKSUM_ERROR = 3;
+        public const int _RET_TIME_OUT_ERROR = 4;
+        public const int _RET_LENGTH_ERROR = 5;
+
+        public const int _SIZE_FILENAME = 51;
+
+        private const int _CODE_BLUETOOTH = 0xb2; // 블루투스 코드넘버
+
+        #endregion 선언
+
+        #region 변수정의
+        private SerialPort m_SerialPort = null;
+        private bool m_bEventInit = false;
+        private Thread Reader;                  // 읽기 쓰레드
+
+        private int m_nFileList_master = 0;                // 파일갯수
+        private byte[] m_pbyteFileList_master = null;      // 파일이름
+        private int m_nFileList_user = 0;                // 파일갯수
+        private byte[] m_pbyteFileList_user = null;      // 파일이름
+
+        private int m_nClient_Seq = 0;
+        private String m_strOrgPath = "";
+
+        //private bool m_bThread_Client = false;
+        //private TcpClient m_tcpClient = null;      // Client
+        //private Thread m_thClient;          // Thread
+        private int m_nProcess_Client = 0;
+        //private bool m_bClientAuth = false;
+
+        //private NetworkStream m_streamClient;            // 네트워크 스트림
+        //private BinaryWriter m_bwClient_outData;
+        //private BinaryReader m_bwClient_inData;
+        //private int m_nClientId = 0xC0;                   //Packet ID;
+        private int m_nTimeSec = 0;                      //읽어들인 서버 시간(sec)
+        private int m_nTimeUSec = 0;                     //읽어들인 서버 시간(micro sec)
+        private int m_nRobotBatt = 0;                    //읽어들인 로봇 배터리(%)
+        private int m_nMIDBatt = 0;                      //읽어들인 MID 배터리(%)
+        private int m_nRmcLength = 0;                    //읽어들인 리모컨 길이(0.125s/tick)
+        private int m_nRmcData = 0;                      //읽어들인 리모컨 데이터
+        private bool m_bPlaying = false;                 //읽어들인 task/motion 실행 여부
+        #endregion 변수정의
+
+
+
+        #region 축과 ID 설정
+            #region [SMot_t]관절 파라미터 구조체 선언
+            public struct SMot_t
+            {
+                public bool bEn;
+
+                public int nDir;
+                //중심위치
+                public int nCenterPos;
+
+                // 기어비
+                public float fMechMove;
+                public float fDegree;
+
+                public float fLimitUp;    // 관절 리미트 - 0 무효
+                public float fLimitDn;    // 관절 리미트 - 0 무효
+
+                public int nID;
+                public int nPos;
+                public int nTime;
+
+                public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
+            }
+            #endregion [SMot_t]관절 파라미터 구조체 선언
+
+        private SMot_t[] m_pSMot = new SMot_t[256];
+        private int[] m_pnAxis_By_ID = new int[256]; // ID = 0 ~ 254 까지 가능, 단, 254 는 BroadCasting - 에러방지를 위해서는 가용 수치까지 전부 잡는다.
+        private void SetAxis_By_ID(int nID, int nAxis) { m_pnAxis_By_ID[nID] = nAxis; }
+        private int GetAxis_By_ID(int nID) { return (nID == 0xfe) ? 0xfe : m_pnAxis_By_ID[nID]; }
+        private int GetID_By_Axis(int nAxis) { return (nAxis == 0xfe) ? 0xfe : m_pSMot[nAxis].nID; }
+        public void set_param(int nAxis, int nID, int nDir, float fLimitUp, float fLimitDn, int nCenterPos, float fMechMove, float fDegree)
+        {
+            m_pSMot[nAxis].nID = nID;
+            m_pSMot[nAxis].nDir = nDir;
+            m_pSMot[nAxis].nCenterPos = nCenterPos;
+            m_pSMot[nAxis].fMechMove = fMechMove;
+            m_pSMot[nAxis].fDegree = fDegree;
+
+            m_pSMot[nAxis].fLimitUp = fLimitUp;
+            m_pSMot[nAxis].fLimitDn = fLimitDn;
+
+            SetAxis_By_ID(nID, nAxis);
+        }
+        #endregion
+        
+        
+            #region Calc - 계산함수(시간, 각도)
+            // ms 의 값을 Raw 데이타(패킷용)으로 변환
+            private int CalcTime_ms(int nTime)
+            {
+                // 1 Tick 당 11.2 ms => 1:11.2=x:nTime => x = nTime / 11.2
+                return (int)Math.Round((float)nTime / 11.2f);
+            }
+            private int CalcAngle2Evd(int nAxis, float fValue)
+            {
+                try
+                {
+                    fValue *= ((m_pSMot[nAxis].nDir == 0) ? 1.0f : -1.0f);
+                    int nData = 0;
+                    if (get_cmd_flag_mode(nAxis) != 0)   // 속도제어
+                    {
+                        nData = (int)Math.Round(fValue);
+                    }
+                    else
+                    {
+                        // 위치제어
+                        nData = (int)Math.Round((m_pSMot[nAxis].fMechMove * fValue) / m_pSMot[nAxis].fDegree);
+                        nData = nData + m_pSMot[nAxis].nCenterPos;
+                    }
+
+                    return nData;
+                    //return (nData + _CENTER_POS);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            private float CalcEvd2Angle(int nAxis, int nValue)
+            {
+                try
+                {
+                    float fValue = ((m_pSMot[nAxis].nDir == 0) ? 1.0f : -1.0f);
+                    // 1024:333.3 = pulse:angle
+                    float fValue2 = 0.0f;
+                    if (get_cmd_flag_mode(nAxis) != 0)   // 속도제어
+                        fValue2 = (float)nValue * fValue;
+                    else                                // 위치제어
+                        fValue2 = (float)(((m_pSMot[nAxis].fDegree * ((float)(nValue - m_pSMot[nAxis].nCenterPos))) / m_pSMot[nAxis].fMechMove) * fValue);
+                    //float fValue2 = (float)(((m_pSMot[nAxis].fDegree * ((float)(nValue - m_pSMot[nAxis].nCenterPos))) / m_pSMot[nAxis].fMechMove) * fValue);
+                    return fValue2;// 마지막에 부호변수를 곱함
+                    //return (float)(((m_pSMot[nAxis].fDegree * ((float)(nValue - _CENTER_POS))) / m_pSMot[nAxis].fMechMove) * fValue);// 마지막에 부호변수를 곱함                
+                }
+                catch
+                {
+                    return 0.0f;
+                }
+            }
+            #endregion
+
+            #region Limit
+            private bool m_bIgnoredLimit = false;
+            // 현재로서는 외부공개를 안하나 언젠가 하게 되면 이름을 공통사용하는 이름으로 바꾸도록 한다.
+            private void SetLimitEn(bool bOn) { m_bIgnoredLimit = !bOn; }
+            private bool GetLimitEn() { return !m_bIgnoredLimit; }
+
+            private int Clip(int nLimitValue_Up, int nLimitValue_Dn, int nData)
+            {
+                if (GetLimitEn() == false) return nData;
+
+                int nRet = ((nData > nLimitValue_Up) ? nLimitValue_Up : nData);
+                //nRet = ((nRet < nLimitValue_Dn) ? nLimitValue_Dn : nRet);
+                //return nRet;
+                return ((nRet < nLimitValue_Dn) ? nLimitValue_Dn : nRet);
+            }
+            private float Clip(float fLimitValue_Up, float fLimitValue_Dn, float fData)
+            {
+                if (GetLimitEn() == false) return fData;
+                float fRet = ((fData > fLimitValue_Up) ? fLimitValue_Up : fData);
+                //fRet = ((fRet < fLimitValue_Dn) ? fLimitValue_Dn : fRet);
+                //return fRet;
+                return ((fRet < fLimitValue_Dn) ? fLimitValue_Dn : fRet);
+            }
+            private int CalcLimit_Evd(int nAxis, int nValue)
+            {
+                if ((get_cmd_flag_mode(nAxis) == 0) || (get_cmd_flag_mode(nAxis) == 2))
+                {
+                    int nPulse = nValue & 0x4000;
+                    nValue &= 0x3fff;
+                    int nUp = 100000;
+                    int nDn = -nUp;
+                    if (m_pSMot[nAxis].fLimitUp != 0) nUp = CalcAngle2Evd(nAxis, m_pSMot[nAxis].fLimitUp);
+                    if (m_pSMot[nAxis].fLimitDn != 0) nDn = CalcAngle2Evd(nAxis, m_pSMot[nAxis].fLimitDn);
+                    if (nUp < nDn) { int nTmp = nUp; nUp = nDn; nDn = nTmp; }
+                    return (Clip(nUp, nDn, nValue) | nPulse);
+                }
+                return nValue;
+            }
+            private float CalcLimit_Angle(int nAxis, float fValue)
+            {
+                if ((get_cmd_flag_mode(nAxis) == 0) || (get_cmd_flag_mode(nAxis) == 2))
+                {
+                    float fUp = 100000.0f;
+                    float fDn = -fUp;
+                    if (m_pSMot[nAxis].fLimitUp != 0) fUp = m_pSMot[nAxis].fLimitUp;
+                    if (m_pSMot[nAxis].fLimitDn != 0) fDn = m_pSMot[nAxis].fLimitDn;
+                    return Clip(fUp, fDn, fValue);
+                }
+                return fValue;
+            }
+            #endregion
+
+        #region Cmd 함수
+        private int m_nMotor_Max = 30;
+        public void     set_max(int nMotorMax) { m_nMotor_Max = nMotorMax; }
+        public int      get_max() { return m_nMotor_Max; }
+        public void     InitCmd() { for (int i = 0; i < m_nMotor_Max; i++) { m_pSMot[i].bEn = false; set_cmd_flag(i, false, false, false, false, false, true); } }
+        public void     set_cmd(int nAxis, int nPos) { m_pSMot[nAxis].bEn = true; m_pSMot[nAxis].nPos = nPos; set_cmd_flag_no_action(nAxis, false); }
+        public void     set_cmd_angle(int nAxis, float fAngle) { m_pSMot[nAxis].bEn = true; m_pSMot[nAxis].nPos = CalcLimit_Evd(nAxis, CalcAngle2Evd(nAxis, fAngle)); set_cmd_flag_no_action(nAxis, false); }
+        public int      get_cmd(int nAxis) { return m_pSMot[nAxis].nPos; }
+        public float    get_cmd_angle(int nAxis) { return CalcEvd2Angle(nAxis, m_pSMot[nAxis].nPos); }
+        public void     set_cmd_flag(int nAxis, int nFlag) { m_pSMot[nAxis].nFlag = nFlag; }
+        public void     set_cmd_flag(int nAxis, bool bStop, bool bMode_Speed, bool bLed_Green, bool bLed_Blue, bool bLed_Red, bool bNoAction) { m_pSMot[nAxis].nFlag = ((bStop == true) ? _FLAG_STOP : 0) | ((bMode_Speed == true) ? _FLAG_MODE_SPEED : 0) | ((bLed_Green == true) ? _FLAG_LED_GREEN : 0) | ((bLed_Blue == true) ? _FLAG_LED_BLUE : 0) | ((bLed_Red == true) ? _FLAG_LED_RED : 0) | ((bNoAction == true) ? _FLAG_NO_ACTION : 0); }
+        public int      get_cmd_flag(int nAxis) { return m_pSMot[nAxis].nFlag; }
+        public void     set_cmd_flag_stop(int nAxis, bool bStop) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xfe) | ((bStop == true) ? _FLAG_STOP : 0); }
+        public void     set_cmd_flag_mode(int nAxis, bool bMode_Speed) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xfd) | ((bMode_Speed == true) ? _FLAG_MODE_SPEED : 0); }
+        public void     set_cmd_flag_led(int nAxis, bool bGreen, bool bBlue, bool bRed) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xe3) | ((bGreen == true) ? _FLAG_LED_GREEN : 0) | ((bBlue == true) ? _FLAG_LED_BLUE : 0) | ((bRed == true) ? _FLAG_LED_RED : 0); }
+        public void     set_cmd_flag_led_green(int nAxis, bool bGreen) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xfb) | ((bGreen == true) ? _FLAG_LED_GREEN : 0); }
+        public void     set_cmd_flag_led_blue(int nAxis, bool bBlue) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xf7) | ((bBlue == true) ? _FLAG_LED_BLUE : 0); }
+        public void     set_cmd_flag_led_red(int nAxis, bool bRed) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xef) | ((bRed == true) ? _FLAG_LED_RED : 0); }
+        public void     set_cmd_flag_no_action(int nAxis, bool bNoAction) { m_pSMot[nAxis].nFlag = (m_pSMot[nAxis].nFlag & 0xdf) | ((bNoAction == true) ? _FLAG_NO_ACTION : 0); }
+
+        // 1111 1101
+        public int get_cmd_flag_mode(int nAxis) { return (((m_pSMot[nAxis].nFlag & _FLAG_MODE_SPEED) != 0) ? 1 : 0); }
+
+        public bool get_cmd_flag_led_green(int nAxis) { return (((m_pSMot[nAxis].nFlag & 0x04) != 0) ? true : false); }
+        public bool get_cmd_flag_led_blue(int nAxis) { return (((m_pSMot[nAxis].nFlag & 0x08) != 0) ? true : false); }
+        public bool get_cmd_flag_led_red(int nAxis) { return (((m_pSMot[nAxis].nFlag & 0x10) != 0) ? true : false); }
+        #endregion Cmd 함수
+
+        public bool request_move(int nTime)
+        {
+            if ((m_bStop == true) || (m_bEms == true)) return _RESULT_FAIL;
+            int nID;
+            int i = 0;
+            ////////////////////////////////////////////////
+
+
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                byte[] pbyteBuffer = new byte[1 + 4 * m_nMotor_Max];
+                int nPos;
+                int nFlag;
+
+                #region S-Jog Time
+                int nCalcTime = CalcTime_ms(nTime);
+                pbyteBuffer[i++] = (byte)(nCalcTime & 0xff);
+                #endregion S-Jog Time
+
+                for (int nAxis = 0; nAxis < m_nMotor_Max; nAxis++)
+                {
+                    if (m_pSMot[nAxis].bEn == true)
+                    {
+                        //nPos |= _JOG_MODE_SPEED << 10;  // 속도제어 
+                        #region Position
+                        nPos = get_cmd(nAxis);
+                        pbyteBuffer[i++] = (byte)(nPos & 0xff);
+                        pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
+                        #endregion
+
+                        #region Set-Flag
+                        nFlag = get_cmd_flag(nAxis);
+                        pbyteBuffer[i++] = (byte)(nFlag & 0xff);
+                        set_cmd_flag_no_action(nAxis, true); // 동작 후 모터 NoAction을 살려둔다.
+                        #endregion Set-Flag
+
+                        #region 모터당 아이디(후면에 붙는다)
+                        nID = GetID_By_Axis(nAxis);
+                        pbyteBuffer[i++] = (byte)(nID & 0xff);
+                        #endregion 모터당 아이디(후면에 붙는다)
+                        ////////////////////////////////////////////////
+                    }
+                    m_pSMot[nAxis].bEn = false;
+                }
+                Make_And_Send_Packet(0xfe, 0x06, i, pbyteBuffer);
+                pbyteBuffer = null;
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_move(int nAxis, int nTime)
+        {
+            if ((m_bStop == true) || (m_bEms == true)) return _RESULT_FAIL;
+            int nID;
+            int i = 0;
+            ////////////////////////////////////////////////
+
+
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                byte[] pbyteBuffer = new byte[1 + 4 * m_nMotor_Max];
+                int nPos;
+                int nFlag;
+
+                #region S-Jog Time
+                int nCalcTime = CalcTime_ms(nTime);
+                pbyteBuffer[i++] = (byte)(nCalcTime & 0xff);
+                #endregion S-Jog Time
+
+                if (m_pSMot[nAxis].bEn == true)
+                {
+                    //nPos |= _JOG_MODE_SPEED << 10;  // 속도제어 
+                    #region Position
+                    nPos = get_cmd(nAxis);
+                    pbyteBuffer[i++] = (byte)(nPos & 0xff);
+                    pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
+                    #endregion
+
+                    #region Set-Flag
+                    nFlag = get_cmd_flag(nAxis);
+                    pbyteBuffer[i++] = (byte)(nFlag & 0xff);
+                    set_cmd_flag_no_action(nAxis, true); // 동작 후 모터 NoAction을 살려둔다.
+                    #endregion Set-Flag
+
+                    #region 모터당 아이디(후면에 붙는다)
+                    nID = GetID_By_Axis(nAxis);
+                    pbyteBuffer[i++] = (byte)(nID & 0xff);
+                    #endregion 모터당 아이디(후면에 붙는다)
+                    ////////////////////////////////////////////////
+                }
+
+                m_pSMot[nAxis].bEn = false;
+                Make_And_Send_Packet(0xfe, 0x06, i, pbyteBuffer);
+                pbyteBuffer = null;
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        #region Stop - 정지
+        // 전체 정지 - 이걸로 멈추면 반드시 리셋이 필요(Stop 변수만 리셋하면 됨)
+        public bool request_stop()
+        {
+            m_bStop = true;
+
+            for (int i = 0; i < m_nMotor_Max; i++)
+                set_cmd_flag_stop(i, true);
+            return request_move(1000);
+        }
+
+        // 이건 그냥 멈추기만 할 뿐 변수를 셋하지는 않는다.
+        public bool request_stop(int nAxis)
+        {
+            set_cmd_flag_stop(nAxis, true);
+            return request_move(nAxis, 1000);
+        }
+        #endregion
+
+        #region Ems - 비상정지
+        public bool request_ems()
+        {
+            bool bRet = request_stop();
+            drvsrv(false, false);
+            m_bEms = true;
+            return bRet;
+        }
+        #endregion
+
+        #region Reset
+        public bool request_reset(int nAxis)
+        {
+            if ((m_bStop == true) || (m_bEms == true)) return _RESULT_FAIL;
+            //int nID;
+            int i = 0;
+            ////////////////////////////////////////////////
+
+
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                if (nAxis < 0xfe)
+                    set_cmd_flag(nAxis, 0);
+                else
+                {
+                    for (int j = 0; j < m_nMotor_Max; j++) set_cmd_flag(j, 0);
+                }
+
+                int nDefaultSize = _CHECKSUM2 + 1;
+                byte[] pbyteBuffer = new byte[nDefaultSize];
+
+                // Header
+                pbyteBuffer[_HEADER1] = 0xff;
+                pbyteBuffer[_HEADER2] = 0xff;
+                // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                pbyteBuffer[_ID] = (byte)(nAxis & 0xff);
+                // Cmd
+                pbyteBuffer[_CMD] = 0x09; // Reset
+
+                //Packet Size
+                pbyteBuffer[_SIZE] = (byte)((nDefaultSize) & 0xff);
+
+                Make_And_Send_Packet(0xfe, 0x06, i, pbyteBuffer);
+                pbyteBuffer = null;
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        //public void Rollback(int nAxis, bool bIgnoreID, bool bIgnoreBaudrate)
+        //{
+        //    int i = 0;
+        //    if (nAxis < 0xfe)
+        //        SetCmd_Flag(nAxis, 0);
+        //    else
+        //    {
+        //        for (i = 0; i < m_nMotor_Max; i++) SetCmd_Flag(i, 0);
+        //    }
+        //    int nID = GetID_By_Axis(nAxis);//m_pSMot[nAxis].nID;
+        //    int nDefaultSize = _CHECKSUM2 + 1;
+        //    byte[] pbyteBuffer = new byte[255];
+        //    // Header
+        //    pbyteBuffer[_HEADER1] = 0xff;
+        //    pbyteBuffer[_HEADER2] = 0xff;
+        //    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+        //    pbyteBuffer[_ID] = (byte)(nID & 0xff);
+        //    // Cmd
+        //    pbyteBuffer[_CMD] = 0x08; // RollBack
+
+        //    i = 0;
+        //    /////////////////////////////////////////////////////
+        //    // Data
+        //    pbyteBuffer[nDefaultSize + i++] = (byte)((bIgnoreID == true) ? 1 : 0);
+        //    ////////
+        //    pbyteBuffer[nDefaultSize + i++] = (byte)((bIgnoreBaudrate == true) ? 1 : 0);
+        //    ////////
+        //    /////////////////////////////////////////////////////
+
+        //    //Packet Size
+        //    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+        //    MakeCheckSum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+        //    SendPacket(pbyteBuffer, nDefaultSize + i);
+        //    pbyteBuffer = null;
+        //}
+
+        public void reset_stop() { m_bStop = false; for (int i = 0; i < m_nMotor_Max; i++) set_cmd_flag_stop(i, false); }
+        public void reset_ems() { m_bEms = false; for (int i = 0; i < m_nMotor_Max; i++) set_cmd_flag_stop(i, false); }
+
+        public void reset()
+        {
+            reset_stop();
+            reset_ems();
+            request_reset(0xfe);
+        }
+        #endregion
+        
+        #region 기본제어 변수(Stop, Ems, Reset)
+        private bool m_bEms = false;
+        private bool m_bStop = false;
+        public bool check_Ems() { return m_bEms; }
+        public bool check_stop() { return m_bStop; }
+        #endregion 기본제어 변수(Stop, Ems, Reset)
+
+        #region Counter - 통신에 관한 카운터 ( 보낸것, 받은 이벤트, Push 횟수, Pop 횟수 )
+
+        #region 변수선언
+        private const int _MOTOR_MAX = 256;
+            private int m_nCntTick_Receive_Event_All = 0;
+            private int m_nCntTick_Receive_PushBuffer = 0;
+            private int m_nCntTick_Receive_GetBuffer = 0;
+            public int GetCounter_Tick_Reveive_Event() { return m_nCntTick_Receive_Event_All; }
+            public int GetCounter_Tick_Reveive_Push() { return m_nCntTick_Receive_PushBuffer; }
+            public int GetCounter_Tick_Reveive_Interpret() { return m_nCntTick_Receive_GetBuffer; }
+
+            private int[] m_pnCntTick_Send = new int[_MOTOR_MAX];
+            private int[] m_pnCntTick_Receive = new int[_MOTOR_MAX];
+            private int[] m_pnCntTick_Receive_Back = new int[_MOTOR_MAX];
+            private Ojw.CTimer [] m_pCTimer = new Ojw.CTimer[_MOTOR_MAX];
+            #endregion 변수선언
+
+            #region Tick
+            private long Tick_GetTimer(int nAxis) { return m_pCTimer[nAxis].Get(); }
+            private void Tick_Send(int nAxis) { if (connected() == false) return; m_pnCntTick_Send[nAxis]++; m_pCTimer[nAxis].Set(); m_pnCntTick_Receive_Back[nAxis] = m_pnCntTick_Receive[nAxis]; }
+            private void Tick_Receive(int nAxis) { m_pnCntTick_Receive[nAxis]++; m_pCTimer[nAxis].Set(); }
+            public int GetCounter_Tick_Send(int nAxis) { return m_pnCntTick_Send[nAxis]; }
+            public int GetCounter_Tick_Receive(int nAxis) { return m_pnCntTick_Receive[nAxis]; }
+            #endregion Tick
+        public void ResetCounter()
+        {
+            m_nCntTick_Receive_Event_All = m_nCntTick_Receive_PushBuffer = m_nCntTick_Receive_GetBuffer = 0;
+            Array.Clear(m_pnCntTick_Send, 0, m_pnCntTick_Send.Length);
+            Array.Clear(m_pnCntTick_Receive, 0, m_pnCntTick_Receive.Length);
+            //Array.Clear(m_pnCntTick_Receive_Back, 0, m_pnCntTick_Receive_Back.Length);
+            for (int i = 0; i < 256; i++) m_pnCntTick_Receive_Back[i] = -1;//
+        }
+        // 틱을 이용한 ...
+        // 통신 장애 시간 체크
+        public long GetCounter_Timer(int nAxis) { return Tick_GetTimer(nAxis); }
+        //public bool IsReceived(int nAxis) { return ((m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) || (m_pCTimer[nAxis].Get() > 100)) ? true : false; }
+        public bool IsReceived(int nAxis) { return (m_pnCntTick_Receive[nAxis] != m_pnCntTick_Receive_Back[nAxis]) ? true : false; }
+        private Ojw.CTimer m_CTmr = new CTimer();
+        public bool WaitReceive(int nAxis, long lWaitTimer)  // true : Receive Ok, false : Fail
+        {
+            m_CTmr.Set();
+            bool bError = true;
+            bool bOver = false;
+            while ((connected() == true) && (m_bClassEnd == false) && (bOver == false))
+            {
+                if (IsReceived(nAxis) == true)
+                {
+                    bError = false;
+                    break;
+                }
+                if (lWaitTimer > 0)
+                {
+                    if (m_CTmr.Get() >= lWaitTimer)
+                    {
+                        bOver = true;
+                    }
+                }
+                //Thread.Sleep(1);
+                Application.DoEvents();
+            }
+            return ((bError == false) ? true : false);
+        }
+        #endregion
+
+        #region 버퍼관리 - 변수 - 함수
+        private const int _CNT_BUFFER = 100;
+        private int m_nCnt_ReceivedData = 0;
+        private bool m_bReceived_AllData = true; // 데이타를 전부 받지 못한 경우 이게 false가 되어 다음 데이터를 받기를 기다림
+        private String[] m_pstrReceivedData = new string[_CNT_BUFFER];// 완전한 형태의 받은 패킷 데이터
+        private int m_nIndexReceiveData = 0; // 다음에 받아야 할 번지를 가리킴
+        private bool m_bClassEnd = false;
+        public int GetBuffer_Index_Last()
+        {
+            if (m_nCnt_ReceivedData > 0)
+                return ((m_nIndexReceiveData > 0) ? (m_nIndexReceiveData - 1) : (_CNT_BUFFER - 1));
+            return -1;
+        }
+        public int GetBuffer_Index_First()
+        {
+            if (m_nCnt_ReceivedData > 0)
+            {
+                return (_CNT_BUFFER + GetBuffer_Index_Last() - m_nCnt_ReceivedData + 1) % _CNT_BUFFER;
+            }
+            return -1;
+        }
+        // 0 -> first
+        public int GetBuffer_Index(int nPos)
+        {
+            if ((m_nCnt_ReceivedData > 0) && (nPos < m_nCnt_ReceivedData) && (nPos >= 0))
+            {
+                return (_CNT_BUFFER + GetBuffer_Index_Last() - m_nCnt_ReceivedData + 1 + nPos) % _CNT_BUFFER;
+            }
+            return -1;
+        }
+        public int GetBuffer_Length()
+        {
+            try
+            {
+                return ((connected() == true) ? m_SerialPort.BytesToRead : 0);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+        public int GetBuffer_OneData()
+        {
+            try
+            {
+                return ((connected() == true) ? m_SerialPort.ReadByte() : 0);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+        private void PushBuffer(string strData)
+        {
+            m_pstrReceivedData[m_nIndexReceiveData++] = strData;
+            if (m_nCnt_ReceivedData < _CNT_BUFFER) m_nCnt_ReceivedData++;
+            if (m_nIndexReceiveData >= _CNT_BUFFER) m_nIndexReceiveData = 0;
+
+            m_nCntTick_Receive_PushBuffer++; // 통신 이벤트 카운터 증가
+        }
+        public int GetBuffer_Size() { return m_nCnt_ReceivedData; }
+        // 버퍼를 비우면서 꺼내온다.
+        public String GetBuffer()
+        {
+            m_nCntTick_Receive_GetBuffer++; // 통신 이벤트 카운터 증가
+
+            if (m_nCnt_ReceivedData > 0)
+            {
+                int nIndex = GetBuffer_Index_First();
+                m_nCnt_ReceivedData--;
+                return m_pstrReceivedData[nIndex];
+            }
+
+            return null;
+        }
+        // 버퍼를 비우지 않고 꺼내온다.
+        public String GetBuffer_NoRemove(int nPos)
+        {
+            if (m_nCnt_ReceivedData > 0)
+            {
+                int nIndex = GetBuffer_Index(nPos);
+                return m_pstrReceivedData[nIndex];
+            }
+            return null;
+        }
+        #endregion
+
+        #region connected() - 접속상태 체크
+        public bool connected() { if (m_SerialPort == null) return false; return m_SerialPort.IsOpen; }
+        #endregion connected
+
+        /////////////////////////////////////////////////
+        // Parity - 0 : None, 1 : Odd, 2 : Even, 3 : Mark, 4 : Space
+        // StopBit - 0 : None, 1 : One, 2 : Two, 3 : OnePointFive
+        #region connect
+        public bool connect(int nBluetoothSppPort, int nBaudRate)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
+        {
+            try
+            {
+                if (connected() == false)
+                {
+                    ResetCounter(); // 카운터 클리어
+
+                    if (m_bEventInit == false)
+                    {
+                        m_bEventInit = true;
+                    }
+
+                    //String strPort = "COM" + OjwConvert.IntToStr(nBluetoothSppPort);
+                    //m_SerialPort = new SerialPort(strPort, nBaudRate, Parity.None, 8, StopBits.One);
+                    m_SerialPort.PortName = "COM" + nBluetoothSppPort.ToString();
+                    m_SerialPort.BaudRate = nBaudRate;
+                    m_SerialPort.Parity = Parity.None;
+                    m_SerialPort.DataBits = 8;
+                    m_SerialPort.StopBits = StopBits.One;
+                    m_SerialPort.ReceivedBytesThreshold = 1;
+                    //m_SerialPort.ReadExisting
+                    //m_SerialPort.ReadBufferSize = 256;
+                    try
+                    {
+                        m_SerialPort.Open();
+
+                        if (connected() == true)
+                        {
+                            m_bClassEnd = false;
+                            Reader = new Thread(new ThreadStart(ReceiveDataCallback));
+                            Reader.Start();
+                        }
+
+                    }
+                    catch
+                    {
+                        //m_bConnect = false;
+                        return _RESULT_FAIL;
+                    }
+                }
+                return connected();
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        #endregion connect
+
+        #region disconnect() - 접속 해제 - Thread 정지
+        public void disconnect()
+        {
+            if (connected() == true)
+            {
+                m_bClassEnd = true;
+                //Reader.Abort();
+                m_SerialPort.Close();
+            }
+        }
+        #endregion disconnect
+
+        #region Bluetooth ID
+        private int m_nRobotID = 0x00;
+        public void drbluetooth_set_id(int nRobotID) { m_nRobotID = nRobotID; }
+        public int drbluetooth_get_id() { return m_nRobotID; }
+        #endregion Bluetooth ID
+
+        #region Test 용
+        private bool m_bServerOn = false;
+        public void drbluetooth_set_param_servermode(bool bOn) { m_bServerOn = bOn; } // 이게 셋 되면 테스트 모드로 서버처럼 동작한다. - 테스트 용도외엔 쓸일 없는 함수
+        public bool drbluetooth_get_param_servermode() { return m_bServerOn; }
+        //private int m_nCode = _CODE_BLUETOOTH;
+        //public void drbluetooth_set_code(int nCode) { m_nCode = nCode; }
+        public int drbluetooth_get_code() { return _CODE_BLUETOOTH; }// m_nCode; }
+        #endregion Test 용        
+       
+        private bool m_bBusy = false;
+        // 통신의 혼선이 일지 않게 끔 외부적으로 Busy 상태인지 아닌지를 확인하는 함수
+        public bool IsBusy() { return m_bBusy; }
+        private bool[] m_pbRequest = new bool[_MOTOR_MAX];
+        private int m_nRxIndex = 0xff;
+        //private int m_nRxDataCount = 0;
+        //private int m_nRxId = 0;
+        //private int m_nRxCmd = 0;
+        private byte m_byCheckSum = 0;
+        private byte m_byCheckSum_add = 0;
+        private byte[] m_pbyteData;
+        private int m_nSeq = 0;
+        private int m_nSeq_Rx = 0;
+        #region Memory
+        private const int _CMD_ROM = 0x42;
+        private const int _CMD_RAM = 0x44;
+        private const int _CMD_OPSU_SENSOR = 0x74;
+        private const int _CMD_MPSU_ROM = 0x52;
+        private const int _CMD_MPSU_RAM = 0x54;
+        private const int _CMD_MPSU_ROM2 = 0x12;
+        private const int _CMD_MPSU_RAM2 = 0x14;
+        private const int _CMD_HEAD_ROM = 0x4B;
+        private const int _CMD_HEAD_RAM = 0x4D;
+
+        public const int _SIZE_ROM = 54;
+        public const int _SIZE_RAM = 74;
+        public const int _SIZE_SENSOR = 22;
+        public const int _SIZE_MPSU_ROM = 23;
+        public const int _SIZE_MPSU_RAM = 234;
+        public const int _SIZE_HEAD_ROM = 22;
+        public const int _SIZE_HEAD_RAM = 56;
+        private byte[,] m_pbyRam = new byte[256, _SIZE_RAM];
+        private byte[,] m_pbyRom = new byte[256, _SIZE_ROM];
+        private byte[] m_pbySensor = new byte[_SIZE_SENSOR];
+        private byte[] m_pbyMpsuRam = new byte[_SIZE_MPSU_RAM];
+        private byte[] m_pbyMpsuRom = new byte[_SIZE_MPSU_ROM];
+        private byte[] m_pbyHeadRam = new byte[_SIZE_HEAD_RAM];
+        private byte[] m_pbyHeadRom = new byte[_SIZE_HEAD_ROM];
+        public byte drbluetooth_mpsu_get_data_ram(int nAddress) { return m_pbyMpsuRam[nAddress]; }
+        public byte[] drbluetooth_mpsu_get_data_ram() { return m_pbyMpsuRam; }
+        #endregion Memory
+
+        private bool m_bHeader = false;
+        private bool m_bMpsu = false;
+        private int m_nDataIndex = 0;
+        private void ReceiveDataCallback()
+        {
+            m_bHeader = false;
+            m_bMpsu = false;
+            byte RxData;
+            // 일단 하나의 완전한 패킷 형태로 만든다.
+            while ((connected() == true) && (m_bClassEnd == false))
+            {
+                try
+                {
+                    int nPacketLength = GetBuffer_Length();
+                    if (nPacketLength > 0)
+                    {
+                        m_nCntTick_Receive_Event_All++;
+                        
+                        // 통신이 이루어 진 것이므로 다음 명령을 받을 수 있도록 busy 를 먼저 클리어 한다.
+                        m_bBusy = false;
+                        for (int i = 0; i < nPacketLength; i++)
+                        {
+                            RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                            //m_nRxIndex++;
+
+                            if ((RxData == 0xFF) && (m_nRxIndex == 0xFF)) // 데이타 준비상태이면서 첫번째 헤더가 0xff 라면
+                            {
+                                // 초기화...
+                                m_nRxIndex = 0;
+                                m_nPacket_Length = 0;
+                                m_bHeader = true;
+
+                                m_nDataIndex = 0;
+                                continue;
+                            }
+
+                            if (m_bHeader == true)
+                            {
+                                m_bHeader = false;
+                                if (RxData == 0xff)
+                                {
+                                    m_bMpsu = true;
+                                    continue;
+                                }
+                                else m_bMpsu = false;
+                            }
+
+                            // Mpsu 패킷과 일반 패킷을 구분
+                            if (m_bMpsu == true)
+                            {
+                                #region MPSU Packet(Switch Case)
+                                switch (m_nRxIndex)
+                                {
+                                    #region Packet Size(0)
+                                    case 0:
+                                        m_nPacket_Length = (int)RxData;
+                                        if (m_nPacket_Length < 9)
+                                        {
+                                            m_nRxIndex = 0xFF;
+                                            continue;
+                                        }
+                                        m_nPacket_Pos = m_nPacket_Length - (9 - 2); // Status 2 bytes
+                                        m_pbyteData = new byte[m_nPacket_Pos];
+
+                                        m_byCheckSum = RxData;
+                                        break;
+                                    #endregion Packet Size(0)
+                                    #region ID(1)
+                                    case 1:
+                                        m_nPacket_ID = (int)RxData; // 0x40 ~ 0x5f
+                                        if ((RxData < 0x40) || (RxData > 0x5f))
+                                        {
+                                            m_nRxIndex = 0xFF;
+                                            continue;
+                                        }
+                                        m_byCheckSum ^= RxData;
+                                        break;
+                                    #endregion ID(1)
+                                    #region Command(2)
+                                    case 2:
+                                        m_nPacket_Cmd = (int)RxData;
+                                        if (                                // 분류는 여러가지이지만 현재 MPSU_RAM 만 고려되어 있다.
+                                            (RxData != _CMD_MPSU_ROM) &&	// MPSU_EEP_READ
+                                            (RxData != _CMD_MPSU_RAM) &&	// MPSU_RAM_READ -> 이것만...
+                                            (RxData != _CMD_MPSU_ROM2) &&	// MPSU_EEP_READ
+                                            (RxData != _CMD_MPSU_RAM2) 	    // MPSU_RAM_READ -> 이것만... => MPSU 명령이 수정된것 같음. 나중에 철희에게 확인해 볼것. 기존에는 0x54 가 반송되도록 되어 있음.
+                                        )
+                                        {
+                                            m_nRxIndex = 0xFF;
+                                            continue;
+                                        }
+                                        m_byCheckSum ^= RxData;
+                                        break;
+                                    #endregion Command(2)
+                                    #region CheckSum 1(3)
+                                    case 3:
+                                        m_nPacket_Checksum1 = (int)RxData;
+                                        break;
+                                    #endregion CheckSum 1(3)
+                                    #region CheckSum 2(4)
+                                    case 4:
+                                        m_nPacket_Checksum2 = (int)RxData;
+                                        break;
+                                    #endregion CheckSum 2(4)
+                                    #region Data and Status(5)
+                                    case 5:
+                                        if (m_nPacket_Pos > 0)
+                                        {
+                                            int nPos = ((m_nPacket_Length - 7) - m_nPacket_Pos);
+                                            if (m_nPacket_Pos <= 2)
+                                            {
+                                                // Status
+                                                m_pbyteData[nPos] = (byte)RxData;
+                                            }
+                                            else
+                                            {
+                                                // Data
+                                                m_pbyteData[nPos] = (byte)RxData;
+                                            }
+                                            m_byCheckSum ^= RxData;
+                                            m_nPacket_Pos--;
+                                            m_nRxIndex--;//
+                                        }
+
+                                        if (m_nPacket_Pos == 0)
+                                        {
+                                            // 데이타 수집이 완료되었다면
+                                            if ((m_nPacket_Cmd == _CMD_MPSU_RAM) || (m_nPacket_Cmd == _CMD_MPSU_RAM2))
+                                            {
+                                                // 체크섬을 조사해 보고 이상유무를 파악
+                                                if (((m_byCheckSum & 0xfe) == m_nPacket_Checksum1) && ((~m_nPacket_Checksum1 & 0xfe) == m_nPacket_Checksum2))
+                                                {
+                                                    // 체크섬 이상 없음.
+                                                    m_nSeq_Rx++;
+                                                    // 다시 데이터를 받을 준비...
+                                                    m_nRxIndex = 0xFF;
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    #endregion Data and Status(5)                                        
+                                    #region Etc(default) 의 경우 - 초기화
+                                    default:
+                                        m_nRxIndex = 0xFF;
+                                        break;
+                                    #endregion Etc(default) 의 경우 - 초기화
+                                }
+                                #endregion MPSU Packet(Switch Case)
+                            }
+                            else
+                            {
+                                #region Normal Packet
+
+                                switch (m_nRxIndex)
+                                {
+                                    #region ID          -> nID
+                                    case 0:
+                                        m_nPacket_ID = RxData;
+                                        m_byCheckSum = RxData;
+                                        break;
+                                    #endregion ID       -> nID
+                                    #region Cmd         -> nCmd
+                                    case 1:
+                                        m_nPacket_Cmd = RxData;
+                                        m_byCheckSum ^= RxData;
+                                        break;
+                                    #endregion Cmd      -> nCmd
+                                    #region Packet Size(0)
+                                    case 2:
+                                    case 3:
+                                    case 4:
+                                    case 5:
+                                        m_nPacket_Length += ((int)RxData << ((3 - (m_nRxIndex - 2)) * 8));                                        
+                                        m_byCheckSum ^= RxData;
+                                        if (m_nPacket_Length > 0)
+                                            m_pbyteData = new byte[m_nPacket_Length];
+                                        break;
+                                    #endregion Packet Size(0)
+                                    #region Data & CheckSum
+                                    case 6:
+                                        if (m_nPacket_Length > 0)
+                                        {
+                                            m_pbyteData[m_nDataIndex++] = (byte)RxData;
+                                            m_byCheckSum ^= RxData;                                            
+                                        }
+                                        if (m_nPacket_Length != m_nDataIndex) m_nRxIndex--;
+                                        break;
+                                    case 7:
+                                        if ((m_byCheckSum & 0x7f) == RxData)
+                                        {
+                                            // 체크섬 이상 없음.
+                                            m_nSeq_Rx++;                                            
+                                        }
+                                        // 다시 데이터를 받을 준비...
+                                        m_nRxIndex = 0xFF;
+                                        break;
+                                    #endregion Data & CheckSum
+                                    #region Etc(default) 의 경우 - 초기화
+                                    default:
+                                        m_nRxIndex = 0xFF;
+                                        break;
+                                    #endregion Etc(default) 의 경우 - 초기화
+                                }
+                                #endregion Normal Packet
+                            }
+
+                            if (m_nRxIndex != 0xFF) m_nRxIndex++;
+
+
+                            // 데이타가 깨지지 않은 경우 ...
+                            if (m_nSeq != m_nSeq_Rx)
+                            {
+                                m_nSeq = m_nSeq_Rx; // 일단 시퀀스 동기화
+
+                                if (
+                                    (drbluetooth_get_id() == m_nPacket_ID) || // 해당 로봇을 지칭하는 경우에만 명령 수행, drbluetooth_get_id 는 테스트로 할 경우 미리 셋팅해 놓도록 한다.
+                                    (m_nPacket_ID == 0xfe) // BroadCasting
+                                )
+                                {
+                                    if (((m_nPacket_ID >= 0x40) && (m_nPacket_ID < 0x60)) || (m_nPacket_ID == 253))
+                                    {
+                                        if (m_nPacket_Cmd == _CMD_MPSU_RAM)
+                                        {
+                                            int nAddress = m_pbyteData[0];
+                                            int nLength = m_pbyteData[1];
+                                            // 그냥 메모리에 넣는다.
+                                            Array.Copy(m_pbyteData, 0, m_pbyMpsuRam, nAddress, nLength);
+                                            m_nClient_Seq++; // Parser() 함수에는 있으나 여기는 없기 때문에 busy 를 클리어하려면 여기에 이 부분을 넣어준다.
+                                        }
+                                    }
+                                    else
+                                        Parser(m_nPacket_Cmd, m_nPacket_Length, m_pbyteData, m_byCheckSum);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // 다시 데이터를 받을 준비...
+                    m_nRxIndex = 0xFF;
+                }
+                Thread.Sleep(10);
+            }
+        }
+        private void ReceiveDataCallback2()		/* Callback 함수 */
+        {
+            while ((connected() == true) && (m_bClassEnd == false))
+            {
+                try
+                {                   
+                    int i;
+                    //int nCode = 0;
+                    int nID = 0;
+                    int nCmd = 0;
+                    int nLength = 0;
+                    int nAllLength = 0;
+                    byte RxData = 0;
+                    int nPacketLength = GetBuffer_Length();
+                    int nChecksum1 = 0;
+                    int nChecksum2 = 0;
+                    int nAddress = 0;
+                    if (nPacketLength > 0)
+                    {
+                        m_nCntTick_Receive_Event_All++;
+
+                        // 통신이 이루어 진 것이므로 다음 명령을 받을 수 있도록 busy 를 먼저 클리어 한다.
+                        m_bBusy = false;
+
+                        int nPos = 0;
+
+                        for (i = 0; i < nPacketLength; i++)
+                        {
+
+
+
+
+
+
+
+
+                            RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                            if (connected() == false) break;
+
+                            if (RxData == 0xff) // 리턴해서 돌아오는 패킷에 헤더를 제외하고 ff 는 없다고 가정
+                            {
+                                // 패킷이 깨지는 경우 염두에 두지 않고 간략한 형태로만 넣었음. 문제되면 넣도록 할것.
+                                RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                if (RxData == 0xff) // MPSU
+                                {
+                                    int nIndex = 0;
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    #region Size
+                                    // PacketSize
+                                    //if ((RxData & 0xf0) == 0xf0) break; // 잘못된 데이타 사이즈의 경우 패스(0xf0 로 시작된다면 음수)
+                                    nAllLength = RxData;
+                                    m_byCheckSum = RxData;
+                                    nIndex++;
+                                    #endregion Size
+                                    #region Id
+                                    // ID
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    nID = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    nIndex++;
+                                    #endregion Id
+                                    #region Cmd
+                                    // Cmd
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    if ( // 분류는 여러가지이지만 현재 MPSU_RAM 만 고려되어 있다.
+                                        (RxData != _CMD_ROM) &&	// EEP_READ
+                                        (RxData != _CMD_RAM) &&	// RAM_READ
+                                        (RxData != _CMD_MPSU_ROM) &&	// MPSU_EEP_READ
+                                        (RxData != _CMD_MPSU_RAM) &&	// MPSU_RAM_READ -> 이것만...
+                                        (RxData != _CMD_MPSU_ROM2) &&	// MPSU_EEP_READ
+                                        (RxData != _CMD_MPSU_RAM2) &&	// MPSU_RAM_READ -> 이것만... => MPSU 명령이 수정된것 같음. 나중에 철희에게 확인해 볼것. 기존에는 0x54 가 반송되도록 되어 있음.
+                                        (RxData != _CMD_HEAD_ROM) &&	// MPSU_EEP_READ
+                                        (RxData != _CMD_HEAD_RAM) &&	// MPSU_RAM_READ
+                                        (RxData != _CMD_OPSU_SENSOR) // OPSU Sensor READ
+                                        )
+                                    {
+                                        break;
+                                    }
+                                    nCmd = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    nIndex++;
+                                    #endregion Cmd
+
+                                    #region checksum 1
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    nChecksum1 = RxData;
+                                    #endregion checksum 1
+
+                                    #region checksum 2
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    nChecksum2 = RxData;
+                                    #endregion checksum 2
+
+                                    #region Address
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    nAddress = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    nIndex++;
+                                    #endregion Addreass
+
+                                    #region Data Length
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    nLength = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    nIndex++;
+                                    #endregion Data Length
+
+                                    #region Data & CheckSum
+                                    m_pbyteData = new byte[nLength]; // 메모리 설정
+                                    byte[] pbyteData = get_bytes(nLength);
+                                    if (pbyteData.Length != nLength) // 패킷 사이즈가 틀리다면...
+                                        break;
+
+                                    #region Status ( 2 bytes )
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    //m_byCheckSum ^= RxData;
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    //m_byCheckSum ^= RxData;
+                                    #endregion Status
+
+                                    // CheckSum
+                                    for (int nCheckPos = 0; nCheckPos < nLength; nCheckPos++) m_byCheckSum ^= pbyteData[nCheckPos];
+                                    m_byCheckSum = (byte)(m_byCheckSum & 0xfe);
+
+                                    if ((nChecksum1 == m_byCheckSum) && (nChecksum2 == (~m_byCheckSum & 0xfe)))
+                                    {
+                                        // 체크섬 이상 없음.
+                                        Array.Copy(pbyteData, m_pbyteData, nLength);
+                                        m_nSeq_Rx++;
+                                    }
+                                    //else 
+                                    //    break;
+                                    #endregion Data & CheckSum
+                                    break;                                    
+                                }
+                                else
+                                {
+                                    #region ID          -> nID
+                                    nID = RxData;
+                                    m_byCheckSum = RxData;
+                                    #endregion ID       -> nID
+
+                                    #region Cmd         -> nCmd
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    nCmd = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    #endregion Cmd      -> nCmd
+
+                                    #region Size        -> nLength
+                                    byte byData0 = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    m_byCheckSum ^= byData0;
+                                    byte byData1 = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    m_byCheckSum ^= byData1;
+                                    byte byData2 = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    m_byCheckSum ^= byData2;
+                                    byte byData3 = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    m_byCheckSum ^= byData3;
+                                    nLength = get_int32(byData0, byData1, byData2, byData3);
+                                    #endregion Size     -> nLength
+
+                                    #region Data & CheckSum
+                                    m_pbyteData = new byte[nLength]; // 메모리 설정
+                                    byte[] pbyteData = get_bytes(nLength);
+                                    if (pbyteData.Length != nLength) // 패킷 사이즈가 틀리다면...
+                                        break;
+
+                                    for (int nCheckPos = 0; nCheckPos < nLength; nCheckPos++)
+                                    {
+                                        m_byCheckSum ^= pbyteData[nCheckPos];
+                                    }
+
+                                    m_byCheckSum = (byte)(m_byCheckSum & 0x7f);
+                                    RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                                    if (RxData == m_byCheckSum)
+                                    {
+                                        // 체크섬 이상 없음.
+                                        Array.Copy(pbyteData, m_pbyteData, nLength);
+                                        m_nSeq_Rx++;
+                                    }
+                                    //else 
+                                    //    break;
+                                    break;
+                                    #endregion Data & CheckSum
+                                }
+                            }
+#if false
+                            RxData = (byte)(m_SerialPort.ReadByte() & 0xff);
+                            if (connected() == false) // return 보다 continue 로 해서 쓰레기 데이타를 처리하도록 한다.
+                            {
+                                m_nRxIndex = 0xff;
+                                continue;
+                            }
+
+                            if ((RxData == 0xFF) && (m_nRxIndex == 0xFF)) // 데이타 준비상태이면서 첫번째 헤더가 0xff 라면
+                            {
+                                // 초기화...
+                                m_nRxIndex = 0;
+                                nLength = 0;
+                                //m_byCheckSum = 0;
+                                nPos = 0;
+                                continue;
+                            }
+                            
+                            switch (m_nRxIndex)
+                            {
+                                #region Header      -> 잘못되면 m_nRxIndex 를 0xFF 으로 초기화 -> 정대로 0xff 가 두번 나올리 없다.
+                                case 0: // Header
+                                    if (RxData != 0xFF)
+                                    {
+                                        m_nRxIndex = 0xFF;
+                                        continue;
+                                    }
+                                    break;
+                                #endregion Header   -> 잘못되면 m_nRxIndex 를 0xFF 으로 초기화 -> 정대로 0xff 가 두번 나올리 없다.
+                                #region Code        -> nCode
+                                case 1: //Get Code
+                                    nCode = RxData;
+                                    if (nCode != _CODE_BLUETOOTH)
+                                    {
+                                        m_nRxIndex = 0xFF;
+                                        continue;
+                                    }
+                                    m_byCheckSum = RxData;
+                                    break;
+                                #endregion Code     -> nCode
+                                #region ID          -> nID
+                                case 2: //Get ID
+                                    nID = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    break;
+                                #endregion ID       -> nID
+                                #region Cmd         -> nCmd
+                                case 3: // Get Cmd
+                                    nCmd = RxData;
+                                    m_byCheckSum ^= RxData;
+                                    break;
+                                #endregion Cmd      -> nCmd
+                                #region Size        -> nLength
+                                case 4: //Get Data Size(Packet Size)
+                                    nLength = RxData;
+                                    m_byCheckSum ^= RxData;
+
+                                    m_pbyteData = new byte[RxData]; // 메모리 설정
+                                    break;
+                                #endregion Size     -> nLength
+                                #region Data        -> m_pbyteData[] 에 저장
+                                case 5: //Get Data				
+                                    if (nPos < nLength - 1) // 마지막 데이터가 되기 전까지는 이 부분에서 계속 데이타를 얻어가도록 한다.
+                                        m_nRxIndex--;
+
+                                    m_pbyteData[nPos++] = RxData;
+                                    m_byCheckSum ^= RxData;                                     
+                                    break;
+                                #endregion Data     -> m_pbyteData[] 에 저장
+                                #region CheckSum    -> m_byCheckSum
+                                case 6: 			// checksum
+                                    m_byCheckSum = (byte)(m_byCheckSum & 0x7f);
+                                    if (RxData != m_byCheckSum)
+                                    {
+                                        // 체크섬 이상 벌견
+                                        m_nRxIndex = 0xFF;
+                                    }
+                                    else
+                                        m_nSeq_Rx++;
+                                    break;
+                                #endregion CheckSum -> m_byCheckSum;
+
+                                #region Etc(default) 의 경우 - 초기화
+                                default:
+                                        m_nRxIndex = 0xFF;
+                                    break;
+                                #endregion Etc(default) 의 경우 - 초기화
+                            }
+                            if (m_nRxIndex != 0xFF) m_nRxIndex++;
+#endif
+                        }
+
+                        // 데이타가 깨지지 않은 경우 ...
+                        if (m_nSeq != m_nSeq_Rx)
+                        {
+                            m_nSeq = m_nSeq_Rx; // 일단 시퀀스 동기화
+
+                            // 여기부터 파서 가동
+                            //if (drbluetooth_get_param_servermode() == false)
+                            //{
+                            //    Parser(nCmd, nLength, m_pbyteData, m_byCheckSum);
+                            //}
+                            //else
+                            //{
+                                if ((drbluetooth_get_id() == nID) || // 해당 로봇을 지칭하는 경우에만 명령 수행, drbluetooth_get_id 는 테스트로 할 경우 미리 셋팅해 놓도록 한다.
+
+                                    //(nID == 0xc0) || // for test
+
+                                    (nID == 0xfe)) // BroadCasting
+                                {
+                                    if (((nID >= 0x40) && (nID < 0x60)) || (nID == 253))
+                                    {
+                                        if (nCmd == _CMD_MPSU_RAM)
+                                        {
+                                            // 그냥 메모리에 넣는다.
+                                            Array.Copy(m_pbyteData, 0, m_pbyMpsuRam, nAddress, nLength);
+                                            m_nClient_Seq++; // Parser() 함수에는 있으나 여기는 없기 때문에 busy 를 클리어하려면 여기에 이 부분을 넣어준다.
+                                        }
+                                    }
+                                    else 
+                                        Parser(nCmd, nLength, m_pbyteData, m_byCheckSum);
+                                }
+                            //}
+                        }
+                    }
+                }
+                catch
+                {
+                }
+                Thread.Sleep(10);
+            }
+
+        }
+           
+        private void Parser(int nCmd, int nLength, byte [] pbyteData, byte byteCheckSum)
+        {
+            #region Parser
+            //if (m_bAuth == true)
+            
+            if (nCmd == 0xf0)
+            {
+                //_RET_RECEIVE_OK, ...
+                if (pbyteData.Rank >= 1)
+                {
+                    if      ((byte)(pbyteData[1]) == 0) m_nProcess_Client = _RET_RECEIVE_OK;
+                    else if ((byte)(pbyteData[1]) == 1) m_nProcess_Client = _RET_PROCESS_END;
+                    else if ((byte)(pbyteData[1]) == 2) m_nProcess_Client = _RET_PROCESS_FAILED;
+                    else if ((byte)(pbyteData[1]) == 3) m_nProcess_Client = _RET_CHECKSUM_ERROR;
+                    else if ((byte)(pbyteData[1]) == 4) m_nProcess_Client = _RET_TIME_OUT_ERROR;
+                    else if ((byte)(pbyteData[1]) == 5) m_nProcess_Client = _RET_LENGTH_ERROR;
+                }
+            }
+            else if (nCmd == 0xf1)
+            {
+                if (nLength == 0)
+                    m_nProcess_Client = _RET_RECEIVE_OK;
+                else
+                    m_nProcess_Client = _RET_LENGTH_ERROR;
+            }
+            else
+            {
+                switch (nCmd)
+                {
+                    case 0x31:
+                        {
+                            // 파일목록 확인
+                            if (nLength >= 3)
+                            {
+                                bool bMaster = (pbyteData[0] == 0) ? true : false;
+                                int nFileListSize = (pbyteData[1] << 8) + pbyteData[2];
+                                int nPos = 3;
+                                if (pbyteData.Length == (3 + _SIZE_FILENAME * nFileListSize))
+                                {
+                                    if (bMaster == true)
+                                    {
+                                        m_nFileList_master = nFileListSize;
+                                        m_pbyteFileList_master = new byte[_SIZE_FILENAME * nFileListSize];
+                                        Array.Copy(pbyteData, nPos, m_pbyteFileList_master, 0, _SIZE_FILENAME * nFileListSize);
+                                    }
+                                    else
+                                    {
+                                        m_nFileList_user = nFileListSize;
+                                        m_pbyteFileList_user = new byte[_SIZE_FILENAME * nFileListSize];
+                                        Array.Copy(pbyteData, nPos, m_pbyteFileList_user, 0, _SIZE_FILENAME * nFileListSize);
+                                    }
+                                }
+                                m_nProcess_Client = _RET_RECEIVE_OK;
+                            }
+                            else
+                                m_nProcess_Client = _RET_LENGTH_ERROR;
+                        }
+                        break;
+                    case 0x33: // Request
+                        {
+                            if (nLength > (1 + _SIZE_FILENAME))
+                            {
+                                int nFileSize = nLength - (1 + _SIZE_FILENAME);
+                                int nPos = 0;
+                                int nMaster = pbyteData[nPos++];
+                                if ((nMaster >= 0) || (nMaster <= 1))
+                                {
+                                    String strFileName = Encoding.Default.GetString(pbyteData, nPos, _SIZE_FILENAME);
+                                    nPos += _SIZE_FILENAME;
+                                    byte[] pbyteFile = new byte[nFileSize];
+                                    Array.Copy(pbyteData, nPos, pbyteFile, 0, nFileSize);
+
+                                    //String strDir = ((m_nCurrentPort == 7000) ? "task\\" : "motion\\") + ((nMaster == 0) ? "master\\" : "user\\");
+                                    String strDir = "motion\\" + ((nMaster == 0) ? "master\\" : "user\\");
+                                    DirectoryInfo dirinfoMasterUser = new DirectoryInfo(strDir);
+                                    if (dirinfoMasterUser.Exists == false)
+                                    {
+                                        dirinfoMasterUser.Create();
+
+                                    }
+                                    string strFile = strDir + strFileName.Trim('\0');
+                                    FileStream fs = new FileStream(strFile, FileMode.Create);
+                                    fs.Write(pbyteFile, 0, nFileSize);
+                                    fs.Close();
+                                }
+                                m_nProcess_Client = _RET_RECEIVE_OK;
+                            }
+                            else
+                                m_nProcess_Client = _RET_LENGTH_ERROR;
+                        }
+                        break;
+                    case 0x41:
+                        {
+                            if (nLength == 1)
+                            {
+                                m_bPlaying = Convert.ToBoolean(pbyteData[0]);
+                                m_nProcess_Client = _RET_RECEIVE_OK;
+                            }
+                            else
+                                m_nProcess_Client = _RET_LENGTH_ERROR;
+                        }
+                        break;
+                    case 0x62:
+                        {
+                            if (nLength == 8)
+                            {
+                                m_nTimeSec = (pbyteData[0] << 24) | (pbyteData[1] << 16) | (pbyteData[2] << 8) | (pbyteData[3]);
+                                m_nTimeUSec = (pbyteData[4] << 24) | (pbyteData[5] << 16) | (pbyteData[6] << 8) | (pbyteData[7]);
+                                m_nProcess_Client = _RET_RECEIVE_OK;
+                            }
+                            else
+                                m_nProcess_Client = _RET_LENGTH_ERROR;
+                        }
+                        break;
+                    case 0x63:
+                        {
+                            if (nLength == 2)
+                            {
+                                m_nRobotBatt = pbyteData[0];
+                                m_nMIDBatt = pbyteData[1];
+                                m_nProcess_Client = _RET_RECEIVE_OK;
+                            }
+                            else
+                                m_nProcess_Client = _RET_LENGTH_ERROR;
+                        }
+                        break;
+                    case 0x65:
+                        {
+                            if (nLength == 2)
+                            {
+                                m_nRmcLength = pbyteData[0];
+                                m_nRmcData = pbyteData[1];
+                                m_nProcess_Client = _RET_RECEIVE_OK;
+                            }
+                            else
+                                m_nProcess_Client = _RET_LENGTH_ERROR;
+                        }
+                        break;
+                    //case 0x71:
+                    //    {
+                    //        if (nLength == 1)
+                    //        {
+                    //            m_bClientAuth = (pbyteData[0] == 1) ? true : false;
+                    //            m_nProcess_Client = _RET_RECEIVE_OK;
+                    //        }
+                    //        else
+                    //            m_nProcess_Client = _RET_LENGTH_ERROR;
+                    //    }
+                    //    break;
+                }
+            }
+
+            m_nClient_Seq++;
+            #endregion Parser
+        }
+                
+        #region 공개
+        public static bool _RESULT_OK = true;
+        public static bool _RESULT_FAIL = false;
+        public String get_application_path() { return m_strOrgPath; }
+        //public bool thread_started() { return m_bThread_Client; }
+        public int packet_status() { return m_nProcess_Client; }
+        public static string packet_status_tostring(int nPacketStat)
+        {
+            switch (nPacketStat)
+            {
+                case _RET_RECEIVE_OK:
+                    return "Receive OK";
+                //break;
+                case _RET_PROCESS_END:
+                    return "Process End";
+                //break;
+                case _RET_PROCESS_FAILED:
+                    return "Process Failed";
+                //break;
+                case _RET_CHECKSUM_ERROR:
+                    return "Check Sum Error";
+                //break;
+                case _RET_TIME_OUT_ERROR:
+                    return "Time Out Error";
+                //break;
+                case _RET_LENGTH_ERROR:
+                    return "Length Error";
+                //break;
+                default:
+                    return "Unknown Status";
+                //break;
+            }
+        }
+        //public bool is_auth() { return m_bClientAuth; }
+        public int seq() { return m_nClient_Seq; }
+        //public bool connected()
+        //{
+        //    if (m_tcpClient == null) return _RESULT_FAIL;
+        //    return m_tcpClient.Connected;// ((m_tcpClient.Connected == true) ? _RESULT_OK : _RESULT_FAIL);
+        //}
+        //public bool connect(int nIp_A, int nIp_B, int nIp_C, int nIp_D, int nPort)
+        //{
+        //    String strIP = nIp_A.ToString() + "." + nIp_B.ToString() + "." + nIp_C.ToString() + "." + nIp_D.ToString();
+        //    return connect(strIP, nPort);
+        //}
+        //public bool connect(int nIp_A, int nIp_B, int nIp_C, int nIp_D, int nPort, int nId)
+        //{
+        //    String strIP = nIp_A.ToString() + "." + nIp_B.ToString() + "." + nIp_C.ToString() + "." + nIp_D.ToString();
+        //    return connect(strIP, nPort, nId);
+        //}
+#if false
+        public bool connect(String strIP, int nPort)
+        {
+            try
+            {
+                m_tcpClient = new TcpClient();       // TCP 클라이언트 생성
+
+                try
+                {
+                    // 서버 IP 주소와 포트 번호를 이용해 접속 시도
+                    m_tcpClient.Connect(strIP, nPort);
+
+                    // 현재 포트와 아이피 저장
+                    m_nCurrentPort = nPort;
+                    m_strCurrentIp = strIP;
+
+                    //m_tcpClient = new TcpClient(strIP, nPort);
+                }
+                catch//(Exception e)
+                {
+                    //string strData = e.ToString();
+                    //strData += ".\r\n");
+
+                    return _RESULT_FAIL;
+                }
+
+                // 스레드를 생성한다.
+                m_thClient = new Thread(new ThreadStart(ThreadClient));
+
+                m_streamClient = m_tcpClient.GetStream();    // 스트림 가져오기
+                m_bwClient_outData = new BinaryWriter(new BufferedStream(m_tcpClient.GetStream()));
+                m_bwClient_inData = new BinaryReader(new BufferedStream(m_tcpClient.GetStream()));
+
+                // 스레드 시작
+                m_thClient.Start();
+
+                return connected();
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool connect(String strIP, int nPort, int nId)
+        {
+            try
+            {
+                m_nClientId = nId;
+                m_tcpClient = new TcpClient();       // TCP 클라이언트 생성
+
+                try
+                {
+                    // 서버 IP 주소와 포트 번호를 이용해 접속 시도
+                    m_tcpClient.Connect(strIP, nPort);
+
+                    // 현재 포트와 아이피 저장
+                    m_nCurrentPort = nPort;
+                    m_strCurrentIp = strIP;
+
+                    //m_tcpClient = new TcpClient(strIP, nPort);
+                }
+                catch//(Exception e)
+                {
+                    //string strData = e.ToString();
+                    //strData += ".\r\n");
+
+                    return _RESULT_FAIL;
+                }
+
+                // 스레드를 생성한다.
+                m_thClient = new Thread(new ThreadStart(ThreadClient));
+
+                m_streamClient = m_tcpClient.GetStream();    // 스트림 가져오기
+                m_bwClient_outData = new BinaryWriter(new BufferedStream(m_tcpClient.GetStream()));
+                m_bwClient_inData = new BinaryReader(new BufferedStream(m_tcpClient.GetStream()));
+
+                // 스레드 시작
+                m_thClient.Start();
+
+                return connected();
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool disconnect()
+        {
+            try
+            {
+                //bool connected() = IsConnect();
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL; //  IsConnect 플래그 체크
+
+                m_bwClient_inData.Close();           // 입력 스트림 닫기
+                m_bwClient_outData.Close();          // 출력 스트림 닫기
+
+                m_streamClient.Close();             // 스트림 종료
+
+                //Reader.Abort();                   // 쓰레드 종료
+                m_tcpClient.Close();
+                m_tcpClient = null;
+                return _RESULT_OK;
+            }
+            catch//(Exception e)
+            {
+                return _RESULT_FAIL;
+                //MessageBox.Show("[Message]" + e.ToString() + "\r\n");
+            }
+        }
+#endif        
+        // 벌크데이타를 보냄
+        public bool send(byte[] byteData)
+        {
+            try
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+
+                if (connected() == _RESULT_OK) m_SerialPort.Write(byteData, 0, byteData.Length);//m_bwClient_outData.Write(byteData);
+                //if (connected() == _RESULT_OK) m_SerialPort.m_bwClient_outData.Flush();
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public byte get_byte()
+        {
+            try
+            {
+                if (connected() == _RESULT_OK) return (byte)m_SerialPort.ReadByte();
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+        // 2 Byte 의 정수값을 반환
+        public int get_int16()
+        {
+            //if (connected() == _RESULT_OK) return inData.ReadInt16(); //2 Bytes
+            //else return 0;
+            int nData;
+            byte[] byteData = get_bytes(2);
+            nData = (byteData[2] << 8);
+            nData += (byteData[3]);
+            if (connected() == _RESULT_OK) return nData; //2 Bytes
+            else return 0;
+        }
+        // 4 Byte 의 정수값을 반환
+        public int get_int32()
+        {
+            int nData;
+            byte[] byteData = get_bytes(4);
+            nData = (byteData[0] << 24);
+            nData += (byteData[1] << 16);
+            nData += (byteData[2] << 8);
+            nData += (byteData[3]);
+            //if (connected() == _RESULT_OK) return inData.ReadInt32(); //4 Bytes
+            if (connected() == _RESULT_OK) return nData; //4 Bytes
+            else return 0;
+        }
+        // 4 Byte 의 정수값을 반환
+        public int get_int32(byte byData0, byte byData1, byte byData2, byte byData3)
+        {
+            int nData;
+            nData =  (byData0 << 24);
+            nData += (byData1 << 16);
+            nData += (byData2 << 8);
+            nData += (byData3);
+            return nData; //4 Bytes
+        }
+        // Size 만큼을 읽어감
+        public byte[] get_bytes(int nSize)
+        {
+            byte [] pbyteData = new byte[nSize];
+            for(int i = 0; i < nSize; i++)
+                pbyteData[i] = (byte)m_SerialPort.ReadByte();
+            return pbyteData;//m_bwClient_inData.ReadBytes(nSize);
+            //if (connected() == _RESULT_OK) return inData.ReadBytes(nSize);
+            //else return null;
+        }
+
+        #region SendData
+        public void send_command(int nCommand)
+        {
+#if false
+            int i, nNum;
+
+            // 프레임 수
+            int nSize = 0;
+            int nPacketSize = nSize + 8 + 2;
+            byte[] byteData = new byte[nPacketSize];
+
+            nNum = 0;
+            byteData[nNum++] = 0xff;
+            byteData[nNum++] = 0xff;
+            // Code
+            byteData[nNum++] = (byte)(_CODE_BLUETOOTH & 0xff);
+            // ID
+            byteData[nNum++] = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[nNum++] = (Byte)(nCommand & 0xff);
+
+            // Data Size
+            byteData[nNum++] = (byte)((nSize >> 24) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 16) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 8) & 0xff);
+            byteData[nNum++] = (byte)(nSize & 0xff);
+
+            // CheckSum
+            byte byteCheckSum = byteData[2];
+            for (i = 3; i < nPacketSize - 1; i++)
+            {
+                byteCheckSum ^= byteData[i];
+            }
+            byteData[nNum++] = (byte)(byteCheckSum & 0x7f);
+            send(byteData);
+#else
+            int nSize = 0;
+            //byte[] byteArrayData = new byte[nSize];
+            //int i = 0;
+            //byteArrayData[i++] = byteData1;
+            //byteArrayData[i++] = byteData2;
+            //byteArrayData[i++] = byteData3;
+            //byteArrayData[i++] = byteData4;
+            send_data(nCommand, 0, null);
+            //byteArrayData = null;
+#endif
+        }
+        public void send_1_data(int nCommand, byte byteOneData)
+        {
+#if false
+            int i, nNum;
+
+            // 프레임 수
+            int nSize = 1;
+            int nPacketSize = nSize + 8 + 2;
+            byte[] byteData = new byte[nPacketSize];
+
+            nNum = 0;
+            byteData[nNum++] = 0xff;
+            byteData[nNum++] = 0xff;
+            // Code
+            byteData[nNum++] = (byte)(_CODE_BLUETOOTH & 0xff);
+            // ID
+            byteData[nNum++] = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[nNum++] = (Byte)(nCommand & 0xff);
+
+            // Data Size
+            byteData[nNum++] = (byte)((nSize >> 24) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 16) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 8) & 0xff);
+            byteData[nNum++] = (byte)(nSize & 0xff);
+
+            // Data
+            byteData[nNum++] = (byte)(byteOneData & 0xff);
+
+            // CheckSum
+            byte byteCheckSum = byteData[2];
+            for (i = 3; i < nPacketSize - 1; i++)
+            {
+                byteCheckSum ^= byteData[i];
+            }
+            byteData[nNum++] = (byte)(byteCheckSum & 0x7f);
+
+            send(byteData);
+#else
+            int nSize = 1;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteOneData;
+            send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+#endif
+        }
+        public void send_2_data(int nCommand, byte byteData1, byte byteData2)
+        {
+#if false
+            int i, nNum;
+
+            // 프레임 수
+            int nSize = 2;
+            int nPacketSize = nSize + 8 + 2;
+            byte[] byteData = new byte[nPacketSize];
+
+            nNum = 0;
+            byteData[nNum++] = 0xff;
+            byteData[nNum++] = 0xff;
+            // Code
+            byteData[nNum++] = (byte)(_CODE_BLUETOOTH & 0xff);
+            // ID
+            byteData[nNum++] = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[nNum++] = (Byte)(nCommand & 0xff);
+
+            // Data Size
+            byteData[nNum++] = (byte)((nSize >> 24) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 16) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 8) & 0xff);
+            byteData[nNum++] = (byte)(nSize & 0xff);
+
+            // Data
+            byteData[nNum++] = (byte)(byteData1 & 0xff);
+            byteData[nNum++] = (byte)(byteData2 & 0xff);
+
+            // CheckSum
+            byte byteCheckSum = byteData[2];
+            for (i = 3; i < nPacketSize - 1; i++)
+            {
+                byteCheckSum ^= byteData[i];
+            }
+            byteData[nNum++] = (byte)(byteCheckSum & 0x7f);
+
+            send(byteData);
+#else
+            int nSize = 2;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteData1;
+            byteArrayData[i++] = byteData2;
+            send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+#endif
+        }
+        public void send_3_data(int nCommand, byte byteData1, byte byteData2, byte byteData3)
+        {
+#if false
+            int i, nNum;
+
+            // 프레임 수
+            int nSize = 3;
+            int nPacketSize = nSize + 8 + 2;
+            byte[] byteData = new byte[nPacketSize];
+
+            nNum = 0;
+            byteData[nNum++] = 0xff;
+            byteData[nNum++] = 0xff;
+            // Code
+            byteData[nNum++] = (byte)(_CODE_BLUETOOTH & 0xff);
+            // ID
+            byteData[nNum++] = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[nNum++] = (Byte)(nCommand & 0xff);
+
+            // Data Size
+            byteData[nNum++] = (byte)((nSize >> 24) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 16) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 8) & 0xff);
+            byteData[nNum++] = (byte)(nSize & 0xff);
+
+            // Data
+            byteData[nNum++] = (byte)(byteData1 & 0xff);
+            byteData[nNum++] = (byte)(byteData2 & 0xff);
+            byteData[nNum++] = (byte)(byteData3 & 0xff);
+
+            // CheckSum
+            byte byteCheckSum = byteData[2];
+            for (i = 3; i < nPacketSize - 1; i++)
+            {
+                byteCheckSum ^= byteData[i];
+            }
+            byteData[nNum++] = (byte)(byteCheckSum & 0x7f);
+
+            send(byteData);
+#else
+            int nSize = 3;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteData1;
+            byteArrayData[i++] = byteData2;
+            byteArrayData[i++] = byteData3;
+            send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+#endif
+        }
+        public void send_4_data(int nCommand, byte byteData1, byte byteData2, byte byteData3, byte byteData4)
+        {
+#if false
+            // 시퀀스 이벤트 대기
+            //set_busy();
+
+            int i, nNum;
+
+            // 프레임 수
+            int nSize = 4;
+            int nPacketSize = nSize + 8 + 2;
+            byte[] byteData = new byte[nPacketSize];
+
+            nNum = 0;
+            byteData[nNum++] = 0xff;
+            byteData[nNum++] = 0xff;
+            // Code
+            byteData[nNum++] = (byte)(_CODE_BLUETOOTH & 0xff);
+            // ID
+            byteData[nNum++] = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[nNum++] = (Byte)(nCommand & 0xff);
+
+            // Data Size
+            byteData[nNum++] = (byte)((nSize >> 24) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 16) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 8) & 0xff);
+            byteData[nNum++] = (byte)(nSize & 0xff);
+
+            // Data
+            byteData[nNum++] = (byte)(byteData1 & 0xff);
+            byteData[nNum++] = (byte)(byteData2 & 0xff);
+            byteData[nNum++] = (byte)(byteData3 & 0xff);
+            byteData[nNum++] = (byte)(byteData4 & 0xff);
+
+            // CheckSum
+            byte byteCheckSum = byteData[2];
+            for (i = 3; i < nPacketSize - 1; i++)
+            {
+                byteCheckSum ^= byteData[i];
+            }
+            byteData[nNum++] = (byte)(byteCheckSum & 0x7f);
+
+            send(byteData);
+#else
+            int nSize = 4;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteData1;
+            byteArrayData[i++] = byteData2;
+            byteArrayData[i++] = byteData3;
+            byteArrayData[i++] = byteData4;
+            send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+#endif
+        }
+        public void send_data(int nCommand, int nSize, byte[] byteArrayData)
+        {
+            int i, nNum;
+
+            // 프레임 수
+            int nPacketSize = nSize + 8;// +2;
+            byte[] byteData = new byte[nPacketSize];
+
+            int nCheckSumStartPos = 0;
+
+            nNum = 0;
+            byteData[nNum++] = 0xff;
+            //byteData[nNum++] = 0xff;
+            // Code
+            //nCheckSumStartPos = nNum;
+            //byteData[nNum++] = (byte)(_CODE_BLUETOOTH & 0xff);
+            // ID
+            nCheckSumStartPos = nNum;
+            byteData[nNum++] = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[nNum++] = (Byte)(nCommand & 0xff);
+
+            // Data Size
+            byteData[nNum++] = (byte)((nSize >> 24) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 16) & 0xff);
+            byteData[nNum++] = (byte)((nSize >> 8) & 0xff);
+            byteData[nNum++] = (byte)(nSize & 0xff);
+
+            for (i = 0; i < nSize; i++)
+            {
+                byteData[nNum++] = byteArrayData[i];
+            }
+
+            // CheckSum
+            byte byteCheckSum = byteData[nCheckSumStartPos++];
+            for (i = nCheckSumStartPos; i < nPacketSize - 1; i++)
+            {
+                byteCheckSum ^= byteData[i];
+            }
+            byteData[nNum++] = (byte)(byteCheckSum & 0x7f);
+
+            send(byteData);
+        }
+
+
+#if true
+        /// <summary>
+        /// //////////////////////////////////////////////////////////////////////////////////
+        /// </summary>
+        /// <param name="nCommand"></param>
+        public void drbluetooth_mpsu_send_command(int nCommand)
+        {
+            drbluetooth_mpsu_send_data(nCommand, 0, null);
+        }
+        public void drbluetooth_mpsu_send_1_data(int nCommand, byte byteOneData)
+        {
+            int nSize = 1;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteOneData;
+            drbluetooth_mpsu_send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+        }
+        public void drbluetooth_mpsu_send_2_data(int nCommand, byte byteData1, byte byteData2)
+        {
+            int nSize = 2;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteData1;
+            byteArrayData[i++] = byteData2;
+            drbluetooth_mpsu_send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+        }
+        public void drbluetooth_mpsu_send_3_data(int nCommand, byte byteData1, byte byteData2, byte byteData3)
+        {
+            int nSize = 3;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteData1;
+            byteArrayData[i++] = byteData2;
+            byteArrayData[i++] = byteData3;
+            drbluetooth_mpsu_send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+        }
+        public void drbluetooth_mpsu_send_4_data(int nCommand, byte byteData1, byte byteData2, byte byteData3, byte byteData4)
+        {
+            int nSize = 4;
+            byte[] byteArrayData = new byte[nSize];
+            int i = 0;
+            byteArrayData[i++] = byteData1;
+            byteArrayData[i++] = byteData2;
+            byteArrayData[i++] = byteData3;
+            byteArrayData[i++] = byteData4;
+            drbluetooth_mpsu_send_data(nCommand, nSize, byteArrayData);
+            byteArrayData = null;
+        }
+
+        private const int _MPSU_HEADER1 = 0;
+        private const int _MPSU_HEADER2 = 1;
+        private const int _MPSU_SIZE = 2;
+        private const int _MPSU_ID = 3;
+        private const int _MPSU_CMD = 4;
+        private const int _MPSU_CHECKSUM1 = 5;
+        private const int _MPSU_CHECKSUM2 = 6;
+        private const int _MPSU_SIZE_PACKET_HEADER = 7;
+        public void drbluetooth_mpsu_send_data(int nCommand, int nSize, byte[] byteArrayData)
+        {
+            int i;
+
+            // 프레임 수
+            int nPacketSize = nSize + _MPSU_SIZE_PACKET_HEADER;
+            byte[] byteData = new byte[nPacketSize];
+
+            int nCheckSumStartPos = 0;
+
+            // Header
+            byteData[_MPSU_HEADER1] = 0xff;
+            byteData[_MPSU_HEADER2] = 0xff;
+            // Data Size
+            byteData[_MPSU_SIZE]    = (byte)(nPacketSize & 0xff);
+            // ID
+            byteData[_MPSU_ID]      = (byte)(drbluetooth_get_id() & 0xff);
+            // Cmd
+            byteData[_MPSU_CMD]     = (byte)(nCommand & 0xff);
+
+            // 데이타 사이즈가 잘못된 건지 검증
+            if (byteArrayData.Length < nSize) return;
+
+            // Data
+            for (i = 0; i < nSize; i++) byteData[_MPSU_SIZE_PACKET_HEADER + i] = byteArrayData[i];
+
+            // CheckSum
+            nCheckSumStartPos = byteData[_MPSU_SIZE] ^ byteData[_MPSU_ID] ^ byteData[_MPSU_CMD];
+            for (i = _MPSU_SIZE_PACKET_HEADER; i < nPacketSize; i++) nCheckSumStartPos ^= byteData[i];
+            // CheckSum
+            byteData[_MPSU_CHECKSUM1] = (byte)(nCheckSumStartPos & 0xfe);
+            byteData[_MPSU_CHECKSUM2] = (byte)(~nCheckSumStartPos & 0xfe);
+
+            send(byteData);
+        }
+#endif
+        #endregion SendData
+
+        #region 실제 명령어
+        private int m_nClient_Seq_Back = 0;
+        private const int _TID_WAIT_TIMER = 50;
+        private const int _WAIT_TIMER = 100;
+
+        public bool is_busy()
+        {
+            if (connected() == _RESULT_FAIL) return false;// _RESULT_FAIL;
+            return ((m_nClient_Seq_Back != m_nClient_Seq) ? false : true);
+        }
+        public bool wait()
+        {
+            return wait(_WAIT_TIMER);
+        }
+        public bool wait(int nMilliSeconds)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                CdrOjwTimer.TimerSet(_TID_WAIT_TIMER);
+                bool bPass = _RESULT_FAIL;
+                while (connected() == _RESULT_OK)
+                {
+                    //if (m_nClient_Seq_Back != m_nClient_Seq)
+                    if (is_busy() == false)
+                    {
+                        bPass = _RESULT_OK;
+                        // 1. 여기 나중에 시간값 오바해도 빠져나가게 바꿔야 한다. => 완료
+                        // 2. 리턴시 process_ok 등의 값은 true, 아니면 false가 되게...   => 완료                     
+                        break;
+                    }
+                    else if (CdrOjwTimer.Timer(_TID_WAIT_TIMER) > nMilliSeconds) break;
+                    //else if (CdrOjwTimer.Timer(_TID_WAIT_TIMER) > _WAIT_TIMER) break;
+
+                    Application.DoEvents();
+                }
+                return bPass;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        // 0 : master, 1 : user
+        public int get_FileList_Count(int nMaster_User) { return (nMaster_User == 0) ? m_nFileList_master : m_nFileList_user; }
+        public String get_FileList(int nMaster_User, int nFileIndex)
+        {
+            byte[] pbyteData = new byte[_SIZE_FILENAME];
+            int nSize = (nMaster_User == 0) ? m_nFileList_master : m_nFileList_user;
+            if (nFileIndex < nSize)
+            {
+                Array.Copy(((nMaster_User == 0) ? m_pbyteFileList_master : m_pbyteFileList_user), nFileIndex * _SIZE_FILENAME, pbyteData, 0, _SIZE_FILENAME);
+                return System.Text.Encoding.Default.GetString(pbyteData);   //pbyteData.ToString();
+            }
+            return null;
+        }
+
+        public bool get_is_playing() { return m_bPlaying; }
+
+        public int get_time_sec() { return m_nTimeSec; }
+        public int get_time_usec() { return m_nTimeUSec; }
+        public int get_battery_robot() { return m_nRobotBatt; }
+        public int get_battery_MID() { return m_nMIDBatt; }
+        public int get_remocon_length() { return m_nRmcLength; }
+        public int get_remocon_data() { return m_nRmcData; }
+        public void set_busy() { m_nClient_Seq_Back = m_nClient_Seq; }
+        private bool m_bIgnoreParser = false;
+        public void set_IgnoreParser(bool bIgnore) { m_bIgnoreParser = bIgnore; }
+        public bool get_IgnoreParser() { return m_bIgnoreParser; }
+        private byte[] m_pbytePacketData;
+        private int m_nPacket_Cmd = -1;
+        private int m_nPacket_Length = -1;
+        private int m_nPacket_Pos = -1;
+        private int m_nPacket_ID = -1;
+        private int m_nPacket_Checksum1 = -1;
+        private int m_nPacket_Checksum2 = -1;
+        public bool get_packetdata(out int nCmd, out int nLength, out byte[] pbyteData)
+        {
+            bool bRet = false;
+            nCmd = m_nPacket_Cmd;
+            nLength = m_nPacket_Length;
+            pbyteData = null;
+            if (nCmd < 0) return false;
+            if (nLength < 0) return false;
+            else if (nLength == 0) return true;
+            else //if (nLength > 0)
+            {
+                if (m_pbytePacketData != null)
+                {
+                    if (nLength == m_pbytePacketData.Length)
+                    {
+                        pbyteData = new byte[m_pbytePacketData.Length];
+                        Array.Copy(m_pbytePacketData, pbyteData, m_pbytePacketData.Length);
+                        bRet = true;
+                    }
+                }
+            }
+            return bRet;
+        }
+        #region Request
+        //public const int _REQUEST_OK = 0;
+        //public const int _REQUEST_FAIL = -1;
+
+        public bool request_auth(String strID, String strPassWord)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize1 = 21;
+                int nSize2 = 21;// 11;
+                int nSize = nSize1 + nSize2;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byte[] byteId = Encoding.Default.GetBytes(strID);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i > (nSize1 - 1)) break;
+                    byteData[i] = byteId[i];
+                }
+                byte[] bytePasswd = Encoding.Default.GetBytes(strPassWord);
+                for (i = 0; i < bytePasswd.Length; i++)
+                {
+                    if (i > (nSize2 - 1)) break;
+                    byteData[i + nSize1] = bytePasswd[i];
+                }
+
+                send_data(0x71, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_heartbeat()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0xF1);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_task_play(int nMaster_or_User, String strTaskFileName)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                //set_busy();
+
+                int i;
+                int nSize = _SIZE_FILENAME + 1;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byteData[0] = (byte)(nMaster_or_User & 0xff);
+                byte[] byteId = Encoding.Default.GetBytes(strTaskFileName);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i >= (nSize - 1)) break;
+                    byteData[i + 1] = byteId[i];
+                }
+
+                send_data(0x40, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool request_task_is_playing()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0x41);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool request_task_stop()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                //set_busy();
+
+                send_command(0x42);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool Action_Play(int nMaster_or_User, string strActFileName) { return request_motion_play(nMaster_or_User, strActFileName); }
+        public bool request_motion_play(int nMaster_or_User, String strMotionFileName)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize = _SIZE_FILENAME + 9;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byteData[0] = (byte)(nMaster_or_User & 0xff);
+                byte[] byteId = Encoding.Default.GetBytes(strMotionFileName);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i >= _SIZE_FILENAME - 1) break;
+                    byteData[i + 1] = byteId[i];
+                }
+                byteData[_SIZE_FILENAME] = (byte)'\0';
+
+                byte[] byte_sec = { 0, 0, 0, 0 };
+                byte[] byte_usec = { 0, 0, 0, 0 };
+                Array.Copy(byte_sec, 0, byteData, _SIZE_FILENAME + 1, 4);
+                Array.Copy(byte_usec, 0, byteData, _SIZE_FILENAME + 5, 4);
+
+                send_data(0x40, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+#if true
+#if false
+        public bool drbluetooth_motor_request_drvsrv(bool bDriver, bool bServo)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                byte byOn = 0;
+                byOn |= (byte)((bDriver == true) ? 0x40 : 0x00);
+                byOn |= (byte)((bServo == true) ? 0x20 : 0x00);
+                // 0x52 -> _ADDRESS_TORQUE_CONTROL
+                drbluetooth_mpsu_send_3_data(0x03, (byte)(52), (byte)(0x01), (byte)(byOn & 0xff));
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+#endif
+        public bool drbluetooth_mpsu_request_battery()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                byte byAddress = 70;
+                byte byLength = 7;
+                // 시퀀스 이벤트 대기
+                set_busy();
+                drbluetooth_mpsu_send_2_data(0x14, byAddress, byLength);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool drbluetooth_mpsu_motor_request_move(int nTime)
+        {
+            if ((m_bStop == true) || (m_bEms == true)) return _RESULT_FAIL;
+            int nID;
+            int i = 0;
+            ////////////////////////////////////////////////
+
+
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                byte[] pbyteBuffer = new byte[1 + 4 * m_nMotor_Max];
+                int nPos;
+                int nFlag;
+
+                #region S-Jog Time
+                int nCalcTime = CalcTime_ms(nTime);
+                pbyteBuffer[i++] = (byte)(nCalcTime & 0xff);
+                #endregion S-Jog Time
+
+                for (int nAxis = 0; nAxis < m_nMotor_Max; nAxis++)
+                {
+                    if (m_pSMot[nAxis].bEn == true)
+                    {
+                        //nPos |= _JOG_MODE_SPEED << 10;  // 속도제어 
+                        #region Position
+                        nPos = get_cmd(nAxis);
+                        pbyteBuffer[i++] = (byte)(nPos & 0xff);
+                        pbyteBuffer[i++] = (byte)((nPos >> 8) & 0xff);
+                        #endregion
+
+                        #region Set-Flag
+                        nFlag = get_cmd_flag(nAxis);
+                        pbyteBuffer[i++] = (byte)(nFlag & 0xff);
+                        set_cmd_flag_no_action(nAxis, true); // 동작 후 모터 NoAction을 살려둔다.
+                        #endregion Set-Flag
+
+                        #region 모터당 아이디(후면에 붙는다)
+                        nID = GetID_By_Axis(nAxis);
+                        pbyteBuffer[i++] = (byte)(nID & 0xff);
+                        #endregion 모터당 아이디(후면에 붙는다)
+                        ////////////////////////////////////////////////
+                    }
+                    m_pSMot[nAxis].bEn = false;
+                }
+                Make_And_Send_Packet((byte)(drbluetooth_get_id() & 0xff), 0x0f, i, pbyteBuffer);
+                pbyteBuffer = null;
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool drbluetooth_mpsu_request_motion_play(int nMotionIndex, bool bOnlyReadyPos)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                drbluetooth_mpsu_send_2_data(0x16, (byte)(nMotionIndex & 0xff), (byte)((bOnlyReadyPos == true) ? 1 : 0));
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool drbluetooth_mpsu_request_motion_stop()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                drbluetooth_mpsu_send_2_data(0x16, (byte)(0xfe), 0);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public void Cmd_Bluetooth_Play_Mpsu(int nRobot, int nMotionNumber)
+        {
+            if (nRobot == 0xfe) drbluetooth_set_id(0xfe);
+            else drbluetooth_set_id(nRobot);
+            drbluetooth_mpsu_request_motion_play(nMotionNumber, false);
+        }
+        public void Cmd_Bluetooth_Play(int nRobot, int nMaster, String strFileName)
+        {
+            //if (nRobot == 0xfe) nRobot = 0xf2;
+            //if (nRobot == 0xf2) m_DrBluetooth.drbluetooth_set_id(0xf2);
+            if (nRobot == 0xfe) drbluetooth_set_id(0xfe);
+            else drbluetooth_set_id(nRobot);
+            request_motion_play_now(nMaster, strFileName);
+        }
+        public void Cmd_Bluetooth_Play(int nRobot, int nMaster, String strFileName, DateTime dateTime, int nAddMillisecond)
+        {
+            //if (nRobot == 0xfe) nRobot = 0xf2;
+            //if (nRobot == 0xf2) m_DrBluetooth.drbluetooth_set_id(0xf2);
+            if (nRobot == 0xfe) drbluetooth_set_id(0xfe);
+            else drbluetooth_set_id(nRobot);
+            //m_DrBluetooth.drbluetooth_set_id(m_pnBluetoothAddress[nRobot]);
+            request_motion_play(nMaster, strFileName, dateTime, nAddMillisecond);
+        }
+        public bool drbluetooth_mpsu_request_motion_play_reserve(int nMotionIndex, bool bOnlyReadyPos, int nMillisecond)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                drbluetooth_mpsu_send_4_data(0x16, (byte)(nMotionIndex & 0xff), (byte)((bOnlyReadyPos == true) ? 1 : 0), (byte)(nMillisecond & 0xff), (byte)((nMillisecond >> 8) & 0xff));
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }        
+#endif
+
+        public bool request_motion_play(int nMaster_or_User, String strMotionFileName, DateTime dtTime, int nAddMillisecond)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize = _SIZE_FILENAME + 9;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byteData[0] = (byte)(nMaster_or_User & 0xff);
+                byte[] byteId = Encoding.Default.GetBytes(strMotionFileName);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i >= _SIZE_FILENAME - 1) break;
+                    byteData[i + 1] = byteId[i];
+                }
+                byteData[_SIZE_FILENAME] = (byte)'\0';
+
+                if (dtTime != null)
+                    dtTime = dtTime.AddMilliseconds((double)nAddMillisecond);
+
+                long lTime = (dtTime == null) ? 0 : dtTime.ToFileTime();
+                byte[] byte_sec = new byte[4];
+                byte[] byte_usec = new byte[4];
+                // Windows time to Unix Time
+                long lCurr = (dtTime == null) ? 0 : (long)(lTime / 10000000 - 11644473600);
+                long lUsec = (dtTime == null) ? 0 : (long)((lTime / 10) % 1000000);
+
+                byte_sec[0] = (byte)((lCurr >> 24) & 0xff);
+                byte_sec[1] = (byte)((lCurr >> 16) & 0xff);
+                byte_sec[2] = (byte)((lCurr >> 8) & 0xff);
+                byte_sec[3] = (byte)((lCurr >> 0) & 0xff);
+
+                byte_usec[0] = (byte)((lUsec >> 24) & 0xff);
+                byte_usec[1] = (byte)((lUsec >> 16) & 0xff);
+                byte_usec[2] = (byte)((lUsec >> 8) & 0xff);
+                byte_usec[3] = (byte)((lUsec >> 0) & 0xff);
+
+                Array.Copy(byte_sec, 0, byteData, _SIZE_FILENAME + 1, 4);
+                Array.Copy(byte_usec, 0, byteData, _SIZE_FILENAME + 5, 4);
+
+                send_data(0x40, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_motion_play_now(int nMaster_or_User, String strMotionFileName)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize = _SIZE_FILENAME + 9;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byteData[0] = (byte)(nMaster_or_User & 0xff);
+                byte[] byteId = Encoding.Default.GetBytes(strMotionFileName);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i >= _SIZE_FILENAME - 1) break;
+                    byteData[i + 1] = byteId[i];
+                }
+                byteData[_SIZE_FILENAME] = (byte)'\0';
+
+                byte[] byte_sec = new byte[4];
+                byte[] byte_usec = new byte[4];
+
+                Array.Clear(byte_sec, 0, 4);
+                Array.Clear(byte_usec, 0, 4);
+
+                Array.Copy(byte_sec, 0, byteData, _SIZE_FILENAME + 1, 4);
+                Array.Copy(byte_usec, 0, byteData, _SIZE_FILENAME + 5, 4);
+
+                send_data(0x40, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_motion_is_playing()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0x41);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_motion_stop()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                //set_busy();
+
+                send_command(0x42);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_filelist(int nMaster_or_User)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_1_data(0x31, (byte)(nMaster_or_User & 0xff));
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        // 0:master, 1:user,    전체경로를 포함한 보낼 파일,       저장될 이름
+        public bool request_file_download(int n_0_Master_or_1_User, String strFile_Path_Name_Exe_in_PC, String strFileName_in_Robot)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                if ((n_0_Master_or_1_User < 0) || (n_0_Master_or_1_User > 1)) return _RESULT_FAIL;
+                else if (strFileName_in_Robot == null) return _RESULT_FAIL;
+                else if (strFile_Path_Name_Exe_in_PC == null) return _RESULT_FAIL;
+                else if (strFileName_in_Robot.Length <= 0) return _RESULT_FAIL;
+
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                bool bRet = _RESULT_OK;
+
+                FileStream fs = null;
+                byte[] pbyteFile;
+                byte[] pbyteBuffer;
+
+                FileInfo fileInfo = new FileInfo(strFile_Path_Name_Exe_in_PC);
+                if (fileInfo.Exists == true)
+                {
+                    fs = fileInfo.OpenRead();
+                    pbyteFile = new byte[fs.Length];
+                    fs.Read(pbyteFile, 0, pbyteFile.Length);
+                    fs.Close();
+
+                    pbyteBuffer = new byte[5 + _SIZE_FILENAME + pbyteFile.Length];
+
+                    byte[] pbyteFileName = Encoding.Default.GetBytes(strFileName_in_Robot);
+                    pbyteBuffer[0] = (byte)(n_0_Master_or_1_User & 0xff);
+                    pbyteBuffer[1] = 0;
+                    pbyteBuffer[2] = 0;
+                    pbyteBuffer[3] = 0;
+                    pbyteBuffer[4] = 1;
+                    int nFileNameSize = (pbyteFileName.Length >= _SIZE_FILENAME) ? _SIZE_FILENAME - 1 : pbyteFileName.Length;
+                    Array.Copy(pbyteFileName, 0, pbyteBuffer, 5, nFileNameSize);
+
+                    pbyteBuffer[4 + _SIZE_FILENAME] = (byte)('\0'); // 5 + (_SIZE_FILENAME - 1) 번지에 기록
+                    Array.Copy(pbyteFile, 0, pbyteBuffer, 5 + _SIZE_FILENAME, pbyteFile.Length);
+
+                    send_data(0x32, 5 + _SIZE_FILENAME + pbyteFile.Length, pbyteBuffer);
+
+                    pbyteBuffer = null;
+                    pbyteFile = null;
+                }
+                else bRet = _RESULT_FAIL;
+
+                return bRet;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool request_file_download(int n_0_Master_or_1_User, int nIndexCurrFile, int nNumTotalFile, String strFile_Path_Name_Exe_in_PC, String strFileName_in_Robot)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                if ((n_0_Master_or_1_User < 0) || (n_0_Master_or_1_User > 1)) return _RESULT_FAIL;
+                else if (strFileName_in_Robot == null) return _RESULT_FAIL;
+                else if (strFile_Path_Name_Exe_in_PC == null) return _RESULT_FAIL;
+                else if (strFileName_in_Robot.Length <= 0) return _RESULT_FAIL;
+
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                bool bRet = _RESULT_OK;
+
+                FileStream fs = null;
+                byte[] pbyteFile;
+                byte[] pbyteBuffer;
+
+                FileInfo fileInfo = new FileInfo(strFile_Path_Name_Exe_in_PC);
+                if (fileInfo.Exists == true)
+                {
+                    fs = fileInfo.OpenRead();
+                    pbyteFile = new byte[fs.Length];
+                    fs.Read(pbyteFile, 0, pbyteFile.Length);
+                    fs.Close();
+
+                    pbyteBuffer = new byte[5 + _SIZE_FILENAME + pbyteFile.Length];
+
+                    byte[] pbyteFileName = Encoding.Default.GetBytes(strFileName_in_Robot);
+                    pbyteBuffer[0] = (byte)(n_0_Master_or_1_User & 0xff);
+                    pbyteBuffer[1] = (byte)((nIndexCurrFile >> 8) & 0xff);
+                    pbyteBuffer[2] = (byte)(nIndexCurrFile & 0xff);
+                    pbyteBuffer[3] = (byte)((nNumTotalFile >> 8) & 0xff);
+                    pbyteBuffer[4] = (byte)(nNumTotalFile & 0xff);
+                    int nFileNameSize = (pbyteFileName.Length >= _SIZE_FILENAME) ? _SIZE_FILENAME - 1 : pbyteFileName.Length;
+                    Array.Copy(pbyteFileName, 0, pbyteBuffer, 5, nFileNameSize);
+
+                    pbyteBuffer[4 + _SIZE_FILENAME] = (byte)('\0'); // 5 + (_SIZE_FILENAME - 1) 번지에 기록
+                    Array.Copy(pbyteFile, 0, pbyteBuffer, 5 + _SIZE_FILENAME, pbyteFile.Length);
+
+                    send_data(0x32, 5 + _SIZE_FILENAME + pbyteFile.Length, pbyteBuffer);
+
+                    pbyteBuffer = null;
+                    pbyteFile = null;
+                }
+                else bRet = _RESULT_FAIL;
+
+                return bRet;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool request_file_delete(int nMaster_or_User, String strTaskFileName)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize = _SIZE_FILENAME + 1;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byteData[0] = (byte)(nMaster_or_User & 0xff);
+                byte[] byteId = Encoding.Default.GetBytes(strTaskFileName);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i >= (nSize - 1)) break;
+                    byteData[i + 1] = byteId[i];
+                }
+
+                send_data(0x34, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+        public bool request_file_delete(int nMaster_or_User)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_1_data(0x35, (byte)(nMaster_or_User & 0xff));
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_file_upload(int nMaster_or_User, String strTaskFileName)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize = _SIZE_FILENAME + 1;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+                byteData[0] = (byte)(nMaster_or_User & 0xff);
+                byte[] byteId = Encoding.Default.GetBytes(strTaskFileName);
+                for (i = 0; i < byteId.Length; i++)
+                {
+                    if (i >= (nSize - 1)) break;
+                    byteData[i + 1] = byteId[i];
+                }
+
+                send_data(0x33, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_set_time(DateTime dtTime)
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                int i;
+                int nSize = 8;
+                byte[] byteData = new byte[nSize];
+                for (i = 0; i < nSize; i++)
+                {
+                    byteData[i] = 0;
+                }
+
+
+                //dtTime = dtTime.AddHours(9.0); // 9시간을 더해보자
+                //dtTime = dtTime.AddMinutes(20.0); // 20분을 더해보자
+                long lTime = dtTime.ToFileTime();
+                // Windows time to Unix Time
+                long lCurr = (long)(lTime / 10000000 - 11644473600);
+                long lUsec = (long)((lTime / 10) % 1000000);
+
+                byteData[0] = (byte)((lCurr >> 24) & 0xff);
+                byteData[1] = (byte)((lCurr >> 16) & 0xff);
+                byteData[2] = (byte)((lCurr >> 8) & 0xff);
+                byteData[3] = (byte)((lCurr >> 0) & 0xff);
+
+                byteData[4] = (byte)((lUsec >> 24) & 0xff);
+                byteData[5] = (byte)((lUsec >> 16) & 0xff);
+                byteData[6] = (byte)((lUsec >> 8) & 0xff);
+                byteData[7] = (byte)((lUsec >> 0) & 0xff);
+
+                send_data(0x61, nSize, byteData);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_time()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0x62);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_battery()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0x63);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_charge()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0x64);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        public bool request_remocon()
+        {
+            if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+            try
+            {
+                // 시퀀스 이벤트 대기
+                set_busy();
+
+                send_command(0x65);
+                return _RESULT_OK;
+            }
+            catch
+            {
+                return _RESULT_FAIL;
+            }
+        }
+
+        //private int m_nCurrentPort = 0;
+        //private String m_strCurrentIp = "";
+        //public int get_port() { return m_nCurrentPort; }
+        //public String get_ip() { return m_strCurrentIp; }
+        #endregion Request
+
+            #region For Serial ...
+            #region Define Serial Command
+            private const int _ADDRESS_TORQUE_CONTROL = 52;
+            private const int _ADDRESS_LED_CONTROL = 53;
+            private const int _ADDRESS_VOLTAGE = 54;
+            private const int _ADDRESS_TEMPERATURE = 55;
+            private const int _ADDRESS_PRESENT_CONTROL_MODE = 56;
+            private const int _ADDRESS_TICK = 57;
+            private const int _ADDRESS_CALIBRATED_POSITION = 58;
+            #endregion Define Serial Command
+            #region 패킷 정의(Header 등...)
+                private const int _HEADER1 = 0;
+                private const int _HEADER2 = 1;
+                private const int _SIZE = 2;
+                private const int _ID = 3;
+                private const int _CMD = 4;
+                private const int _CHECKSUM1 = 5;
+                private const int _CHECKSUM2 = 6;
+                private const int _SIZE_PACKET_HEADER = 7;
+
+                private const int _FLAG_STOP = 0x01;
+                private const int _FLAG_MODE_SPEED = 0x02;
+                private const int _FLAG_LED_GREEN = 0x04;
+                private const int _FLAG_LED_BLUE = 0x08;
+                private const int _FLAG_LED_RED = 0x10;
+                private const int _FLAG_NO_ACTION = 0x20;
+                #endregion
+            // 체크섬 데이타 만들기
+            public void serial_make_checksum(int nAllPacketLength, byte[] buffer)
+            {
+                int nHeadSize = _CHECKSUM2 + 1;
+                buffer[_CHECKSUM1] = (byte)(buffer[_SIZE] ^ buffer[_ID] ^ buffer[_CMD]);
+                for (int j = 0; j < nAllPacketLength - nHeadSize; j++)
+                {
+                    buffer[_CHECKSUM1] ^= buffer[nHeadSize + j];
+                }
+                buffer[_CHECKSUM1] = (byte)(buffer[_CHECKSUM1] & 0xfe);
+                buffer[_CHECKSUM2] = (byte)(~buffer[_CHECKSUM1] & 0xfe);
+            }
+            // 패킷의 아이디와 커맨드로 데이타 만들기, 내부의 패킷사이즈 - 기본사이즈인 7바이트는 제외
+            public void Make_And_Send_Packet(int nID, int nCmd, int nDataByteSize, byte[] pbytePacket)
+            {
+                int nDefaultSize = _CHECKSUM2 + 1;
+                int nSize = nDefaultSize + nDataByteSize;
+
+                byte[] pbyteBuffer = new byte[nSize];
+
+                int i = 0;
+                // Header
+                pbyteBuffer[_HEADER1] = 0xff;
+                pbyteBuffer[_HEADER2] = 0xff;
+                // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                pbyteBuffer[_ID] = (byte)(nID & 0xff);
+                // Cmd
+                pbyteBuffer[_CMD] = (byte)(nCmd & 0xff);
+                /////////////////////////////////////////////////////
+                for (int j = 0; j < nDataByteSize; j++) pbyteBuffer[nDefaultSize + i++] = pbytePacket[j];
+                //for (int j = 0; j < nDataByteSize; j++) pbyteBuffer[nDefaultSize - 2 + i++] = pbytePacket[j];
+                /////////////////////////////////////////////////////
+
+                //Packet Size
+                pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                serial_make_checksum(nDefaultSize + i, pbyteBuffer);
+
+                //SendPacket(pbyteBuffer, nDefaultSize + i);
+                send_data(0x81, nDefaultSize + i, pbyteBuffer);
+
+                pbyteBuffer = null;
+            }
+
+            #region MPSU
+            public bool serial_mpsu_play_headled_buzz(int nMpsuID, int nHeadLedNum_1_63, int nBuzzNum_1_63)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x18; // Play Buzz
+
+                    /////////////////////////////////////////////////////
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nHeadLedNum_1_63 & 0xff);
+
+                    ////////
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nBuzzNum_1_63 & 0xff);// 이후의 레지스터 사이즈
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    //SendPacket(pbyteBuffer, nDefaultSize + i);
+
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            public bool serial_mpsu_play_headled(int nMpsuID, int nHeadLedNum_1_63)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x18; // Play Buzz
+
+                    /////////////////////////////////////////////////////
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nHeadLedNum_1_63 & 0xff);
+
+                    ////////
+                    pbyteBuffer[nDefaultSize + i++] = 0x00;
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    //SendPacket(pbyteBuffer, nDefaultSize + i);
+
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            public bool serial_mpsu_play_buzz(int nMpsuID, int nBuzzNum_1_63)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x18; // Play Buzz
+
+                    /////////////////////////////////////////////////////
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = 0x00;
+
+                    ////////
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nBuzzNum_1_63 & 0xff);// 이후의 레지스터 사이즈
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    //SendPacket(pbyteBuffer, nDefaultSize + i);
+
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            public bool serial_mpsu_play_task(int nMpsuID, int nTaskNo)//, bool bDebugingMode)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x17;
+
+                    /////////////////////////////////////////////////////
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nTaskNo & 0xff);
+
+                    ////////
+                    //pbyteBuffer[nDefaultSize + i++] = (byte)COjwConvert.BoolToInt(bDebugingMode);// 이후의 레지스터 사이즈
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            public bool serial_mpsu_play_motion(int nMpsuID, int nMotionAddress, bool bReady)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x16;
+
+                    /////////////////////////////////////////////////////
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nMotionAddress & 0xff);
+
+                    ////////
+                    pbyteBuffer[nDefaultSize + i++] = (byte)((bReady == true) ? 1 : 0);//COjwConvert.BoolToInt(bReady);// 이후의 레지스터 사이즈
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            #endregion MPSU
+
+            public bool drvsrv(bool bDriver, bool bServo)
+            {
+                //if ((m_bEms == true) && (bDriver == false) && (bServo == false)) return;
+                return drvsrv(0xfe, bDriver, bServo);
+            }
+
+            public bool drvsrv(int nAxis, bool bDriver, bool bServo)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    //if ((m_bEms == true) && (bDriver == false) && (bServo == false)) return;
+                    int nID = GetID_By_Axis(nAxis);//m_pSMot[nAxis].nID;
+                    int i = 0;
+                    byte byOn = 0;
+                    byOn |= (byte)((bDriver == true) ? 0x40 : 0x00);
+                    byOn |= (byte)((bServo == true) ? 0x20 : 0x00);
+                    byte[] pbyteBuffer = new byte[256];
+                    // Data
+                    pbyteBuffer[i++] = _ADDRESS_TORQUE_CONTROL;// 52번 레지스터 명령
+                    ////////
+                    pbyteBuffer[i++] = 0x01;// 이후의 레지스터 사이즈
+                    pbyteBuffer[i++] = byOn;
+
+                    Make_And_Send_Packet(nID, 0x03, i, pbyteBuffer);
+                    pbyteBuffer = null;
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+
+            #region For Rom
+            public bool serial_mpsu_write_rom(int nMpsuID, int nStartAddress, byte byteData)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x11; // Rom Write
+
+                    /////////////////////////////////////////////////////
+                    // Address
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nStartAddress & 0xff);
+                    // Length
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(1); // 한바이트만 보냄
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(byteData);
+
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            public bool serial_mpsu_write_rom(int nMpsuID, int nStartAddress, byte[] pbyteData)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int nLength = pbyteData.Length;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x11; // Rom Write
+
+                    /////////////////////////////////////////////////////
+                    // Address
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nStartAddress & 0xff);
+                    // Length
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nLength & 0xff); // 한바이트만 보냄
+
+                    for (int nData = 0; nData < nLength; nData++)
+                    {
+                        // Data
+                        pbyteBuffer[nDefaultSize + i++] = (byte)(pbyteData[nData]);
+                    }
+
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            #endregion For Rom
+
+            #region For Ram
+            public bool serial_mpsu_write_ram(int nMpsuID, int nStartAddress, byte byteData)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x13; // Ram Write
+
+                    /////////////////////////////////////////////////////
+                    // Address
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nStartAddress & 0xff);
+                    // Length
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(1); // 한바이트만 보냄
+                    // Data
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(byteData);
+
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            public bool serial_mpsu_write_ram(int nMpsuID, int nStartAddress, byte[] pbyteData)
+            {
+                if (connected() == _RESULT_FAIL) return _RESULT_FAIL;
+                try
+                {
+                    int nDefaultSize = _CHECKSUM2 + 1;
+
+                    int nLength = pbyteData.Length;
+
+                    int i = 0;
+                    // Header
+                    byte[] pbyteBuffer = new byte[256];
+                    pbyteBuffer[_HEADER1] = 0xff;
+                    pbyteBuffer[_HEADER2] = 0xff;
+                    // ID = 0xFE : 전체명령, 0xFD - 공장출하시 설정 아이디
+                    pbyteBuffer[_ID] = (byte)(nMpsuID & 0xff);
+                    // Cmd
+                    pbyteBuffer[_CMD] = 0x13; // Ram Write
+
+                    /////////////////////////////////////////////////////
+                    // Address
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nStartAddress & 0xff);
+                    // Length
+                    pbyteBuffer[nDefaultSize + i++] = (byte)(nLength); // 한바이트만 보냄
+
+                    for (int nData = 0; nData < nLength; nData++)
+                    {
+                        // Data
+                        pbyteBuffer[nDefaultSize + i++] = (byte)(pbyteData[nData]);
+                    }
+
+                    ////////
+                    /////////////////////////////////////////////////////
+
+                    //Packet Size
+                    pbyteBuffer[_SIZE] = (byte)((nDefaultSize + i) & 0xff);
+
+                    serial_make_checksum(nDefaultSize + i, pbyteBuffer);//, out pbyteBuffer[_CHECKSUM1], out pbyteBuffer[_CHECKSUM2]);
+
+                    // 보내기 전에 Tick 을 Set 한다.
+                    //Tick_Send_Mpsu();
+                    send_data(0x81, nDefaultSize + i, pbyteBuffer);
+                    return _RESULT_OK;
+                }
+                catch
+                {
+                    return _RESULT_FAIL;
+                }
+            }
+            #endregion For Ram
+            #endregion For Serial ...
+
+        #endregion 실제명령어
+
+        #endregion 공개
+
+        #region Timer
+        private class CdrOjwTimer
+        {
+            private static bool[] m_bTimer = new bool[1000];
+
+            private static long[] m_Timer = new long[1000];
+
+            public static void InitTimer(int nCnt) // 안하면 기존 1000 개의 메모리로 고정된다.
+            {
+                Array.Resize<bool>(ref m_bTimer, nCnt);
+                Array.Resize<long>(ref m_Timer, nCnt);
+                Array.Clear(m_bTimer, 0, nCnt);
+                Array.Clear(m_Timer, 0, nCnt);
+            }
+
+            // Handle = 0~99
+            // Timer 생성
+            public static void TimerSet(int nHandle)
+            {
+                DateTime tmrTemp = DateTime.Now;
+                long temp = (long)tmrTemp.Ticks * 100 / 1000000;
+
+                m_bTimer[nHandle] = true;
+                m_Timer[nHandle] = temp;
+            }
+
+            // Handle = 0~99
+            // Timer Destroy ( 생성을 했으면 반드시 Destroy를 하도록 한다. )
+            public static void TimerDestroy(int nHandle)
+            {
+                m_bTimer[nHandle] = false;
+                m_Timer[nHandle] = 0;
+            }
+
+            // Handle = 0~99
+            // Timer 생성 후 현재까지의 시간 값을 return
+            public static long Timer(int nHandle)
+            {
+                if (m_bTimer[nHandle] == true)
+                {
+                    DateTime tmrTemp = DateTime.Now;
+                    long temp = (long)tmrTemp.Ticks * 100 / 1000000;
+
+                    long temp_Gap = temp - m_Timer[nHandle];
+                    return temp_Gap;
+                }
+                else return 0;
+            }
+
+            // Handle = 0~99
+            // Timer 생성 후 지정한 시간(t)를 넘지 않거나 Timer가 생성되지 않으면 FALSE(0)를 return
+            // Timer 생성 후 지정한 시간(t)를 넘었다면 TRUE(1) 를 return
+            public static bool TimerCheck(int nHandle, long t)
+            {
+                if (m_bTimer[nHandle])
+                {
+                    DateTime tmrTemp = DateTime.Now;
+                    long temp = (long)tmrTemp.Ticks * 100 / 1000000;
+
+                    long temp_Gap = temp - m_Timer[nHandle];
+                    if (temp_Gap < t) return false;
+                    else return true;
+                }
+                else return false;
+            }
+
+            public static int GetYear() { return DateTime.Now.Year; }
+            public static int GetMonth() { return DateTime.Now.Month; }
+            public static int GetDay() { return DateTime.Now.Day; }
+            public static int GetHour() { return DateTime.Now.Hour; }
+            public static int GetMinute() { return DateTime.Now.Minute; }
+            public static int GetSecond() { return DateTime.Now.Second; }
+            // 0 - 일, 1 - 월, 2 - 화, 3 - 수, 4 - 목, 5 - 금, 6 - 토, => -1 - 에러
+            public static int GetWeek()
+            {
+                try
+                {
+                    return int.Parse(DateTime.Now.DayOfWeek.ToString("d"));
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+        }
+        #endregion Timer
+        }
+
         // if you make your class, just write in here
         public class CGenibo
         {
@@ -95,6 +3677,47 @@ namespace OpenJigWare
                 for (i = _ROBOT; i <= _EMOTICON; i++)
                     SendData(i, 0x71, nSize, byteData);
                 //SendData(_EMOTICON, 0x71, nSize, byteData);
+            }
+
+            public bool ActionPlay(bool bMaster, String strFileName, bool bSndEn, bool bEmtEn, int nPercentValue)
+            {
+                try
+                {
+                    //if (chkMp3Sync.Checked == true) Mp3Play();
+
+                    // 문자열 코드의 아스키 변환
+                    byte[] byteData1 = Encoding.Default.GetBytes(strFileName);// Encoding.ASCII.GetBytes(strFileName);
+                    int nSize = C_TCP_FILENAME_SIZE + 3;
+                    int nStrLength = strFileName.Length;
+                    //if (nStrLength >= C_TCP_FILENAME_SIZE) byteData1[15] = 0;
+
+                    int nNum = 0;
+                    byte[] byteData = new byte[nSize];
+                    for (int i = 0; i < C_TCP_FILENAME_SIZE - 1; i++)
+                    {
+                        if (i < nStrLength) byteData[nNum++] = byteData1[i];
+                        else byteData[nNum++] = 0;
+                    }
+                    // 널 종료문자
+                    byteData[nNum++] = 0;
+
+                    // Sound Enable
+                    byteData[nNum++] = (byte)((bSndEn == true) ? 1 : 0);
+                    // Emoticon Enable
+                    byteData[nNum++] = (byte)((bEmtEn == true) ? 1 : 0);
+                    // Speed Percent
+                    byteData[nNum++] = (byte)(nPercentValue & 0xff);
+
+                    int nCmd = 0x34;
+                    if (bMaster) nCmd = 0x33;
+                    SendData(_MOTION, nCmd, nSize, byteData);
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
             public void SendData(int nType, int nCommand, int nSize, byte[] byteArrayData)
             {

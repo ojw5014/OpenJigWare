@@ -24,8 +24,10 @@ namespace OpenJigWare.Docking
 
             cmbLanguage.Items.Clear(); for (int i = 0; i < Ojw.CVoice.m_pstrLang_Cmt.Length; i++) { cmbLanguage.Items.Add(Ojw.CVoice.m_pstrLang_Cmt[i]); }
             cmbMode.Items.Clear(); for (int i = 0; i < Ojw.CVoice.m_pstrMode_Cmt.Length; i++) { cmbMode.Items.Add(Ojw.CVoice.m_pstrMode_Cmt[i]); }
+            
 
             m_CParam = new Ojw.CParam(
+                    //Ojw.CVoice.pEncodings[nLang],
                     "Param_Voice.dat",
                     cmbMode,
                     cmbLanguage,
@@ -34,6 +36,21 @@ namespace OpenJigWare.Docking
                 );
             if (cmbLanguage.SelectedIndex < 0) cmbLanguage.SelectedIndex = 0;
             if (cmbMode.SelectedIndex < 0) cmbMode.SelectedIndex = 0;
+
+            int nLang = cmbLanguage.SelectedIndex;
+            if (nLang < 0) nLang = 0;
+            m_CParam.SetEncoding(Ojw.CVoice.pEncodings[nLang]);
+            if (nLang == (int)Ojw.CVoice.ELanguage_t._CHINA)
+            {
+                m_CParam = new Ojw.CParam(
+                    Ojw.CVoice.pEncodings[nLang],
+                    "Param_Voice.dat",
+                    cmbMode,
+                    cmbLanguage,
+                    txtKeyword,
+                    txtVoice
+                );
+            }
 
             m_CVoice.Init(cmbLanguage.SelectedIndex, cmbMode.SelectedIndex);
             
@@ -93,6 +110,14 @@ namespace OpenJigWare.Docking
             //CTts.Init(Ojw.CTts.ELanguage_t._KOREAN);
             CTts.Init(cmbLanguage.SelectedIndex);
             CTts.Tts(txtTts.Text);
+        }
+
+        private void cmbLanguage_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int nLang = cmbLanguage.SelectedIndex;
+            if (nLang < 0) 
+                nLang = 0;
+            m_CParam.SetEncoding(Ojw.CVoice.pEncodings[nLang]);
         }
     }
 }

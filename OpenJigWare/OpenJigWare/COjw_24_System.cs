@@ -14,6 +14,8 @@ using System.IO.MemoryMappedFiles;
 using System.IO;
 using System.Threading;
 using Microsoft.Win32;
+using System.Net;
+using SKYPE4COMLib;
 
 namespace OpenJigWare
 {
@@ -78,27 +80,44 @@ namespace OpenJigWare
                 bool success = SetWindowPos(MainWindowHandle, IntPtr.Zero, 0, 200, 500, 600, 0);
             }
 #else
+            [DllImport("kernel32.dll", SetLastError = true)]
+            public static extern bool Wow64DisableWow64FsRedirection(ref IntPtr ptr);
+            [DllImport("kernel32.dll", SetLastError = true)]
+            public static extern bool Wow64RevertWow64FsRedirection(IntPtr ptr);
+
+            public static void ScreenKeyboard()
+            {
+                m_ps = GetProcess("osk");
+                if (m_ps != null) ScreenKeyboard_Kill();
+                //else { KillProgram("osk"); }
+
+                //if (m_ps != null) ScreenKeyboard_Kill();
+                //else { KillProgram("osk"); }
+                try { if (m_ps != null) m_ps.Dispose(); }
+                catch (Exception ex) { Ojw.CMessage.Write_Error(ex.ToString()); }
+                m_ps = null;
+                string strPath = String.Format(@"{0}\System32\osk.exe", Ojw.CSystem.GetPath_Windows());
+                m_ps = Ojw.CSystem.RunProgram(strPath);
+                //ps.Dispose();
+                //return ps;
+            }
             public static void ScreenKeyboard(int nLeft, int nTop)
             {
-                //ScreenKeyboard_Kill();
-                if (m_ps != null) ScreenKeyboard_Kill();
-                else { KillProgram("osk"); }//Thread.Sleep(100); }
-                try
-                {
-                    if (m_ps != null)
-                    {
-                        m_ps.Dispose();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Ojw.CMessage.Write_Error(ex.ToString());
-                }
-                m_ps = null;
                 RegistryKey myKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Osk", true);
 
                 myKey.SetValue("WindowLeft", nLeft, RegistryValueKind.DWord);
                 myKey.SetValue("WindowTop", nTop, RegistryValueKind.DWord);
+
+                m_ps = GetProcess("osk");
+                if (m_ps != null) ScreenKeyboard_Kill();
+                //else { KillProgram("osk"); }
+
+                ////ScreenKeyboard_Kill();
+                //if (m_ps != null) ScreenKeyboard_Kill();
+                //else { KillProgram("osk"); }//Thread.Sleep(100); }
+                try { if (m_ps != null) { m_ps.Dispose(); } } 
+                catch (Exception ex) { Ojw.CMessage.Write_Error(ex.ToString()); }
+                m_ps = null;
 
                 string strPath = String.Format(@"{0}\System32\osk.exe", Ojw.CSystem.GetPath_Windows());
                 m_ps = Ojw.CSystem.RunProgram(strPath);
@@ -109,33 +128,99 @@ namespace OpenJigWare
             public static void ScreenKeyboard_Kill() { KillProgram(m_ps); m_ps.Dispose(); }
             public static void ScreenKeyboard(int nLeft, int nTop, int nWidth, int nHeight)
             {
-                //ScreenKeyboard_Kill();
-                if (m_ps != null) ScreenKeyboard_Kill();
-                else { KillProgram("osk"); }//Thread.Sleep(100); }
-                try
-                {
-                    if (m_ps != null)
-                    {
-                        m_ps.Dispose();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Ojw.CMessage.Write_Error(ex.ToString());
-                }
-                m_ps = null;
-
                 RegistryKey myKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Osk", true);
 
                 myKey.SetValue("WindowWidth", nWidth, RegistryValueKind.DWord);
                 myKey.SetValue("WindowHeight", nHeight, RegistryValueKind.DWord);
                 myKey.SetValue("WindowLeft", nLeft, RegistryValueKind.DWord);
                 myKey.SetValue("WindowTop", nTop, RegistryValueKind.DWord);
-
+#if false
+#else
+                m_ps = GetProcess("osk");
+                if (m_ps != null) ScreenKeyboard_Kill();
+                //else { KillProgram("osk"); }
+                try { if (m_ps != null) m_ps.Dispose(); }
+                catch (Exception ex) { Ojw.CMessage.Write_Error(ex.ToString()); }
+                m_ps = null;
+                            
                 string strPath = String.Format(@"{0}\System32\osk.exe", Ojw.CSystem.GetPath_Windows());
                 m_ps = Ojw.CSystem.RunProgram(strPath);
                 //ps.Dispose();
                 //return ps;
+#endif
+             }
+
+            [DllImport("User32.Dll", EntryPoint = "PostMessageA")]
+            static extern bool PostMessage(IntPtr hWnd, uint msg, int wParam, int lParam);
+            public enum WMessages : int
+            {
+                WM_LBUTTONDOWN = 0x201,
+                WM_LBUTTONUP = 0x202,
+                WM_KEYDOWN = 0x100,
+                WM_KEYUP = 0x101,
+                WH_KEYBOARD_LL = 13,
+                WH_MOUSE_LL = 14,
+            }
+            public static bool IsScreenKeyboard2()
+            {
+                return IsRunningProgram(@"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe");
+            }
+            public static void Kill_ScreenKeyboard2()
+            {
+                KillProgram(@"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe");
+            }
+            public static void ScreenKeyboard2(bool bShow)
+            {
+                var trayWnd = FindWindow("Shell_TrayWnd", null);
+                var nullIntPtr = new IntPtr(0);
+
+                if (trayWnd != nullIntPtr)
+                {
+                    var trayNotifyWnd = FindWindowEx(trayWnd, nullIntPtr, "TrayNotifyWnd", null);
+
+                    if (trayNotifyWnd != nullIntPtr)
+                    {
+                        if (bShow == true)
+                        {
+                            var tIPBandWnd = FindWindowEx(trayNotifyWnd, nullIntPtr, "TIPBand", null);
+                            if (tIPBandWnd != nullIntPtr)
+                            {
+                                PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONDOWN, 1, 65537);
+                                PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONUP, 1, 65537);
+                            }
+                            else
+                            {
+                                RunProgram(@"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe");
+                                PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONDOWN, 1, 65537);
+                                PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONUP, 1, 65537);
+                                Ojw.CTimer CTmr = new CTimer();
+                                CTmr.Set();
+                                while (CTmr.Get() < 1000)
+                                {
+                                    tIPBandWnd = FindWindowEx(trayNotifyWnd, nullIntPtr, "TIPBand", null);
+
+                                    if (tIPBandWnd != nullIntPtr)
+                                    {
+                                        Ojw.CTimer.Wait(100);
+                                        PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONDOWN, 1, 65537);
+                                        PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONUP, 1, 65537);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var tIPBandWnd = FindWindowEx(trayNotifyWnd, nullIntPtr, "TIPBand", null);
+                            if (tIPBandWnd != nullIntPtr)
+                            {
+                                PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONDOWN, 1, 65537);
+                                PostMessage(tIPBandWnd, (UInt32)WMessages.WM_LBUTTONUP, 1, 65537);
+                            }
+                        }
+                    }
+                }
+
             }
 #endif
             #region 하드디스크 사용량 구하기 출처 : http://icodebroker.tistory.com/1447
@@ -191,6 +276,14 @@ namespace OpenJigWare
                 foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strProgram.ToLower()) return process.MainWindowHandle; }
                 return IntPtr.Zero;
             }
+            public static Process GetProcess(string strProgram)
+            {
+                System.Diagnostics.Process ps = new System.Diagnostics.Process();
+                //String strTitle = Ojw.CFile.GetTitle(strProgram);
+                Process[] processes = System.Diagnostics.Process.GetProcesses();
+                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strProgram.ToLower()) return process; }
+                return null;
+            }
             public static bool IsRunningProgram(String strProgram)
             {
                 #region 중복실행 체크
@@ -202,14 +295,14 @@ namespace OpenJigWare
                 foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) bStarted = true; }
                 if (bStarted == true)
                 {
-                    Ojw.CMessage.Write("[warning]Still program is running... Can't run it. Check process first");
+                    //Ojw.CMessage.Write("[warning]Still program is running... Can't run it. Check process first");
                     //MessageBox.Show(Ojw.CMessage.GetLastErrorMessage());
                     //Application.Exit();
                     return true; // Error
                 }
                 else
                 {
-                    Ojw.CMessage.Write("Program duplication checking : OK");
+                    //Ojw.CMessage.Write("Program duplication checking : OK");
                 }
                 return false;
                 #endregion 중복실행 체크
@@ -257,6 +350,41 @@ namespace OpenJigWare
                 public int cbData;
                 [MarshalAs(UnmanagedType.LPStr)]
                 public string lpData;
+            }
+            [StructLayout(LayoutKind.Sequential)]
+            public struct PCOPYDATASTRUCT
+            {
+                public IntPtr dwData;
+                public int cbData;
+                public IntPtr lpData;
+            }
+            public static bool SendMessage_Utf8(String strProgram, string strData)
+            {
+                COPYDATASTRUCT cds = new COPYDATASTRUCT();
+                cds.dwData = IntPtr.Zero;
+                //byte[] pbyte = CConvert.StrToBytes_UTF8(strData);
+                byte[] pbyte = CConvert.StrToBytes_UTF8(strData);
+                cds.cbData = pbyte.Length;// +1; //strData.Length + 1;
+                cds.lpData = strData;
+
+                System.Diagnostics.Process ps = new System.Diagnostics.Process();
+                String strTitle = Ojw.CFile.GetName(strProgram); //Ojw.CFile.GetTitle(strProgram);
+                Process[] processes = System.Diagnostics.Process.GetProcesses();
+                bool bRunning = false;
+
+                foreach (System.Diagnostics.Process process in processes)
+                {
+
+                    if (process.ProcessName.ToLower() == strTitle.ToLower())
+                    {
+                        SendMessage(process.MainWindowHandle, WM_COPYDATA, 0, ref cds);
+
+                        bRunning = true;
+                        //}
+                        break;
+                    }
+                }
+                return bRunning;
             }
             public static bool SendMessage(String strProgram, string strData)
             {
@@ -330,8 +458,9 @@ namespace OpenJigWare
                 switch (m.Msg)
                 {
                     case WM_COPYDATA:
-                        COPYDATASTRUCT cds = (COPYDATASTRUCT)m.GetLParam(typeof(COPYDATASTRUCT));
-                        strData = cds.lpData;
+                        //COPYDATASTRUCT cds = (COPYDATASTRUCT)m.GetLParam(typeof(COPYDATASTRUCT));
+                        //strData = cds.lpData;
+                        strData = ReceiveMsg(m);
                         bRet = true;
                         //Ojw.CMessage.Write(pbyteData);
                         //MessageBox.Show(pbyteData);//String.Format("{0}{1}{2}{3}{4}{5}{6}{7}", 
@@ -339,12 +468,60 @@ namespace OpenJigWare
                 }
                 return bRet;                
             }
+            public static string ReceiveMsg(System.Windows.Forms.Message m)
+            {
+                PCOPYDATASTRUCT cds = new PCOPYDATASTRUCT();
+                cds = (PCOPYDATASTRUCT)Marshal.PtrToStructure(m.LParam, typeof(PCOPYDATASTRUCT));
+                if (cds.cbData > 0)
+                {
+                    byte[] data = new byte[cds.cbData];
+                    Marshal.Copy(cds.lpData, data, 0, cds.cbData);
+                    int iMsgIndex = (int)cds.dwData;
+                    //Ojw.CMessage.Write("{0}, {1}", Ojw.CConvert.BytesToStr(data), iMsgIndex.ToString());
+                    m.Result = (IntPtr)1;
+                    return Ojw.CConvert.BytesToStr(data);
+                }
+                return null;
+            }
+            public static string[] ReceiveMsg(System.Windows.Forms.Message m, char cSeparator, out string strCommand)
+            {
+                PCOPYDATASTRUCT cds = new PCOPYDATASTRUCT();
+                cds = (PCOPYDATASTRUCT)Marshal.PtrToStructure(m.LParam, typeof(PCOPYDATASTRUCT));
+                if (cds.cbData > 0)
+                {
+                    byte[] data = new byte[cds.cbData];
+                    Marshal.Copy(cds.lpData, data, 0, cds.cbData);
+                    int iMsgIndex = (int)cds.dwData;
+                    m.Result = (IntPtr)1;
+                    strCommand = Ojw.CConvert.BytesToStr(data);
+                    return strCommand.Split(cSeparator);
+                }
+                else strCommand = string.Empty;
+                return null;
+            }
 
             //[System.Security.Permissions.PermissionSet(System.Security.Permissions.SecurityAction.Demand, Name = "FullTrust")]
             //protected override void WndProc(ref Message m)
             //{
             //    base.WndProc(ref m);
             //}
+            public static void CloseProgram(string strProgram)
+            {
+                try
+                {
+                    if (IsRunningProgram(strProgram) == true)
+                    {
+                        // 동일한 이름을 가진 Process를 모두 kill함.
+                        String strTitle = Ojw.CFile.GetTitle(strProgram);
+                        Process[] processes = System.Diagnostics.Process.GetProcesses();
+                        foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) { process.CloseMainWindow(); } }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    CMessage.Write_Error(ex.ToString());
+                }
+            }
             public static void KillProgram(string strProgram)
             {
                 try
@@ -366,7 +543,7 @@ namespace OpenJigWare
             public static Process RunProgram(string strProgram) { return RunProgram(strProgram, null, 0); }
             // nRunningMode == 0 : Normal(중복허용, 안죽임), 1 : killothers(다른것 다 죽이고 혼자 살아남음), 2 : 중복시 안띄움)
             public static Process RunProgram(string strProgram, int nRunningMode) { return RunProgram(strProgram, null, nRunningMode); }
-            public static Process RunProgram(string strProgram, string strArgument, int nRunningMode) { return RunProgram(IntPtr.Zero, strProgram, null, nRunningMode); }
+            public static Process RunProgram(string strProgram, string strArgument, int nRunningMode) { return RunProgram(IntPtr.Zero, strProgram, strArgument, nRunningMode); }
 
             public static Process RunProgram(IntPtr hWnd_Dest, string strProgram) { return RunProgram(hWnd_Dest, strProgram, null, 0); }
             // nRunningMode == 0 : Normal(중복허용, 안죽임), 1 : killothers(다른것 다 죽이고 혼자 살아남음), 2 : 중복시 안띄움)
@@ -380,18 +557,66 @@ namespace OpenJigWare
             }
             public static Process RunProgram(IntPtr hWnd_Dest, string strProgram, string strArgument, int nRunningMode)
             {
-                //string strFileName = Ojw.CFile.GetTitle(strProgram);
-                System.Diagnostics.Process ps = new System.Diagnostics.Process();
-                String strTitle = Ojw.CFile.GetTitle(strProgram);
-                //this.Cursor = Cursors.Hand;
-                Process[] processes = System.Diagnostics.Process.GetProcesses();//GetProcessesByName(strProgram);
-
-                // 동일한 이름을 가진 Process를 모두 kill함.
-                bool bRunning = false;
-                foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) { if (nRunningMode == 1) process.Kill(); else bRunning = true; } }//process.CloseMainWindow(); else bRunning = true; } }
-                if (bRunning == true)
+#if true
+                bool bRedirect = false;
+                IntPtr ptr = new IntPtr();
+                try
                 {
-                    if (nRunningMode != 2)
+                    // 출처 : http://blog.naver.com/PostView.nhn?blogId=koolsk8eryj&logNo=220169704224
+                    //var query = from process in Process.GetProcesses()
+                    //            where process.ProcessName == GetProcess("osk")
+                    //            select process;
+                    //var keyboardProcess = query.FirstOrDefault();
+                    if (System.Environment.Is64BitOperatingSystem)
+                    {
+                        bRedirect = Wow64DisableWow64FsRedirection(ref ptr);
+                    }
+#else                    
+                try
+                {
+#endif
+
+                    //string strFileName = Ojw.CFile.GetTitle(strProgram);
+                    System.Diagnostics.Process ps = new System.Diagnostics.Process();
+                    String strTitle = Ojw.CFile.GetTitle(strProgram);
+                    //this.Cursor = Cursors.Hand;
+                    Process[] processes = System.Diagnostics.Process.GetProcesses();//GetProcessesByName(strProgram);
+
+                    // 동일한 이름을 가진 Process를 모두 kill함.
+                    bool bRunning = false;
+                    foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) { if (nRunningMode == 1) process.Kill(); else bRunning = true; } }//process.CloseMainWindow(); else bRunning = true; } }
+                    if (bRunning == true)
+                    {
+                        if (nRunningMode != 2)
+                        {
+                            ps.StartInfo.FileName = strProgram;
+                            if (strArgument != null) ps.StartInfo.Arguments = strArgument;
+                            ps.Start();
+                            if (hWnd_Dest != IntPtr.Zero)
+                            {
+                                ps.Refresh();
+                                if (ps.HasExited == true)
+                                {
+                                    return null;
+                                }
+                                try
+                                {
+                                    ps.WaitForInputIdle();
+                                }
+                                catch
+                                {
+                                    System.Threading.Thread.Sleep(500);
+                                }
+
+                                //IntPtr child = FindWindowEx(ps.MainWindowHandle, new IntPtr(0), null, null);
+                                //SetParent(child, hWnd_Dest);
+                                SetParent(ps.MainWindowHandle, hWnd_Dest);
+                                //SetWindowPos(hWnd_Dest, IntPtr.Zero, 0, 0, 200, 200, 0);
+                                SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, 200, 200, 0);
+                            }
+                        }
+                    }
+                    else
                     {
                         ps.StartInfo.FileName = strProgram;
                         if (strArgument != null) ps.StartInfo.Arguments = strArgument;
@@ -399,10 +624,6 @@ namespace OpenJigWare
                         if (hWnd_Dest != IntPtr.Zero)
                         {
                             ps.Refresh();
-                            if (ps.HasExited == true)
-                            {
-                                return null;
-                            }
                             try
                             {
                                 ps.WaitForInputIdle();
@@ -411,49 +632,43 @@ namespace OpenJigWare
                             {
                                 System.Threading.Thread.Sleep(500);
                             }
-
+                            //IntPtr child = FindWindow(strProgram, null);
                             //IntPtr child = FindWindowEx(ps.MainWindowHandle, new IntPtr(0), null, null);
                             //SetParent(child, hWnd_Dest);
                             SetParent(ps.MainWindowHandle, hWnd_Dest);
+                            RECT lpRect = new RECT();
+                            GetWindowRect(hWnd_Dest, ref lpRect);
                             //SetWindowPos(hWnd_Dest, IntPtr.Zero, 0, 0, 200, 200, 0);
-                            SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, 200, 200, 0);
+                            SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, lpRect.Right - lpRect.Left, lpRect.Bottom - lpRect.Top, 0);
+                            //IntPtr pParent = FindWindowEx(hWnd_Dest, new IntPtr(0), null, null);
+
                         }
                     }
-                }
-                else
-                {
-                    ps.StartInfo.FileName = strProgram;
-                    if (strArgument != null) ps.StartInfo.Arguments = strArgument;
-                    ps.Start();
-                    if (hWnd_Dest != IntPtr.Zero)
+
+                    if (bRunning == true)
                     {
-                        ps.Refresh();
-                        try
-                        {
-                            ps.WaitForInputIdle();
-                        }
-                        catch
-                        {
-                            System.Threading.Thread.Sleep(500);
-                        }
-                        //IntPtr child = FindWindow(strProgram, null);
-                        //IntPtr child = FindWindowEx(ps.MainWindowHandle, new IntPtr(0), null, null);
-                        //SetParent(child, hWnd_Dest);
-                        SetParent(ps.MainWindowHandle, hWnd_Dest);
-                        RECT lpRect = new RECT();
-                        GetWindowRect(hWnd_Dest, ref lpRect);
-                        //SetWindowPos(hWnd_Dest, IntPtr.Zero, 0, 0, 200, 200, 0);
-                        SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, lpRect.Right - lpRect.Left, lpRect.Bottom - lpRect.Top, 0);
-                        //IntPtr pParent = FindWindowEx(hWnd_Dest, new IntPtr(0), null, null);
 
                     }
-                }
-                
-                if (bRunning == true)
-                {
 
+#if true                    
+                    if (bRedirect == true)
+                    {
+                        Wow64RevertWow64FsRedirection(ptr);
+                    }
+#endif
+                    return ps;//.MainWindowHandle;
                 }
-                return ps;//.MainWindowHandle;
+                catch (Exception ex)
+                {
+#if true
+                    if (bRedirect == true)
+                    {
+                        Wow64RevertWow64FsRedirection(ptr);
+                    }
+#endif
+                    Ojw.CMessage.Write_Error(ex.ToString());
+                    return null;
+                }
             }
             public static void MoveProgram(IntPtr hWnd_Program, int nLeft, int nTop, int nRight, int nBottom) { SetWindowPos(hWnd_Program, IntPtr.Zero, nLeft, nTop, nRight - nLeft, nBottom - nTop, 0); }
             public static void MoveProgram(string strProgram, int nLeft, int nTop, int nRight, int nBottom) 
@@ -466,7 +681,67 @@ namespace OpenJigWare
                 }                 
             }
             public static void MoveProgram(Process ps, int nLeft, int nTop, int nRight, int nBottom) { if (IsRunningProgram(ps) == true) { SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, nLeft, nTop, nRight - nLeft, nBottom - nTop, 0); } }
-            
+
+            #region Monitor
+            //작업 표시줄 포함 크기
+            //int W = Screen.PrimaryScreen.Bounds.Width; //모니터 스크린 가로크기
+            //int H = Screen.PrimaryScreen.Bounds.Height; //모니터 스크린 세로크기
+ 
+            //작업표시줄 제외 크기
+            //int W = Screen.PrimaryScreen.WorkingArea.Width; //작업영역 가로크기
+            //int H = Screen.PrimaryScreen.WorkingArea.Height; // 작업영역 세로크기
+ 
+ 
+            //primaryScreem --> 주모니터에 대한 크기만 가지고 옴
+ 
+            //연결된 전체 모니터 사이즈. 
+            //int W = System.Windows.Forms.SystemInformation.VirtualScreen.Width; 
+            ////듀얼 모니터 가로 크기
+            //int H = System.Windows.Forms.SystemInformation.VirtualScreen.Height; 
+            ////듀얼 모니터 세로 크기
+            //[출처] C# 모니터 사이즈, 모니터 해상도|작성자 할수있다
+            public static int GetMonitor_Width(int nIndex)
+            {
+                if (nIndex >= Screen.AllScreens.Length) nIndex = Screen.AllScreens.Length - 1;
+                if (nIndex < 0) nIndex = 0;
+                return Screen.AllScreens[nIndex].Bounds.Width;
+            }
+            public static int GetMonitor_Height(int nIndex)
+            {
+                if (nIndex >= Screen.AllScreens.Length) nIndex = Screen.AllScreens.Length - 1;
+                if (nIndex < 0) nIndex = 0;
+                return Screen.AllScreens[nIndex].Bounds.Height;
+            }
+            public static Size GetMonitor_Size(int nIndex)
+            {
+                if (nIndex >= Screen.AllScreens.Length) nIndex = Screen.AllScreens.Length - 1;
+                if (nIndex < 0) nIndex = 0;
+                return Screen.AllScreens[nIndex].Bounds.Size;
+            }
+            public static int GetMonitor_Width() { return System.Windows.Forms.SystemInformation.VirtualScreen.Width; }
+            public static int GetMonitor_Height() { return System.Windows.Forms.SystemInformation.VirtualScreen.Height; }
+            public static Size GetMonitor_Size() { return System.Windows.Forms.SystemInformation.VirtualScreen.Size; }
+
+            public static int GetMonitor_X(int nIndex)
+            {
+                if (nIndex >= Screen.AllScreens.Length) nIndex = Screen.AllScreens.Length - 1;
+                if (nIndex < 0) nIndex = 0;
+                return Screen.AllScreens[nIndex].Bounds.X;
+            }
+            public static int GetMonitor_Y(int nIndex)
+            {
+                if (nIndex >= Screen.AllScreens.Length) nIndex = Screen.AllScreens.Length - 1;
+                if (nIndex < 0) nIndex = 0;
+                return Screen.AllScreens[nIndex].Bounds.Y;
+            }
+            public static Point GetMonitor_Location(int nIndex)
+            {
+                if (nIndex >= Screen.AllScreens.Length) nIndex = Screen.AllScreens.Length - 1;
+                if (nIndex < 0) nIndex = 0;
+                return Screen.AllScreens[nIndex].Bounds.Location;
+            }
+            #endregion Monitor
+
             //public static Process RunProgram(IntPtr hWnd_Dest, string strProgram)
             //{
             //    //Process Pcs = Process.Start(new ProcessStartInfo(strProgram));
@@ -596,6 +871,49 @@ namespace OpenJigWare
             public static Control FindControl(Form frm, String strControl) { try { return frm.Controls.Find(String.Format(strControl), true)[0]; } catch { return null; } }
             #endregion Docking
 
+            #region Skype
+            public class CSkype
+            {
+                private static Skype m_skyCom = null;
+                private static string m_strSkype = "Skype.exe";//@"C:\Program Files\Skype\Phone\Skype.exe";
+                //public CSkype()
+                //{
+                //    m_skyCom = new Skype();
+                //    RunningSkype();
+                //}
+                //~CSkype()
+                //{
+                //}
+                //private static bool m_bOpen = false;
+                public static bool IsOpen() { return ((m_skyCom != null) ? true : false); }//m_bOpen; }
+                public static void Open() { m_skyCom = new Skype(); RunningSkype(); } //if (m_skyCom != null) m_bOpen = true;
+                private static void RunningSkype()
+                {
+                    try
+                    {
+                        if (CSystem.IsRunningProgram(m_strSkype) == false)
+                        {
+                            System.Diagnostics.Process ps = CSystem.RunProgram(m_strSkype);//picDisp.Handle, m_strSkype);
+                            ps.WaitForInputIdle();
+                            CTimer.Wait(3000);
+                            
+                            CSystem.MoveProgram(ps.MainWindowHandle, 0, 0, 100, 100);
+                            ps.Dispose();
+                        }
+                    }
+                    catch
+                    {
+                        //m_bOpen = false;
+                    }
+                }
+                public static string[]  GetUsers() { List<string> lstUsers = new List<string>(); lstUsers.Clear(); foreach (User user in (IUserCollection)m_skyCom.Friends) { lstUsers.Add(user.Handle); } return lstUsers.ToArray(); }
+                public static string    GetImage_Address(string strUserName) { return string.Format("http://api.skype.com/users/{0}/profile/avatar", strUserName); }
+                public static Stream    GetImage_Stream(string strUserName) { using (var wc = new WebClient()) { return new MemoryStream(wc.DownloadData(GetImage_Address(strUserName))); } }
+                public static Image     GetImage(string strUserName) { using (var wc = new WebClient()) { return Image.FromStream(new MemoryStream(wc.DownloadData(GetImage_Address(strUserName)))); } }
+                public static void      Call(string strUser) { RunningSkype(); string strCommand = string.Format("skype:{0}?call&video=true", strUser); System.Diagnostics.Process.Start(strCommand); }
+                public static void      Off() { CSystem.KillProgram("Skype"); }
+            }
+            #endregion Skype
 
 #if _USING_DOTNET_3_5
 #elif _USING_DOTNET_2_0

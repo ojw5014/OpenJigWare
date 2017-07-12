@@ -72,12 +72,19 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {        
-        public const string strVersion = "02.00.06";
+        public const string strVersion = "02.00.07";
         public const string strHistory = (String)(
+                "[V02.00.07]\r\n" +
+                "COjw_31_Dynamixel.cs 클래스 추가 및 다이나믹셀 프로토콜 버전 2 기능 추가(with motion tool)\r\n" + 
+                "CompareDirectory_List 함수의 버그 수정\r\n" +
+                "XYZ 테이블 복사(Control^B) 기능 추가\r\n" +
+                "GridMotionEditor_Clear(int nLine) 함수 추가\r\n" +
+                "COjw_24_System.cs 의 IsRunningProgram 에서 불필요 메세지 삭제\r\n" +
+                "========================================\r\n" + // Released            
                 "[V02.00.06]\r\n" +
                 "음성인식 네거티브(!) 강화\r\n" +
                 "COjw_29_Param.cs 의 multiline 옵션에서 substring(1) 삭제(in Param_Load())\r\n" +
-                "========================================\r\n" + // No Released
+                "========================================\r\n" + // Released
                 "[V02.00.05]\r\n" +
                 "CTts, CVoice 기능 추가\r\n" + 
                 "Ojw.CSystem.ScreenKeyboard, ScreenKeyboard2 추가\r\n" + 
@@ -338,6 +345,45 @@ namespace OpenJigWare
                                                 // -2 : there is no mirror motor(but it can has flip-direction(for using center), flip it from '0')
 
         public int nMotorControlType;           // Motor Control type => 0: Position, 1: Speed type
+        
+        /////////// 추가
+        public float fRpm;//0.229f); // 기본 rpm 단위
+        public int nLimitRpm_Raw;//415);
+        public int nProtocolVersion;//2); // Version 2(0 해도 동일)
+        public int nHwMotorName; // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12
+        public int nHwModelNum;//1060); // 0번지에 모델번호 1060, XM430_W210 : 1030, XM430_W350 : 1020
+        public int nAddr_Max;//146);
+        public int nAddr_Torq;//64);
+        public int nAddr_Led;//65);
+        public int nAddr_Mode;//10); // 430 -> 10 address    [0 : 전류, 1 : 속도, 3(default) : 관절(위치제어), 4 : 확장위치제어(멀티턴:-256 ~ 256회전), 5 : 전류기반 위치제어, 16 : pwm 제어(voltage control mode)]
+        public int nAddr_Speed;//104); // 430 -> 104 4 bytes
+        public int nAddr_Speed_Size;//4);
+        public int nAddr_Pos_Speed;//112); // 430 -> 112 4 bytes
+        public int nAddr_Pos_Speed_Size;//4);
+        public int nAddr_Pos;//116); // 430 -> 116 4 bytes
+        public int nAddr_Pos_Size;//4);
+        public int nSerialType;  // 0 : Default, 1 : Second ... (동시에 2개 이상의 시리얼에 연결된 경우 사용)
+
+        public int nReserve_0;
+        public int nReserve_1;
+        public int nReserve_2;
+        public int nReserve_3;
+        public int nReserve_4;
+        public int nReserve_5;
+        public int nReserve_6;
+        public int nReserve_7;
+        public int nReserve_8;
+        public int nReserve_9;
+        public float fReserve_0;
+        public float fReserve_1;
+        public float fReserve_2;
+        public float fReserve_3;
+        public float fReserve_4;
+        public float fReserve_5;
+        public float fReserve_6;
+        public float fReserve_7;
+        public float fReserve_8;
+        public float fReserve_9;
     }
     #endregion MotorInfo (SMotorInfo_t)
     #region DH Parameter (SDhT_t, CDhParam, CDhParamAll)
@@ -518,6 +564,10 @@ namespace OpenJigWare
                 m_frmKeyPad.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
                 m_frmKeyPad.Show();
                 m_frmKeyPad.Scale(new SizeF(fScale, fScale));
+            }
+            public void EnableKorean(bool bEnable)
+            {
+                m_frmKeyPad.EnableHangul(bEnable);
             }
         }
         #region ModelingTool

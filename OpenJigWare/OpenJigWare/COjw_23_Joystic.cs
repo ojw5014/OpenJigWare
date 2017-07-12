@@ -549,12 +549,27 @@ namespace OpenJigWare
                     return isDown[key];
                 return false;
             }
+            public bool IsDown(int key)
+            {
+                if (isDown.Count > 0)
+                    return isDown[(PadKey)key];
+                return false;
+            }
 #endif
             public bool IsDown_Event(PadKey key)
             {
                 if (m_anClickEvent_Down[(int)key] == 1)
                 {
                     m_anClickEvent_Down[(int)key] = 2;
+                    return true;
+                }
+                return false;
+            }
+            public bool IsDown_Event(int key)
+            {
+                if (m_anClickEvent_Down[key] == 1)
+                {
+                    m_anClickEvent_Down[key] = 2;
                     return true;
                 }
                 return false;
@@ -594,6 +609,10 @@ namespace OpenJigWare
             {
                 return !isDown[key];
             }
+            public bool IsUp(int key)
+            {
+                return !isDown[(PadKey)key];
+            }
 #endif
 
             public bool IsUp_Event(PadKey key)
@@ -605,7 +624,15 @@ namespace OpenJigWare
                 }
                 return false;
             }
-
+            public bool IsUp_Event(int key)
+            {
+                if (m_anClickEvent_Up[key] == 2)
+                {
+                    m_anClickEvent_Up[key] = 0;
+                    return true;
+                }
+                return false;
+            }
             //public static IEnumerable<CJoystick> GetAvailableGamePads()
             //{
             //    var max = joyGetNumDevs();

@@ -27,54 +27,7 @@ namespace OpenJigWare
             //_0603,
             _Count
         }
-        #region Define structure(SParam_t. SParam_Axis_t)
-        public struct SParam_t
-        {
-            public int nBaudRate;
-            public int nComPort;
-            public bool bCompleteStop;
-            public int nMotorMax;
-        }
-        public struct SParam_Axis_t
-        {
-            public int nID;
-
-            public int nDir;
-
-            public float fLimitUp;    // limit Max value - 0: No use
-            public float fLimitDn;    // limit Min value - 0: No use
-            // Center position(Evd : Engineering value of degree)
-            public float fCenterPos;
-
-            public float fOffsetAngle_Display; // 보여지는 화면상의 각도 Offset
-
-            // gear ratio
-            public float fMechMove;
-            public float fDegree;
-        }
-        public struct SMot_t
-        {
-            public bool bEn;
-
-            public int nDir;
-            //Center
-            public float fCenterPos;
-
-            public float fMechMove;
-            public float fDegree;
-
-            public float fLimitUp;    // Limit - 0: Ignore
-            public float fLimitDn;    // Limit - 0: Ignore
-
-            public int nID;
-            public float fPos;
-            public float fTime;
-            public float fSpeed;
-
-            public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
-        }
-        #endregion Define Structure(SParam_t. SParam_Axis_t)
-
+        
         public struct SAxis_t
         {
             public int nAxis;

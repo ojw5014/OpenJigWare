@@ -88,7 +88,7 @@
             // 
             // lb_2_10
             // 
-            this.lb_2_10.Image = ((System.Drawing.Image)(resources.GetObject("lb_2_10.Image")));
+            this.lb_2_10.Image = global::OpenJigWare.Properties.Resources.a_normal_2_10_확인;
             this.lb_2_10.Location = new System.Drawing.Point(705, 134);
             this.lb_2_10.Name = "lb_2_10";
             this.lb_2_10.Size = new System.Drawing.Size(66, 48);
@@ -354,7 +354,7 @@
             // 
             // lb_3_1
             // 
-            this.lb_3_1.Image = ((System.Drawing.Image)(resources.GetObject("lb_3_1.Image")));
+            this.lb_3_1.Image = global::OpenJigWare.Properties.Resources.a_normal_3_1_한영;
             this.lb_3_1.Location = new System.Drawing.Point(93, 187);
             this.lb_3_1.Name = "lb_3_1";
             this.lb_3_1.Size = new System.Drawing.Size(66, 48);
@@ -473,7 +473,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
-            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.ClientSize = new System.Drawing.Size(794, 258);
             this.Controls.Add(this.btnExit);
             this.Controls.Add(this.lb_3_9);

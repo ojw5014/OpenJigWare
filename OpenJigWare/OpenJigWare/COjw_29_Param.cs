@@ -492,6 +492,11 @@ namespace OpenJigWare
                     }
                 }
             }
+            public void SetEncoding(Encoding Enc)
+            {
+                if (Enc != null) m_CFile.EncodingType(Enc);
+            }
+
             private bool m_bNoLoad = false;
             public void Param_Load(string strName, int nCount)
             {

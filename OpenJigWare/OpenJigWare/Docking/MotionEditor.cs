@@ -463,6 +463,7 @@ namespace OpenJigWare.Docking
         private int m_nTop_Title = 0;
         private void frmMotionEditor_Load(object sender, EventArgs e)
         {
+
             m_strTitle = String.Format("{0} - Open Jig Ware Ver [{1}]", m_strTitle, SVersion_T.strVersion);
             lbTitle.Text = m_strTitle;
             m_nLeft_Title = lbTitle.Left;
@@ -488,6 +489,8 @@ namespace OpenJigWare.Docking
             m_C3d.GridMotionEditor_Init_Panel(pnButton);
             //dgAngle.Scale(new SizeF(0.5f, 0.5f));
             m_C3d.SelectMotor_Sync_With_Mouse(true);
+
+            m_C3d.SetDynamixel(chkDynamixel.Checked);
 
             if (m_CFile.Load(100, Application.StartupPath + _STR_FILENAME) > 0)
             {
@@ -555,6 +558,8 @@ namespace OpenJigWare.Docking
                 m_strWorkDirectory_Dmt = m_CFile.GetData_String(i++);
                 m_strWorkDirectory_Mp3 = m_CFile.GetData_String(i++);
 
+                //cmbDynamixel.SelectedIndex = m_CFile.GetData_Int(i++);
+
                 if (m_strWorkDirectory_Dmt == null) m_strWorkDirectory_Dmt = Application.StartupPath;
                 if (m_strWorkDirectory_Mp3 == null) m_strWorkDirectory_Mp3 = Application.StartupPath;
                 //////////////////////////////////////////////////
@@ -601,6 +606,8 @@ namespace OpenJigWare.Docking
 
             // 그림을 그리기 위한 timer 가동
             tmrDraw.Enabled = true;
+            // 모터 체크를 위한 timer 가동
+            tmrCheckMotor.Enabled = true;
 
             // 설정된 마우스 이벤트를 사용할 것인지...(기본은 사용하도록 되어 있다. User의 Function만 사용하길 원한다면 false)
             //m_C3d.SetMouseEventEnable(true); // you can remove the default mouse events.
@@ -740,7 +747,7 @@ namespace OpenJigWare.Docking
             {
                 Stop();
             }
-
+            
             tmrDraw.Enabled = true;
             m_bTimer = false;
         }
@@ -814,16 +821,23 @@ namespace OpenJigWare.Docking
                 m_nSeq_ProgEnd = 2;
                 return true;
             }
-            //tmrDraw.Enabled = false;
-            //tmrMp3.Enabled = false;
-            //tmrRun.Enabled = false;
             m_nSeq_ProgEnd = 1;
+
+            tmrDraw.Enabled = false;
+            tmrMp3.Enabled = false;
+            tmrRun.Enabled = false;
+            tmrDraw.Enabled = false;
+
             DialogResult dlgRet = MessageBox.Show("프로그램을 종료합니다.\r\n\r\n계속 하시겠습니까?", "Program 종료", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             if (dlgRet != DialogResult.OK)
             {
                 tmrDraw.Enabled = true;
                 tmrMp3.Enabled = true;
                 tmrRun.Enabled = true;
+
+                tmrDraw.Enabled = true;
+
+                tmrCheckMotor.Enabled = false;
 
                 m_nSeq_ProgEnd = 0;
                 return false;
@@ -857,8 +871,8 @@ namespace OpenJigWare.Docking
             // Save Param
             SaveParam();
 
-            tmrMp3.Enabled = false;
-            tmrDraw.Enabled = false;
+            //tmrMp3.Enabled = false;
+            //tmrDraw.Enabled = false;
 
 
             Ojw.CTimer.Wait(100); // 백그라운드 작업이 다 완료될때까지 기다리는 편이 좋다.
@@ -867,6 +881,9 @@ namespace OpenJigWare.Docking
             // Serial
             if (m_C3d.m_CMotor.IsConnect() == true)
                 Disconnect();
+
+            if (m_C3d.m_CRobotis.IsOpen() == true) m_C3d.m_CRobotis.Close();
+
             // Socket
             if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
                 m_C3d.m_CMotor2.Close_Socket();
@@ -911,6 +928,8 @@ namespace OpenJigWare.Docking
             
             m_CFile.SetData_String(i++, m_strWorkDirectory_Dmt);
             m_CFile.SetData_String(i++, m_strWorkDirectory_Mp3);
+
+            //m_CFile.SetData_Int(i++, cmbDynamixel.SelectedIndex);
 
             m_CFile.Save(Application.StartupPath + _STR_FILENAME);
         }
@@ -1017,7 +1036,10 @@ namespace OpenJigWare.Docking
         {
             //btnRun.Enabled = false;
             Ojw.CTimer.Reset(); // Clear the Stop bit;
-            
+
+            // 위치 데이타를 받고 시작한다.(다이나믹셀)
+            m_C3d.SetFirstMoving(true);
+
             //m_thRun = new Thread(new ThreadStart(Run));
             //m_thRun.Start();
             tmrRun.Enabled = true;
@@ -1048,363 +1070,650 @@ namespace OpenJigWare.Docking
         }
         private void StartMotion()
         {
-            bool bSock = m_C3d.m_CMotor2.IsOpen_Socket();
-            if (m_bStart == true)
+            if (chkDynamixel.Checked == true)
             {
-                lbMotion_Message.Text = "Motion Running...";//Motion 운전 중입니다.";
-                Ojw.CMessage.Write(lbMotion_Message.Text);
-                return;
-            }
-            //if (CheckWifi() == true)
-            //{
-            //    if (m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_check_Ems() == true)
-            //    {
-            //        lbMotion_Message.Text = "비상정지 알람이 켜져 있습니다.";
-            //        return;
-            //    }
-            //}
-            //else
-            //{
-            //    //if (m_C3d.m_CMotor.IsEms() == true)
-            //    if ((m_C3d.m_CMotor.IsEms() == true) || (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == true))
-            //    {
-            //        lbMotion_Message.Text = "비상정지 알람이 켜져 있습니다.";
-            //        return;
-            //    }
-            //    if ((m_C3d.m_CMotor.IsConnect() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false))
-            //    {
-            //        lbMotion_Message.Text = "Serial Port Error - Not Connected.";
-            //        return;
-            //    }
-            //}
-
-            //if (CheckWifi() == true) // 네트워크 버전이라면 파일을 전송해서 플레이하는 방식으로 한다.
-            //{
-            //    int nVer = ((chkFileVersionForSave.Checked == true) ? _V_11 : ((chkFileVersionForSave_1_0.Checked == true) ? _V_10 : _V_12));
-            //    MakeBinaryFileStream(nVer);
-            //    String strFile = m_strFileStream;
-            //    DownLoad(m_nCurrentRobot, strFile);
-            //    FileInfo fileStream = new FileInfo(strFile);
-            //    //if (fileStream.Exists) // 지울 파일이 있는지 체크
-            //    //{
-            //    // 없더라도 에러가 나지는 않는다. 굳이 에러처리가 필요 없음.
-            //    fileStream.Delete();
-            //    //}
-            //}
-
-            if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor2.IsEms() == true))
-            {
-                lbMotion_Message.Text = "Check you Emergency Status";//비상정지 알람이 켜져 있습니다.";
-                Ojw.CMessage.Write(lbMotion_Message.Text);
-                return;
-            }
-            if (m_C3d.GetSimulation_With_PlayFrame() == false)
-            {
-                if ((m_C3d.m_CMotor.IsConnect() == false) && (bSock == false))// && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false))
+                #region Way 1
+                if (m_bStart == true)
                 {
-                    lbMotion_Message.Text = "Serial Port & Socket Error - Not Connected.";
+                    lbMotion_Message.Text = "Motion Running...";//Motion 운전 중입니다.";
                     Ojw.CMessage.Write(lbMotion_Message.Text);
                     return;
                 }
-            }
-           
-            if (chkMp3.Checked == true)
-            {
-                //Mp3Stop();
-                int nCell = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
-                if (nCell > 0)
+
+                if (m_C3d.m_CRobotis.IsEms() == true)
                 {
-                    DialogResult dlgRet = MessageBox.Show(String.Format("Do you want to start from {0} line?", nCell), "Starting Position Check", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
-                    if (dlgRet != DialogResult.OK)
+                    lbMotion_Message.Text = "Check you Emergency Status";//비상정지 알람이 켜져 있습니다.";
+                    Ojw.CMessage.Write(lbMotion_Message.Text);
+                    return;
+                }
+                if (m_C3d.GetSimulation_With_PlayFrame() == false)
+                {
+                    if (m_C3d.m_CRobotis.IsOpen() == false)
                     {
-                        dgAngle.CurrentCell = dgAngle.Rows[0].Cells[1];
-                        nCell = 0;
+                        lbMotion_Message.Text = "Serial Port & Socket Error - Not Connected.";
+                        Ojw.CMessage.Write(lbMotion_Message.Text);
+                        return;
                     }
                 }
-                ChangePos_Mp3Bar();
 
-                // 일단 그리드의 타임값 등을 디스플레이 한다.
-                Grid_DisplayTime();
-                if ((nCell >= 0) && (dgAngle.RowCount > nCell))
+                if (chkMp3.Checked == true)
                 {
-                    //prgMp3.Value = (int)(mpPlayer.Ctlcontrols.currentPosition / dTime * 100);
-                    mpPlayer.Ctlcontrols.currentPosition = (double)m_lCalcTime[nCell] / 1000.0;
-                }
-                m_nMotion_Step = nCell;
-            }
-            else
-                m_nMotion_Step = 0; // 메모리를 날린다. -> -_-
-
-            string strMessage = "";
-
-
-            // Auto Save 기능을 정지해야 하는데 혹시 몰라 시간초기화도 한다.
-            m_CTmr_AutoBackup.Set();
-            m_CTmr_AutoBackup.Kill();
-
-            // 타이머 기능 정지
-            if (m_C3d.GetSimulation_With_PlayFrame() == false) 
-                tmrDraw.Enabled = false;
-            //m_C3d.m_CMotor.SetAutoReturn(false);
-            m_bStart = true;
-            // 그리드 클릭 및 기타 이벤트 금지
-            dgAngle.Enabled = false;
-            //dgKinematics.Enabled = false;
-
-            m_nMotion_Step = 0; // 메모리를 날린다. -> -_-
-
-            m_bMotionEnd = false;
-            m_C3d.m_CMotor.ResetStop();
-            if (bSock == true) m_C3d.m_CMotor2.Reset();
-            //if (CheckWifi() == true)
-            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_reset_stop();
-
-            //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
-            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_reset_stop();
-
-            lbMotion_Counter.Text = "0";
-            int nCnt = 0;
-            int nLimitCount = Ojw.CConvert.StrToInt(txtMotionCounter.Text);
-            //// Motion Start ////
-            //if (CheckWifi() == true)
-            //    m_aDrSock[m_nCurrentRobot].drsock_client_request_motion_play(0, m_strFileStream);
-
-            //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
-            //frmMain.m_DrBluetooth.drbluetooth_client_request_motion_play(0, m_strFileStream);
-            
-            if (chkMp3.Checked == true)
-            {
-                //#if _ENABLE_MEDIAPLAYER
-                Mp3Play();
-                //#endif
-                Ojw.CTimer.Wait(Ojw.CConvert.StrToLong(txtMp3TimeDelay.Text));
-            }
-
-            //m_C3d.m_CMotor.ResetStop();
-            // Servo / Driver On
-            m_C3d.m_CMotor.DrvSrv(true, true);
-            if (bSock == true) m_C3d.m_CMotor2.SetTorque(true, true);
-            int nStep = m_nMotion_Step;
-            m_nLoop = 0;
-            while (
-                    ((nLimitCount <= 0) || (nLimitCount > nCnt)) &&
-                    ((m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false)) &&
-                    ((m_C3d.m_CMotor2.IsEms() == false) && (m_C3d.m_CMotor2.IsStop() == false)) &&
-                    //((frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_stop() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == false)) &&
-                     (m_bMotionEnd == false)
-                    )
-            {
-                if (
-                    (m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false) &&
-                    (m_C3d.m_CMotor2.IsEms() == false) && (m_C3d.m_CMotor2.IsStop() == false)
-                    )
-                {
-                    // 카운터 디스플레이
-                    nCnt++;
-                    lbMotion_Counter.Text = Ojw.CConvert.IntToStr(nCnt);
-
-                    // 모션 실행
-                    nStep = Motion(nStep);
-                    
-                    // 잔여 Simulation
-                    if (m_C3d.GetSimulation_With_PlayFrame() == true)
+                    int nCell = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
+                    if (nCell > 0)
                     {
-                        if (m_C3d.m_nSimulTime_For_Last > 0)
+                        DialogResult dlgRet = MessageBox.Show(String.Format("Do you want to start from {0} line?", nCell), "Starting Position Check", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                        if (dlgRet != DialogResult.OK)
                         {
-                            m_C3d.SetSimulation_SetCurrentData();
-
-                            m_C3d.SetSimulation_Calc(m_C3d.m_nSimulTime_For_Last, 1);
-                            WaitAction_ByTimer(m_C3d.m_nSimulTime_For_Last);
-                            for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) m_C3d.SetData(i, m_C3d.GetSimulation_Value_Next(i));
+                            dgAngle.CurrentCell = dgAngle.Rows[0].Cells[1];
+                            nCell = 0;
                         }
                     }
+                    ChangePos_Mp3Bar();
 
-                    if ((nLimitCount <= 0) || (nLimitCount > nCnt))
+                    // 일단 그리드의 타임값 등을 디스플레이 한다.
+                    Grid_DisplayTime();
+                    if ((nCell >= 0) && (dgAngle.RowCount > nCell))
                     {
-
+                        mpPlayer.Ctlcontrols.currentPosition = (double)m_lCalcTime[nCell] / 1000.0;
                     }
-                    else nStep = 0;
-                    m_nLoop++;
+                    m_nMotion_Step = nCell;
                 }
-            }
-            m_nMotion_Step = nStep;
-            //if ((m_bMotionEnd == true) && (m_bMp3Play == true)) Mp3Stop();
-            
-            Mp3Stop();
+                else
+                    m_nMotion_Step = 0; // 메모리를 날린다. -> -_-
 
-            //// Motion End ////
-            #region 종료처리
-            if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor2.IsEms() == true))
-            {
-                lbMotion_Status.Text = "비상정지";
-            }
-            else if ((m_C3d.m_CMotor.IsStop() == true) || (m_C3d.m_CMotor2.IsStop() == true))
-            {
-                strMessage = "Motion Stop";
-                lbMotion_Status.Text = "일시정지";
-            }
-            else
-            {
-                strMessage = "Motion 완료";
-                lbMotion_Status.Text = "Ready";
-            }
-            #endregion 종료처리
+                string strMessage = "";
+                
+                // Auto Save 기능을 정지해야 하는데 혹시 몰라 시간초기화도 한다.
+                m_CTmr_AutoBackup.Set();
+                m_CTmr_AutoBackup.Kill();
+
+                // 타이머 기능 정지
+                if (m_C3d.GetSimulation_With_PlayFrame() == false)
+                {
+                    tmrCheckMotor.Enabled = false;
+                    tmrDraw.Enabled = false;
+                }
+                //m_C3d.m_CMotor.SetAutoReturn(false);
+                m_bStart = true;
+                // 그리드 클릭 및 기타 이벤트 금지
+                dgAngle.Enabled = false;
+                //dgKinematics.Enabled = false;
+
+                m_nMotion_Step = 0; // 메모리를 날린다. -> -_-
+
+                m_bMotionEnd = false;
+                m_C3d.m_CMotor.ResetStop();
+                
+                lbMotion_Counter.Text = "0";
+                int nCnt = 0;
+                int nLimitCount = Ojw.CConvert.StrToInt(txtMotionCounter.Text);
+
+                //// Motion Start ////
+                if (chkMp3.Checked == true)
+                {
+                    //#if _ENABLE_MEDIAPLAYER
+                    Mp3Play();
+                    //#endif
+                    Ojw.CTimer.Wait(Ojw.CConvert.StrToLong(txtMp3TimeDelay.Text));
+                }
+
+                //m_C3d.m_CMotor.ResetStop();
+                // Servo / Driver On
+                m_C3d.m_CRobotis.SetTorque(true);
+                int nStep = m_nMotion_Step;
+                m_nLoop = 0;
+                while (
+                        ((nLimitCount <= 0) || (nLimitCount > nCnt)) &&
+                        ((m_C3d.m_CRobotis.IsEms() == false) && (m_C3d.m_CRobotis.IsStop() == false)) &&
+                         (m_bMotionEnd == false)
+                        )
+                {
+                    if (
+                        (m_C3d.m_CRobotis.IsEms() == false) && (m_C3d.m_CRobotis.IsStop() == false)
+                        )
+                    {
+                        // 카운터 디스플레이
+                        nCnt++;
+                        lbMotion_Counter.Text = Ojw.CConvert.IntToStr(nCnt);
+
+                        // 모션 실행
+                        nStep = Motion(nStep);
+
+                        // 잔여 Simulation
+                        if (m_C3d.GetSimulation_With_PlayFrame() == true)
+                        {
+                            if (m_C3d.m_nSimulTime_For_Last > 0)
+                            {
+                                m_C3d.SetSimulation_SetCurrentData();
+
+                                m_C3d.SetSimulation_Calc(m_C3d.m_nSimulTime_For_Last, 1);
+                                WaitAction_ByTimer(m_C3d.m_nSimulTime_For_Last);
+                                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) m_C3d.SetData(i, m_C3d.GetSimulation_Value_Next(i));
+                            }
+                        }
+
+                        if ((nLimitCount <= 0) || (nLimitCount > nCnt))
+                        {
+
+                        }
+                        else nStep = 0;
+                        m_nLoop++;
+                    }
+                }
+                m_nMotion_Step = nStep;
+                //if ((m_bMotionEnd == true) && (m_bMp3Play == true)) Mp3Stop();
+
+                Mp3Stop();
+
+                //// Motion End ////
+                #region 종료처리
+                if (m_C3d.m_CRobotis.IsEms() == true)
+                {
+                    lbMotion_Status.Text = "비상정지";
+                }
+                else if (m_C3d.m_CRobotis.IsStop() == true)
+                {
+                    strMessage = "Motion Stop";
+                    lbMotion_Status.Text = "일시정지";
+                }
+                else
+                {
+                    strMessage = "Motion 완료";
+                    lbMotion_Status.Text = "Ready";
+                }
+                #endregion 종료처리
 
 
 #if !_COLOR_GRID_IN_PAINT
-            m_C3d.GridMotionEditor_SetColorGrid(dgAngle.CurrentCell.RowIndex, 1);
+                m_C3d.GridMotionEditor_SetColorGrid(dgAngle.CurrentCell.RowIndex, 1);
 #endif
 
-            if (strMessage != "")
-            {
-                lbMotion_Message.Text = strMessage;
+                if (strMessage != "")
+                {
+                    lbMotion_Message.Text = strMessage;
+                }
+
+                m_bStart = false;
+                // 타이머 기능 복원
+                tmrDraw.Enabled = true;
+                tmrCheckMotor.Enabled = true;
+
+                // 다시 Auto Save 를 활성화 한다.
+                m_CTmr_AutoBackup.Set();
+
+                // 그리드 클릭 및 기타 이벤트 금지 해제
+                dgAngle.Enabled = true;
+
+                //m_C3d.m_CMotor.SetAutoReturn(true);
+                #endregion Way 1
             }
+            else
+            {
+                #region Way 2
+                bool bSock = m_C3d.m_CMotor2.IsOpen_Socket();
+                if (m_bStart == true)
+                {
+                    lbMotion_Message.Text = "Motion Running...";//Motion 운전 중입니다.";
+                    Ojw.CMessage.Write(lbMotion_Message.Text);
+                    return;
+                }
+                //if (CheckWifi() == true)
+                //{
+                //    if (m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_check_Ems() == true)
+                //    {
+                //        lbMotion_Message.Text = "비상정지 알람이 켜져 있습니다.";
+                //        return;
+                //    }
+                //}
+                //else
+                //{
+                //    //if (m_C3d.m_CMotor.IsEms() == true)
+                //    if ((m_C3d.m_CMotor.IsEms() == true) || (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == true))
+                //    {
+                //        lbMotion_Message.Text = "비상정지 알람이 켜져 있습니다.";
+                //        return;
+                //    }
+                //    if ((m_C3d.m_CMotor.IsConnect() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false))
+                //    {
+                //        lbMotion_Message.Text = "Serial Port Error - Not Connected.";
+                //        return;
+                //    }
+                //}
 
-            m_bStart = false;
-            // 타이머 기능 복원
-            tmrDraw.Enabled = true;
+                //if (CheckWifi() == true) // 네트워크 버전이라면 파일을 전송해서 플레이하는 방식으로 한다.
+                //{
+                //    int nVer = ((chkFileVersionForSave.Checked == true) ? _V_11 : ((chkFileVersionForSave_1_0.Checked == true) ? _V_10 : _V_12));
+                //    MakeBinaryFileStream(nVer);
+                //    String strFile = m_strFileStream;
+                //    DownLoad(m_nCurrentRobot, strFile);
+                //    FileInfo fileStream = new FileInfo(strFile);
+                //    //if (fileStream.Exists) // 지울 파일이 있는지 체크
+                //    //{
+                //    // 없더라도 에러가 나지는 않는다. 굳이 에러처리가 필요 없음.
+                //    fileStream.Delete();
+                //    //}
+                //}
 
-            // 다시 Auto Save 를 활성화 한다.
-            m_CTmr_AutoBackup.Set();
+                if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor2.IsEms() == true))
+                {
+                    lbMotion_Message.Text = "Check you Emergency Status";//비상정지 알람이 켜져 있습니다.";
+                    Ojw.CMessage.Write(lbMotion_Message.Text);
+                    return;
+                }
+                if (m_C3d.GetSimulation_With_PlayFrame() == false)
+                {
+                    if ((m_C3d.m_CMotor.IsConnect() == false) && (bSock == false))// && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false))
+                    {
+                        lbMotion_Message.Text = "Serial Port & Socket Error - Not Connected.";
+                        Ojw.CMessage.Write(lbMotion_Message.Text);
+                        return;
+                    }
+                }
 
-            // 그리드 클릭 및 기타 이벤트 금지 해제
-            dgAngle.Enabled = true;
+                if (chkMp3.Checked == true)
+                {
+                    //Mp3Stop();
+                    int nCell = m_C3d.m_CGridMotionEditor.m_nCurrntCell;
+                    if (nCell > 0)
+                    {
+                        DialogResult dlgRet = MessageBox.Show(String.Format("Do you want to start from {0} line?", nCell), "Starting Position Check", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                        if (dlgRet != DialogResult.OK)
+                        {
+                            dgAngle.CurrentCell = dgAngle.Rows[0].Cells[1];
+                            nCell = 0;
+                        }
+                    }
+                    ChangePos_Mp3Bar();
 
-            //m_C3d.m_CMotor.SetAutoReturn(true);
+                    // 일단 그리드의 타임값 등을 디스플레이 한다.
+                    Grid_DisplayTime();
+                    if ((nCell >= 0) && (dgAngle.RowCount > nCell))
+                    {
+                        //prgMp3.Value = (int)(mpPlayer.Ctlcontrols.currentPosition / dTime * 100);
+                        mpPlayer.Ctlcontrols.currentPosition = (double)m_lCalcTime[nCell] / 1000.0;
+                    }
+                    m_nMotion_Step = nCell;
+                }
+                else
+                    m_nMotion_Step = 0; // 메모리를 날린다. -> -_-
+
+                string strMessage = "";
+
+
+                // Auto Save 기능을 정지해야 하는데 혹시 몰라 시간초기화도 한다.
+                m_CTmr_AutoBackup.Set();
+                m_CTmr_AutoBackup.Kill();
+
+                // 타이머 기능 정지
+                if (m_C3d.GetSimulation_With_PlayFrame() == false)
+                {
+                    tmrCheckMotor.Enabled = false;
+                    tmrDraw.Enabled = false;
+                }
+                //m_C3d.m_CMotor.SetAutoReturn(false);
+                m_bStart = true;
+                // 그리드 클릭 및 기타 이벤트 금지
+                dgAngle.Enabled = false;
+                //dgKinematics.Enabled = false;
+
+                m_nMotion_Step = 0; // 메모리를 날린다. -> -_-
+
+                m_bMotionEnd = false;
+                m_C3d.m_CMotor.ResetStop();
+                if (bSock == true) m_C3d.m_CMotor2.Reset();
+                //if (CheckWifi() == true)
+                //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_reset_stop();
+
+                //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
+                //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_reset_stop();
+
+                lbMotion_Counter.Text = "0";
+                int nCnt = 0;
+                int nLimitCount = Ojw.CConvert.StrToInt(txtMotionCounter.Text);
+                //// Motion Start ////
+                //if (CheckWifi() == true)
+                //    m_aDrSock[m_nCurrentRobot].drsock_client_request_motion_play(0, m_strFileStream);
+
+                //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
+                //frmMain.m_DrBluetooth.drbluetooth_client_request_motion_play(0, m_strFileStream);
+
+                if (chkMp3.Checked == true)
+                {
+                    //#if _ENABLE_MEDIAPLAYER
+                    Mp3Play();
+                    //#endif
+                    Ojw.CTimer.Wait(Ojw.CConvert.StrToLong(txtMp3TimeDelay.Text));
+                }
+
+                //m_C3d.m_CMotor.ResetStop();
+                // Servo / Driver On
+                m_C3d.m_CMotor.DrvSrv(true, true);
+                if (bSock == true) m_C3d.m_CMotor2.SetTorque(true, true);
+                int nStep = m_nMotion_Step;
+                m_nLoop = 0;
+                while (
+                        ((nLimitCount <= 0) || (nLimitCount > nCnt)) &&
+                        ((m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false)) &&
+                        ((m_C3d.m_CMotor2.IsEms() == false) && (m_C3d.m_CMotor2.IsStop() == false)) &&
+                    //((frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_stop() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == false)) &&
+                         (m_bMotionEnd == false)
+                        )
+                {
+                    if (
+                        (m_C3d.m_CMotor.IsEms() == false) && (m_C3d.m_CMotor.IsStop() == false) &&
+                        (m_C3d.m_CMotor2.IsEms() == false) && (m_C3d.m_CMotor2.IsStop() == false)
+                        )
+                    {
+                        // 카운터 디스플레이
+                        nCnt++;
+                        lbMotion_Counter.Text = Ojw.CConvert.IntToStr(nCnt);
+
+                        // 모션 실행
+                        nStep = Motion(nStep);
+
+                        // 잔여 Simulation
+                        if (m_C3d.GetSimulation_With_PlayFrame() == true)
+                        {
+                            if (m_C3d.m_nSimulTime_For_Last > 0)
+                            {
+                                m_C3d.SetSimulation_SetCurrentData();
+
+                                m_C3d.SetSimulation_Calc(m_C3d.m_nSimulTime_For_Last, 1);
+                                WaitAction_ByTimer(m_C3d.m_nSimulTime_For_Last);
+                                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) m_C3d.SetData(i, m_C3d.GetSimulation_Value_Next(i));
+                            }
+                        }
+
+                        if ((nLimitCount <= 0) || (nLimitCount > nCnt))
+                        {
+
+                        }
+                        else nStep = 0;
+                        m_nLoop++;
+                    }
+                }
+                m_nMotion_Step = nStep;
+                //if ((m_bMotionEnd == true) && (m_bMp3Play == true)) Mp3Stop();
+
+                Mp3Stop();
+
+                //// Motion End ////
+                #region 종료처리
+                if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor2.IsEms() == true))
+                {
+                    lbMotion_Status.Text = "비상정지";
+                }
+                else if ((m_C3d.m_CMotor.IsStop() == true) || (m_C3d.m_CMotor2.IsStop() == true))
+                {
+                    strMessage = "Motion Stop";
+                    lbMotion_Status.Text = "일시정지";
+                }
+                else
+                {
+                    strMessage = "Motion 완료";
+                    lbMotion_Status.Text = "Ready";
+                }
+                #endregion 종료처리
+
+
+#if !_COLOR_GRID_IN_PAINT
+                m_C3d.GridMotionEditor_SetColorGrid(dgAngle.CurrentCell.RowIndex, 1);
+#endif
+
+                if (strMessage != "")
+                {
+                    lbMotion_Message.Text = strMessage;
+                }
+
+                m_bStart = false;
+                // 타이머 기능 복원
+                tmrDraw.Enabled = true;
+                tmrCheckMotor.Enabled = true;
+
+                // 다시 Auto Save 를 활성화 한다.
+                m_CTmr_AutoBackup.Set();
+
+                // 그리드 클릭 및 기타 이벤트 금지 해제
+                dgAngle.Enabled = true;
+
+                //m_C3d.m_CMotor.SetAutoReturn(true);
+                #endregion Way 2
+            }
         }
         private int m_nMotion_Step = 0;
         private int m_nLoop = 0;
         private int Motion(int nLine)
         {
-            int nResult = 0;
-            int temp_Line = 0;
-
-            int nSize = dgAngle.RowCount;
-
-            bool bAll = true;
-            bool[] abSelected = new bool[nSize];
-            abSelected.Initialize();
-            int nTmpPos = 0;
-            int nTmpCnt = 0;
-            for (int i = 0; i < nSize; i++)
+            #region Dynamixel
+            if (chkDynamixel.Checked == true)
             {
-                if ((m_C3d.GridMotionEditor_GetEnable(i) == true) && (dgAngle[0, i].Selected == true))
+                int nResult = 0;
+                int temp_Line = 0;
+
+                int nSize = dgAngle.RowCount;
+
+                bool bAll = true;
+                bool[] abSelected = new bool[nSize];
+                abSelected.Initialize();
+                int nTmpPos = 0;
+                int nTmpCnt = 0;
+                for (int i = 0; i < nSize; i++)
                 {
-
-                    bAll = false;
-                    abSelected[i] = true;
-
-                }
-
-                for (int j = 0; j < dgAngle.ColumnCount; j++)
-                {
-                    if (dgAngle[j, i].Selected == true)
+                    if ((m_C3d.GridMotionEditor_GetEnable(i) == true) && (dgAngle[0, i].Selected == true))
                     {
-                        // 선택한 라인의 갯수를 셈 - 멀티선택인지, 단일선택인지 구분 가능
-                        nTmpPos = i;
-                        nTmpCnt++;
-                        break;
+                        bAll = false;
+                        abSelected[i] = true;
                     }
-                }
 
-                //if ((m_C3d.GridMotionEditor_GetEnable(i) == true) && (dgAngle[0, i].Selected == true))
-                //{
-                //    bAll = false;
-                //    break;
-                //}
-            }
-
-            //if (CheckWifi() == true)
-            //{
-            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_reset_stop();
-            //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_drvsrv(true, true);
-            //}
-            //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
-            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_reset_stop();
-            //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_drvsrv(true, true);
-            
-            int nFirstLine = ((nTmpCnt == 1) && (chkMp3.Checked == true)) ? nTmpPos : 0; // 다중선택이면서 음원과 싱크를 맞춰 출력하려면...
-            if (m_nLoop > 0) nFirstLine = 0;
-
-            WaitAction_SetTimer();
-            // float fVal;
-            for (int i = nFirstLine; i < nSize; i++)
-            {
-                if (m_C3d.GridMotionEditor_GetEnable(i) == false) continue;
-                if ((bAll == false) && (abSelected[i] == false)) continue;
-                //if ((bAll == false) && (dgAngle[0, i].Selected == false)) continue;
-                //if ((bAll == false) && (dgAngle.Rows[i].Selected == false)) continue;
-                if (nLine == temp_Line)
-                {
-                    //if (m_C3d.GridMotionEditor_GetCommand(i) == 1)
-                    if ((m_C3d.GridMotionEditor_GetCommand(i) == 1) || ((m_C3d.GridMotionEditor_GetCommand(i) >= 3) && (m_C3d.GridMotionEditor_GetCommand(i) <= 5))) // 반복문은 1, 3, 4, 5 가 있다.
+                    for (int j = 0; j < dgAngle.ColumnCount; j++)
                     {
-                        int nFirst = i;
-                        int nLast = (int)m_C3d.GridMotionEditor_GetData0(i);
-                        int nRepeat = (int)m_C3d.GridMotionEditor_GetData1(i);
-                        for (int k = 0; k < nRepeat; k++)
+                        if (dgAngle[j, i].Selected == true)
                         {
-                            if (k >= nRepeat - 1) nLast = nFirst;
-                            for (int j = nFirst; j <= nLast; j++)
-                            {
-                                if (m_C3d.GridMotionEditor_GetEnable(j) == false) continue;
-                                if (nLine == temp_Line)
-                                {
-                                    PlayFrame(j);
-                                    nLine++;
-                                }
-                                temp_Line++;
-                                if (
-#if false
-                                    (m_C3d.m_CMotor.IsConnect() == false) ||
-#else
-                                    ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false) && (m_C3d.m_CMotor2.IsOpen_Socket() == false)) ||
-#endif
-                                    ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) ||
-                                    ((m_C3d.m_CMotor2.IsEms() == true) || (m_C3d.m_CMotor2.IsStop() == true)) ||
-                                    (m_bStart == false)
-                                    )
-                                    return (temp_Line - 1);
-                            }
+                            // 선택한 라인의 갯수를 셈 - 멀티선택인지, 단일선택인지 구분 가능
+                            nTmpPos = i;
+                            nTmpCnt++;
+                            break;
                         }
                     }
-                    else
+                }
+
+                int nFirstLine = ((nTmpCnt == 1) && (chkMp3.Checked == true)) ? nTmpPos : 0; // 다중선택이면서 음원과 싱크를 맞춰 출력하려면...
+                if (m_nLoop > 0) nFirstLine = 0;
+
+                WaitAction_SetTimer();
+                for (int i = nFirstLine; i < nSize; i++)
+                {
+                    if (m_C3d.GridMotionEditor_GetEnable(i) == false) continue;
+                    if ((bAll == false) && (abSelected[i] == false)) continue;
+                    if (nLine == temp_Line)
                     {
-                        PlayFrame(i);
+                        if ((m_C3d.GridMotionEditor_GetCommand(i) == 1) || ((m_C3d.GridMotionEditor_GetCommand(i) >= 3) && (m_C3d.GridMotionEditor_GetCommand(i) <= 5))) // 반복문은 1, 3, 4, 5 가 있다.
+                        {
+                            int nFirst = i;
+                            int nLast = (int)m_C3d.GridMotionEditor_GetData0(i);
+                            int nRepeat = (int)m_C3d.GridMotionEditor_GetData1(i);
+                            for (int k = 0; k < nRepeat; k++)
+                            {
+                                if (k >= nRepeat - 1) nLast = nFirst;
+                                for (int j = nFirst; j <= nLast; j++)
+                                {
+                                    if (m_C3d.GridMotionEditor_GetEnable(j) == false) continue;
+                                    if (nLine == temp_Line)
+                                    {
+                                        PlayFrame(j);
+                                        nLine++;
+                                    }
+                                    temp_Line++;
+                                    if (
+                                        ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CRobotis.IsOpen() == false)) ||
+                                        ((m_C3d.m_CRobotis.IsEms() == true) || (m_C3d.m_CRobotis.IsStop() == true)) ||
+                                        (m_bStart == false)
+                                        )
+                                        return (temp_Line - 1);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            PlayFrame(i);
+                        }
+                        nLine++;
                     }
+                    temp_Line++;
+                    if (
+                        ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CRobotis.IsOpen() == false)) ||
+                        ((m_C3d.m_CRobotis.IsEms() == true) || (m_C3d.m_CRobotis.IsStop() == true)) ||
+                        (m_bStart == false)
+                        )
+                        return (temp_Line - 1);
+                }
+
+                if (nLine == temp_Line)
+                {
+                    //// 동작 ////
+
+
+                    //////////////
                     nLine++;
                 }
                 temp_Line++;
-                if (
+                return nResult;
+            }
+            #endregion Dynamixel
+            #region Herkulex
+            else
+            {
+                int nResult = 0;
+                int temp_Line = 0;
+
+                int nSize = dgAngle.RowCount;
+
+                bool bAll = true;
+                bool[] abSelected = new bool[nSize];
+                abSelected.Initialize();
+                int nTmpPos = 0;
+                int nTmpCnt = 0;
+                for (int i = 0; i < nSize; i++)
+                {
+                    if ((m_C3d.GridMotionEditor_GetEnable(i) == true) && (dgAngle[0, i].Selected == true))
+                    {
+
+                        bAll = false;
+                        abSelected[i] = true;
+
+                    }
+
+                    for (int j = 0; j < dgAngle.ColumnCount; j++)
+                    {
+                        if (dgAngle[j, i].Selected == true)
+                        {
+                            // 선택한 라인의 갯수를 셈 - 멀티선택인지, 단일선택인지 구분 가능
+                            nTmpPos = i;
+                            nTmpCnt++;
+                            break;
+                        }
+                    }
+
+                    //if ((m_C3d.GridMotionEditor_GetEnable(i) == true) && (dgAngle[0, i].Selected == true))
+                    //{
+                    //    bAll = false;
+                    //    break;
+                    //}
+                }
+
+                //if (CheckWifi() == true)
+                //{
+                //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_reset_stop();
+                //    m_aDrSock[m_nCurrentRobot].drsock_client_serial_motor_drvsrv(true, true);
+                //}
+                //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
+                //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_reset_stop();
+                //frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_drvsrv(true, true);
+
+                int nFirstLine = ((nTmpCnt == 1) && (chkMp3.Checked == true)) ? nTmpPos : 0; // 다중선택이면서 음원과 싱크를 맞춰 출력하려면...
+                if (m_nLoop > 0) nFirstLine = 0;
+
+                WaitAction_SetTimer();
+                // float fVal;
+                for (int i = nFirstLine; i < nSize; i++)
+                {
+                    if (m_C3d.GridMotionEditor_GetEnable(i) == false) continue;
+                    if ((bAll == false) && (abSelected[i] == false)) continue;
+                    //if ((bAll == false) && (dgAngle[0, i].Selected == false)) continue;
+                    //if ((bAll == false) && (dgAngle.Rows[i].Selected == false)) continue;
+                    if (nLine == temp_Line)
+                    {
+                        //if (m_C3d.GridMotionEditor_GetCommand(i) == 1)
+                        if ((m_C3d.GridMotionEditor_GetCommand(i) == 1) || ((m_C3d.GridMotionEditor_GetCommand(i) >= 3) && (m_C3d.GridMotionEditor_GetCommand(i) <= 5))) // 반복문은 1, 3, 4, 5 가 있다.
+                        {
+                            int nFirst = i;
+                            int nLast = (int)m_C3d.GridMotionEditor_GetData0(i);
+                            int nRepeat = (int)m_C3d.GridMotionEditor_GetData1(i);
+                            for (int k = 0; k < nRepeat; k++)
+                            {
+                                if (k >= nRepeat - 1) nLast = nFirst;
+                                for (int j = nFirst; j <= nLast; j++)
+                                {
+                                    if (m_C3d.GridMotionEditor_GetEnable(j) == false) continue;
+                                    if (nLine == temp_Line)
+                                    {
+                                        PlayFrame(j);
+                                        nLine++;
+                                    }
+                                    temp_Line++;
+                                    if (
+#if false
+                                    (m_C3d.m_CMotor.IsConnect() == false) ||
+#else
+((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false) && (m_C3d.m_CMotor2.IsOpen_Socket() == false)) ||
+#endif
+ ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) ||
+                                        ((m_C3d.m_CMotor2.IsEms() == true) || (m_C3d.m_CMotor2.IsStop() == true)) ||
+                                        (m_bStart == false)
+                                        )
+                                        return (temp_Line - 1);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            PlayFrame(i);
+                        }
+                        nLine++;
+                    }
+                    temp_Line++;
+                    if (
 #if false
                     (m_C3d.m_CMotor.IsConnect() == false) ||
 #else
-                    ((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false) && (m_C3d.m_CMotor2.IsOpen_Socket() == false)) ||
+((m_C3d.GetSimulation_With_PlayFrame() == false) && (m_C3d.m_CMotor.IsConnect() == false) && (m_C3d.m_CMotor2.IsOpen_Socket() == false)) ||
 #endif
-                    //((m_C3d.m_CMotor.IsConnect() == false) && (frmMain.m_aDrSock[m_nCurrentRobot].drsock_client_connected() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false)) ||
-                    //((frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_stop() == true) || (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == true)) ||
-                    ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) ||
-                    ((m_C3d.m_CMotor2.IsEms() == true) || (m_C3d.m_CMotor2.IsStop() == true)) ||
-                    (m_bStart == false)
-                    )
-                    return (temp_Line - 1);
+                        //((m_C3d.m_CMotor.IsConnect() == false) && (frmMain.m_aDrSock[m_nCurrentRobot].drsock_client_connected() == false) && (frmMain.m_DrBluetooth.drbluetooth_client_connected() == false)) ||
+                        //((frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_stop() == true) || (frmMain.m_DrBluetooth.drbluetooth_client_serial_motor_check_Ems() == true)) ||
+                        ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) ||
+                        ((m_C3d.m_CMotor2.IsEms() == true) || (m_C3d.m_CMotor2.IsStop() == true)) ||
+                        (m_bStart == false)
+                        )
+                        return (temp_Line - 1);
+                }
+
+                if (nLine == temp_Line)
+                {
+                    //// 동작 ////
+
+
+                    //////////////
+                    nLine++;
+                }
+                temp_Line++;
+
+                //m_C3d.m_CMotor.ResetStop();
+
+                //if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) return (temp_Line - 1);
+
+                return nResult;
             }
-
-            if (nLine == temp_Line)
-            {
-                //// 동작 ////
-
-
-                //////////////
-                nLine++;
-            }
-            temp_Line++;
-
-            //m_C3d.m_CMotor.ResetStop();
-
-            //if ((m_C3d.m_CMotor.IsEms() == true) || (m_C3d.m_CMotor.IsStop() == true)) return (temp_Line - 1);
-
-            return nResult;
+            #endregion Herkulex
         }
         //private long m_lWaitActionTimer = 0;
 
@@ -1429,7 +1738,7 @@ namespace OpenJigWare.Docking
             return;
         }
         private bool WaitAction_ByTimer(long t) { return m_C3d.WaitAction_ByTimer(t); }
-        private void PlayFrame(int nFrameNum) { m_C3d.PlayFrame(nFrameNum, 0); }
+        private void PlayFrame(int nFrameNum) { if (chkDynamixel.Checked == true) { m_C3d.PlayFrame_Dynamixel(nFrameNum, 0); } else m_C3d.PlayFrame(nFrameNum, 0); }
         
         private void btnStop_Click(object sender, EventArgs e)
         {
@@ -1441,7 +1750,8 @@ namespace OpenJigWare.Docking
             //m_bStop = true;
             
             if (m_bMp3Play == true) Mp3Stop();
-            m_C3d.m_CMotor.Stop();
+            if (m_C3d.m_CMotor.IsConnect() == true) m_C3d.m_CMotor.Stop();
+            if (m_C3d.m_CRobotis.IsOpen() == true) m_C3d.m_CRobotis.Stop();
             if (m_C3d.m_CMotor2.IsOpen_Socket() == true) m_C3d.m_CMotor2.Stop();
             m_C3d.WaitAction_KillTimer();
             m_bMotionEnd = true;
@@ -1747,37 +2057,72 @@ namespace OpenJigWare.Docking
         {
             Connection();
         }
+        //private Ojw.CDynamixel m_CRobotis = new Ojw.CDynamixel();
         public void Connect()
         {
-            m_C3d.m_CMotor.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
-            if (m_C3d.m_CMotor.IsConnect() == true)
+            if (chkDynamixel.Checked == true)
             {
-                btnConnect_Serial.Text = "Disconnect";
-                Ojw.CMessage.Write("Connected");
-                btnConnect.Enabled = false;
+                //if (cmbDynamixel.SelectedIndex == 0) m_C3d.m_CRobotis.SetParam(Ojw.CDynamixel._MODEL_XL_320);
+                //else if (cmbDynamixel.SelectedIndex == 1) m_C3d.m_CRobotis.SetParam(Ojw.CDynamixel._MODEL_XL_430);
+                //else if (cmbDynamixel.SelectedIndex == 2) m_C3d.m_CRobotis.SetParam(Ojw.CDynamixel._MODEL_AX_12);
+                //else m_C3d.m_CRobotis.SetParam(Ojw.CDynamixel._MODEL_XL_430);
+                m_C3d.m_CRobotis.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
+                if (m_C3d.m_CRobotis.IsOpen() == true)
+                {
+                    btnConnect_Serial.Text = "Disconnect";
+                    Ojw.CMessage.Write("Connected");
+                    btnConnect.Enabled = false;
+                    chkDynamixel.Enabled = false;
+                }
+                else
+                {
+                    m_C3d.m_CRobotis.Close();
+                    btnConnect.Enabled = true;
+                    btnConnect_Serial.Text = "Connect";
+                    Ojw.CMessage.Write_Error("Connect Fail -> Check your COMPORT first");
+                    chkDynamixel.Enabled = true;
+                    SetToolTip();
+                }
             }
             else
             {
-                m_C3d.m_CMotor.DisConnect();
-                btnConnect.Enabled = true;
-                btnConnect_Serial.Text = "Connect";
-                Ojw.CMessage.Write_Error("Connect Fail -> Check your COMPORT first");
-
-                SetToolTip();
+                m_C3d.m_CMotor.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
+                if (m_C3d.m_CMotor.IsConnect() == true)
+                {
+                    btnConnect_Serial.Text = "Disconnect";
+                    Ojw.CMessage.Write("Connected");
+                    btnConnect.Enabled = false;
+                    chkDynamixel.Enabled = false;
+                }
+                else
+                {
+                    m_C3d.m_CMotor.DisConnect();
+                    btnConnect.Enabled = true;
+                    btnConnect_Serial.Text = "Connect";
+                    Ojw.CMessage.Write_Error("Connect Fail -> Check your COMPORT first");
+                    chkDynamixel.Enabled = true;
+                    SetToolTip();
+                }
+                //m_C3d.OjwGrid_SetHandle_Herculex(m_CMotor);
             }
-            //m_C3d.OjwGrid_SetHandle_Herculex(m_CMotor);
         }
         public void Disconnect()
         {
-            m_C3d.m_CMotor.DisConnect();
+            if (chkDynamixel.Checked == true) m_C3d.m_CRobotis.Close();
+            else m_C3d.m_CMotor.DisConnect();
+
             btnConnect.Enabled = true;
+            chkDynamixel.Enabled = true;
 
             btnConnect_Serial.Text = "Connect";
             Ojw.CMessage.Write("Disconnected");
         }
         public void Connection()
         {
-            if (m_C3d.m_CMotor.IsConnect() == false) Connect();
+            bool bConnect = false;
+            if (chkDynamixel.Checked == true) bConnect = m_C3d.m_CRobotis.IsOpen();
+            else bConnect = m_C3d.m_CMotor.IsConnect();
+            if (bConnect == false) Connect();
             else Disconnect();
         }
 
@@ -1938,12 +2283,13 @@ namespace OpenJigWare.Docking
                 m_strCalcTime[nLine] = m_strCalcTime[nLine] + strTmp + ".";
                 // 1 Milli-Second
                 strTmp = Ojw.CConvert.IntToStr(nMs);
-                if (strTmp.Length < 2) strTmp = "0" + strTmp;
+                if (strTmp.Length < 2) strTmp = "00" + strTmp;
+                else if (strTmp.Length < 3) strTmp = "0" + strTmp;
                 m_strCalcTime[nLine] = m_strCalcTime[nLine] + strTmp;
             }
             else
             {
-                m_strCalcTime[nLine] = "00:00:00.00";
+                m_strCalcTime[nLine] = "00:00:00.000";
                 m_lCalcTime[nLine] = 0;
             }
             return m_lCalcTime[nLine];
@@ -1964,21 +2310,32 @@ namespace OpenJigWare.Docking
 
             if (m_btmrRun == true) return;
             m_btmrRun = true;
-
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            CTmr.Set();
             Run();
+            Ojw.CMessage.Write("PlayTime = {0}", CTmr.Get());
 
             m_btmrRun = false;
         }
 
         private void btnReset_Click(object sender, EventArgs e)
-        {
+        {            
             m_nMotion_Step = 0;
-            m_C3d.m_CMotor.ResetEms();
-            m_C3d.m_CMotor.ResetStop();
-            m_C3d.m_CMotor.Reset();
-            if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+            if (chkDynamixel.Checked == true)
             {
-                m_C3d.m_CMotor2.Reset();
+                m_C3d.SetFirstMoving(true);
+                m_C3d.m_CRobotis.Clear_Flag();
+                m_C3d.m_CRobotis.Reboot();
+            }
+            else
+            {
+                m_C3d.m_CMotor.ResetEms();
+                m_C3d.m_CMotor.ResetStop();
+                m_C3d.m_CMotor.Reset();
+                if (m_C3d.m_CMotor2.IsOpen_Socket() == true)
+                {
+                    m_C3d.m_CMotor2.Reset();
+                }
             }
         }
 
@@ -1993,6 +2350,7 @@ namespace OpenJigWare.Docking
             //if (m_bMp3Play == true) Mp3Stop();
             m_C3d.m_CMotor.Ems();
             m_C3d.m_CMotor2.Ems();
+            m_C3d.m_CRobotis.Ems();
         }
         private void btnEms_Click(object sender, EventArgs e)
         {
@@ -2128,7 +2486,6 @@ namespace OpenJigWare.Docking
                 }
                 else
                 {
-
                     if (m_C3d.DataFileOpen(fileName, null) == false)
                     {
                         MessageBox.Show(ofdMotion.DefaultExt.ToUpper() + " 모션 파일이 아닙니다.");
@@ -2210,6 +2567,20 @@ namespace OpenJigWare.Docking
                     m_C3d.m_CMotor2.Send_Motor(1000);
                 }
             }
+            else if (m_C3d.m_CRobotis.IsOpen() == true)
+            {
+                dlgRet = MessageBox.Show("Do you want to Move your InitPos?", "Move Init(Default) Motion", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dlgRet != DialogResult.OK)
+                {
+                }
+                else
+                {
+                    m_C3d.m_CRobotis.Reset();
+                    m_C3d.m_CRobotis.SetTorque(true);
+                    for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) { m_C3d.m_CRobotis.Set_Angle(i, m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle, 100); }
+                    m_C3d.m_CRobotis.Send_Motor();
+                }
+            }
         }
 
         private void btnInitpos2_Click(object sender, EventArgs e)
@@ -2255,6 +2626,20 @@ namespace OpenJigWare.Docking
                     m_C3d.m_CMotor2.Send_Motor(1000);
                 }
             }
+            else if (m_C3d.m_CRobotis.IsOpen() == true)
+            {
+                dlgRet = MessageBox.Show("Do you want to Move your InitPos?", "Move Init(second) Motion", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dlgRet != DialogResult.OK)
+                {
+                }
+                else
+                {
+                    m_C3d.m_CRobotis.Reset();
+                    m_C3d.m_CRobotis.SetTorque(true);
+                    for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++) { m_C3d.m_CRobotis.Set_Angle(i, m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle2, 100); }
+                    m_C3d.m_CMotor.SetMot(1000);
+                }
+            }
         }
         // 시간값 계산
 
@@ -2270,31 +2655,58 @@ namespace OpenJigWare.Docking
                 if (dlgRet != DialogResult.OK) return;
                 return;
             }
-            
-            m_C3d.m_CMotor.ResetStop();
-            m_C3d.m_CMotor.DrvSrv(true, true);
-            
-            //SetAxisParam(nRobot); // 로봇의 정보를 셋팅한다.
-
-            for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++)
+            if (chkDynamixel.Checked == true)
             {
-                if ((m_C3d.m_CHeader.pSMotorInfo[i].nMotorControlType == 0) || (m_C3d.m_CHeader.pSMotorInfo[i].nMotorControlType == 2))
+                m_C3d.m_CRobotis.Reset();
+                m_C3d.m_CRobotis.SetTorque(true);
+
+                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++)
                 {
-                    m_C3d.m_CMotor.SetCmd_Flag_Mode(i, false); // 위치제어 모드
-                    m_C3d.m_CMotor.SetCmd_Flag_NoAction(i, false);
-                    //m_C3d.m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);                        
-                    m_C3d.m_CMotor.SetCmd_Angle(i, ((nInitNum == 0) ? 0 : ((nInitNum == 1) ? m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle : m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle2)));
+                    if ((m_C3d.m_CHeader.pSMotorInfo[i].nMotorControlType == 0) || (m_C3d.m_CHeader.pSMotorInfo[i].nMotorControlType == 2))
+                    {
+                        m_C3d.m_CRobotis.Set_Flag_Mode(i, 0); // 위치제어 모드
+                        //m_C3d.m_CRobotis.SetCmd_Flag_NoAction(i, false);
+                        //m_C3d.m_CRobotis.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);                        
+                        m_C3d.m_CRobotis.Set_Angle(i, ((nInitNum == 0) ? 0 : ((nInitNum == 1) ? m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle : m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle2)), 100);
+                    }
+                    else
+                    {
+                        //        m_C3d.m_CRobotis.Set_Flag_Mode(i, true); // 속도모드
+                        //m_C3d.m_CRobotis.SetCmd_Flag_NoAction(i, false);
+                        //OjwMotor.SetCmd_Flag_Stop(i, true);
+                        //m_C3d.m_CRobotis.Set_Turn(i, 0);
+
+                    }
                 }
-                else
-                {
-                    m_C3d.m_CMotor.SetCmd_Flag_Mode(i, true); // 속도모드
-                    m_C3d.m_CMotor.SetCmd_Flag_NoAction(i, false);
-                    //OjwMotor.SetCmd_Flag_Stop(i, true);
-                    m_C3d.m_CMotor.SetCmd(i, 0);
-                    
-                }
+                m_C3d.m_CRobotis.Send_Motor();
             }
-            m_C3d.m_CMotor.SetMot(nTime);
+            else
+            {
+                m_C3d.m_CMotor.ResetStop();
+                m_C3d.m_CMotor.DrvSrv(true, true);
+
+                //SetAxisParam(nRobot); // 로봇의 정보를 셋팅한다.
+
+                for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++)
+                {
+                    if ((m_C3d.m_CHeader.pSMotorInfo[i].nMotorControlType == 0) || (m_C3d.m_CHeader.pSMotorInfo[i].nMotorControlType == 2))
+                    {
+                        m_C3d.m_CMotor.SetCmd_Flag_Mode(i, false); // 위치제어 모드
+                        m_C3d.m_CMotor.SetCmd_Flag_NoAction(i, false);
+                        //m_C3d.m_CMotor.SetCmd_Flag_Led(nAxis, bGreen, bBlue, bRed);                        
+                        m_C3d.m_CMotor.SetCmd_Angle(i, ((nInitNum == 0) ? 0 : ((nInitNum == 1) ? m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle : m_C3d.m_CHeader.pSMotorInfo[i].fInitAngle2)));
+                    }
+                    else
+                    {
+                        m_C3d.m_CMotor.SetCmd_Flag_Mode(i, true); // 속도모드
+                        m_C3d.m_CMotor.SetCmd_Flag_NoAction(i, false);
+                        //OjwMotor.SetCmd_Flag_Stop(i, true);
+                        m_C3d.m_CMotor.SetCmd(i, 0);
+
+                    }
+                }
+                m_C3d.m_CMotor.SetMot(nTime);
+            }
         }
 
         private void SetToolTip()
@@ -2369,10 +2781,25 @@ namespace OpenJigWare.Docking
         {
             m_C3d.GridMotionEditor_Calc(Ojw.ECalc_t._Z_Plus, Ojw.CConvert.StrToFloat(txtChangeValue.Text));
         }
-
+        
         private void btnZ_Minus_Click(object sender, EventArgs e)
         {
             m_C3d.GridMotionEditor_Calc(Ojw.ECalc_t._Z_Minus, Ojw.CConvert.StrToFloat(txtChangeValue.Text));
+        }
+
+        private void btnX_Input_Click(object sender, EventArgs e)
+        {
+            m_C3d.GridMotionEditor_Calc(Ojw.ECalc_t._X_Input, Ojw.CConvert.StrToFloat(txtChangeValue.Text));
+        }
+
+        private void btnY_Input_Click(object sender, EventArgs e)
+        {
+            m_C3d.GridMotionEditor_Calc(Ojw.ECalc_t._Y_Input, Ojw.CConvert.StrToFloat(txtChangeValue.Text));
+        }
+
+        private void btnZ_Input_Click(object sender, EventArgs e)
+        {
+            m_C3d.GridMotionEditor_Calc(Ojw.ECalc_t._Z_Input, Ojw.CConvert.StrToFloat(txtChangeValue.Text));
         }
 
         #region Mp3
@@ -2625,9 +3052,9 @@ namespace OpenJigWare.Docking
                         frmPlayerForm = new frmPlayer();
                         frmPlayerForm.Show();
 
-                        frmPlayerForm.Left = Screen.AllScreens[0].Bounds.Location.X;
-                        frmPlayerForm.Top = Screen.AllScreens[0].Bounds.Location.Y;
-                        frmPlayerForm.Size = Screen.AllScreens[0].Bounds.Size;//.WindowState = FormWindowState.Maximized;
+                        frmPlayerForm.Left = Ojw.CSystem.GetMonitor_X(0);
+                        frmPlayerForm.Top = Ojw.CSystem.GetMonitor_Y(0);
+                        frmPlayerForm.Size = Ojw.CSystem.GetMonitor_Size(0);
 
                     }
                     else
@@ -2635,7 +3062,7 @@ namespace OpenJigWare.Docking
                         //Put app in dual screen mode.
                         // 현재 내가 있는 화면의 반대편으로 이동하도록...
                         int nPos = 0;
-                        if ((this.Left >= Screen.AllScreens[0].Bounds.Location.X) && ((this.Left <= (Screen.AllScreens[0].Bounds.Location.X + Screen.AllScreens[0].Bounds.Width))))
+                        if ((this.Left >= Ojw.CSystem.GetMonitor_X(0)) && ((this.Left <= (Ojw.CSystem.GetMonitor_X(0) + Ojw.CSystem.GetMonitor_Width(0)))))
                             nPos = 1;
                         m_pntMain = this.Location;
 
@@ -2646,13 +3073,13 @@ namespace OpenJigWare.Docking
                         frmPlayerForm.Visible = false;
                         frmPlayerForm.Show();
 
-                        frmPlayerForm.Left = Screen.AllScreens[nPos].Bounds.Location.X;
-                        frmPlayerForm.Top = Screen.AllScreens[nPos].Bounds.Location.Y;
+                        frmPlayerForm.Left = Ojw.CSystem.GetMonitor_X(nPos);
+                        frmPlayerForm.Top = Ojw.CSystem.GetMonitor_Y(nPos);
                         //frmPlayerForm.FormBorderStyle = FormBorderStyle.None;
-                        frmPlayerForm.Size = Screen.AllScreens[nPos].Bounds.Size;//.WindowState = FormWindowState.Maximized;
+                        frmPlayerForm.Size = Ojw.CSystem.GetMonitor_Size(nPos);//.WindowState = FormWindowState.Maximized;
                         frmPlayerForm.Visible = true;
                         this.Visible = false;
-                        this.Location = Screen.AllScreens[nPos].Bounds.Location;
+                        this.Location = Ojw.CSystem.GetMonitor_Location(nPos);
                     }
 
 
@@ -4403,6 +4830,7 @@ namespace OpenJigWare.Docking
             tmrDraw.Enabled = false;
             tmrMp3.Enabled = false;
             tmrRun.Enabled = false;
+            tmrCheckMotor.Enabled = false;
             #endregion Timer 정지
 
             Ojw.CTimer.Wait(100);
@@ -4478,6 +4906,7 @@ namespace OpenJigWare.Docking
             
             #region Timer 복구
             tmrDraw.Enabled = bTmrDraw;
+            tmrCheckMotor.Enabled = bTmrDraw;
             tmrMp3.Enabled = bTmrMp3;
             tmrRun.Enabled = bTmrRun;
             #endregion Timer 복구
@@ -5090,741 +5519,36 @@ namespace OpenJigWare.Docking
         {
 
         }
+
+        private void dgAngle_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private bool m_bTmrCheckMotor = false;
+        private void tmrCheckMotor_Tick(object sender, EventArgs e)
+        {
+            if (m_bTmrCheckMotor == true) return;
+            tmrCheckMotor.Enabled = false;
+            m_bTmrCheckMotor = true;
+
+            if (chkDynamixel.Checked == true)
+            {
+                if (m_C3d.m_CRobotis.IsOpen() == true)
+                    m_C3d.m_CRobotis.Read_Motor();
+            }
+
+            m_bTmrCheckMotor = false;
+            tmrCheckMotor.Enabled = true;
+        }
+
+        private void chkDynamixel_CheckedChanged(object sender, EventArgs e)
+        {
+            m_C3d.SetDynamixel(chkDynamixel.Checked);
+        }
+
 #else
-        private void btnDownload_Click(object sender, EventArgs e)
-        {
-            List<String> lstFiles = new List<string>();
-            lstFiles.Clear();
-            FolderBrowserDialog dlg = new FolderBrowserDialog();
-            if (dlg.ShowDialog() != DialogResult.OK) return;
 
-            string strPath = dlg.SelectedPath;
-            
-            //string strTest = String.Empty;
-
-            DirectoryInfo dirInfo = new DirectoryInfo(strPath);
-            if (dirInfo.Exists == true)
-            {
-                lstFiles.Clear();
-                foreach (FileInfo fileInfo in dirInfo.GetFiles("*.dmt"))
-                {
-                    lstFiles.Add(fileInfo.ToString());
-                    //strTest += fileInfo.ToString() + "\r\n";
-                }
-            }
-            //MessageBox.Show(strPath + "\r\n" + strTest);
-            //return;
-
-
-            bool bTmrDraw = tmrDraw.Enabled;
-            bool bTmrMp3 = tmrMp3.Enabled;
-            bool bTmrRun = tmrRun.Enabled;
-            tmrDraw.Enabled = false;
-            tmrMp3.Enabled = false;
-            tmrRun.Enabled = false;
-
-            Ojw.CTimer.Wait(100);
-
-            #region MPSU Motion DownLoad
-            int nID = 253;
-            m_C3d.m_CMotor.Mpsu_Reboot(nID);
-            bool bRet = m_C3d.m_CMotor.WaitReceive_Mpsu(100);
-            if (bRet == true)
-            {
-                //Ojw.CTimer.Wait(1000); // 재부팅 시간 1초정도를 대기한다.
-                
-                m_C3d.m_CMotor.ResetCounter_Mpsu(); // 명령을 보내지 않았지만 부팅시 저절로 들어오는 패킷 명령을 받는 이벤트를 확인하기 위해...
-                bRet = m_C3d.m_CMotor.WaitReceive_Mpsu(3000);
-                if (bRet == true)
-                {
-#if false
-                    // 재부팅 완료
-
-                    // 잠시대기
-                    Ojw.CTimer.Wait(100);
-                    // 이벤트 체크를 위한 카운터 클리어
-                    m_C3d.m_CMotor.ResetCounter(); 
-                    // 부트로드 진입 명령
-                    m_C3d.m_CMotor.Mpsu_EnterBootloader();
-                    bRet = m_C3d.m_CMotor.WaitReceive_1Packet(3000);
-                    if (bRet == true)
-                    {
-                        if (m_C3d.m_CMotor.GetLastPacket() == (byte)('S'))
-                        {
-                            //MessageBox.Show("부트로더 진입 ok");
-
-                            // 포트를 따로 연다.
-                            if (m_C3d.m_CMotor.IsConnect() == true)
-                            {
-                                Ojw.CSerial CSerial = new Ojw.CSerial();
-                                m_C3d.m_CMotor.DisConnect();
-                            }
-                        }
-                        else
-                        {
-                            //MessageBox.Show("부트로더 진입 리턴데이터 이상");
-                        }
-                    }
-                    else
-                    {
-                        //MessageBox.Show("부트로더 진입 fail");
-                    }
-#else
-                    // 포트를 따로 연다.
-                    if (m_C3d.m_CMotor.IsConnect() == true)
-                    {
-                        int i;
-                        Ojw.CTimer CTmr = new Ojw.CTimer();
-                        Ojw.CSerial CSerial = new Ojw.CSerial();
-                        m_C3d.m_CMotor.DisConnect();
-                        CSerial.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
-                        if (CSerial.IsConnect() == true)
-                        {
-                            bool bEntered = false;
-                            if (Command_And_Wait(CSerial, (byte)('S')) == true)
-                            {
-                                //MessageBox.Show("We have entered bootloader");
-                                bEntered = true;
-
-                                // Delete Motion
-                                Command_And_Wait_DeleteMotions(CSerial);
-                                Command_And_Wait_DownloadMotions(CSerial, strPath, lstFiles);
-                                Command_And_Wait_GetMotionList(CSerial);
-                                String strList = String.Empty;
-                                foreach (string strItem in m_lstMotion)
-                                {
-                                    strList += strItem + "\r\n";
-                                }
-                                MessageBox.Show(strList);
-                            }
-                            else
-                            {
-                                //MessageBox.Show("We could not enter bootloader");
-                            }
-                                    
-                             
-
-                            if (bEntered == true)
-                            {
-                                // Quit Bootloader
-                                if (Command_And_Wait(CSerial, (byte)('Q')) == true)
-                                {
-                                }
-                            }
-                        }
-                        
-                        // return
-                        CSerial.DisConnect();
-                        m_C3d.m_CMotor.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
-                        MessageBox.Show("Downloaded All motion files");
-                    }
-#endif
-                }
-                else MessageBox.Show("reboot fail");
-                
-
-                //MessageBox.Show("부트로더 진입 ok");
-            }
-            else //MessageBox.Show("부트로더 진입 fail");
-            {
-                MessageBox.Show("Reset fail");
-            }
-#if false
-            if ( EnterBootloader() )
-		    {
-			    DeleteMotions();
-			    DownloadMotions();
-			    GetMotionList();
-			    QuitBootloader();
-		    }
-#endif
-            #endregion MPSU Motion DownLoad
-            
-            tmrDraw.Enabled = bTmrDraw;
-            tmrMp3.Enabled = bTmrMp3;
-            tmrRun.Enabled = bTmrRun;
-        }
-
-        #region Made by Chulhee Yun - 이 코드들은 전부 특정 위치에서 포트가 열릴 경우만 실행되게 되어 있으므로 Open 에러처리가 많이 필요하진 않다.
-        private int [] m_anMotionAddress = new int[128];
-        private int [] m_anMotionSize = new int[128];
-        private const int _PAGESIZE = 128;
-        private int m_nBufIdx = 0;
-        private int m_nCurrentAddress = 0;
-        private bool Command_And_Wait_FlashWriteMtnData(Ojw.CSerial CSerial, byte byteData, int nAddress, ref byte [] pbyteBuffer)
-        {
-            bool bRet = false;
-            
-            if (nAddress > 0)
-            {
-                if (Command_And_Wait_FlashAddWrite(CSerial, nAddress) == true)
-                {
-                    m_nCurrentAddress = nAddress;
-                    m_nBufIdx = (nAddress % _PAGESIZE) * 2;
-                    if (Command_And_Wait_LoadPageToBuf(CSerial, ref pbyteBuffer) == true)
-                    {
-                    }
-                }
-            }
-
-            pbyteBuffer[m_nBufIdx] = byteData;
-            if (m_nBufIdx % 2 == 1)
-            {
-                m_nCurrentAddress++;
-            }
-
-            if (m_nBufIdx == (2 * _PAGESIZE - 1))
-            {
-                Command_And_Wait_WritePageFromBuf(CSerial, pbyteBuffer);
-                Command_And_Wait_FlashAddWrite(CSerial, m_nCurrentAddress);
-                Command_And_Wait_LoadPageToBuf(CSerial, ref pbyteBuffer);
-                m_nBufIdx = 0;
-            }
-            else
-            {
-                m_nBufIdx++;
-            }
-            return bRet;
-        }
-        private bool Command_And_Wait_FlashAddRead(Ojw.CSerial CSerial, out int nAddress)
-        {
-            bool bRet = false;
-            nAddress = 0;
-            if (Command_And_Wait(CSerial, (byte)('a')) == true)
-            {
-                Ojw.CTimer CTmr = new Ojw.CTimer();
-                CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
-                if (CSerial.GetBuffer_Length() >= 2)
-                {
-                    nAddress = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
-                }
-            }
-            return bRet;
-        }
-        private bool Command_And_Wait_FlashReadWord(Ojw.CSerial CSerial, out int nValue)
-        {
-            bool bRet = false;
-            nValue = 0;
-            if (Command_And_Wait(CSerial, (byte)('R')) == true)
-            {
-                Ojw.CTimer CTmr = new Ojw.CTimer();
-                CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
-                if (CSerial.GetBuffer_Length() >= 2)
-                {
-                    nValue = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
-                }
-            }
-            return bRet;
-        }
-        private bool Command_And_Wait_WritePage(Ojw.CSerial CSerial)
-        {
-            bool bRet = false;
-            if (Command_And_Wait(CSerial, (byte)('W')) == true) bRet = true;
-            return bRet;
-        }
-        private bool Command_And_Wait_ErasePage(Ojw.CSerial CSerial)
-        {
-            bool bRet = false;
-            if (Command_And_Wait(CSerial, (byte)('E')) == true) bRet = true;
-            return bRet;
-        }
-        private bool Command_And_Wait_WritePageFromBuf(Ojw.CSerial CSerial, byte[] pbyteData)
-        {
-            bool bRet = true;
-            int nAddress = 0;
-            Command_And_Wait_FlashAddRead(CSerial, out nAddress);
-            Command_And_Wait_FlashAddWrite(CSerial, (nAddress / _PAGESIZE) * _PAGESIZE);
-            for (int i = 0; i < _PAGESIZE; i++)
-            {
-                if (Command_And_Wait(CSerial, (byte)('T')) == true)
-                {
-                    Command_And_Wait(CSerial, pbyteData[2 * i]);
-                    Command_And_Wait(CSerial, pbyteData[2 * i + 1]);
-#if false
-                    //if (Command_And_Wait(CSerial, pbyteData[2 * i]) == true)
-                    //{
-                    //}
-                    //else
-                    //{
-                    //    bRet = false;
-                    //    break;
-                    //}
-                    //if (Command_And_Wait(CSerial, pbyteData[2 * i + 1]) == true)
-                    //{
-                    //}
-                    //else
-                    //{
-                    //    bRet = false;
-                    //    break;
-                    //}
-#endif
-                }
-                //else
-                //{
-                //    bRet = false;
-                //    break;
-                //}
-            }
-            Command_And_Wait_FlashAddWrite(CSerial, nAddress);
-            Command_And_Wait_ErasePage(CSerial);
-            Command_And_Wait_WritePage(CSerial);            
-            return bRet;
-        }
-        private bool Command_And_Wait_LoadPageToBuf(Ojw.CSerial CSerial, ref byte [] pbyteData)
-        {
-            bool bRet = true;
-            int nAddress = 0;
-            if (Command_And_Wait_FlashAddRead(CSerial, out nAddress) == true)
-            {
-                // 하위주소번지를 던짐
-                byte byteData = (byte)(nAddress & 0x00FF);
-                if (Command_And_Wait_FlashAddWrite(CSerial, ((nAddress / _PAGESIZE) * _PAGESIZE)) == true)
-                {
-                    for (int i = 0; i < _PAGESIZE; i++)
-                    {
-                        if (Command_And_Wait(CSerial, (byte)('R')) == true)
-                        {
-                            Ojw.CTimer CTmr = new Ojw.CTimer();
-                            CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
-                            if (CSerial.GetBuffer_Length() >= 2)
-                            {
-                                pbyteData[2 * i] = CSerial.GetByte();
-                                pbyteData[2 * i + 1] = CSerial.GetByte();
-                            }
-                            else
-                            {
-                                bRet = false;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            bRet = false;
-                            break;
-                        }
-                    }
-                }
-                else bRet = false;
-            }
-            else bRet = false;
-            return bRet;
-        }
-        private bool Command_And_Wait_DownloadMotions(Ojw.CSerial CSerial, String strPath, List<String> strFiles)
-        {
-            bool bRet = false;
-
-            for (int i = 0; i < strFiles.Count; i++)
-            {
-                Command_And_Wait_DownLoadMotion(CSerial, String.Format("{0}\\{1}", strPath, strFiles[i]), i);
-                lbMotion_Status.Text = String.Format("File Download -> {0} / {1}", i + 1, strFiles.Count);
-            }
-
-            return bRet;
-        }
-        private bool Command_And_Wait_DownLoadMotion(Ojw.CSerial CSerial, String strFileName, int nIndex)
-        {
-            bool bRet = false;
-            int nMax_Address = 0;
-            int nMax_Size = 0;
-            //bool bMotionDistorted = false;
-            //주소상으로 가장 뒤에 있는 모션의 주소와 사이즈를 알아냄
-            for (int i = 0; i < 128; i++)
-            {
-                if (nMax_Address < m_anMotionAddress[i])
-                {
-                    nMax_Address = m_anMotionAddress[i];
-                    nMax_Size = m_anMotionSize[i];
-                }
-            }
-            if (nMax_Address <= 0x8100) nMax_Address = 0x8100;
-
-            //가장 뒤에 있는 모션의 뒤에 새로운 모션 파일을 씀
-            bRet = FlashWriteDmt(CSerial, strFileName, nIndex, nMax_Address + nMax_Size);
-            return bRet;
-#if false
-            //이 후의 내용은 제대로 쓰여 졌는지 확인하고 Display하는 루틴임
-            m_anMotionAddress[nIndex] = 0;
-            m_anMotionSize[nIndex] = 0;
-
-            Command_And_Wait_FlashAddWrite(CSerial, 0x8000 + 2 * nIndex);
-            int nAddress = Command_And_Wait_FlashReadWord(CSerial);
-            int nSize = Command_And_Wait_FlashReadWord(CSerial);
-            if (nAddress != 0xFFFF && nSize != 0xFFFF)
-            {
-                //Check if the motion is correct
-                bMotionDistorted = false;
-                FlashAddWrite(nAddress + nSize - 1);
-                nTmp = Command_And_Wait_FlashReadWord(CSerial);
-                if ((char)(nTmp & 0xFF) != 'M' || (char)((nTmp & 0xFF00) >> 8) != 'E')
-                {
-                    if ((char)(nTmp & 0xFF) == 'E')
-                    {
-                        Command_And_Wait_FlashAddWrite(CSerial, nAddress + nSize - 2);
-                        nTmp = Command_And_Wait_FlashReadWord(CSerial);
-                        if ((char)((nTmp & 0xFF00) >> 8) != 'M')
-                        {
-                            bMotionDistorted = true;
-                        }
-                    }
-                    else
-                    {
-                        bMotionDistorted = true;
-                    }
-                }
-                if (bMotionDistorted)
-                {
-                    // Motion was distorted. Deleting Motion i
-                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0x8000 + 2 * nIndex, pageBuf);
-                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, pageBuf);
-                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, pageBuf);
-                    Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, pageBuf);
-                    Command_And_Wait_WritePageFromBuf(CSerial, pageBuf);
-                    return false;
-                }
-
-                m_anMotionAddress[nIndex] = nAddress;
-                m_anMotionSize[nIndex] = nSize;
-            }
-#endif
-            return bRet;
-        }
-        private const int _BOOT_START = 0xF800;
-        //DMT File formats////////////////////////////////////////
-        private const int _HEADER_LEN	                = 41;
-        private const int _HEADER_TABLE_NAME_IDX		= 6;
-        private const int _HEADER_START_POS_IDX			= 27;
-        private const int _HEADER_MOTION_FRAME_SIZE_IDX	= 28;
-        private const int _HEADER_ROBOT_MODEL_TYPE_IDX	= 38;
-        private const int _HEADER_MOTOR_CNT_IDX			= 40;
-        //////////////////////////////////////////////////////////
-        private bool FlashWriteDmt(Ojw.CSerial CSerial, string strFilename, int nMotionNo, int nAddress)
-        {
-            bool bRet = true;
-            Ojw.SMotion_t SMotion = new Ojw.SMotion_t();
-            int i, j;
-            if (m_C3d.BinaryFileOpen(strFilename, out SMotion) == true)
-            {
-                
-            }
-            else return false;
-
-            int nDataLen = 0;
-
-	        byte [] pbytePageBuf = new byte[256];
-            	        
-	        /////////////수정 20120116/////////////
-	        int nMotionFrameSize = 0;//SMotion.nFrameSize;
-            
-            // 실제 Enable 된 프레임만 카운트 한다.
-            foreach(Ojw.SMotionTable_t STable in SMotion.STable) { if (STable.bEn == true) nMotionFrameSize++; }
-
-
-	        int nMotorCnt = SMotion.nMotorCnt;
-
-	        if(nAddress+(33+(2*nMotorCnt+9)*nMotionFrameSize+2+1)/2 > _BOOT_START){
-		        return false;
-	        }
-
-            String strMotion = "DMT1.0"; // 나중에 가변으로 ? 
-	        for ( i = 0; i < strMotion.Length; i++ ) Command_And_Wait_FlashWriteMtnData(CSerial, (byte)strMotion[i], 0, ref pbytePageBuf );
-
-	        // Table Name
-            StringBuilder sb = new StringBuilder(SMotion.strTableName);
-	        for( i = 0; i < 20; i++ )
-		        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)sb[i], 0, ref pbytePageBuf );
-            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)0, 0, ref pbytePageBuf );
-            
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nStartPosition & 0xff), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nFrameSize & 0xff), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)((SMotion.nFrameSize >> 8) & 0xff), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nRobotModelNum & 0xff), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)((SMotion.nRobotModelNum >> 8) & 0xff), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.nMotorCnt & 0xff), 0, ref pbytePageBuf );
-
-	        nDataLen += 33;
-                            
-	        for( i = 0; i < nMotionFrameSize; i++ )
-	        {
-                if (SMotion.STable[i].bEn == true)
-                {
-		            //Motor Data
-		            for ( j = 0; j < nMotorCnt; j++ )
-		            {
-		                Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].anMot[j] & 0xff), 0, ref pbytePageBuf );
-		                Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].anMot[j] >> 8 & 0xff), 0, ref pbytePageBuf );
-		            }
-
-		            //Playtime
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nTime & 0xff), 0, ref pbytePageBuf );
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nTime >> 8 & 0xff), 0, ref pbytePageBuf );
-
-		            //Delay
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nDelay & 0xff), 0, ref pbytePageBuf );
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nDelay >> 8 & 0xff), 0, ref pbytePageBuf );
-
-		            //Command
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nCmd & 0xff), 0, ref pbytePageBuf );
-
-		            //Data0
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData0 & 0xff), 0, ref pbytePageBuf );
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData0 >> 8 & 0xff), 0, ref pbytePageBuf );
-		            //Data1
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData1 & 0xff), 0, ref pbytePageBuf );
-		            Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(SMotion.STable[i].nData1 >> 8 & 0xff), 0, ref pbytePageBuf );
-
-		            nDataLen += nMotorCnt * 2 + 9;
-                }
-	        }
-
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)('M'), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)('E'), 0, ref pbytePageBuf );
-	        nDataLen += 2;
-            
-	        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf );
-	        nDataLen = ( nDataLen + 1 ) / 2; //converting from byte address to word address
-
-	        int nPtrAddress = 0x8000 + 2 * nMotionNo;
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)( nAddress & 0x00FF ), nPtrAddress, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(( nAddress & 0xFF00 ) >> 8), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)( nDataLen & 0x00FF ), 0, ref pbytePageBuf );
-	        Command_And_Wait_FlashWriteMtnData(CSerial, (byte)(( nDataLen & 0xFF00 ) >> 8), 0, ref pbytePageBuf );
-	        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf );                
-            return bRet;
-        }
-        private const int _FLASH_MTN_HEADER_LEN						= 17; //33byte -> 17word
-        private const int _FLASH_MTN_HEADER_TABLE_NAME_IDX			= 3;  //6byte -> 3word
-        private const int _FLASH_MTN_HEADER_START_POS_IDX			= 13; // 27byte -> 13word
-        private const int _FLASH_MTN_HEADER_MOTION_FRAME_SIZE_IDX	= 14; // 28byte -> 14word
-        private const int _FLASH_MTN_HEADER_ROBOT_MODEL_TYPE_IDX	= 15; // 30byte -> 15word
-        private const int _FLASH_MTN_HEADER_MOTOR_CNT_IDX			= 16; // 32byte -> 16word
-        private List<String> m_lstMotion = new List<string>();
-        private void Command_And_Wait_GetMotionList(Ojw.CSerial CSerial)
-        {
-            m_lstMotion.Clear();
-            int nAddress;
-            int nSize;
-            
-		    int nTmp;
-		    bool bMotionDistorted;
-            byte [] pbytePageBuf = new byte[256];
-
-		    //모션에 대한 pointer가 저장된 0x8000 ~ 0x80FF의 공간을 스캔하며 모션 주소와 크기를 읽음
-		    for ( int i = 0; i < 128; i++ )
-		    {
-			    m_anMotionAddress[i] = 0;
-			    m_anMotionSize[i] = 0;
-
-			    Command_And_Wait_FlashAddWrite(CSerial, 0x8000 + 2 * i );
-			    Command_And_Wait_FlashReadWord(CSerial, out nAddress);
-			    Command_And_Wait_FlashReadWord(CSerial, out nSize);
-
-			    //모션이 저장되어 있을 경우
-			    if ( nAddress != 0xFFFF && nSize != 0xFFFF )
-			    {
-				    //Check if the motion is correct
-				    bMotionDistorted = false;
-				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + nSize - 1 );
-				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
-				    if ( (char)(nTmp & 0xFF) != 'M' || (char)((nTmp & 0xFF00)>>8) != 'E' )
-				    {
-					    if ( (char)(nTmp & 0xFF) == 'E' )
-					    {
-						    Command_And_Wait_FlashAddWrite(CSerial, nAddress + nSize - 2 );
-						    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
-						    if ( (char)((nTmp & 0xFF00)>>8) != 'M' )
-						    {
-							    bMotionDistorted = true;
-						    }
-					    }
-					    else
-					    {
-						    bMotionDistorted = true;
-					    }
-				    }
-				    if ( bMotionDistorted )
-				    {
-					    // Motion was distorted. Deleting Motion i
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0x8000 + 2 * i, ref pbytePageBuf);
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
-                        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf);
-					    continue;
-				    }
-				    m_anMotionAddress[i] = nAddress;
-				    m_anMotionSize[i] = nSize;
-
-				    //Read Table name and display
-				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + _FLASH_MTN_HEADER_TABLE_NAME_IDX );
-				    string strTmp = String.Empty;
-				    for ( int j = 0; j < 10; j++ )
-				    {
-					    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
-					    if ( (char)(nTmp & 0xFF) != '\0' )
-					    {
-						    strTmp += (char)(nTmp & 0xFF);
-					    }
-					    if ( (char)( ( nTmp & 0xFF00 ) >> 8 ) != '\0' )
-					    {
-						    strTmp += (char)( (nTmp & 0xFF00) >> 8 );
-					    }
-				    }
-				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
-				    if ( (char)(nTmp & 0xFF)!='\0' )
-				    {
-					    strTmp += (char)(nTmp & 0xFF);
-				    }
-				    int len = strTmp.Length;
-
-				    string str = String.Format("{0}. ", i);
-				    str += strTmp;
-                    m_lstMotion.Add(str);
-
-				    //Read frame count and display
-				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + _FLASH_MTN_HEADER_MOTION_FRAME_SIZE_IDX );
-				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
-
-				    //Read motor count and display
-				    Command_And_Wait_FlashAddWrite(CSerial, nAddress + _FLASH_MTN_HEADER_MOTOR_CNT_IDX );
-				    Command_And_Wait_FlashReadWord(CSerial, out nTmp);
-                    nTmp = (nTmp & 0xFF);
-			    }
-		    }
-        }
-        private bool Command_And_Wait_DeleteMotions(Ojw.CSerial CSerial)
-        {
-            bool bRet = true;
-            for (int i = 0; i < 128; i++)
-            {
-                m_anMotionAddress[i] = 0;
-                m_anMotionSize[i] = 0;
-
-                #region Delete Motion
-                // Flash Addwrite
-                int nAddress = 0x8000 + i * 2;
-                if (Command_And_Wait_FlashAddWrite(CSerial, nAddress) == true)
-                {
-                    // FlashReadWord
-                    int nMotionAddress = 0;
-                    int nMotionSize = 0;
-
-                    #region Read MotionAddress
-                    if (Command_And_Wait(CSerial, (byte)('R')) == true)
-                    {
-                        // 
-                        Ojw.CTimer CTmr = new Ojw.CTimer();
-                        CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
-                        if (CSerial.GetBuffer_Length() >= 2)
-                        {
-                            nMotionAddress = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
-                            #region Read MotionSize
-                            if (Command_And_Wait(CSerial, (byte)('R')) == true)
-                            {
-                                // 
-                                CTmr.Set(); while (CTmr.Get() < 1000) { if (CSerial.GetBuffer_Length() >= 2) break; else Application.DoEvents(); }
-                                if (CSerial.GetBuffer_Length() >= 2)
-                                {
-                                    nMotionSize = (int)((int)CSerial.GetByte() | ((int)CSerial.GetByte() << 8));
-                                }
-                                else bRet = false;
-                            }
-                            #endregion Read MotionSize
-                        }
-                        else bRet = false;
-                    }
-                    else bRet = false;
-                    #endregion Read MotionAddress
-
-                    // 모션이 저장되어 있는 경우
-                    if ((nMotionAddress > 0) && (nMotionSize > 0))
-                    {
-                        byte[] pbytePageBuf = new byte[256];
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0x8000 + 2 * i, ref pbytePageBuf);
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
-                        Command_And_Wait_FlashWriteMtnData(CSerial, 0xFF, 0, ref pbytePageBuf);
-                        Command_And_Wait_WritePageFromBuf(CSerial, pbytePageBuf);
-
-                        m_anMotionAddress[i] = 0;
-                        m_anMotionSize[i] = 0;
-                    }
-                    //else bRet = false;
-                }
-                else bRet = false;
-                #endregion Delete Motion
-            }
-            return bRet;
-        }
-        private bool Command_And_Wait_FlashAddWrite(Ojw.CSerial CSerial, int nAddress)
-        {
-            bool bRet = false;
-            if (Command_And_Wait(CSerial, (byte)('A')) == true)
-            {
-                // 하위주소번지를 던짐
-                byte byteData = (byte)(nAddress & 0x00FF);
-                if (Command_And_Wait(CSerial, byteData) == true)
-                {
-                    // 상위주소번지를 던짐
-                    byteData = (byte)((nAddress >> 8) & 0x00FF);
-                    if (Command_And_Wait(CSerial, byteData) == true)
-                    {
-                        bRet = true;
-                    }
-                }
-            }
-            return bRet;
-        }
-        private bool Command_And_Wait(Ojw.CSerial CSerial, byte byteData)
-        {
-            bool bRet = false;
-            if (SendPacket_And_Wait(CSerial, byteData) == true)
-            {
-                if (CSerial.GetByte() == byteData) bRet = true;
-            }
-            return bRet;
-        }
-        private bool SendPacket_And_Wait(Ojw.CSerial CSerial, byte byteData)
-        {
-            bool bRet = false;
-            Ojw.CTimer CTmr = new Ojw.CTimer();
-            byte[] pbyteData = new byte[1];
-            pbyteData[0] = byteData;
-            CSerial.SendPacket(pbyteData);
-            CTmr.Set();
-            while (CTmr.Get() < 1000)
-            {
-                if (CSerial.GetBuffer_Length() > 0)
-                {
-                    bRet = true;
-                    break;
-                }
-                else Application.DoEvents();
-            }
-            return bRet;
-        }
-        private bool SendPacket_And_Wait(Ojw.CSerial CSerial, byte [] pbyteData)
-        {
-            bool bRet = false;
-            Ojw.CTimer CTmr = new Ojw.CTimer();
-            CSerial.SendPacket(pbyteData); 
-            CTmr.Set(); 
-            while (CTmr.Get() < 1000) 
-            {
-                if (CSerial.GetBuffer_Length() > 0)
-                {
-                    bRet = true;
-                    break;
-                }
-                else Application.DoEvents();
-            }
-            return bRet;
-            //if (bRet == true)
-            //{
-            //    CSerial.GetBytes();
-            //}
-            //return null;
-        }
-        #endregion Made by Chulhee Yun
 #endif
     }
     

@@ -1,4 +1,5 @@
-﻿#define _DEF_ORIENTATION
+﻿/// Myo
+#define _DEF_ORIENTATION
 #define _DEF_EMG
 
 using System;
@@ -11,6 +12,7 @@ using MyoSharp.Communication;
 using MyoSharp.Device;
 using MyoSharp.Exceptions;
 using MyoSharp.Poses;
+
 //using System.Windows.Forms;
 //using MyoSharp.Poses;
 

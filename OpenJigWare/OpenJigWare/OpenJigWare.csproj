@@ -55,6 +55,10 @@
     <Reference Include="AForge.Video.DirectShow">
       <HintPath>..\..\Released_DLL\AForge.Video.DirectShow.dll</HintPath>
     </Reference>
+    <Reference Include="Interop.SKYPE4COMLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>Lib\Interop.SKYPE4COMLib.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="IronPython, Version=2.7.6.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\IronPython.dll</HintPath>
@@ -62,6 +66,9 @@
     <Reference Include="IronPython.Modules, Version=2.7.0.40, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\IronPython.Modules.dll</HintPath>
+    </Reference>
+    <Reference Include="LeapCSharp.NET4.0">
+      <HintPath>..\..\Released_DLL\Leap\LeapCSharp.NET4.0.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Contracts">
       <HintPath>..\..\Released_DLL\Microsoft.Contracts.dll</HintPath>
@@ -82,10 +89,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\Microsoft.Scripting.Metadata.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Speech, Version=11.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Microsoft SDKs\Speech\v11.0\Assembly\Microsoft.Speech.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.Speech">
+      <HintPath>..\..\Released_DLL\Microsoft.Speech.dll</HintPath>
     </Reference>
     <Reference Include="MyoSharp">
       <HintPath>..\..\Released_DLL\MyoSharp.dll</HintPath>
@@ -93,6 +98,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Speech" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -125,6 +131,8 @@
     <Compile Include="COjw_02_InputBox.cs" />
     <Compile Include="COjw_01_Struct.cs" />
     <Compile Include="COjw_26_Streaming.cs" />
+    <Compile Include="COjw_31_Dynamixel.cs" />
+    <Compile Include="COjw_32_Leap.cs" />
     <Compile Include="Docking\frmFolder.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -667,8 +675,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
+echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
+echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

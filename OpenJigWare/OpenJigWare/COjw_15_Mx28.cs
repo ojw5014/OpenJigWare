@@ -183,8 +183,14 @@ namespace OpenJigWare
             //    return (int)Math.Round((float)nTime / 11.2f);
             //}
 #endif
+            /*
+0~1023 (0X3FF) 까지 사용되며, 단위는 약 0.114rpm입니다.
+0으로 설정하면 속도 제어를 하지 않고 모터의 최대 rpm을 사용한다는 의미입니다.
+1023의 경우 약 117.07rpm이 됩니다.
+예를 들어, 300으로 설정된 경우 약 34.33rpm입니다. -> 로보티즈 e-manual 발췌
+             */ 
             // 117.185:1024 (maybe...). -> estimation
-            private const float _MAX_RPM = 117.185f;
+            private const float _MAX_RPM = 117.07f;//185f;
             private const float _MAX_EV_RPM = 1024.0f;
             public int CalcRpm2Raw(float fRpm) { return (int)Math.Round(fRpm * _MAX_EV_RPM / _MAX_RPM); }
             public float CalcRaw2Rpm(int nValue) { return (float)(_MAX_RPM * (float)nValue / _MAX_EV_RPM); }

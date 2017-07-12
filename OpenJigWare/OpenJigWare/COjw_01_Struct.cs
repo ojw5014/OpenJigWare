@@ -258,6 +258,132 @@ namespace OpenJigWare
         //    public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
         //}
         #endregion Herkulex2
+        #region Define structure(SParam_t. SParam_Axis_t)
+        public struct SParam_t
+        {
+            public int nBaudRate;
+            public int nComPort;
+            public bool bCompleteStop;
+            public int nMotorMax;
+        }
+        public struct SParam_Axis_t
+        {
+            #region 확장기능
+            // XL-430 -> 1060
+            // XL-320 -> 350
+            public int nHwMotorName;
+            public int nModel; // 0 : none
+
+            public int nPort;      // 연결된 통신포트 (0 : default - parent 를 따라감)
+            public int nBaud;      // 연결된 통신속도
+            public int nIPAddress; // 확장성
+            public int nProtocol_Version; // 0 : none(== version 2), 1 : version 1, 2 : version 2
+            #endregion 확장기능
+
+            public int nID;
+
+
+            // 430 -> 146 ( 0번지에 모델번호 
+            // 320 -> 52 (0번지에 모델번호 350)
+            public int nAddr_Max; // indirect address 를 제외한 읽을 주소의 끝 번지
+
+            // 430 -> 64 address
+            // 320 -> 24
+            public int nAddr_Torq; // torq 1 byte, led 1 byte
+            // 430 -> 65 address
+            // 320 -> 25
+            public int nAddr_Led; // 
+            // 430 -> 10 address    [0 : 전류, 1 : 속도, 3(default) : 관절(위치제어), 4 : 확장위치제어(멀티턴:-256 ~ 256회전), 5 : 전류기반 위치제어, 16 : pwm 제어(voltage control mode)]
+            // 320 -> 11            [1 : 속도, 2(default) : 관절]
+            public int nAddr_Mode;
+            // 430 -> 104 4 bytes
+            // 320 -> 32 2 bytes
+            public int nAddr_Speed;
+            public int nAddr_Speed_Size;
+            // 430 -> 104 4 bytes
+            // 320 -> 32 2 bytes
+            public int nAddr_Pos_Speed;
+            public int nAddr_Pos_Speed_Size;
+            // 430 -> 112 4 bytes
+            // 320 -> 30 2 bytes
+            public int nAddr_Pos;
+            public int nAddr_Pos_Size; 
+
+            public int nDir;
+
+            public float fLimitUp;    // limit Max value - 0: No use
+            public float fLimitDn;    // limit Min value - 0: No use
+            // Center position(Evd : Engineering value of degree)
+            public float fCenterPos;
+
+            public float fOffsetAngle_Display; // 보여지는 화면상의 각도 Offset
+
+            // gear ratio
+            public float fMechMove;
+            public float fDegree;
+            public float fRefRpm;
+            public float fLimitRpm; // 모터에 들어가는 값
+        }
+        public struct SMot_t
+        {
+            public bool bEn;
+
+            #region 확장기능
+            public int nHwMotorName; // 0 : none
+            public int nModel; // 0 : none
+
+            public int nPort;      // 연결된 통신포트 (0 : default - parent 를 따라감)
+            public int nBaud;      // 연결된 통신속도
+            public int nIPAddress; // 확장성
+            public int nProtocol_Version; // 0 : none(== version 2), 1 : version 1, 2 : version 2
+            #endregion 확장기능
+
+            // 430 -> 146 ( 0번지에 모델번호 
+            // 320 -> 52 (0번지에 모델번호 350)
+            public int nAddr_Max; // indirect address 를 제외한 읽을 주소의 끝 번지
+
+            // 430 -> 64 address
+            // 320 -> 24
+            public int nAddr_Torq; // torq 1 byte, led 1 byte
+            // 430 -> 104 4 bytes
+            // 320 -> 32 2 bytes
+            public int nAddr_Led; // 
+            // 430 -> 10 address    [0 : 전류, 1 : 속도, 3(default) : 관절(위치제어), 4 : 확장위치제어(멀티턴:-256 ~ 256회전), 5 : 전류기반 위치제어, 16 : pwm 제어(voltage control mode)]
+            // 320 -> 11            [1 : 속도, 2(default) : 관절]
+            public int nAddr_Mode;
+            // 430 -> 104 4 bytes
+            // 320 -> 32 2 bytes
+            public int nAddr_Speed;
+            public int nAddr_Speed_Size;
+            // 430 -> 108 4 bytes
+            // 320 -> 32 2 bytes
+            public int nAddr_Pos_Speed;
+            public int nAddr_Pos_Speed_Size;
+            // 430 -> 112 4 bytes
+            // 320 -> 30 2 bytes
+            public int nAddr_Pos;
+            public int nAddr_Pos_Size; 
+            
+            public int nDir;
+            //Center
+            public float fCenterPos;
+
+            public float fMechMove;
+            public float fDegree;
+            public float fRefRpm;
+            public float fLimitRpm;
+
+            public float fLimitUp;    // Limit - 0: Ignore
+            public float fLimitDn;    // Limit - 0: Ignore
+
+            public int nID;
+            public float fPos;
+            public float fRpm_Raw;
+
+            public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
+            public int nLed;
+        }
+        #endregion Define Structure(SParam_t. SParam_Axis_t)
         #endregion Structure
 
         #region UserEvent

@@ -214,12 +214,20 @@ namespace OpenJigWare
             }
             public void SendPacket(byte[] buffer, int nLength)
             {
-                if ((IsConnect() == true) && (m_bClassEnd == false))
+                try
                 {
-                    m_SerialPort.Write(buffer, 0, nLength);
+                    if ((IsConnect() == true) && (m_bClassEnd == false))
+                    {
+                        m_SerialPort.Write(buffer, 0, nLength);
 #if _DEBUG_OJW
                     Ojw.CMessage.Write("SendPacket");
 #endif
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Ojw.CMessage.Write_Error(ex.ToString());
+                    DisConnect();
                 }
             }
             #endregion Write

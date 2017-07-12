@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Globalization;
 
 namespace OpenJigWare
 {
@@ -11,6 +12,25 @@ namespace OpenJigWare
     {
         public class CConvert
         {
+            // https://stackoverflow.com/questions/6088241/is-there-a-way-to-check-whether-unicode-text-is-in-a-certain-language
+            public static bool IsChinese(string text) 
+            {
+		        var charArray = text.ToCharArray ();
+		        var isChineseTextPresent = false;
+
+		        foreach (var character in charArray) {
+			        var cat = char.GetUnicodeCategory (character);
+
+			        if (cat != UnicodeCategory.OtherLetter) {
+				        continue;
+			        }
+
+			        isChineseTextPresent = true;
+			        break;
+		        }
+
+		        return isChineseTextPresent;
+            }
             public static bool IsValidAlpha(byte byData) { return (((char)(byData) < (char)(' ')) || (byData >= 127)) ?false : true; }
             // Check Numeric or ...
             public static bool IsDigit(char cValue) { if (!Char.IsNumber(cValue)) return false; else return true; }
@@ -1219,6 +1239,17 @@ namespace OpenJigWare
                     return null;
                 }
             }
+            public static string BytesToStr_Unicode(byte[] pbyteData)
+            {
+                try
+                {
+                    return System.Text.Encoding.Unicode.GetString(pbyteData);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
             public static string BytesToStr(byte[] pbyteData)
             {
                 try
@@ -1235,6 +1266,17 @@ namespace OpenJigWare
                 try
                 {
                     return System.Text.Encoding.Default.GetBytes(strData);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            public static byte[] StrToBytes_Unicode(String strData)
+            {
+                try
+                {
+                    return System.Text.Encoding.Unicode.GetBytes(strData);
                 }
                 catch
                 {

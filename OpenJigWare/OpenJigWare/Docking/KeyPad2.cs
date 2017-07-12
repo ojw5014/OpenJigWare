@@ -28,6 +28,8 @@ namespace OpenJigWare.Docking
         public frmKeyPad()
         {
             InitializeComponent();
+            
+            //Init();
         }
         #region API(DllImport)
         [DllImport("user32.dll")]                           private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -1927,12 +1929,8 @@ namespace OpenJigWare.Docking
         private static Form m_frmMain = null;
         private String m_strWorkPath = "";
         private static IntPtr m_hHandle = IntPtr.Zero;
-        private void frmKeyPad_Load(object sender, EventArgs e)
+        private void Init()
         {
-            m_frmMain = this;// Form.ActiveForm;
-            m_hHandle = m_frmMain.Handle;
-            m_strWorkPath = Application.StartupPath;
-
             #region 버튼 매핑
             for (int i = 0; i < _CNT_LINE; i++)
                 for (int j = 0; j < _CNT_NUM; j++)
@@ -1957,13 +1955,21 @@ namespace OpenJigWare.Docking
 
             InitParseImage();
 
-            SetDisplay((int)EKeyType._KEY_KOR);
+
+            SetDisplay((int)((m_bEnableHangul == true) ? EKeyType._KEY_KOR : EKeyType._KEY_ENG));
             #endregion 버튼 매핑
+        }
+        private void frmKeyPad_Load(object sender, EventArgs e)
+        {
+            m_frmMain = this;// Form.ActiveForm;
+            m_hHandle = m_frmMain.Handle;
+            m_strWorkPath = Application.StartupPath;
+
+            Init();
 
             SetHook_Mouse(true); // 마우스 이벤트 활성화
             SetHook_Keyboard(true); // 키보드 이벤트 활성화
         }
-
         #region Windows Message 활용을 위한 DLL Load
         //private const int WM_KEYDOWN = 0x0100;
         //private const int WM_KEYUP = 0x0101;
@@ -2096,19 +2102,43 @@ namespace OpenJigWare.Docking
             SetDisplay((int)EKeyType._KEY_ASCII);
         }
 
-        private void lb_3_1_Click(object sender, EventArgs e)
+        private bool m_bEnableHangul = true; // 0 : Korean, 1 : English
+        public void EnableHangul(bool bMode)
         {
-            if ((m_nType == (int)EKeyType._KEY_ENG) || (m_nType == (int)EKeyType._KEY_ENG_LARGE))
-            {
-                SetDisplay((int)EKeyType._KEY_KOR);
-            }
-            //else if (m_nType == (int)EKeyType._KEY_ASCII)
+            m_bEnableHangul = bMode;
+            lb_3_0.Visible = bMode;
+            //if ((m_nType == (int)EKeyType._KEY_KOR) || (m_nType == (int)EKeyType._KEY_KOR_DOUBLE))
             //{
             //    SetDisplay((int)EKeyType._KEY_ENG);
             //}
+        }
+        private void lb_3_1_Click(object sender, EventArgs e)
+        {
+            if (m_bEnableHangul == false)
+            {
+                if (m_nType == (int)EKeyType._KEY_ASCII)
+                {
+                    SetDisplay((int)EKeyType._KEY_ENG);
+                }
+                else
+                {
+                    SetDisplay((int)EKeyType._KEY_ASCII);
+                }
+            }
             else
             {
-                SetDisplay((int)EKeyType._KEY_ENG);
+                if ((m_nType == (int)EKeyType._KEY_ENG) || (m_nType == (int)EKeyType._KEY_ENG_LARGE))
+                {
+                    SetDisplay((int)EKeyType._KEY_KOR);
+                }
+                //else if (m_nType == (int)EKeyType._KEY_ASCII)
+                //{
+                //    SetDisplay((int)EKeyType._KEY_ENG);
+                //}
+                else
+                {
+                    SetDisplay((int)EKeyType._KEY_ENG);
+                }
             }
         }
         #region NoActive 2/2

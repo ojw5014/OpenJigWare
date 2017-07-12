@@ -882,6 +882,94 @@ namespace OpenJigWare
         public static int Item_Get(int nX, int nY) { return m_pnVirtualImage[nX, nY]; }
         public static int Item_Get(double dX, double dY) { return m_pnVirtualImage[(int)Math.Round(dX * m_dScale), (int)Math.Round(dY * m_dScale)]; }
 #endif
+            #region Bezier
+            // 참고 : https://msdn.microsoft.com/ko-kr/library/system.windows.media.beziersegment.beziersegment(v=vs.110).aspx
+            // mu 는 1.0 이 최고값(도착점)
+            public SVector3D_t Bezier3(SVector3D_t p0, SVector3D_t p1, SVector3D_t p2, float mu)
+            {
+                float mum1, mum12, mu2;
+                SVector3D_t p;
+                mu2 = mu * mu; mum1 = 1 - mu;
+                mum12 = mum1 * mum1;
+                p.x = p0.x * mum12 + 2 * p1.x * mum1 * mu + p2.x * mu2;
+                p.y = p0.y * mum12 + 2 * p1.y * mum1 * mu + p2.y * mu2;
+                p.z = p0.z * mum12 + 2 * p1.z * mum1 * mu + p2.z * mu2;
+                return (p);
+            }
+            #endregion Bezier
+
+            // Simply function to calculate only the result of the rotation
+            // Kor: 단순히 회전의 결과값만 내 주는(계산해 주는) 함수
+            #region Rotation
+            public static void Rotation(float ax, float ay, float az, ref float x, ref float y, ref float z)
+            {
+                //float fr = 3.14159f / 180.0f;
+                //float ax2 = ax * fr;
+                //float ay2 = ay * fr;
+                //float az2 = az * fr;
+
+                float ax2 = ax * 0.01745f;
+                float ay2 = ay * 0.01745f;
+                float az2 = az * 0.01745f;
+
+                //    →X(Left), ↑Y(Up), ●Z(Front)
+                // Rotation(Z)(Roll)
+                /*
+                 cos, -sin, 0, 0
+                 sin,  cos, 0, 0
+                   0,    0, 1, 0
+                   0,    0, 0, 1
+                 */
+
+                // Rotation(X)(Pitch)
+                /*
+                 1,   0,    0, 0
+                 0, cos, -sin, 0
+                 0, sin,  cos, 0
+                 0,   0,    0, 1
+                 */
+
+                // Rotation(Y)(Yaw)
+                /*
+                 cos, 0, -sin, 0
+                   0, 1,    0, 0
+                 sin, 0,  cos, 0
+                   0, 0,    0, 1
+                 */
+
+                float z1, x2, y2;
+                float fCx = (float)Math.Cos(ax2);
+                float fCy = (float)Math.Cos(ay2);
+                float fCz = (float)Math.Cos(az2);
+                float fSx = (float)Math.Sin(ax2);
+                float fSy = (float)Math.Sin(ay2);
+                float fSz = (float)Math.Sin(az2);
+
+                //x1 = x * fCy + z * fSy;   // Rotation(y)
+                //y1 = y;
+                //z1 = -x * fSy + z * fCy;
+
+                //x2 = x1;    // Rotation(x)
+                //y2 = y1 * fCx - z1 * fSx;
+                //z2 = y1 * fSx + z1 * fCx;
+
+                //x = x2 * fCz - y2 * fSz;    // Rotation(z)
+                //y = x2 * fSz + y2 * fCz;
+                //z = z2;
+
+                x2 = x * fCy + z * fSy;   // Rotation(y)
+                z1 = -x * fSy + z * fCy;
+
+                y2 = y * fCx - z1 * fSx;
+
+                z = y * fSx + z1 * fCx;
+                x = x2 * fCz - y2 * fSz;    // Rotation(z)
+                y = x2 * fSz + y2 * fCz;
+            }
+            #endregion Rotation
+
+
+
             #region Filter
             // Lowpass
             // y[i] := y[i-1] + α * (x[i] - y[i-1]) = α*x[i] + (1-α)*y[i-1]
