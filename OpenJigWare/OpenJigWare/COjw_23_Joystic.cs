@@ -100,6 +100,12 @@ namespace OpenJigWare
             public CJoystick(int id)
             {
                 caps = new JOYCAPS();
+                caps.wXmax = 65535;
+                caps.wYmax = 65535;
+                caps.wZmax = 65535;
+                caps.wRmax = 65535;
+                caps.wUmax = 65535;
+                caps.wVmax = 65535;
 
                 info = new JOYINFOEX
                 {
@@ -303,8 +309,8 @@ namespace OpenJigWare
             JOYINFOEX info;
             JOYCAPS caps;
             readonly Dictionary<PadKey, bool> isDown = new Dictionary<PadKey, bool>();
-            private int[] m_anClickEvent_Up = new int[(int)(PadKey.SpinRight) + 1];
-            private int[] m_anClickEvent_Down = new int[(int)(PadKey.SpinRight) + 1];
+            private int[] m_anClickEvent_Up = new int[100];//(int)(PadKey.SpinRight) + 1];
+            private int[] m_anClickEvent_Down = new int[100];//(int)(PadKey.SpinRight) + 1];
 #if true
             //// 좌상단
             //public double dX0 { get { return (double)(((caps.wXmax - caps.wXmin) == 0) ? 0.5 : (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin)); } }
@@ -329,12 +335,12 @@ namespace OpenJigWare
             public double Slide { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
 
             #region 위의 데이타들은 XBox 기준으로 생성이 되어 있으므로 Default 설정으로 재설정
-            public double GetPos0 { get { return (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin); } }
-            public double GetPos1 { get { return (double)(info.dwYpos - caps.wYmin) / (caps.wYmax - caps.wYmin); } }
-            public double GetPos2 { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
-            public double GetPos3 { get { return (double)(info.dwRpos - caps.wRmin) / (caps.wRmax - caps.wRmin); } }
-            public double GetPos4 { get { return (double)(info.dwUpos - caps.wUmin) / (caps.wUmax - caps.wUmin); } }
-            public double GetPos5 { get { return (double)(info.dwVpos - caps.wVmin) / (caps.wVmax - caps.wVmin); } }
+            public double GetPos0 { get { return (double)(info.dwXpos - caps.wXmin) / (((caps.wXmax == 0) ? 65535 : caps.wXmax) - caps.wXmin); } }
+            public double GetPos1 { get { return (double)(info.dwYpos - caps.wYmin) / (((caps.wYmax == 0) ? 65535 : caps.wXmax) - caps.wYmin); } }
+            public double GetPos2 { get { return (double)(info.dwZpos - caps.wZmin) / (((caps.wZmax == 0) ? 65535 : caps.wXmax) - caps.wZmin); } }
+            public double GetPos3 { get { return (double)(info.dwRpos - caps.wRmin) / (((caps.wRmax == 0) ? 65535 : caps.wXmax) - caps.wRmin); } }
+            public double GetPos4 { get { return (double)(info.dwUpos - caps.wUmin) / (((caps.wUmax == 0) ? 65535 : caps.wXmax) - caps.wUmin); } }
+            public double GetPos5 { get { return (double)(info.dwVpos - caps.wVmin) / (((caps.wVmax == 0) ? 65535 : caps.wXmax) - caps.wVmin); } }
             public double GetPos(int nNum)
             {
                 double dValue = 0;
@@ -358,17 +364,18 @@ namespace OpenJigWare
             {
                 get
                 {
-                    return (
-                            (
-                                (caps.wXmax != 0) ||
-                                (caps.wYmax != 0) ||
-                                (caps.wUmax != 0) ||
-                                (caps.wRmax != 0) ||
-                                (caps.wZmax != 0)
-                            ) 
-                            &&
-                            (m_bValid == true)
-                        );
+                    //return (
+                    //        (
+                    //            (caps.wXmax != 0) ||
+                    //            (caps.wYmax != 0) ||
+                    //            (caps.wUmax != 0) ||
+                    //            (caps.wRmax != 0) ||
+                    //            (caps.wZmax != 0)
+                    //        ) 
+                    //        &&
+                    //        (m_bValid == true)
+                    //    );
+                    return m_bValid;
                 }
                 private set
                 {

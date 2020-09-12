@@ -860,6 +860,7 @@ namespace OpenJigWare
             }
             public void SetParam_Axis(int nAxis, int nID, int nDir, float fLimitUp, float fLimitDn, float fCenterPos, float fMechMove, float fDegree)
             {
+                if (nID < 0) return;
                 m_pSMot[nAxis].nID = nID;
                 m_pSMot[nAxis].nDir = nDir;
                 m_pSMot[nAxis].fCenterPos = fCenterPos;
@@ -873,6 +874,7 @@ namespace OpenJigWare
             }
             public void SetParam_Axis(int nAxis, SParam_Axis_t SParam_Axis)
             {
+                if (SParam_Axis.nID < 0) return;
                 m_pSMot[nAxis].nID = SParam_Axis.nID;
                 m_pSMot[nAxis].nDir = SParam_Axis.nDir;
                 m_pSMot[nAxis].fCenterPos = SParam_Axis.fCenterPos;

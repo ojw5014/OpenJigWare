@@ -141,8 +141,7 @@ namespace OpenJigWare
                 m_nSeq_Motor = 0;
                 m_nSeq_Motor_Back = 0;
                 m_nDelay = 0;
-
-	
+                	
                 m_bIgnoredLimit = false;
                 
                 m_nModel = 0;

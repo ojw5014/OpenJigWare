@@ -12,7 +12,7 @@ namespace OpenJigWare
 {
     partial class Ojw
     {
-        public class CSerial
+        public class CSerial//:SerialPort
         {
             public CSerial()
             {
@@ -24,6 +24,7 @@ namespace OpenJigWare
                 if (IsConnect())
                     DisConnect();
             }
+            public static string [] GetPortNames() { return SerialPort.GetPortNames(); }
 
             SerialPort m_SerialPort = new SerialPort();
             private Thread Reader;             // reading thread
@@ -42,11 +43,13 @@ namespace OpenJigWare
             #endregion IsConnect() - for connection checking
 
             #region Connect
+            private int m_nPort = 0;
             /////////////////////////////////////////////////
             // Parity - 0 : None, 1 : Odd, 2 : Even, 3 : Mark, 4 : Space
             // StopBit - 0 : None, 1 : One, 2 : Two, 3 : OnePointFive
             public bool Connect(int nPort, int nBaudRate)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
+                m_SerialPort = new SerialPort();
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
                 m_SerialPort.Parity = Parity.None;
@@ -61,7 +64,7 @@ namespace OpenJigWare
 
                     if (IsConnect() == true)
                     {
-                        
+                        m_nPort = nPort;   
                     }
                 }
                 catch(Exception ex)
@@ -125,6 +128,8 @@ namespace OpenJigWare
                 }
                 return IsConnect();
             }
+            public string GetPortName() { return m_SerialPort.PortName; }
+            public int GetPortNumber() { return m_nPort; }
             public bool SetThreadFunction(ThreadStart FThread)
             {
                 return RunThread(FThread);
@@ -139,7 +144,23 @@ namespace OpenJigWare
             #endregion
 
             #region DisConnect() - Thread Stop
-            public void DisConnect() { if (IsConnect() == true) { m_SerialPort.Close(); } }
+            public void DisConnect()
+            {
+                try
+                {
+                    if (IsConnect() == true)
+                    {
+                        m_SerialPort.Close();
+                        m_SerialPort.Dispose();
+                        m_SerialPort = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    m_SerialPort.Dispose();
+                    m_SerialPort = null;
+                }
+            }
             #endregion DisConnect() - Thread Stop
 
             #region Read

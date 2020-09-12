@@ -18,6 +18,13 @@ namespace OpenJigWare
             public byte[] byteEncryption;
         }
         #region Int(SPoint2D_t, SPoint_3D_t)
+        public struct SIndex_t
+        {
+            public int nPrev;
+            public int nCurr;
+            public int nNext;
+            public SIndex_t(int prev, int curr, int next) { this.nPrev = prev; this.nCurr = curr; this.nNext = next; }
+        }
         public struct SPoint2D_t
         {
             public int Data;
@@ -38,7 +45,8 @@ namespace OpenJigWare
             public double x;
             public double y;
             public SVector_t(double x, double y) { this.x = x; this.y = y; }
-                        
+
+            //public static SVector_t operator =(SVector_t v1, SVector_t v2) { return new SVector_t(v1.x = v2.x, v1.y = v2.y); }
             public static SVector_t operator +(SVector_t v1, SVector_t v2) { return new SVector_t(v1.x + v2.x, v1.y + v2.y); }
             public static SVector_t operator -(SVector_t v1, SVector_t v2) { return new SVector_t(v1.x - v2.x, v1.y - v2.y); }
             public static SVector_t operator *(SVector_t v1, SVector_t v2) { return new SVector_t(v1.x * v2.x, v1.y * v2.y); }
@@ -52,11 +60,48 @@ namespace OpenJigWare
             public SVector3D_t(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
 
             //public static SVector3D_t operator =(SVector3D_t v1) { return new float[](v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
+            //public static SVector3D_t operator =(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x = v2.x, v1.y = v2.y, v1.z = v2.z); }
             public static SVector3D_t operator +(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
             public static SVector3D_t operator -(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z); }
             public static SVector3D_t operator *(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z); }
             public static SVector3D_t operator /(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z); }
         }
+        public struct SVector4D_t
+        {
+            public float x;
+            public float y;
+            public float z;
+            public float w;
+            public SVector4D_t(float x, float y, float z, float w) { this.x = x; this.y = y; this.z = z; this.w = w; }
+            
+            //public static SVector4D_t operator =(SVector4D_t v1, SVector4D_t v2) { return new SVector4D_t(v1.x = v2.x, v1.y = v2.y, v1.z = v2.z, v1.w = v2.w); }
+            public static SVector4D_t operator +(SVector4D_t v1, SVector4D_t v2) { return new SVector4D_t(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w + v2.w); }
+            public static SVector4D_t operator -(SVector4D_t v1, SVector4D_t v2) { return new SVector4D_t(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w - v2.w); }
+            public static SVector4D_t operator *(SVector4D_t v1, SVector4D_t v2) { return new SVector4D_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z, v1.w * v2.w); }
+            public static SVector4D_t operator /(SVector4D_t v1, SVector4D_t v2) { return new SVector4D_t(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z, v1.w / v2.w); }
+        }
+#if false
+        public struct SQuaterion_t
+        {
+            // 오일러를 쿼터니언으로 쿼터니언을 오일러로 변환하는 부분
+
+
+            // 연산
+            public int nAxis;
+            public float fAngle;
+
+            public float x;
+            public float y;
+            public float z;
+            public float w;
+            public SQuaterion_t(float x, float y, float z, float w) { this.x = x; this.y = y; this.z = z; this.w = w; }
+
+            public static SQuaterion_t operator +(SQuaterion_t v1, SQuaterion_t v2) { return new SQuaterion_t(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w + v2.w); }
+            public static SQuaterion_t operator -(SQuaterion_t v1, SQuaterion_t v2) { return new SQuaterion_t(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w - v2.w); }
+            public static SQuaterion_t operator *(SQuaterion_t v1, SQuaterion_t v2) { return new SQuaterion_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z, v1.w * v2.w); }
+            public static SQuaterion_t operator /(SQuaterion_t v1, SQuaterion_t v2) { return new SQuaterion_t(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z, v1.w / v2.w); }
+        }
+#endif
         public struct STrackD_t
         {
             public float fX;
@@ -271,7 +316,7 @@ namespace OpenJigWare
             #region 확장기능
             // XL-430 -> 1060
             // XL-320 -> 350
-            public int nHwMotorName;
+            public int nHwMotor_Index;
             public int nModel; // 0 : none
 
             public int nPort;      // 연결된 통신포트 (0 : default - parent 를 따라감)
@@ -329,7 +374,7 @@ namespace OpenJigWare
             public bool bEn;
 
             #region 확장기능
-            public int nHwMotorName; // 0 : none
+            public int nHwMotor_Index; // 0 : none
             public int nModel; // 0 : none
 
             public int nPort;      // 연결된 통신포트 (0 : default - parent 를 따라감)
@@ -382,6 +427,9 @@ namespace OpenJigWare
 
             public int nFlag; // 76[543210] NoAction(5), Red(4), Blue(3), Green(2), Mode(    
             public int nLed;
+            public bool bTorq;
+            public int nControlMode; // 0 - None, 1 - Speed, 3 - Pos, 4 - Multi Turn
+            public int nDriveMode;   // 0 - Rpm Based, 1 - Time Based
         }
         #endregion Define Structure(SParam_t. SParam_Axis_t)
         #endregion Structure
@@ -390,17 +438,20 @@ namespace OpenJigWare
         public class CUserEventArgs : EventArgs
         {
             public string strMessage { get; set; }
-            //public List<int> arg { get; set; }
+            public List<int> arg { get; set; }
             //public int nEvent { get; set; }
         }
         public class CUserEvent
         {
             //typeof EventHandler UserEvent;
             public event EventHandler UserEvent;
+            public event EventHandler<CUserEventArgs> UserEventForArgs;            
             //public CUserEvent()
             //{
             //    RunEvent();
             //}
+            
+
             public void RunEvent()
             {
                 try
@@ -409,8 +460,28 @@ namespace OpenJigWare
                     {
                         CUserEventArgs CEventArg = new CUserEventArgs();
                         CEventArg.strMessage = "UserEvent";
-                        //CEventArg.arg = new List<int>();
+                        CEventArg.arg = new List<int>();
                         UserEvent(null, CEventArg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Ojw.CMessage.Write_Error(ex.ToString());
+                }
+            }
+            public void RunEvent(string strMessage, params int [] anArgs)
+            {
+                try
+                {
+                    if (UserEventForArgs != null)
+                    {
+                        CUserEventArgs CEventArg = new CUserEventArgs();
+                        CEventArg.strMessage = strMessage;
+                        if (anArgs != null)
+                            if (anArgs.Length > 0)
+                                CEventArg.arg = new List<int>();
+                                CEventArg.arg.AddRange(anArgs);
+                                UserEventForArgs(null, CEventArg);
                     }
                 }
                 catch (Exception ex)

@@ -5,6 +5,7 @@ using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 
 namespace OpenJigWare
 {
@@ -1057,6 +1058,50 @@ namespace OpenJigWare
                     Ojw.CMessage.Write(e.ToString());
                 }
             }
+
+            /////////////
+            #region Capture
+            public static Bitmap ScreenCapture(Rectangle rect)
+            {
+                //// 픽셀 포맷 정보 얻기 (Optional)
+                //int bitsPerPixel = Screen.PrimaryScreen.BitsPerPixel;
+                //PixelFormat pixelFormat = PixelFormat.Format32bppArgb;
+                //if (bitsPerPixel <= 16)
+                //{
+                //    pixelFormat = PixelFormat.Format16bppRgb565;
+                //}
+                //if (bitsPerPixel == 24)
+                //{
+                //    pixelFormat = PixelFormat.Format24bppRgb;
+                //}
+
+#if true
+                Bitmap bmp = new Bitmap(rect.Width, rect.Height);//, pixelFormat);
+                Graphics gDc = Graphics.FromImage(bmp);
+                //gDc.CopyFromScreen(new Point(rect.X, rect.Y), new Point(0, 0), rect.Size);
+
+
+
+                gDc.CopyFromScreen(new Point(rect.X, rect.Y), new Point(0, 0), rect.Size, CopyPixelOperation.SourceCopy);//CopyPixelOperation.SourcePaint);
+                gDc.Dispose(); gDc = null;
+                return bmp;
+#else
+
+                using (Bitmap bmp = new Bitmap(rect.Width, rect.Height))
+                {
+                    using (Graphics g = Graphics.FromImage(bmp))
+                    {
+                        g.CopyFromScreen(new Point(rect.Left, rect.Top), Point.Empty, rect.Size);
+                    }
+                    return bmp;
+                }
+#endif
+
+
+            }
+            public static Bitmap ScreenCapture_Full() { return ScreenCapture_Full(0); }
+            public static Bitmap ScreenCapture_Full(int nIndex) { return ScreenCapture(Screen.AllScreens[0].WorkingArea); }
+            #endregion Capture
         }
     }
 }

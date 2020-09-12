@@ -471,6 +471,17 @@ namespace OpenJigWare
                 return true;
             }
             // rotate cordination with rotation matrix
+            public static bool CalcRot(float fAngleX, float fAngleY, float fAngleZ, ref float fX, ref float fY, ref float fZ)
+            {
+                double [] adVal = new double[6];
+                adVal[0] = fAngleX; 
+                adVal[1] = fAngleY;
+                adVal[2] = fAngleZ;
+                adVal[3] = fX;
+                adVal[4] = fY;
+                adVal[5] = fZ;
+                return CalcRot(adVal[0], adVal[1], adVal[2], ref adVal[3], ref adVal[4], ref adVal[5]);
+            }
             public static bool CalcRot(double dAngleX, double dAngleY, double dAngleZ, ref double dX, ref double dY, ref double dZ)
             {
                 double[,] adCalc = new double[4, 4];
@@ -967,9 +978,49 @@ namespace OpenJigWare
                 y = x2 * fSz + y2 * fCz;
             }
             #endregion Rotation
+#if false
+            // 생생한 게임 개발에 꼭 필요한 기본 물리 - myMath.h
+            // 발췌 : http://www.devpia.com/MAEUL/Contents/Detail.aspx?BoardID=1965&MAEULNo=138&no=2331&ref=1255
+            #region Quaternion <-> EulerAngles
+            public static SVector_t MakeEulerAnglesFromQ(Quaternion q)
+            {
+                double    r11, r21, r31, r32, r33, r12, r13;
+                double    q00, q11, q22, q33;
+                double    tmp;
+                SVector3D_t    u;
+               
+                q00 = q.n * q.n;
+                q11 = q.v.x * q.v.x;
+                q22 = q.v.y * q.v.y;
+                q33 = q.v.z * q.v.z;
+
+                r11 = q00 + q11 - q22 - q33;
+                r21 = 2 * (q.v.x*q.v.y + q.n*q.v.z);
+                r31 = 2 * (q.v.x*q.v.z - q.n*q.v.y);
+                r32 = 2 * (q.v.y*q.v.z + q.n*q.v.x);
+                r33 = q00 - q11 - q22 + q33;
+
+                tmp = fabs(r31);
+                if(tmp > 0.999999)
+                {
+                    r12 = 2 * (q.v.x*q.v.y - q.n*q.v.z);
+                    r13 = 2 * (q.v.x*q.v.z + q.n*q.v.y);
+
+                    u.x = RadiansToDegrees(0.0f); //roll
+                    u.y = RadiansToDegrees((float) (-(pi/2) * r31/tmp)); // pitch
+                    u.z = RadiansToDegrees((float) atan2(-r12, -r31*r13)); // yaw
+                    return u;
+                }
+
+                u.x = RadiansToDegrees((float) atan2(r32, r33)); // roll
+                u.y = RadiansToDegrees((float) asin(-r31));         // pitch
+                u.z = RadiansToDegrees((float) atan2(r21, r11)); // yaw
+                return u;
+            }
 
 
-
+            #endregion Quaternion <-> EulerAngles
+#endif
             #region Filter
             // Lowpass
             // y[i] := y[i-1] + α * (x[i] - y[i-1]) = α*x[i] + (1-α)*y[i-1]
@@ -1099,7 +1150,110 @@ namespace OpenJigWare
             //} 
             #endregion Complementary Filter
             #endregion Filter
-            
+
+
+            #region Another Parallel delta
+            // 출처 : http://forums.trossenrobotics.com/tutorials/introduction-129/delta-robot-kinematics-3276/
+#if false
+
+             // robot geometry
+ // (look at pics above for explanation)
+ const float e = 115.0;     // end effector
+ const float f = 457.3;     // base
+ const float re = 232.0;
+ const float rf = 112.0;
+ 
+ // trigonometric constants
+ const float sqrt3 = sqrt(3.0);
+ const float pi = 3.141592653;    // PI
+ const float sin120 = sqrt3/2.0;   
+ const float cos120 = -0.5;        
+ const float tan60 = sqrt3;
+ const float sin30 = 0.5;
+ const float tan30 = 1/sqrt3;
+ 
+ // forward kinematics: (theta1, theta2, theta3) -> (x0, y0, z0)
+ // returned status: 0=OK, -1=non-existing position
+ int delta_calcForward(float theta1, float theta2, float theta3, float &x0, float &y0, float &z0) {
+     float t = (f-e)*tan30/2;
+     float dtr = pi/(float)180.0;
+ 
+     theta1 *= dtr;
+     theta2 *= dtr;
+     theta3 *= dtr;
+ 
+     float y1 = -(t + rf*cos(theta1));
+     float z1 = -rf*sin(theta1);
+ 
+     float y2 = (t + rf*cos(theta2))*sin30;
+     float x2 = y2*tan60;
+     float z2 = -rf*sin(theta2);
+ 
+     float y3 = (t + rf*cos(theta3))*sin30;
+     float x3 = -y3*tan60;
+     float z3 = -rf*sin(theta3);
+ 
+     float dnm = (y2-y1)*x3-(y3-y1)*x2;
+ 
+     float w1 = y1*y1 + z1*z1;
+     float w2 = x2*x2 + y2*y2 + z2*z2;
+     float w3 = x3*x3 + y3*y3 + z3*z3;
+     
+     // x = (a1*z + b1)/dnm
+     float a1 = (z2-z1)*(y3-y1)-(z3-z1)*(y2-y1);
+     float b1 = -((w2-w1)*(y3-y1)-(w3-w1)*(y2-y1))/2.0;
+ 
+     // y = (a2*z + b2)/dnm;
+     float a2 = -(z2-z1)*x3+(z3-z1)*x2;
+     float b2 = ((w2-w1)*x3 - (w3-w1)*x2)/2.0;
+ 
+     // a*z^2 + b*z + c = 0
+     float a = a1*a1 + a2*a2 + dnm*dnm;
+     float b = 2*(a1*b1 + a2*(b2-y1*dnm) - z1*dnm*dnm);
+     float c = (b2-y1*dnm)*(b2-y1*dnm) + b1*b1 + dnm*dnm*(z1*z1 - re*re);
+  
+     // discriminant
+     float d = b*b - (float)4.0*a*c;
+     if (d < 0) return -1; // non-existing point
+ 
+     z0 = -(float)0.5*(b+sqrt(d))/a;
+     x0 = (a1*z0 + b1)/dnm;
+     y0 = (a2*z0 + b2)/dnm;
+     return 0;
+ }
+ 
+ // inverse kinematics
+ // helper functions, calculates angle theta1 (for YZ-pane)
+ int delta_calcAngleYZ(float x0, float y0, float z0, float &theta) {
+     float y1 = -0.5 * 0.57735 * f; // f/2 * tg 30
+     y0 -= 0.5 * 0.57735    * e;    // shift center to edge
+     // z = a + b*y
+     float a = (x0*x0 + y0*y0 + z0*z0 +rf*rf - re*re - y1*y1)/(2*z0);
+     float b = (y1-y0)/z0;
+     // discriminant
+     float d = -(a+b*y1)*(a+b*y1)+rf*(b*b*rf+rf); 
+     if (d < 0) return -1; // non-existing point
+     float yj = (y1 - a*b - sqrt(d))/(b*b + 1); // choosing outer point
+     float zj = a + b*yj;
+     theta = 180.0*atan(-zj/(y1 - yj))/pi + ((yj>y1)?180.0:0.0);
+     return 0;
+ }
+ 
+ // inverse kinematics: (x0, y0, z0) -> (theta1, theta2, theta3)
+ // returned status: 0=OK, -1=non-existing position
+ int delta_calcInverse(float x0, float y0, float z0, float &theta1, float &theta2, float &theta3) {
+     theta1 = theta2 = theta3 = 0;
+     int status = delta_calcAngleYZ(x0, y0, z0, theta1);
+     if (status == 0) status = delta_calcAngleYZ(x0*cos120 + y0*sin120, y0*cos120-x0*sin120, z0, theta2);  // rotate coords to +120 deg
+     if (status == 0) status = delta_calcAngleYZ(x0*cos120 - y0*sin120, y0*cos120+x0*sin120, z0, theta3);  // rotate coords to -120 deg
+     return status;
+ }
+#endif
+            #endregion Another Parallel delta
+
+
+
+
             #region Delta Parallel 3 dof - 제작 : 이동현 차장(동부로봇)
             //////////////////////////////////////////////////////////////////////////////////
             // made by Donghyeon, Lee in dongbu-robot(Address Changed to DST Robot)
@@ -1129,6 +1283,68 @@ namespace OpenJigWare
             }
 
             // X 가 앞뒤, Y 가 좌우, Z 가 상하
+#if true
+            // 새로운거 시도
+            public static bool Delta_Parallel_InverseKinematics(double dX, double dY, double dZ, out double dAngle0, out double dAngle1, out double dAngle2)
+            {
+                dAngle0 = dAngle1 = dAngle2 = 0.0;
+                float fX = (float)dX;
+                float fY = (float)dY;
+                float fZ = (float)dZ;
+                float[] afAngle = new float[3];
+                if (delta_calcInverse(fX, fY, fZ, out afAngle[0], out afAngle[1], out afAngle[2]) < 0)
+                {
+                    return false;
+                }
+                dAngle0 = (double)afAngle[0];
+                dAngle1 = (double)afAngle[1];
+                dAngle2 = (double)afAngle[2];
+
+                return true;
+            }
+            private static int delta_calcAngleYZ(float x0, float y0, float z0, out float theta) {
+
+                float e = (float)m_dRad1;// *2.0f;     // end effector // 아래판의 반지름
+                float f = (float)m_dRad0;// *2.0f;     // base // 윗판의 반지름
+                float re = (float)m_dL1;       // 아래 링크의 길이
+                float rf = (float)m_dL0;       // 윗 링크의 길이
+                 float y1 = -0.5f * 0.57735f * f; // f/2 * tg 30
+                 y0 -= 0.5f * 0.57735f    * e;    // shift center to edge
+                 // z = a + b*y
+                 float a = (x0*x0 + y0*y0 + z0*z0 +rf*rf - re*re - y1*y1)/(2*z0);
+                 float b = (y1-y0)/z0;
+                 // discriminant
+                 float d = -(a+b*y1)*(a+b*y1)+rf*(b*b*rf+rf);
+                 if (d < 0)
+                 {
+                     theta = 0.0f;
+                     return -1; // non-existing point
+                 }
+                 float yj = (y1 - a*b - (float)Math.Sqrt(d))/(b*b + 1); // choosing outer point
+                 float zj = a + b*yj;
+                 theta = 180.0f*(float)Math.Atan(-zj/(y1 - yj))/(float)Math.PI + ((yj>y1)?180.0f:0.0f);
+                 return 0;
+             }
+ 
+             // inverse kinematics: (x0, y0, z0) -> (theta1, theta2, theta3)
+             // returned status: 0=OK, -1=non-existing position
+            private static int delta_calcInverse(float x0, float y0, float z0, out float theta1, out float theta2, out float theta3)
+            {
+                 theta1 = theta2 = theta3 = 0;
+
+                 float sqrt3 = (float)Math.Sqrt(3.0);
+                 float sin120 = sqrt3 / 2.0f;
+                 float cos120 = -0.5f;
+                 //float tan60 = sqrt3;
+                 //float sin30 = 0.5f;
+                 //float tan30 = 1 / sqrt3;
+
+                 int status = delta_calcAngleYZ(x0, y0, z0, out theta1);
+                 if (status == 0) status = delta_calcAngleYZ(x0 * cos120 + y0 * sin120, y0 * cos120 - x0 * sin120, z0, out theta2);  // rotate coords to +120 deg
+                 if (status == 0) status = delta_calcAngleYZ(x0 * cos120 - y0 * sin120, y0 * cos120 + x0 * sin120, z0, out theta3);  // rotate coords to -120 deg
+                 return status;
+             }
+#else
             public static bool Delta_Parallel_InverseKinematics(double dX, double dY, double dZ, out double dAngle0, out double dAngle1, out double dAngle2)
             {
                 dAngle0 = dAngle1 = dAngle2 = 0.0;
@@ -1350,11 +1566,11 @@ namespace OpenJigWare
             double beta1, gamma1, beta2, gamma2, beta3, gamma3;
             double m1, m2, m3;
 
-            double R = COjwConvert.StrToDouble(txtRad0.Text);
-            double sr = COjwConvert.StrToDouble(txtRad1.Text);
+            double R = Ojw.CConvert.StrToDouble(txtRad0.Text);
+            double sr = Ojw.CConvert.StrToDouble(txtRad1.Text);
             double h = 0;
-            double L1 = COjwConvert.StrToDouble(txtL0.Text);
-            double L2 = COjwConvert.StrToDouble(txtL1.Text);
+            double L1 = Ojw.CConvert.StrToDouble(txtL0.Text);
+            double L2 = Ojw.CConvert.StrToDouble(txtL1.Text);
 
             a = dX;
             b = dY;
@@ -1408,8 +1624,11 @@ namespace OpenJigWare
 #endif
 
             }
+#endif
             public static bool Delta_Parallel_ForwardKinematics(double dM0, double dM1, double dM2, out double dX, out double dY, out double dZ)
             {
+
+#if false
                 // Made by Donghyon-Lee
                 double re2;
                 double w1, w2, w3, d, al1, al2, be1, be2;
@@ -1523,10 +1742,72 @@ namespace OpenJigWare
 
                 /*************************************************************************/
                 //}
+#else
+                // robot geometry
+                // (look at pics above for explanation)
+                double e = m_dRad1;     // end effector // 아래판의 반지름
+                double f = m_dRad0;     // base // 윗판의 반지름
+                double re = m_dL1;       // 아래 링크의 길이
+                double rf = m_dL0;       // 윗 링크의 길이
 
+                double t = (f - e) * Ojw.CMath.Tan(30) / 2;
+                //float dtr = (float)Math.PI / 180.0;
+
+
+
+                double y1 = -(t + rf * Ojw.CMath.Cos(-dM0));
+                double z1 = -rf * Ojw.CMath.Sin(-dM0);
+
+                double y2 = (t + rf * Ojw.CMath.Cos(-dM1)) * Ojw.CMath.Sin(30);
+                double x2 = y2 * Ojw.CMath.Tan(60);
+                double z2 = -rf * Ojw.CMath.Sin(-dM1);
+
+                double y3 = (t + rf * Ojw.CMath.Cos(-dM2)) * Ojw.CMath.Sin(30);
+                double x3 = -y3 * Ojw.CMath.Tan(60);
+                double z3 = -rf * Ojw.CMath.Sin(-dM2);
+
+                double dnm = (y2 - y1) * x3 - (y3 - y1) * x2;
+
+                double w1 = y1 * y1 + z1 * z1;
+                double w2 = x2 * x2 + y2 * y2 + z2 * z2;
+                double w3 = x3 * x3 + y3 * y3 + z3 * z3;
+
+                // x = (a1*z + b1)/dnm
+                double a1 = (z2 - z1) * (y3 - y1) - (z3 - z1) * (y2 - y1);
+                double b1 = -((w2 - w1) * (y3 - y1) - (w3 - w1) * (y2 - y1)) / 2.0;
+
+                // y = (a2*z + b2)/dnm;
+                double a2 = -(z2 - z1) * x3 + (z3 - z1) * x2;
+                double b2 = ((w2 - w1) * x3 - (w3 - w1) * x2) / 2.0;
+
+                // a*z^2 + b*z + c = 0
+                double a = a1 * a1 + a2 * a2 + dnm * dnm;
+                double b = 2 * (a1 * b1 + a2 * (b2 - y1 * dnm) - z1 * dnm * dnm);
+                double c = (b2 - y1 * dnm) * (b2 - y1 * dnm) + b1 * b1 + dnm * dnm * (z1 * z1 - re * re);
+
+                // discriminant
+                double d = b * b - 4.0 * a * c;
+
+                if (d < 0)
+                {
+                    dX = dY = dZ = 0;
+                    return false; // non-existing point
+                }
+
+                double dHeight = -0.5 * (b + Math.Sqrt(d)) / a;
+                dX = (a1 * dHeight + b1) / dnm;
+                dY = (a2 * dHeight + b2) / dnm;
+                dZ = -dHeight;
+                
+#endif
                 return true;
             }
             #endregion Delta Parallel 3 dof - 제작 : 이동현 차장(동부로봇)
+
+            #region Delta 2번째 - http://forums.trossenrobotics.com/tutorials/introduction-129/delta-robot-kinematics-3276/
+            // 테스트 : https://www.marginallyclever.com/other/samples/fk-ik-test.html
+
+            #endregion Delta 2번째
         }
         /// <summary>
         /// made by Dongjune Chang, 

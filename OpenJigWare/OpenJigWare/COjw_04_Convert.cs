@@ -5,6 +5,7 @@ using System.Text;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Linq;
 
 namespace OpenJigWare
 {
@@ -39,11 +40,14 @@ namespace OpenJigWare
                 bool bSimbol = false;
                 bool bPoint = false;
                 int nPoint = -1;
+                int i = 0;
                 foreach (char cItem in strValue) 
                 {
                     if ((cItem == '-') || (cItem == '+'))
                     {
                         if (bSimbol == true) return false;
+                        else if (bPoint == true) return false;
+                        else if (i != 0) return false;
                         bSimbol = true;
                     }
                     else
@@ -66,6 +70,7 @@ namespace OpenJigWare
                         }
                     }
                     if (nPoint < 0) nPoint = 0;
+                    i++;
                 }
                 if (bSimbol == true) return false;
                 else if (nPoint > 1) return false;
@@ -110,7 +115,7 @@ namespace OpenJigWare
             private static int _ASIN2 = 0x2000000;
             //private static int _MOD = 0x4000000; // 이미 위에 선언
             private static int _ROUND = 0x8000000;
-            //private static int _RESERVE_1 = 0x1000000;
+            private static int _CALL  =0x10000000;
 
             private static int _COMMA2 = 0x0100000;
 
@@ -409,11 +414,11 @@ namespace OpenJigWare
                 bool bComma2_1 = false;
 
                 bool bComplete = false; // _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2;
-                int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND;
+                int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL;
 
                 int nEq = _EQ | _PLUS | _MINUS | _MUL | _DIV | _MOD;
                 int nBracket = _BRACKET_SMALL_START | _BRACKET_SMALL_END | _BRACKET_MIDDLE_START | _BRACKET_MIDDLE_END | _BRACKET_LARGE_START | _BRACKET_LARGE_END;
-                int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND;
+                int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL;
                 if (strPrev == null) return false;
                 else if (strCurr == "\r\n") return true;
                 else if (strCurr == "\r") return true;
@@ -545,6 +550,8 @@ namespace OpenJigWare
                 if ((nCompare & _SQRT) != 0) { if (strData == "sqrt") nRet |= _SQRT; }
                 if ((nCompare & _POW) != 0) { if (strData == "pow") nRet |= _POW; } // 0x0b [____ ____] [___1 1111] [111_ ____]
                 if ((nCompare & _ABS) != 0) { if (strData == "abs") nRet |= _ABS; }
+                if ((nCompare & _CALL) != 0) { if (strData == "call") nRet |= _CALL; }
+                
 
                 //if ((strData == "sin") || (strData == "cos") || (strData == "tan") || (strData == "asin") || (strData == "acos") || (strData == "atan") || (strData == "sqrt") || (strData == "pow") || (strData == "abs")) bFunction = true;
 
@@ -561,8 +568,8 @@ namespace OpenJigWare
                 if ((nCompare & _ALPHA) != 0) { if (CheckCalc_Alpha(strData) == true) nRet |= _ALPHA; } // Alpha('_' 포함)
                 // 0x0b [__11 ____] [____ ____] [____ ____]
 
-                if ((nRet & (_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND)) != 0)
-                    nRet &= ((0xfffffff ^ (_DIGIT | _ALPHA)) & 0xfffffff);
+                if ((nRet & (_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL)) != 0)
+                    nRet &= ((0x7fffffff ^ (_DIGIT | _ALPHA)) & 0x7fffffff);
 
                 if ((nCompare & _COMMA2) != 0) { if (strData == ";") nRet |= _COMMA2; } // 0x0b [___1] [____ ____] [____ ____] [____ ____]
 
@@ -595,6 +602,12 @@ namespace OpenJigWare
             // Kor: 라인주석 "//" 이후를 없애는 명령어
             public static String RemoveCaption(String strData, bool bRemoveSpace, bool bRemoveNullLine)
             {
+                return RemoveCaption("//", strData, bRemoveSpace, bRemoveNullLine);
+            }
+            public static String RemoveCaption(
+                string strDefinedCaption, // 지정한 캡션 지우기
+                String strData, bool bRemoveSpace, bool bRemoveNullLine)
+            {
                 string strRet = "";
                 String strTmp = strData;//.ToUpper();
                 if (bRemoveSpace == true) strTmp = RemoveChar(strTmp, ' ');
@@ -603,7 +616,7 @@ namespace OpenJigWare
                 int nIndex;
                 foreach (String strItem in pstrTmp)
                 {
-                    nIndex = strItem.IndexOf("//");
+                    nIndex = strItem.IndexOf(strDefinedCaption);
                     if (nIndex >= 0)
                     {
                         strTmp = strItem.Substring(0, nIndex);
@@ -676,7 +689,11 @@ namespace OpenJigWare
             // Partially replacing characters(Caution example: 'V1' == 'V11')
             // Kor: 부분적 문자 교체(v1 v11 의 경우 같은 문자로 취급될 수 있다.)
             public static string ChangeString(string strText, String strRemoveData, String strChangeData)
-            {
+            {                
+#if true
+                return strText.Replace(strRemoveData, strChangeData);
+#else
+                
                 string strResult = strText;
                 int nIndex;
                 int nStart = 0;
@@ -690,6 +707,7 @@ namespace OpenJigWare
                     else break;
                 }
                 return strResult;
+#endif
             }
 
             // Partially replacing characters(Caution example: 'V1' != 'V11')
@@ -744,6 +762,19 @@ namespace OpenJigWare
                 return strRet;
             }
 
+            public static bool[] Array_Bool_Init(bool value, int nLength) { return Enumerable.Repeat<bool>(value, nLength).ToArray<bool>(); }
+            public static int[] Array_Int_Init(int value, int nLength) { return Enumerable.Repeat<int>(value, nLength).ToArray<int>(); }
+            public static float[] Array_Float_Init(float value, int nLength) { return Enumerable.Repeat<float>(value, nLength).ToArray<float>(); }
+            public static short[] Array_Short_Init(short value, int nLength) { return Enumerable.Repeat<short>(value, nLength).ToArray<short>(); }
+            public static string[] Array_String_Init(string value, int nLength) { return Enumerable.Repeat<string>(value, nLength).ToArray<string>(); }
+
+            public static void Array_Bool_Init(ref bool [] Datas, bool value, int nLength) { Datas = Enumerable.Repeat<bool>(value, nLength).ToArray<bool>(); }
+            public static void Array_Int_Init(ref int[] Datas, int value, int nLength) { Datas = Enumerable.Repeat<int>(value, nLength).ToArray<int>(); }
+            public static void Array_Float_Init(ref float[] Datas, float value, int nLength) { Datas = Enumerable.Repeat<float>(value, nLength).ToArray<float>(); }
+            public static void Array_Short_Init(ref short[] Datas, short value, int nLength) { Datas = Enumerable.Repeat<short>(value, nLength).ToArray<short>(); }
+            public static void Array_String_Init(ref string[] Datas, string value, int nLength) { Datas = Enumerable.Repeat<string>(value, nLength).ToArray<string>(); }
+            
+            //public static object[] ArrayInit(object value, int nLength) { return Enumerable.Repeat<object>(value, nLength).ToArray<object>(); }
             // Byte Array -> String
             public static string BytesToStr(byte[] byteArrayData, int nCnt)
             {
@@ -782,6 +813,16 @@ namespace OpenJigWare
                 public byte[] Data;//byte배열 길이 1024
             }
             */
+            //public static object Dictionary_GetKey(Dictionary<object, object> dic, object value)
+            //{
+            //    return dic.FirstOrDefault(x => x.Value == value).Key;
+            //}
+            //public static object Dictionary_GetValue(Dictionary<object, object> dic, object key)
+            //{
+            //    return dic[key];
+            //}
+
+            // ByteToStructure(bytebuffer[], typeof(SUser_t))
             public static object ByteToStructure(byte[] data, Type type)
             {
                 IntPtr buff = Marshal.AllocHGlobal(data.Length); // by the size of the array to allocate memory in unmanaged memory.(Kor: 배열의 크기만큼 비관리 메모리 영역에 메모리를 할당한다.)
@@ -1070,6 +1111,94 @@ namespace OpenJigWare
                 }
             }
 
+            public static int BytesToInt(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToInt32(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            public static short BytesToShort(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToInt16(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            public static long BytesToLong(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToInt64(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            public static double BytesToDouble(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToDouble(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0.0;
+                }
+            }
+            public static float BytesToFloat(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToSingle(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0.0f;
+                }
+            }
+            public static uint BytesToUInt(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToUInt32(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            public static ushort BytesToUShort(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToUInt16(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            public static ulong BytesToULong(byte[] pbyData, int nStartIndex)
+            {
+                try
+                {
+                    return BitConverter.ToUInt64(pbyData, nStartIndex);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
             /////////////////////////////////////////////////
             /////////////////////////////////////////////////
             public static String BoolToStr(bool bData)
@@ -1340,6 +1469,28 @@ namespace OpenJigWare
                     return null;
                 }
             }
+            public static String FloatToStr(float fData, int nDigits)
+            {
+                try
+                {
+                    return Convert.ToString((float)Math.Round(fData, nDigits));
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            public static String DoubleToStr(double dData, int nDigits)
+            {
+                try
+                {
+                    return Convert.ToString((double)Math.Round(dData, nDigits));
+                }
+                catch
+                {
+                    return null;
+                }
+            }
             public static String DoubleToStr(double dData)
             {
                 try
@@ -1424,10 +1575,46 @@ namespace OpenJigWare
             //}
             public static double[] FloatsToDoubles(float[] afFloats) { return Array.ConvertAll(afFloats, element => (double)element); }
             public static float[] DoublesToFloats(float[] adDoubles) { return Array.ConvertAll(adDoubles, element => (float)element); }
+            public static bool Sort_ListArray(int nStandardPosition, ref List<int[]> lst)
+            {
+                try
+                {
+                    if (nStandardPosition < 0) return false;
+                    if (lst.Count <= 0) return false;
+
+                    //lst.Sort(CompareInt);
+                    //lst.Sort(x, y => x[nStandardPosition].CompareTo(y[nStandardPosition]));
+                    lst.Sort(delegate(int[] x, int[] y) { return x[nStandardPosition].CompareTo(y[nStandardPosition]); });
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+            }
+            public static bool Sort_ListArray(int nStandardPosition, ref List<string[]> lst)
+            {
+                try
+                {
+                    if (nStandardPosition < 0) return false;
+                    if (lst.Count <= 0) return false;
+
+                    //lst.Sort(CompareInt);
+                    //lst.Sort(x, y => x[nStandardPosition].CompareTo(y[nStandardPosition]));
+                    lst.Sort(delegate(string[] x, string[] y) { return StrToInt(x[nStandardPosition]).CompareTo(StrToInt(y[nStandardPosition])); });
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+            }
+            // 내림차순으로 비교
+            //private static int CompareInt(int[] a, int[] b) { return a[0].CompareTo(b[0]); }
+            //private static int CompareString(string[] a, string[] b) { return StrToInt(a[0]).CompareTo(StrToInt(b[0])); }
         }
         public class CConvert<T>
-        {
-            ////////// switching Array functions ///////////////////////////
+        {           ////////// switching Array functions ///////////////////////////
             public static T[] Array2To1(T[,] t)
             {
                 int nLine = t.GetLength(0);
@@ -1461,7 +1648,9 @@ namespace OpenJigWare
                         Dest[i + nLine_Dest, j + nCol_Dest] = Src[i + nLine_Src, j + nCol_Src];
                     }
                 }
-            }            
+            }
+
+            //public static T[] Array_Init(object value, int nLength) { return Enumerable.Repeat<value>(value, nLength).ToArray<object>(); }
         }
     }
 }

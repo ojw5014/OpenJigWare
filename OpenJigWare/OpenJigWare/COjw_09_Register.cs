@@ -133,7 +133,8 @@ namespace OpenJigWare
                                 if (
                                     ((bSerial == true) && (pstrKeyNames[i].ToUpper().IndexOf("VCP") >= 0)) ||
                                     ((bSerial == true) && (pstrKeyNames[i].ToUpper().IndexOf("SERIAL") >= 0)) ||
-                                    ((bBluetooth == true) && (pstrKeyNames[i].ToUpper().IndexOf("B") >= 0))
+                                    //((bBluetooth == true) && (pstrKeyNames[i].ToUpper().IndexOf("B") >= 0))
+                                    ((bBluetooth == true) && (pstrKeyNames[i].ToUpper().IndexOf("BT") >= 0))
                                     )
                                 {
                                     //nPos = j;

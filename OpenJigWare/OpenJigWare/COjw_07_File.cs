@@ -405,8 +405,10 @@ namespace OpenJigWare
 #endif
                                 strItem = strItem.Trim();
                                 if (strItem.Length >= 1) // o Type 1자리 // x Index 4자리, Type 1자리
+                                {
                                     m_lstFile.Add(strItem);
-                                nLines++;
+                                    nLines++;
+                                }
                             }
                             //strItem = "";
                             Array.Clear(pbyte, 0, pbyte.Length);
@@ -499,6 +501,30 @@ namespace OpenJigWare
                     return false;
                 }
             }
+            //public bool Save_Csv(String strFileName)
+            //{
+            //    FileInfo f = null;
+            //    StreamWriter fs = null;
+
+            //    try
+            //    {
+            //        f = new FileInfo(strFileName);
+            //        if (m_Enc == null) fs = new StreamWriter(strFileName, false, Encoding.Default);
+            //        else fs = new StreamWriter(strFileName, false, m_Enc);
+
+            //        fs.Flush(); // Flush the stream buffers
+
+            //        for (int i = 0; i < m_lstFile.Count; i++) fs.WriteLine((String)m_lstFile[i]);
+
+            //        fs.Close();
+            //        return true;
+            //    }
+            //    catch
+            //    {
+            //        if (fs != null) fs.Close();
+            //        return false;
+            //    }
+            //}
             
             // return b,n,f,s   
             // return "" when it has error(Kor: b,n,f,s 를 반환 "" 이면 에러)
@@ -529,13 +555,17 @@ namespace OpenJigWare
             public bool GetData_Bool(int nIndex) { return CConvert.StrToBool(GetData_String(nIndex)); }
             public bool Set(int nIndex, String strValue) { return SetData_String(nIndex, strValue); }
             public bool SetData(int nIndex, String strValue) { return SetData_String(nIndex, strValue); }
+
+            public void Clear() { m_lstFile.Clear(); }
+            public bool Add(String strValue) { return Add_Raw("s" + strValue); }
+            public bool Add_Raw(String strValue) { try { m_lstFile.Add(strValue); return true; } catch { return false; } }
             
             public bool SetData_Raw(int nIndex, String strValue) { try { m_lstFile[nIndex] = strValue; return true; } catch { return false; } }
-            public bool SetData_String(int nIndex, String strValue) { try { m_lstFile[nIndex] = "s" + strValue; return true; } catch { return false; } }
-            public bool SetData_Int(int nIndex, int nValue) { try { m_lstFile[nIndex] = "n" + CConvert.IntToStr(nValue); return true; } catch { return false; } }
-            public bool SetData_Float(int nIndex, float fValue) { try { m_lstFile[nIndex] = "f" + CConvert.FloatToStr(fValue); return true; } catch { return false; } }
-            public bool SetData_double(int nIndex, double dValue) { try { m_lstFile[nIndex] = "d" + CConvert.DoubleToStr(dValue); return true; } catch { return false; } }
-            public bool SetData_Bool(int nIndex, bool bValue) { try { m_lstFile[nIndex] = "b" + CConvert.BoolToStr(bValue); return true; } catch { return false; } }
+            public bool SetData_String(int nIndex, String strValue) { try { if (m_lstFile.Count < nIndex + 1) { for (int i = m_lstFile.Count; i <= nIndex; i++) Add(""); } m_lstFile[nIndex] = "s" + strValue; return true; } catch {  return false;  } }
+            public bool SetData_Int(int nIndex, int nValue) { try { if (m_lstFile.Count < nIndex + 1) { for (int i = m_lstFile.Count; i <= nIndex; i++) Add(""); } m_lstFile[nIndex] = "n" + CConvert.IntToStr(nValue); return true; } catch { return false; } }
+            public bool SetData_Float(int nIndex, float fValue) { try { if (m_lstFile.Count < nIndex + 1) { for (int i = m_lstFile.Count; i <= nIndex; i++) Add(""); } m_lstFile[nIndex] = "f" + CConvert.FloatToStr(fValue); return true; } catch { return false; } }
+            public bool SetData_double(int nIndex, double dValue) { try { if (m_lstFile.Count < nIndex + 1) { for (int i = m_lstFile.Count; i <= nIndex; i++) Add(""); } m_lstFile[nIndex] = "d" + CConvert.DoubleToStr(dValue); return true; } catch { return false; } }
+            public bool SetData_Bool(int nIndex, bool bValue) { try { if (m_lstFile.Count < nIndex + 1) { for (int i = m_lstFile.Count; i <= nIndex; i++) Add(""); } m_lstFile[nIndex] = "b" + CConvert.BoolToStr(bValue); return true; } catch { return false; } }
             #endregion Files(Data) & List
 
             public static void Delete(String strFileName) { FileInfo file = new FileInfo(strFileName); if (file.Exists) { System.IO.File.Delete(strFileName); } }
@@ -685,7 +715,17 @@ namespace OpenJigWare
                 if (CompareDirectory_List(strDst, strSrc, bSubDirs, bAddStatusString, ref lstDst, ref lstSrc) == true) bChanged = true;
                 return bChanged;
             }
-            public static bool IsDirectory(string strPath) { DirectoryInfo dirSrc = new DirectoryInfo(strPath); return dirSrc.Exists; }
+            public static bool IsDirectory(string strPath) {
+                try
+                {
+                    DirectoryInfo dirSrc = new DirectoryInfo(strPath); return dirSrc.Exists;
+                }
+                catch (Exception ex)
+                {
+                    Ojw.CMessage.Write("[Warning] {0}", ex.ToString());
+                    return false;
+                }
+            }
             public static bool CompareDirectory_List(string strSrc, string strDst, bool bSubDirs, bool bAddStatusString, ref List<string> lstSrc, ref List<string> lstDst)
             {
                 if ((lstSrc == null) || (lstDst == null)) return false;
@@ -1096,6 +1136,100 @@ namespace OpenJigWare
                         string temppath = Path.Combine(destDirName, subdir.Name);
                         DirectoryCopy(subdir.FullName, temppath, copySubDirs);
                     }
+                }
+            }
+            public static string[] FileCopy(string destDirName, string[] pstrFileNames)
+            {
+                List<string> lstMissing = new List<string>();
+                lstMissing.Clear();
+
+                // If the destination directory doesn't exist, create it.
+                if (!Directory.Exists(destDirName))
+                {
+                    Directory.CreateDirectory(destDirName);
+                }
+
+                // Get the files in the directory and copy them to the new location.
+                //string[] pstrFiles = pstrFiles;//dir.GetFiles();
+                foreach (string strFile in pstrFileNames)
+                {
+                    FileInfo file = new FileInfo(strFile);
+                    if (file.Exists == false)
+                    {
+                        lstMissing.Add(strFile);
+                        continue;
+                    }
+                    string temppath = Path.Combine(destDirName, file.Name);
+                    file.CopyTo(temppath, true);
+                }
+
+                return (string[])lstMissing.ToArray();
+            }
+            public static string [] FileCopy(string sourceDirName, string destDirName, string [] pstrFileNames)
+            {
+                List<string> lstMissing = new List<string>();
+                lstMissing.Clear();
+                // Get the subdirectories for the specified directory.
+                DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+
+                if (!dir.Exists)
+                {
+                    throw new DirectoryNotFoundException(
+                        "Source directory does not exist or could not be found: "
+                        + sourceDirName);
+                }
+
+                DirectoryInfo[] dirs = dir.GetDirectories();
+                // If the destination directory doesn't exist, create it.
+                if (!Directory.Exists(destDirName))
+                {
+                    Directory.CreateDirectory(destDirName);
+                }
+
+                // Get the files in the directory and copy them to the new location.
+                //string[] pstrFiles = pstrFiles;//dir.GetFiles();
+                foreach (string strFile in pstrFileNames)
+                {
+                    FileInfo file = new FileInfo(String.Format("{0}\\{1}", sourceDirName, strFile));
+                    if (file.Exists == false)
+                    {
+                        lstMissing.Add(strFile);
+                        continue;
+                    }
+                    string temppath = Path.Combine(destDirName, file.Name);
+                    file.CopyTo(temppath, true);
+                }
+                
+                return (string [])lstMissing.ToArray();
+            }
+
+            
+            public static string FindFile(string strFileName) { return FindFile(null, strFileName); }
+            public static string FindFile(string strPath, string strFileName)
+            {
+                try
+                {
+                    string strResult = String.Empty;
+                    if (strPath == null) strPath = Application.StartupPath;
+                    foreach (string strDirectory in Directory.GetDirectories(strPath))
+                    {
+                        strResult = String.Format("{0}\\{1}", strDirectory, strFileName);
+                        //foreach (string strFile in Directory.GetFiles(strDirectory, strFileName))
+                        //{
+                        //    if (IsFile(strFile) == true) { return String.Format("{0}\\{1}", strDirectory, strFileName); }
+                        //}
+                        if (IsFile(strResult) == true) return strResult;
+                        else
+                        {
+                            strResult = FindFile(strDirectory, strFileName);
+                            if (IsFile(strResult) == true) return strResult;
+                        }
+                    }
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    return null;// String.Empty;
                 }
             }
         }

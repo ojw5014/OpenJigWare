@@ -15,6 +15,7 @@ using System.Windows.Forms;
 
 namespace OpenJigWare
 {
+#if false
     partial class Ojw
     {
         public class CTts
@@ -121,7 +122,7 @@ namespace OpenJigWare
                     return true;
                 return false;
             }
-            #region 
+    #region 
             
             private int m_nRecog = 0; // 0 : 키워드, 1 : command
             private string m_strKeywork = "Wall-e";
@@ -129,8 +130,8 @@ namespace OpenJigWare
             //private List<int> m_lstVoice_Index = new List<int>();
             private List<String> m_lstVoice_Result = new List<String>();
             private List<String> m_lstVoice_Str = new List<String>();
-            #endregion 
-            #region Voice
+            #endregion
+    #region Voice
             private bool m_bInit = false;
             private int m_nReturnValue = 0;
             private int m_nResultType = -1;
@@ -213,7 +214,7 @@ namespace OpenJigWare
             {
                 CMessage.Write("Result => {0},{1}", m_nReturnValue, m_strReturnValue);
             }
-            #region Unload - 이건 FloadGrammars 내에서만 사용한다.
+    #region Unload - 이건 FloadGrammars 내에서만 사용한다.
             //public void LoadFile(string strFile)
             //{
             //    if (m_nMode >= 0)
@@ -607,7 +608,7 @@ namespace OpenJigWare
                 }
                 CMessage.Write("[{0}] {1}", strSpeech, strRecog);
             }
-            #endregion Voice
+    #endregion Voice
         }
         
 #if false
@@ -638,7 +639,7 @@ namespace OpenJigWare
                     tbVoice.TabPages[i].Controls.Add(txt);
                 }
 
-                #region Param
+    #region Param
                 m_CParam = new CParam(
                     Encoding.GetEncoding("euc-cn"),//51949), // 중국어 간체
                     string.Format("{0}\\{1}", strPath, "param_voice.dat"),// "param.dat",
@@ -648,7 +649,7 @@ namespace OpenJigWare
                     );
                 #endregion Param
 
-                #region Param_Voice
+    #region Param_Voice
                 int nCount_List = 100;
                 m_nCnt_Page_Voice = tbVoice.TabPages.Count;
                 m_pCParam_Voice = new CParam[m_nCnt_Page_Voice];
@@ -719,7 +720,7 @@ namespace OpenJigWare
                 {
                 }
             }
-            #region Unload - 이건 FloadGrammars 내에서만 사용한다.
+    #region Unload - 이건 FloadGrammars 내에서만 사용한다.
             private void FUnloadGrammars()
             {
                 m_sRecognize.RecognizeAsyncStop();
@@ -935,4 +936,5 @@ namespace OpenJigWare
         }
 #endif
     }
+#endif
 }

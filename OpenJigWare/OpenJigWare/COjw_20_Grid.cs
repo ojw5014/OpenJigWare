@@ -33,12 +33,18 @@ namespace OpenJigWare
             }
             private int m_nMaxLine = 1000;
             private DataGridView m_gvGrid = null;//new DataGridView();
-            public void Create(Form frm, int nX, int nY, int nWidth, int nHeight, String[] pstrTitles)
+            public void Create(Control ctrlHandle, int nX, int nY, int nWidth, int nHeight, String[] pstrTitles)
             {
-                Create(frm, nX, nY, nWidth, nHeight, pstrTitles, null, null);
+                Create(ctrlHandle, nX, nY, nWidth, nHeight, pstrTitles, null, null);
             }
+            public void SetMax(int nMaxLine)
+            {
+                m_nMaxLine = nMaxLine;
+            }
+            public int GetMax() { return m_nMaxLine; }
             public DataGridView GetHandle() { return m_gvGrid; }
-            public void Create(Form frm, int nX, int nY, int nWidth, int nHeight, String[] pstrTitles, int[] pnWidth, int[] pnType)
+            public int [] m_pnType = null;
+            public void Create(Control ctrlHandle, int nX, int nY, int nWidth, int nHeight, String[] pstrTitles, int[] pnWidth, int[] pnType)
             {
                 #region Check Exception
                 if (pnType == null)
@@ -75,7 +81,7 @@ namespace OpenJigWare
 
                 m_gvGrid.Top = nY;
                 m_gvGrid.Left = nX;
-
+                m_pnType = pnType;
                 for (int nPos = 0; nPos < pstrTitles.Length; nPos++)
                 {
                     if (pnType[nPos] == (int)EType_t._GRID_BUTTON)
@@ -91,7 +97,7 @@ namespace OpenJigWare
                     }
                     else if (pnType[nPos] == (int)EType_t._GRID_CHECKBOX)
                     {
-                        DataGridViewComboBoxColumn comboCheckColumn = new DataGridViewComboBoxColumn();
+                        DataGridViewCheckBoxColumn comboCheckColumn = new DataGridViewCheckBoxColumn();
                         comboCheckColumn.HeaderText = pstrTitles[nPos];
                         m_gvGrid.Columns.Add(comboCheckColumn);
                     }
@@ -129,11 +135,8 @@ namespace OpenJigWare
                     m_gvGrid.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
                 }
                 m_gvGrid.RowPostPaint += new DataGridViewRowPostPaintEventHandler(Grid_RowPostPaint);
-                frm.Controls.Add(m_gvGrid);
 
-                Grid_Insert(0, m_nMaxLine);
-
-
+                ctrlHandle.Controls.Add(m_gvGrid);
             }
             //public int m_nDisplayFirstLine = 0;
             private void Grid_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
@@ -151,7 +154,7 @@ namespace OpenJigWare
                     (e.RowIndex + 1).ToString() + ".",
                     m_gvGrid.RowHeadersDefaultCellStyle.Font,
                     rect,
-                    Color.Red, //m_gvGrid.RowHeadersDefaultCellStyle.ForeColor,
+                    m_gvGrid.RowHeadersDefaultCellStyle.ForeColor, //Color.Red, //m_gvGrid.RowHeadersDefaultCellStyle.ForeColor,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
 
                 //if ((m_gvGrid != null) && (Grid_GetCaption(e.RowIndex) != ""))
@@ -184,7 +187,35 @@ namespace OpenJigWare
             if (m_bStart == false) Grid_SetColorGrid(e.RowIndex);            
 #endif
             }
-            private void Grid_Insert(int nIndex, int nInsertCnt)
+            public object Grid_Get(int nX, int nY) 
+            {
+
+                //var vRet;
+                //if (m_pnType[nX] == EType_t._GRID_CHECKBOX) vRet = false;
+                return (m_gvGrid == null) ? 0 : (((m_gvGrid.RowCount <= nY) || (m_gvGrid.ColumnCount <= nX)) ? 0 : ((m_gvGrid.Rows[nY].Cells[nX].Value == null) ? 0 : m_gvGrid.Rows[nY].Cells[nX].Value)); 
+            }
+            public void Grid_Set(int nX, int nY, string strDataValue) 
+            {
+                if (m_pnType[nX] == (int)EType_t._GRID_PROGRESSBAR)
+                {
+                    m_gvGrid.Rows[nY].Cells[nX].Value = Ojw.CConvert.StrToInt(strDataValue);
+                //    m_gvGrid.Rows[nY].Cells[nX].Value = DataValue;
+                //    ////COjwProgressBarCell CBar = new COjwProgressBarCell();
+                //    //((COjwProgressBarCell)(m_gvGrid.Rows[nY].Cells[nX])).Value = (int)DataValue;
+                }
+                else if (m_pnType[nX] == (int)EType_t._GRID_CHECKBOX)
+                {
+                    m_gvGrid.Rows[nY].Cells[nX].Value = Ojw.CConvert.StrToBool(strDataValue);
+                }
+                else
+                    m_gvGrid.Rows[nY].Cells[nX].Value = strDataValue; 
+            }
+            //public void Grid_Set(int nX, int nY, object DataValue) { m_gvGrid.Rows[nY].Cells[nX].Value = DataValue; }
+            public int Grid_Size_Lines() { return (m_gvGrid == null) ? 0 : ((m_gvGrid.CurrentCell == null) ? 0 : m_gvGrid.RowCount); }
+            public int Grid_Size_Columns() { return (m_gvGrid == null) ? 0 : ((m_gvGrid.CurrentCell == null) ? 0 : m_gvGrid.ColumnCount); }
+            public int Grid_Get_Y() { return (m_gvGrid == null) ? 0 : ((m_gvGrid.CurrentCell == null) ? 0 : m_gvGrid.CurrentCell.RowIndex); }
+            public int Grid_Get_X() { return (m_gvGrid == null) ? 0 : ((m_gvGrid.CurrentCell == null) ? 0 : m_gvGrid.CurrentCell.ColumnIndex); }
+            public void Grid_Insert(int nIndex, int nInsertCnt)
             {
                 int nErrorNum = 0;
                 try
@@ -212,7 +243,7 @@ namespace OpenJigWare
                 }
             }
 
-            private void Grid_Add(int nIndex, int nInsertCnt)
+            public void Grid_Add(int nIndex, int nInsertCnt)
             {
                 if (nIndex < 0) nIndex = 0;
                 nIndex++;
@@ -234,11 +265,17 @@ namespace OpenJigWare
                         Grid_Delete(m_gvGrid.RowCount - 1, 1);
                 }
             }
-            private void Grid_ChangePos(DataGridView OjwGrid, int nLine, int nPos)
+            public void Grid_ChangePos(DataGridView OjwGrid, int nLine, int nPos)
             {
                 if (OjwGrid.Rows[nLine].Cells[nPos].Selected == false) OjwGrid.CurrentCell = OjwGrid.Rows[nLine].Cells[nPos];
             }
-            private void Grid_Delete(int nIndex, int nDeleteCnt)
+            public void Grid_ChangePos(int nX, int nY)
+            {
+                int nLine = nY;
+                int nPos = nX;
+                if (m_gvGrid.Rows[nLine].Cells[nPos].Selected == false) m_gvGrid.CurrentCell = m_gvGrid.Rows[nLine].Cells[nPos];
+            }
+            public void Grid_Delete(int nIndex, int nDeleteCnt)
             {
                 for (int i = 0; i < nDeleteCnt; i++)
                 {
@@ -1465,6 +1502,13 @@ namespace OpenJigWare
                                             Color.Coral     
                                         };
             #endregion Var
+
+            public int[] m_anIDs = null;
+            public void SetIDs(int[] anIDs)
+            {
+                m_anIDs = anIDs;
+            }
+
             private bool m_bEventSet = false;
             private void Events_Set()
             {
@@ -1484,7 +1528,7 @@ namespace OpenJigWare
                     m_bEventSet = true;
                 }
             }
-            private void Events_Remove()
+            public void Events_Remove()
             {
                 //if (m_bEventSet == true)
                 //{
@@ -1597,6 +1641,8 @@ namespace OpenJigWare
             }
             public void Create(DataGridView dg, int nLineCnt, bool bEventSet, params SGridTable_t[] aSGridTable)
             {
+                m_nGridMode = 0; // 1 인경우 신형 모션 툴
+
                 int nDefaultWidth = 10;
                 if (bEventSet == true) 
                     Events_Remove();
@@ -1631,10 +1677,13 @@ namespace OpenJigWare
                 dgAngle.Columns[nPos].Width = 20;// 30;
                 nWidth += dgAngle.Columns[nPos++].Width + nWidth_Offset;
 
+                int nIndex = 0;
                 for (i = 0; i < m_nCnt_Col; i++)
                 {
-                    if (aSGridTable[i].strTitle != null) dgAngle.Columns.Add(("Mot" + i.ToString()), aSGridTable[i].strTitle);
-                    else dgAngle.Columns.Add("Mot" + i.ToString(), "Mot" + i.ToString());
+                    if (m_anIDs != null) nIndex = m_anIDs[i];
+                    else nIndex = i;
+                    if (aSGridTable[nIndex].strTitle != null) dgAngle.Columns.Add(("Mot" + nIndex.ToString()), aSGridTable[nIndex].strTitle);
+                    else dgAngle.Columns.Add("Mot" + nIndex.ToString(), "Mot" + nIndex.ToString());
                     dgAngle.Columns[nPos].SortMode = DataGridViewColumnSortMode.NotSortable;
                     //dgAngle.Columns[nPos].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;//DataGridViewCellStyle { }
 
@@ -1734,7 +1783,7 @@ namespace OpenJigWare
                     (e.RowIndex + 1).ToString() + ":",
                     dgAngle.RowHeadersDefaultCellStyle.Font,
                     rect,
-                    Color.Red, //dgAngle.RowHeadersDefaultCellStyle.ForeColor,
+                    dgAngle.RowHeadersDefaultCellStyle.ForeColor, //Color.Red, //dgAngle.RowHeadersDefaultCellStyle.ForeColor,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
 
                 if ((dgAngle != null) && (GetCaption(e.RowIndex) != ""))
@@ -1797,7 +1846,7 @@ namespace OpenJigWare
                         strData,//    nValue.ToString(),
                         dgAngle.RowHeadersDefaultCellStyle.Font,
                         rect,
-                        Color.Blue,//dgAngle.RowHeadersDefaultCellStyle.ForeColor,
+                        dgAngle.RowHeadersDefaultCellStyle.ForeColor,//Color.Blue,//dgAngle.RowHeadersDefaultCellStyle.ForeColor,
                         TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
                 }
             }
@@ -1913,7 +1962,7 @@ namespace OpenJigWare
                 try
                 {
                     if (nIndex < 0) nIndex = 0;
-
+                    if (nIndex >= dgAngle.Rows.Count) nIndex = dgAngle.Rows.Count;
                     int nFirst = nIndex;
                     dgAngle.Rows.Insert(nIndex, nInsertCnt);
                     //m_lstLineInfo.Insert(nIndex, new SGridLineInfo_t(false, 0, "", 0, 0, 0, 0, 0, 0));
@@ -1954,6 +2003,9 @@ namespace OpenJigWare
             }
             public void ChangePos(DataGridView OjwGrid, int nLine, int nPos) { OjwGrid.FirstDisplayedCell = OjwGrid.Rows[nLine].Cells[nPos]; } // OjwGrid.FirstDisplayedScrollingRowIndex;
             public void ChangePos(DataGridView OjwGrid, int nLine) { OjwGrid.FirstDisplayedScrollingRowIndex = nLine; } // OjwGrid.;
+            //public void ChangePos_Command(DataGridView OjwGrid, int nLine, int nPos) { OjwGrid[OjwGrid.CurrentCell.ColumnIndex, OjwGrid.CurrentCell.RowIndex].Selected = false; OjwGrid[nPos, nLine].Selected = true; }//OjwGrid.Columns[nPos].Selected = true; } // OjwGrid.FirstDisplayedScrollingRowIndex;
+            public void ChangePos_Command(DataGridView OjwGrid, int nLine, int nPos) { OjwGrid[OjwGrid.CurrentCell.ColumnIndex, OjwGrid.CurrentCell.RowIndex].Selected = false; OjwGrid[nPos, nLine].Selected = true; DataGridViewEditMode dgemEdit = OjwGrid.EditMode; OjwGrid.EditMode = DataGridViewEditMode.EditOnEnter; OjwGrid.BeginEdit(true); OjwGrid.EditMode = dgemEdit; }//OjwGrid.Columns[nPos].Selected = true; } // OjwGrid.FirstDisplayedScrollingRowIndex;
+            public void ChangePos_Command(DataGridView OjwGrid, int nLine) { OjwGrid[OjwGrid.CurrentCell.ColumnIndex, OjwGrid.CurrentCell.RowIndex].Selected = false; OjwGrid.Rows[nLine].Selected = true; DataGridViewEditMode dgemEdit = OjwGrid.EditMode; OjwGrid.EditMode = DataGridViewEditMode.EditOnEnter; OjwGrid.BeginEdit(true); OjwGrid.EditMode = dgemEdit; } // OjwGrid.;
             private int m_nClear_Type = 0; // 0 = Default, 1 = Init2, -1 = Clear
             public int Clear_GetType() { return m_nClear_Type; } // 0 = Default, 1 = Init2, -1 = Clear
             public void Clear_SetType(int nType) { m_nClear_Type = nType; } // 0 = Default, 1 = Init2, -1 = Clear
@@ -2038,10 +2090,10 @@ namespace OpenJigWare
                 for (int i = 0; i < dgAngle.RowCount; i++) Clear(i);
                 //SetColorGrid(
             }
-            public int OjwGrid_GetCurrentLine() { return m_nCurrntCell; }
-            public int OjwGrid_GetCurrentColumn() { return m_nCurrntColumn; }
+            public int OjwGrid_GetCurrentLine() { try { m_nCurrntCell = dgAngle.CurrentCell.RowIndex; return m_nCurrntCell; } catch (Exception ex) { CMessage.Write_Error(ex.ToString()); return 0; } }
+            public int OjwGrid_GetCurrentColumn() { try { m_nCurrntColumn = dgAngle.CurrentCell.ColumnIndex; return m_nCurrntColumn; } catch (Exception ex) { CMessage.Write_Error(ex.ToString()); return 0; } }
             private bool m_bIgnore_CellEnter = false;
-
+            public int m_nGridMode = 0;
             public void Ignore_CellEnter(bool bIgnore)
             {
                 m_bIgnore_CellEnter = bIgnore;
@@ -2058,14 +2110,22 @@ namespace OpenJigWare
                     {
                         m_nCurrntCell = dgGrid.CurrentCell.RowIndex;
 
+                        if (m_C3d != null)
+                        {
+                            if (m_bMouseMove == false) SetToolTip(m_nCurrntCell, m_nCurrntColumn);
 
-                        if (m_bMouseMove == false) SetToolTip(m_nCurrntCell, m_nCurrntColumn);
-
-                        //Grid_DisplayLine(m_nCurrntCell);
-                        //CheckFlag(m_nCurrntCell);
-                        //lbMotion_Message.Text = "CellEnter=" + Ojw.CConvert.IntToStr(dgGrid.CurrentCell.RowIndex);
-
-                        if ((m_nCurrntColumn > 0) && (m_nCurrntColumn <= m_C3d.m_CHeader.nMotorCnt)) SelectMotor(m_nCurrntColumn - 1);
+                            //Grid_DisplayLine(m_nCurrntCell);
+                            //CheckFlag(m_nCurrntCell);
+                            //lbMotion_Message.Text = "CellEnter=" + Ojw.CConvert.IntToStr(dgGrid.CurrentCell.RowIndex);
+                            if (m_anIDs != null)
+                            {
+                                if ((m_nCurrntColumn > 0) && (m_nCurrntColumn <= m_C3d.m_CHeader.nMotorCnt)) SelectMotor(m_anIDs[m_nCurrntColumn - 1]);
+                            }
+                            else
+                            {
+                                if ((m_nCurrntColumn > 0) && (m_nCurrntColumn <= m_C3d.m_CHeader.nMotorCnt)) SelectMotor(m_nCurrntColumn - 1);
+                            }
+                        }
                     }
                 }
             }
@@ -2073,7 +2133,8 @@ namespace OpenJigWare
             {
                 Ojw.CMessage.Write("SelectMotor = {0}", nAxis);
                 //CDef.g_C3d.SetMousePickEnable(false); // 클릭하는 모터의 색이 변하지 않게 한다.
-                m_C3d.SelectMotor(nAxis);                                
+                if (m_anIDs != null) m_C3d.SelectMotor(m_anIDs[nAxis]);
+                else m_C3d.SelectMotor(nAxis);                                
                 Ojw.CMessage.Write("SelectMotor = {0}", nAxis);                
             }
             public void SetChangeCurrentLine(int nLine)
@@ -2109,7 +2170,9 @@ namespace OpenJigWare
             public void Set(int nLine, int nNum, float data)
             {
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[nNum + 1].Value = data;
+                if ((m_anIDs != null) && (nNum >= 0) && (nNum < m_anIDs.Length))
+                    dgAngle.Rows[nLine].Cells[m_anIDs[nNum + 1]].Value = data;
+                else dgAngle.Rows[nLine].Cells[nNum + 1].Value = data;
             }
             public float Get(int nNum) { return Get(m_nCurrntCell, nNum); }
             public float Get(int nLine, int nNum)
@@ -2117,6 +2180,8 @@ namespace OpenJigWare
                 try
                 {
                     if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return 0;// false;
+                    if ((m_anIDs != null) && (nNum >= 0) && (nNum < m_anIDs.Length))
+                        return Convert.ToSingle(dgAngle.Rows[nLine].Cells[m_anIDs[nNum + 1]].Value);
                     return Convert.ToSingle(dgAngle.Rows[nLine].Cells[nNum + 1].Value);//.ToString();
                 }
                 catch// (System.Exception e)
@@ -2610,13 +2675,61 @@ namespace OpenJigWare
                     }
                 }
             }
-
+            public bool CheckMotorEn(int nMotorID)
+            {
+                return ((m_C3d.m_CHeader.pSMotorInfo[nMotorID].nMotor_Enable == 0) || (m_C3d.m_CHeader.pSMotorInfo[nMotorID].nMotor_Enable == 1)) ? true : false;
+            }
+            public int MotorID_2_GridIndex(int nMotorID)
+            {
+                //if (m_nGridMode == 1)
+                //{
+                //    return m_C3d.m_CHeader.pSMotorInfo[nMotorID].nMotionEditor_Index -1;
+                //}
+                return nMotorID;
+            }
+            public int GridIndex_2_MotorID(int nGridIndex)
+            {
+                //if (m_nGridMode == 1)
+                //{
+                //    for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++)
+                //    {
+                //        int nMotorID = m_C3d.m_CHeader.anMotorIDs[i];
+                //        if (CheckMotorEn(nMotorID) == true)
+                //        {
+                //            if (nGridIndex + 1 == m_C3d.m_CHeader.pSMotorInfo[nMotorID].nMotionEditor_Index)
+                //                return nMotorID;
+                //        }
+                //    }
+                //}
+                return nGridIndex;
+            }
             public void SetData(int nLine, int nNum, object value)
             {
+#if false
                 if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
-                dgAngle.Rows[nLine].Cells[nNum + 1].Value = value;
+                nNum = MotorID_2_GridIndex
+                if ((m_anIDs != null) && (nNum >= 0) && (nNum < m_anIDs.Length))
+                    dgAngle.Rows[nLine].Cells[m_anIDs[nNum + 1]].Value = value;
+                else dgAngle.Rows[nLine].Cells[nNum + 1].Value = value;
+#else
+                if ((nLine < 0) || (dgAngle.RowCount <= nLine)) return;
+                if ((m_anIDs != null) && (nNum >= 0) && (nNum < m_anIDs.Length))
+                    dgAngle.Rows[nLine].Cells[m_anIDs[nNum + 1]].Value = value;
+                else dgAngle.Rows[nLine].Cells[nNum + 1].Value = value;
+#endif
             }
-            public object GetData(int nLine, int nNum) { return dgAngle.Rows[nLine].Cells[nNum + 1].Value; }
+            public object GetData(int nLine, int nNum) 
+            {
+#if true
+                //if (m_anIDs != null) && (nNum >= 0) && (nNum < m_anIDs.Length))
+                    //return dgAngle.Rows[nLine].Cells[m_anIDs[nNum + 1]].Value;
+                return dgAngle.Rows[nLine].Cells[nNum + 1].Value;
+#else
+                if ((m_anIDs != null) && (nNum >= 0) && (nNum < m_anIDs.Length))
+                    return dgAngle.Rows[nLine].Cells[m_anIDs[nNum + 1]].Value;
+                return dgAngle.Rows[nLine].Cells[nNum + 1].Value;
+#endif
+            }
 
             #endregion Control Data
             //private int m_nCurrentLine = -1;
@@ -3015,7 +3128,7 @@ namespace OpenJigWare
             public int GetInverseKinematicsNumber(int nLine, int nColumn)
             {
                 //// 수식 번호 알아내기
-                int nMotID = nColumn - 1;// Grid_GetAxisNum_byIndex(j);
+                int nMotID = (m_anIDs != null) ? m_anIDs[nColumn - 1] : nColumn - 1;// Grid_GetAxisNum_byIndex(j);
                 int nNum = -1;
                 for (int ii = 0; ii < 256; ii++) // 256개중의 수식에서 찾아낸다.
                 {
@@ -3161,6 +3274,36 @@ namespace OpenJigWare
                     int nMotNum = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
                     float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
                     OjwC3d.m_CGridMotionEditor.SetData(nLine, nMotNum, fValue);
+                }
+            }
+            public static void Grid_Xyz2Angle(CGridView CGrid, Ojw.C3d OjwC3d, int nLine, int nInverseKinematicsNumber, float fX, float fY, float fZ)
+            {
+                float[] afMot = new float[OjwC3d.m_CHeader.nMotorCnt];//Grid_GetMot(nLine);
+                for (int i = 0; i < OjwC3d.m_CHeader.nMotorCnt; i++) afMot[i] = CConvert.StrToFloat(CGrid.GetData(nLine, i).ToString());
+                // 현재 자세를 가져옴
+                float fPos_X, fPos_Y, fPos_Z;
+                Ojw.CKinematics.CForward.CalcKinematics(OjwC3d.m_CHeader.pDhParamAll[nInverseKinematicsNumber], afMot, out fPos_X, out fPos_Y, out fPos_Z);
+
+                float fAngle_X, fAngle_Y, fAngle_Z;
+                OjwC3d.GetAngle_Display(out fAngle_Y, out fAngle_X, out fAngle_Z);
+
+                fPos_X = fX;
+                fPos_Y = fY;
+                fPos_Z = fZ;
+
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                Ojw.CKinematics.CInverse.SetValue_X(fPos_X);
+                Ojw.CKinematics.CInverse.SetValue_Y(fPos_Y);
+                Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
+                Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
+
+                Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
+                int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    int nMotNum = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].pnMotor_Number[i];
+                    float fValue = (float)Ojw.CKinematics.CInverse.GetValue_Motor(nMotNum);
+                    CGrid.SetData(nLine, nMotNum, fValue);
                 }
             }
             public void Grid_Xyz2Angle_X(int nLine, int nInverseKinematicsNumber, float fVal)
@@ -3338,7 +3481,7 @@ namespace OpenJigWare
                 int nRet = -1;
                 //lbMot->Text = "";
                 // Flip 가능한 그룹 알아내기			
-                if (nMotID >= 0)
+                if ((nMotID >= 0) && (nMotID < m_aSGridTable.Length))
                 {
                     return m_aSGridTable[nMotID].nMirror;
                     //return m_C3d.m_CHeader.pSMotorInfo[nMotID].nAxis_Mirror;
@@ -3355,6 +3498,7 @@ namespace OpenJigWare
             private ToolTip m_tp = new ToolTip();
             private void SetToolTip(int nLine, int nColumn)//int nInverseKinematicsNum)
             {
+                if (m_C3d == null) return;
                 if ((nColumn <= 0) || ((nColumn - 1) >= m_C3d.m_CHeader.nMotorCnt)) return; 
                 int nInverseKinematicsNum = GetInverseKinematicsNumber(nLine, nColumn);
                 if (nInverseKinematicsNum < 0) return;
@@ -4330,7 +4474,7 @@ namespace OpenJigWare
                     (e.RowIndex + 1).ToString() + ".",
                     m_gvGrid.RowHeadersDefaultCellStyle.Font,
                     rect,
-                    Color.Red, //m_gvGrid.RowHeadersDefaultCellStyle.ForeColor,
+                    dgAngle.RowHeadersDefaultCellStyle.ForeColor,//Color.Red, //m_gvGrid.RowHeadersDefaultCellStyle.ForeColor,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
 
                 //if ((m_gvGrid != null) && (Grid_GetCaption(e.RowIndex) != ""))
@@ -5077,7 +5221,7 @@ namespace OpenJigWare
 #endif
         #endregion Grid  
 
-        #region PropertyGrid
+#region PropertyGrid
         public class CProperty
         {
             private PropertyGrid m_propGrid = null;//new PropertyGrid();
@@ -5165,7 +5309,7 @@ namespace OpenJigWare
 
         }        
         #endregion PropertyGrid
-        #region DynamicPropertyGrid
+#region DynamicPropertyGrid
         public class CDynamicProperty
         {
             private PropertyGrid m_propGrid = null;//new PropertyGrid();
@@ -5265,7 +5409,7 @@ namespace OpenJigWare
                 }
 
 
-                #region "TypeDescriptor Implementation"
+#region "TypeDescriptor Implementation"
                 /// <summary>
                 /// Get Class Name
                 /// </summary>
@@ -5440,7 +5584,7 @@ namespace OpenJigWare
                     m_Property = myProperty;
                 }
 
-                #region PropertyDescriptor specific
+#region PropertyDescriptor specific
                 public override bool CanResetValue(object component)
                 {
                     return false;
@@ -5503,10 +5647,10 @@ namespace OpenJigWare
                 #endregion
             }
         }
-        #endregion DynamicPropertyGrid
+#endregion DynamicPropertyGrid
 
 
-        #region GridTable
+#region GridTable
         // 0 - (+), 1 - (-), 2 - mul, 3 - div, 4 - increment, 
         // 5 - decrement, 6 - Change, 7 - Flip Value, 8 - Interpolation, 9 - 'S'Curve, 
         // 10 - Flip Position, 11 - Evd(+), 12 - Evd(-), 13 - EvdSet, 14 - Angle(+), 
@@ -5602,7 +5746,7 @@ namespace OpenJigWare
         }
         public class CGridView
         {
-            #region Var
+#region Var
             private int m_nTableCount = 0;
             private int m_nKey = 0;  // 키보드의 이벤트 키값을 기억할 변수
             public bool m_bKey_Ctrl = false;
@@ -5841,7 +5985,7 @@ namespace OpenJigWare
                     (e.RowIndex + 1).ToString() + ":",
                     dgAngle.RowHeadersDefaultCellStyle.Font,
                     rect,
-                    Color.Red, //dgAngle.RowHeadersDefaultCellStyle.ForeColor,
+                    dgAngle.RowHeadersDefaultCellStyle.ForeColor,//Color.Red, //dgAngle.RowHeadersDefaultCellStyle.ForeColor,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
 
                 if ((dgAngle != null) && (GetCaption(e.RowIndex) != ""))
@@ -6489,7 +6633,7 @@ namespace OpenJigWare
                     return 0.0f;
                 }
             }
-            #endregion Trans / Rot(Offset)
+#endregion Trans / Rot(Offset)
 
             public void SetColorGrid(int nIndex, int nCount)
             {

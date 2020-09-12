@@ -3214,7 +3214,7 @@ namespace OpenJigWare
                     pbyteBuffer[nDefaultSize + i++] = (byte)(nTaskNo & 0xff);
 
                     ////////
-                    //pbyteBuffer[nDefaultSize + i++] = (byte)COjwConvert.BoolToInt(bDebugingMode);// 이후의 레지스터 사이즈
+                    //pbyteBuffer[nDefaultSize + i++] = (byte)Ojw.CConvert.BoolToInt(bDebugingMode);// 이후의 레지스터 사이즈
                     ////////
                     /////////////////////////////////////////////////////
 
@@ -3255,7 +3255,7 @@ namespace OpenJigWare
                     pbyteBuffer[nDefaultSize + i++] = (byte)(nMotionAddress & 0xff);
 
                     ////////
-                    pbyteBuffer[nDefaultSize + i++] = (byte)((bReady == true) ? 1 : 0);//COjwConvert.BoolToInt(bReady);// 이후의 레지스터 사이즈
+                    pbyteBuffer[nDefaultSize + i++] = (byte)((bReady == true) ? 1 : 0);//Ojw.CConvert.BoolToInt(bReady);// 이후의 레지스터 사이즈
                     ////////
                     /////////////////////////////////////////////////////
 

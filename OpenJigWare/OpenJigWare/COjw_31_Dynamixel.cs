@@ -20,10 +20,10 @@ namespace OpenJigWare
             public const int _MODEL_NONE = 0;
             public const int _MODEL_XL_320 = 1; // 300도 1024 : 512 center : 0.111 RefRpm, 1023 Limit Rpm
             public const int _MODEL_XL_430 = 2; // 360도 4096 : 2048 center : 0.229 RefRpm, 480 Limit Rpm
-            public const int _MODEL_AX_12 = 3; //
-            public const int _MODEL_AX_18 = 4; //
+            public const int _MODEL_AX_12 = 13; //
+            public const int _MODEL_AX_18 = 14; //
 
-            public readonly int _SIZE_MEMORY = 200;//1000;
+            public readonly int _SIZE_MEMORY = 500;//1000;
             public readonly int _SIZE_MOTOR_MAX = 256;//254 + 1; // Bloadcasting 도 염두
 
             public readonly int _ID_BROADCASTING = 254;
@@ -43,10 +43,11 @@ namespace OpenJigWare
             #endregion Define
 
             #region Var
+            public SMotionTable_t m_SMotion_Pos = new SMotionTable_t();
             private bool[] m_abReceivedPos;// = new bool[_SIZE_MOTOR_MAX];
 
             private bool m_bProgEnd = false;
-            private Ojw.CSerial m_CSerial = new CSerial();
+            public Ojw.CSerial m_CSerial = new CSerial();
             private byte[,] m_abyMem;
 
             private int[] m_anPos;
@@ -85,6 +86,7 @@ namespace OpenJigWare
             private SMot_t[] m_aSMot_Prev;//[_SIZE_MOTOR_MAX];
             private SMot_t[] m_aSMot;//[_SIZE_MOTOR_MAX];
             private int[] m_anEn;//[_SIZE_MOTOR_MAX];
+            private int m_nTorq = -1; // 
             private bool m_bStop;
             private bool m_bEms;
             private bool m_bMotionEnd;
@@ -114,6 +116,7 @@ namespace OpenJigWare
                 m_nSeq_Motor_Back = 0;
                 m_nDelay = 0;
 
+                m_nTorq = -1;
 
                 m_bIgnoredLimit = false;
 
@@ -148,7 +151,21 @@ namespace OpenJigWare
                 m_nSeq_Receive = 0;
                 m_nSeq_Receive_Back = 0;
 
-                for (int i = 0; i < _SIZE_MOTOR_MAX; i++) SetParam(i, _MODEL_XL_430);
+
+                // previous 추정을 위해 추가(SetParam 은 다른 용도로... -> 기존에 있던 코드)
+                m_SMotion_Pos.abEn = new bool[_SIZE_MOTOR_MAX];
+                m_SMotion_Pos.abType = new bool[_SIZE_MOTOR_MAX];
+                m_SMotion_Pos.anLed = new int[_SIZE_MOTOR_MAX];
+                m_SMotion_Pos.anMot = new int[_SIZE_MOTOR_MAX];
+                for (int i = 0; i < _SIZE_MOTOR_MAX; i++)
+                {
+                    SetParam(i, _MODEL_XL_430);
+                    m_SMotion_Pos.abEn[i] = false;
+                    m_SMotion_Pos.abType[i] = false;
+                    m_SMotion_Pos.anLed[i] = 0;
+                    m_SMotion_Pos.anMot[i] = CalcAngle2Evd(i, CalcLimit_Angle(i, 0.0f));
+                }
+
                 m_bProgEnd = false;
             }
             public void Clone(out CDynamixel CMotor)
@@ -203,6 +220,21 @@ namespace OpenJigWare
                 m_aSParam_Axis[nAxis].fMechMove = m_aSMot[nAxis].fMechMove = m_aSMot_Prev[nAxis].fMechMove = fMechMove;
                 m_aSParam_Axis[nAxis].fDegree = m_aSMot[nAxis].fDegree = m_aSMot_Prev[nAxis].fDegree = fDegree;
             }
+            public int GetParam_RealID(int nAxis) { return m_aSParam_Axis[nAxis].nID; }
+            public int GetParam_Axis_From_RealID(int nRealID) { for (int i = 0; i < 253; i++) if (nRealID == m_aSParam_Axis[i].nID) return i; return -1; }
+            public void GetParam(int nAxis, out int nRealID, out int nDir, out float fLimitUp, out float fLimitDn, out float fCenterPos, out float fOffsetAngle_Display, out float fMechMove, out float fDegree)
+            {
+                //if ((nAxis >= _CNT_MAX_MOTOR) || (nID >= _MOTOR_MAX)) return false;
+
+                nRealID = m_aSParam_Axis[nAxis].nID;
+                nDir = m_aSParam_Axis[nAxis].nDir;
+                fLimitUp = m_aSParam_Axis[nAxis].fLimitUp;
+                fLimitDn = m_aSParam_Axis[nAxis].fLimitDn;
+                fCenterPos = m_aSParam_Axis[nAxis].fCenterPos;
+                fOffsetAngle_Display = m_aSParam_Axis[nAxis].fOffsetAngle_Display;
+                fMechMove = m_aSParam_Axis[nAxis].fMechMove;
+                fDegree = m_aSParam_Axis[nAxis].fDegree;
+            }
             private bool m_bMultiTurn = false;
             public void SetParam(int nAxis, SParam_Axis_t SAxis)
             {
@@ -231,7 +263,21 @@ namespace OpenJigWare
             public void SetParam(int nModel) { for (int i = 0; i < _SIZE_MOTOR_MAX; i++) SetParam(i, nModel); }
             public void SetParam(int nAxis, int nModel)
             {
-                if (nAxis >= _ID_BROADCASTING) nAxis = _ID_BROADCASTING;
+                if (nAxis >= _ID_BROADCASTING)
+                {
+                    nAxis = _ID_BROADCASTING;
+                    for (int i = 0; i < _SIZE_MOTOR_MAX; i++)
+                    {
+                        m_aSMot[i].nControlMode = 0; // None
+                        m_aSMot[i].nDriveMode = 0; // Rpm Based
+                    }
+                    m_nTorq = -1;
+                }
+                else
+                {
+                    m_aSMot[nAxis].nControlMode = 0; // None
+                    m_nTorq = -1;
+                }
                 //Ojw.CMessage.Write("nAxis = {0}, nModel = {1}", nAxis, nModel);
                 //if (nModel == _MODEL_XL_430) m_bMultiTurn = true;
                 //else if (m_bMultiTurn == true) m_bMultiTurn = false;
@@ -239,7 +285,7 @@ namespace OpenJigWare
                 {
                     case _MODEL_XL_430:
                         SetParam_RealID(nAxis, nAxis);
-                        SetParam_Dir(nAxis, 0);
+                        //SetParam_Dir(nAxis, 0);
                         SetParam_LimitUp(nAxis, 0.0f);
                         SetParam_LimitDown(nAxis, 0.0f);
                         SetParam_CenterEvdValue(nAxis, 2048.0f);
@@ -264,7 +310,7 @@ namespace OpenJigWare
                         break;
                     case _MODEL_XL_320: // 이 모델은 속도제어의 경우 10 번째 비트가 음의 Direction 을 결정
                         SetParam_RealID(nAxis, nAxis);
-                        SetParam_Dir(nAxis, 0);
+                        //SetParam_Dir(nAxis, 0);
                         SetParam_LimitUp(nAxis, 0.0f);
                         SetParam_LimitDown(nAxis, 0.0f);
                         SetParam_CenterEvdValue(nAxis, 512.0f);
@@ -289,7 +335,7 @@ namespace OpenJigWare
                     case _MODEL_AX_18: 
                     case _MODEL_AX_12: // Protocol 1 : 이 모델은 속도제어의 경우 10 번째 비트가 음의 Direction 을 결정
                         SetParam_RealID(nAxis, nAxis);
-                        SetParam_Dir(nAxis, 0);
+                        //SetParam_Dir(nAxis, 0);
                         SetParam_LimitUp(nAxis, 0.0f);
                         SetParam_LimitDown(nAxis, 0.0f);
                         SetParam_CenterEvdValue(nAxis, 512.0f);
@@ -330,7 +376,7 @@ namespace OpenJigWare
                 m_nProtocolVersion = nProtocol_Version; // 일단은 어떤 모터든 변경하면 그게 적용되도록 한다. 나중에는 모터 개별적으로 대응되도록 할 것
                 m_aSParam_Axis[nAxis].nProtocol_Version = m_aSMot[nAxis].nProtocol_Version = nProtocol_Version; 
             }
-            public void SetParam_HwMotorName(int nAxis, int nHwMotorName) { m_aSParam_Axis[nAxis].nHwMotorName = m_aSMot[nAxis].nHwMotorName = nHwMotorName; }
+            public void SetParam_HwMotorName(int nAxis, int nHwMotor_Index) { m_aSParam_Axis[nAxis].nHwMotor_Index = m_aSMot[nAxis].nHwMotor_Index = nHwMotor_Index; }
             // 430 -> 146 (0번지에 모델번호 1060, XM430_W210 : 1030, XM430_W350 : 1020)
             // 320 -> 52 (0번지에 모델번호 350)
             public void SetParam_ModelNum(int nAxis, int nModel) { m_aSParam_Axis[nAxis].nModel = m_aSMot[nAxis].nModel = nModel; }
@@ -727,6 +773,13 @@ namespace OpenJigWare
                                     m_nPack_Length |= ((buf[i] << 8) & 0xff00);
                                     m_nIndex++;
                                 }
+
+                                if (m_nPack_Length > _SIZE_MEMORY)
+                                {
+                                    m_nIndex = 0;
+                                    m_nSeq_Receive++; // 에러라고 해주어야 하지만 일단 그냥 가자.
+                                }
+                                // 메모리가 설마 256 바이트를 넘지는 않겠지?
                             }
                             break;
                         case 3: // Command : Instruction
@@ -1204,7 +1257,7 @@ namespace OpenJigWare
                     //MakeCheckSum(nDefaultSize, pbyteBuffer);
                 }
 
-                Clear_Flag();
+                //Clear_Flag();
 
                 // Initialize variable
                 //m_bStop = false;
@@ -1218,6 +1271,9 @@ namespace OpenJigWare
             // Motor Control - Torq On / Off
             public void SetTorque(int nAxis, bool bOn) 	//torque on / Off
             {
+                if (nAxis == _ID_BROADCASTING) { m_nTorq = (bOn == true) ? 1 : 0; if (bOn == false) { for (int i = 0; i < m_aSMot.Length; i++) m_aSMot[i].bTorq = false; } }
+                else m_aSMot[nAxis].bTorq = bOn;
+
                 //if (m_aSParam_Axis[nAxis].nProtocol_Version == 1)
                 //{
                 //    // ax12a
@@ -1273,11 +1329,93 @@ namespace OpenJigWare
                 ////Push_Id(nAxis);	
             }
             public int Get(int nAxis) { return (int)Math.Round(m_aSMot[nAxis].fPos); }
+            public void Set_Angle(int nAxis, float fAngle)
+            {
+                if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) return;
+                int nControlMode = 3;
+                if ((m_aSMot[nAxis].nControlMode != nControlMode) || (m_nTorq < 0))
+                {
+                    if (m_nTorq < 0) m_nTorq = 0;
+                    bool bTorq = ((m_nTorq == 1) || (m_aSMot_Prev[nAxis].bTorq == true)) ? true : false;
+                    SetTorque(nAxis, false);
+                    // Protocol 1 계열 모터, XL-320 모터인 경우만
+                    if (
+                        (m_aSParam_Axis[nAxis].nProtocol_Version == 1) ||
+                        (m_aSParam_Axis[nAxis].nModel == 350) // XL_320 checking
+                        )
+                    {
+                        byte[] pbyteData = new byte[4];
+                        int i = 0;
+                        pbyteData[i++] = 0;
+                        pbyteData[i++] = 0;
+                        pbyteData[i++] = 0xff;
+                        pbyteData[i++] = 0x03;
+                        Write(nAxis, 0x06, pbyteData);
+                        pbyteData = null;
+                    }
+                    else if (m_aSParam_Axis[nAxis].nProtocol_Version == 2)
+                    {
+                        byte[] pbyteData = new byte[1];
+                        pbyteData[0] = (byte)nControlMode; // 3 : posture, 4 : multi-turn
+                        Write(nAxis, 0x0b, pbyteData);
+                        pbyteData = null;
+                    }
+                    if (bTorq == true) SetTorque(nAxis, true);
+                }
 
+
+
+
+                //if (fRpm <= 0) return;
+
+                Push_Id(nAxis);
+                Read_Motor_Push(nAxis);
+                m_aSMot[nAxis].bEn = true;
+                Set_Flag_Mode(nAxis, 0);
+                m_aSMot[nAxis].fPos = CalcLimit_Evd(nAxis, CalcAngle2Evd(nAxis, fAngle));
+                m_aSMot[nAxis].fRpm_Raw = -1f;// CalcRpm2Raw(nAxis, fRpm);
+                m_aSMot[nAxis].nControlMode = 3; // Position
+                //Set_Flag_NoAction(nAxis, false);
+                ////Push_Id(nAxis);	
+
+            }
             public void Set_Angle(int nAxis, float fAngle, float fRpm)
             {
                 if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) return;
-                
+                int nControlMode = 3;
+                if ((m_aSMot[nAxis].nControlMode != nControlMode) || (m_nTorq < 0))
+                {
+                    if (m_nTorq < 0) m_nTorq = 0;
+                    bool bTorq = ((m_nTorq == 1) || (m_aSMot_Prev[nAxis].bTorq == true)) ? true : false;
+                    SetTorque(nAxis, false);
+                    // Protocol 1 계열 모터, XL-320 모터인 경우만
+                    if (
+                        (m_aSParam_Axis[nAxis].nProtocol_Version == 1) ||
+                        (m_aSParam_Axis[nAxis].nModel == 350) // XL_320 checking
+                        )
+                    {
+                        byte[] pbyteData = new byte[4];
+                        int i = 0;
+                        pbyteData[i++] = 0;
+                        pbyteData[i++] = 0;
+                        pbyteData[i++] = 0xff;
+                        pbyteData[i++] = 0x03;
+                        Write(nAxis, 0x06, pbyteData);
+                        pbyteData = null;
+                    }
+                    else if (m_aSParam_Axis[nAxis].nProtocol_Version == 2)
+                    {
+                        byte[] pbyteData = new byte[1];
+                        pbyteData[0] = (byte)nControlMode; // 3 : posture, 4 : multi-turn
+                        Write(nAxis, 0x0b, pbyteData);
+                        pbyteData = null;
+                    }
+                    if (bTorq == true) SetTorque(nAxis, true);
+                }
+
+
+
+
                 //if (fRpm <= 0) return;
 
                 Push_Id(nAxis);
@@ -1286,8 +1424,10 @@ namespace OpenJigWare
                 Set_Flag_Mode(nAxis, 0);
                 m_aSMot[nAxis].fPos = CalcLimit_Evd(nAxis, CalcAngle2Evd(nAxis, fAngle));
                 m_aSMot[nAxis].fRpm_Raw = CalcRpm2Raw(nAxis, fRpm);
+                m_aSMot[nAxis].nControlMode = 3; // Position
                 //Set_Flag_NoAction(nAxis, false);
                 ////Push_Id(nAxis);	
+                
             }
             public float Get_Angle(int nAxis) { return CalcEvd2Angle(nAxis, (int)m_aSMot[nAxis].fPos); }
             /////////////////////////////////
@@ -1351,12 +1491,46 @@ namespace OpenJigWare
             public void Set_Turn(int nAxis, int nEvd)
             {
                 if ((m_bStop == true) || (m_bEms == true) || (m_bProgEnd == true)) return;
+                int nControlMode = 1;
+                if ((m_aSMot[nAxis].nControlMode != nControlMode) || (m_nTorq < 0))
+                {
+                    if (m_nTorq < 0) m_nTorq = 0;
+                //if (m_aSMot[nAxis].nControlMode != 1)
+                //{
+                    bool bTorq = ((m_nTorq == 1) || (m_aSMot_Prev[nAxis].bTorq == true)) ? true : false;
+                    SetTorque(nAxis, false);
+                    // Protocol 1 계열 모터, XL-320 모터인 경우만
+                    if (
+                        (m_aSParam_Axis[nAxis].nProtocol_Version == 1) ||
+                        (m_aSParam_Axis[nAxis].nModel == 350) // XL_320 checking
+                        )
+                    {
+                        byte[] pbyteData = Ojw.CConvert.IntToBytes(0);
+                        Write(nAxis, 0x06, pbyteData);
+                        pbyteData = null;
+                    }
+                    else if (m_aSParam_Axis[nAxis].nProtocol_Version == 2)
+                    {
+                        byte[] pbyteData = new byte[1];
+                        pbyteData[0] = 1; // 3 : posture, 4 : multi-turn
+                        Write(nAxis, 0x0b, pbyteData);
+                        pbyteData = null;
+                    }
+                    if (bTorq == true) SetTorque(nAxis, true);
+                }
+
                 Push_Id(nAxis);
                 Read_Motor_Push(nAxis);
                 m_aSMot[nAxis].bEn = true;
                 Set_Flag_Mode(nAxis, 1);
+                if ((m_aSMot[nAxis].nProtocol_Version != 2) || (m_aSMot[nAxis].nModel == 350))
+                {
+                    if (nEvd < 0) nEvd = (((nEvd * -1) & 0x2ff) | 0x400);
+                }
                 m_aSMot[nAxis].fPos = CalcLimit_Evd(nAxis, nEvd);
                 m_aSMot[nAxis].fRpm_Raw = m_aSMot[nAxis].fPos;
+                m_aSMot[nAxis].nControlMode = 1; // Position
+                
                 //Set_Flag_NoAction(nAxis, false);
                 //Push_Id(nAxis);	
             }
@@ -1608,6 +1782,10 @@ namespace OpenJigWare
                             }
                             else
                             {
+                                // 바퀴모드 설정
+                                // 6,7,8,9 (AX12) 를 0 으로
+
+
                                 // 속도
                                 pbyTmp_Short = Ojw.CConvert.ShortToBytes((short)Math.Round(Get_Speed(nAxis)));
                                 Array.Copy(pbyTmp_Short, 0, pbyteBuffer_Spd, nIndex_Spd, pbyTmp_Short.Length);
@@ -1645,6 +1823,7 @@ namespace OpenJigWare
                             else
                             {
                                 // 나중에 10의 보수 처리 할 것
+                                
                                 // 속도
                                 pbyTmp = Ojw.CConvert.IntToBytes((int)Math.Round(Get_Speed(nAxis)));
                                 Array.Copy(pbyTmp, 0, pbyteBuffer_Spd, nIndex_Spd, pbyTmp.Length);
@@ -1901,7 +2080,7 @@ namespace OpenJigWare
             {
                 if (m_nSeq_Receive_Back != m_nSeq_Receive)
                 {
-#if false
+#if true
                     Sync_Seq();
 #endif
                     //m_nSeq_Receive_Back = m_nSeq_Receive;
@@ -1910,14 +2089,19 @@ namespace OpenJigWare
                 }
                 return false;
             }
-            public void Read_Motor()
+            public SIndex_t Read_Motor()
             {
-                if (m_nReadCnt <= 0) return;
+                SIndex_t SIndex = new SIndex_t(-1, -1, -1);
+                if (m_nReadCnt <= 0) return SIndex;
                 m_nRetrieve = 0;
 
+                SIndex.nPrev = m_nReadMotor_Index;
                 m_nReadMotor_Index = (m_nReadMotor_Index + 1) % m_nReadCnt;
+                SIndex.nCurr = m_nReadMotor_Index;
+                SIndex.nNext = (m_nReadMotor_Index + 1) % m_nReadCnt;
 
                 Read_Motor(m_aSRead[m_nReadMotor_Index].nID);
+                return SIndex;
             }
 
             private const int _CNT_RETRIEVE = 5;

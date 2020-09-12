@@ -20,10 +20,10 @@ namespace OpenJigWare
             private bool m_bThread_Server = false;
             public TcpListener m_tcpServer;    // 서버
             public TcpClient m_tcpServer_Client; // 서버에 붙는 클라이언트
-            private Thread m_thServer;          // 스레드
+            //private Thread m_thServer;          // 스레드
             private BinaryWriter m_bwServer_outData;
             private BinaryReader m_bwServer_inData;
-            private String m_strOrgPath = "";
+            //private String m_strOrgPath = "";
             private int m_nServer_Seq = 0;
             private int m_nReceived_ServerCmd = 0;
             private int m_nCntAuth = 0;
@@ -73,7 +73,7 @@ namespace OpenJigWare
             public bool sock_started()
             {
                 if (m_tcpServer == null) return false;
-                return true;// m_tcpServer.Server.Connected;
+                return true;//  m_tcpServer.Server.Connected; // true
             }
             //seq값은 패킷을 하나 받을 때마다 자동으로 1씩 증가. seq 값 읽어오기.
             public int sock_seq() { return m_nServer_Seq; }
@@ -485,8 +485,9 @@ namespace OpenJigWare
                     m_tcpClient.EndConnect(IResult);
                     //MWait.WaitOne(
                 }
-                catch
+                catch(Exception ex)
                 {
+                    Ojw.CMessage.Write_Error(ex.ToString());
                     // 서버에 접속 실패시
                     m_bConnect = false;                    
                     return false;
@@ -779,6 +780,23 @@ namespace OpenJigWare
                     if (!m_bConnect) return false;
 
                     if (m_bConnect) outData.Write(byteData);
+                    if (m_bConnect) outData.Flush();
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            public bool SendPacket(byte[] byteData) { return Send(byteData); }
+            public bool SendPacket(byte[] byteData, int nLength)
+            {
+                try
+                {
+                    byte [] byteTmp = new byte[nLength];
+                    if (!m_bConnect) return false;
+                    Array.Copy(byteData, 0, byteTmp, 0, nLength);
+                    if (m_bConnect) outData.Write(byteTmp);
                     if (m_bConnect) outData.Flush();
                     return true;
                 }

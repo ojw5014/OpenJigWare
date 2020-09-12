@@ -71,7 +71,7 @@ namespace OpenJigWare
 
             [DllImport("user32.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
-            private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+            public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
 
 #if false            
             public static void RunVirtualKeyboard(int nLeft, int nTop, int nRight, int nBottom)
@@ -84,6 +84,63 @@ namespace OpenJigWare
             public static extern bool Wow64DisableWow64FsRedirection(ref IntPtr ptr);
             [DllImport("kernel32.dll", SetLastError = true)]
             public static extern bool Wow64RevertWow64FsRedirection(IntPtr ptr);
+
+            #region ToolTip
+            public static ToolTip m_tpToolTip = new ToolTip();
+            public static void SetToolTip_Prop(Control ctrl, ToolTipIcon tpIcon, bool bBalloon, bool bShowAlways)
+            {
+                m_tpToolTip = new ToolTip();
+                //m_tpToolTip.ToolTipTitle = strTitle;
+                if (tpIcon != null) m_tpToolTip.ToolTipIcon = ToolTipIcon.Info;
+                m_tpToolTip.IsBalloon = false;// bBalloon;
+                //tp.De
+                //m_tpToolTip.ReshowDelay = 1000;
+                m_tpToolTip.ShowAlways = false;// bShowAlways;
+            }
+            public static void SetToolTip(Control ctrl, string strToolTip)
+            {
+                //ToolTip tp = new ToolTip();
+                //tp.ToolTipTitle = strTitle;
+                //tp.ToolTipIcon = ToolTipIcon.Info;
+                //tp.IsBalloon = false;// bBalloon;
+                //tp.De
+                //tp.ReshowDelay = 1000;
+                //tp.ShowAlways = false;// bShowAlways;
+                //m_tpToolTip.Show(strToolTip, ctrl);
+                m_tpToolTip.SetToolTip(ctrl, strToolTip);
+            }
+            public static void ShowToolTip(Control ctrl)
+            {
+                ToolTip tp = m_tpToolTip;
+                tp.ShowAlways = false;
+                tp.AutomaticDelay = 100;
+                m_tpToolTip.Show(m_tpToolTip.GetToolTip(ctrl), ctrl);
+            }
+            public static void ShowToolTip(Control ctrl, string strToolTip)
+            {
+                //ToolTip tp = new ToolTip();
+                //tp.ToolTipTitle = strTitle;
+                //tp.ToolTipIcon = ToolTipIcon.Info;
+                //tp.IsBalloon = false;// bBalloon;
+                //tp.De
+                //tp.ReshowDelay = 1000;
+                //tp.ShowAlways = false;// bShowAlways;
+                m_tpToolTip.Show(strToolTip, ctrl);
+                //m_tpToolTip.SetToolTip(ctrl, strToolTip);
+            }
+            public static void SetToolTip(Control ctrl, string strTitle, string strTooltip)//, bool bBalloon, bool bShowAlways)
+            {
+                //ToolTip tp = new ToolTip();
+                m_tpToolTip.ToolTipTitle = strTitle;
+                //tp.ToolTipIcon = ToolTipIcon.Info;
+                //tp.IsBalloon = false;// bBalloon;
+                //tp.De
+                //tp.ReshowDelay = 1000;
+                //tp.ShowAlways = false;// bShowAlways;
+
+                m_tpToolTip.SetToolTip(ctrl, strTooltip);
+            }
+            #endregion ToolTip
 
             public static void ScreenKeyboard()
             {
@@ -247,7 +304,10 @@ namespace OpenJigWare
             //string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
             //string programFilesX86 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%");
             public static string GetPath_ProgramFiles() { return Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles).TrimEnd('\\'); }
+#if _USING_DOTNET_3_5
+#else
             public static string GetPath_ProgramFilesX86() { return Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86).TrimEnd('\\'); }
+#endif
             public static string GetPath_Windows() { return Environment.GetEnvironmentVariable("windir"); }
             public static bool Is64Bits_byApi()
             {                
@@ -567,10 +627,13 @@ namespace OpenJigWare
                     //            where process.ProcessName == GetProcess("osk")
                     //            select process;
                     //var keyboardProcess = query.FirstOrDefault();
+#if _USING_DOTNET_3_5
+#else
                     if (System.Environment.Is64BitOperatingSystem)
                     {
                         bRedirect = Wow64DisableWow64FsRedirection(ref ptr);
                     }
+#endif
 #else                    
                 try
                 {
@@ -650,7 +713,8 @@ namespace OpenJigWare
 
                     }
 
-#if true                    
+#if _USING_DOTNET_3_5
+#else
                     if (bRedirect == true)
                     {
                         Wow64RevertWow64FsRedirection(ptr);
@@ -660,7 +724,8 @@ namespace OpenJigWare
                 }
                 catch (Exception ex)
                 {
-#if true
+#if _USING_DOTNET_3_5
+#else
                     if (bRedirect == true)
                     {
                         Wow64RevertWow64FsRedirection(ptr);
@@ -761,19 +826,22 @@ namespace OpenJigWare
 
             //    return ps;
             //}
+            public static void ShutDown() { ShutDown(0); }
             public static void ShutDown(int nTime)
             {
                 if (nTime > 0)
                 {
                     //m_bShutdown = true;
-                    String strTmp = Ojw.CConvert.FillString(nTime.ToString(), "0", 3, false);
+                    String strTmp = nTime.ToString();// Ojw.CConvert.FillString(nTime.ToString(), "0", 3, false);
                     String strTmpCmd = "/t " + strTmp;//
-                    System.Diagnostics.Process.Start("shutdown", " /s /f " + strTmpCmd + " /c " + (char)34 + "YOUR COMPUTER WILL BE TURNED OFF IN " + strTmp + " seconds" + (char)34);
+                    //   '/P' - 경고 없이 종료
+                    //System.Diagnostics.Process.Start("shutdown", " /s /f " + strTmpCmd + " /c " + (char)34 + "YOUR COMPUTER WILL BE TURNED OFF IN " + strTmp + " seconds" + (char)34);
+                    System.Diagnostics.Process.Start("shutdown", " /s /f " + strTmpCmd);
                     //System.Diagnostics.Process.Start("TSSHUTDN", "We will shutdown this computer now.");
                 }
                 else
                 {
-                    System.Diagnostics.Process.Start("shutdown", " /f /P");
+                    System.Diagnostics.Process.Start("shutdown", " /f /p");
                 }
             }
             // 출처 : http://stackoverflow.com/questions/7613576/how-to-open-text-in-notepad-from-net

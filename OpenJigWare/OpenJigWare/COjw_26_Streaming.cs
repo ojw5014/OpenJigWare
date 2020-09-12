@@ -557,7 +557,9 @@ namespace rtaNetworking.Streaming
                 m_bExit = false;
                 
 #if _USING_DOTNET_2_0 || _USING_DOTNET_3_5
-                ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), m_Server);
+                //ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), m_Server);
+                foreach (Socket client in SocketExtensions.IncommingConnectoins(m_Server))
+                    ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), client);
 #else
                 foreach (Socket client in m_Server.IncommingConnectoins())
                     ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), client);
@@ -571,6 +573,11 @@ namespace rtaNetworking.Streaming
 
             this.Stop();
         }
+        //public static IEnumerable<Socket> IncommingConnectoins(this Socket server)
+        //{
+        //    while (true)
+        //        yield return server.Accept();
+        //}
 
         /// <summary>
         /// Each client connection will be served by this thread.

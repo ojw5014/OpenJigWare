@@ -1,5 +1,6 @@
 ﻿//#define _ENABLE_MEDIAPLAYER
 //#define _VIEW_FRMFOLDER
+//#define _CHEKING_AUTO_FOR_DYNAMIXEL
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,6 +14,9 @@ using OpenJigWare;
 using System.Threading;
 using System.IO;
 using System.Runtime.InteropServices;
+
+// For Excel
+using System.Data.OleDb;
 
 //#if _ENABLE_MEDIAPLAYER
 //
@@ -34,6 +38,9 @@ namespace OpenJigWare.Docking
 
 //#endif
         }
+
+        private readonly float _TIME_TO_FRAME_VALUE = 7.8125f;
+        private readonly float _TIME_TO_FRAME_VALUE_FOR_FILE_SAVE = 7.8125f;
 
         #region UserFunction
         public delegate void UserFunction();
@@ -557,6 +564,7 @@ namespace OpenJigWare.Docking
                 //m_strWorkDirectory_Mp3 = Ojw.CFile.GetPath(m_CFile.GetData_String(i++));
                 m_strWorkDirectory_Dmt = m_CFile.GetData_String(i++);
                 m_strWorkDirectory_Mp3 = m_CFile.GetData_String(i++);
+                txtExcel.Text = m_CFile.GetData_String(i++);
 
                 //cmbDynamixel.SelectedIndex = m_CFile.GetData_Int(i++);
 
@@ -632,8 +640,64 @@ namespace OpenJigWare.Docking
 
             m_bLoadedForm = true;
 
+            #region Socket Server
+            m_CServer.sock_start(6300);
+            if (m_CServer.sock_started() == true)
+            {
+                //클라이언트 생성시 스레드를 생성한다.
+                m_thServer = new Thread(new ThreadStart(ThreadServer));
+                m_thServer.Start();
+            }
+            else
+            {
+                Ojw.LogErr("Socket Error-cannot start server");
+            }
+            #endregion Socket Server
+
+
+
             // Folder
             SetTreeDrive();
+        }
+        private Ojw.CServer m_CServer = new Ojw.CServer();
+        private Thread m_thServer;
+        private void ThreadServer()
+        {
+            bool bConnected = false;
+            int nErr = 0;
+            while ((m_CServer.sock_started() == true) && (m_bProgEnd == false) && (nErr < 5))
+            {
+                try
+                {
+                    if (m_CServer.sock_connected() == false)
+                    {
+                        if (bConnected == true)
+                        {
+                            bConnected = false;
+                            Ojw.CMessage.Write("Disconnected -> client");
+                        }
+                        m_CServer.WaitClient(true);
+                    }
+                    else
+                    {
+                        if (bConnected == false)
+                        {
+                            nErr = 0;
+                            bConnected = true;
+                            Ojw.CMessage.Write("Connected -> client");
+                        }
+
+                        Thread.Sleep(10);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Ojw.CMessage.Write_Error(e.ToString());
+                    m_CServer.sock_start(6300);
+                    nErr++;
+                }
+            }
+            Ojw.CMessage.Write("Close - Socket Thread\r\n");
         }
         // 트리뷰에 드라이브 정보 입력
         private void SetTreeDrive()
@@ -716,7 +780,7 @@ namespace OpenJigWare.Docking
                 }
                 //}
             }
-            catch (Exception ex)
+            catch (Exception ex) 
             {
                 FileInfo file = new FileInfo(Application.StartupPath + _STR_FILENAME);
                 if (file.Exists) System.IO.File.Delete(Application.StartupPath + _STR_FILENAME);
@@ -729,7 +793,7 @@ namespace OpenJigWare.Docking
             if ((m_CTmr_AutoBackup.Get() > 30000) && (m_C3d.GetFileName() != null) && (m_bStart == false)) // 5분에 한번 저장 -> 30초로 변경
             {
                 int nVer = _V_10;//((chkFileVersionForSave.Checked == true) ? _V_11 : ((chkFileVersionForSave_1_0.Checked == true) ? _V_10 : _V_12));
-                m_C3d.BinaryFileSave(nVer, Application.StartupPath + Ojw.C3d._STR_BACKUP_FILE, false, false);
+                m_C3d.BinaryFileSave(chkSaveAngle.Checked, nVer, Application.StartupPath + Ojw.C3d._STR_BACKUP_FILE, false, false);
                 
                 // 혹시 모르니 파라미터도 같이 저장하자.
                 SaveParam();
@@ -928,7 +992,8 @@ namespace OpenJigWare.Docking
             
             m_CFile.SetData_String(i++, m_strWorkDirectory_Dmt);
             m_CFile.SetData_String(i++, m_strWorkDirectory_Mp3);
-
+            m_CFile.SetData_String(i++, txtExcel.Text);
+            
             //m_CFile.SetData_Int(i++, cmbDynamixel.SelectedIndex);
 
             m_CFile.Save(Application.StartupPath + _STR_FILENAME);
@@ -944,6 +1009,8 @@ namespace OpenJigWare.Docking
                 e.Cancel = true;
                 return;
             }
+            m_CServer.sock_stop();
+            tmrRun.Enabled = false;
         }
 
         private void btnValueIncrement_Click(object sender, EventArgs e)
@@ -1034,8 +1101,14 @@ namespace OpenJigWare.Docking
         //private Thread m_thRun;
         private void btnRun_Click(object sender, EventArgs e)
         {
+            m_nRunMode = 0;
             //btnRun.Enabled = false;
             Ojw.CTimer.Reset(); // Clear the Stop bit;
+
+            //test
+            //m_C3d.SetSimulation_With_PlayFrame(true);
+
+
 
             // 위치 데이타를 받고 시작한다.(다이나믹셀)
             m_C3d.SetFirstMoving(true);
@@ -1566,6 +1639,8 @@ namespace OpenJigWare.Docking
                         (m_bStart == false)
                         )
                         return (temp_Line - 1);
+
+                    Application.DoEvents();
                 }
 
                 if (nLine == temp_Line)
@@ -1695,6 +1770,7 @@ namespace OpenJigWare.Docking
                         (m_bStart == false)
                         )
                         return (temp_Line - 1);
+                    Application.DoEvents();
                 }
 
                 if (nLine == temp_Line)
@@ -2069,6 +2145,8 @@ namespace OpenJigWare.Docking
                 m_C3d.m_CRobotis.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
                 if (m_C3d.m_CRobotis.IsOpen() == true)
                 {
+                    m_C3d.m_CRobotis.Write(200, 21, (byte)2); // 0:IDLE, 1:Task Play, 2:Manage, 3:Bootloader
+                    
                     btnConnect_Serial.Text = "Disconnect";
                     Ojw.CMessage.Write("Connected");
                     btnConnect.Enabled = false;
@@ -2116,6 +2194,13 @@ namespace OpenJigWare.Docking
 
             btnConnect_Serial.Text = "Connect";
             Ojw.CMessage.Write("Disconnected");
+        }
+        public bool IsConnect()
+        {
+            bool bConnect = false;
+            if (chkDynamixel.Checked == true) bConnect = m_C3d.m_CRobotis.IsOpen();
+            else bConnect = m_C3d.m_CMotor.IsConnect();
+            return bConnect;
         }
         public void Connection()
         {
@@ -2310,11 +2395,25 @@ namespace OpenJigWare.Docking
 
             if (m_btmrRun == true) return;
             m_btmrRun = true;
-            Ojw.CTimer CTmr = new Ojw.CTimer();
-            CTmr.Set();
-            Run();
-            Ojw.CMessage.Write("PlayTime = {0}", CTmr.Get());
 
+            if (m_nRunMode == 0)
+            {
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set();
+                Run();
+                Ojw.CMessage.Write("PlayTime = {0}", CTmr.Get());
+            }
+            else if (m_nRunMode == 1)
+            {
+                Cm550(true);
+            }
+            else if (m_nRunMode == 2)
+            {
+                Cm550(false);
+            }
+            
+            
+            
             m_btmrRun = false;
         }
 
@@ -2326,6 +2425,17 @@ namespace OpenJigWare.Docking
                 m_C3d.SetFirstMoving(true);
                 m_C3d.m_CRobotis.Clear_Flag();
                 m_C3d.m_CRobotis.Reboot();
+                
+                // 1
+                //m_C3d.m_CRobotis.Write(200, 0x03, 22, (byte)0); // DXL Power Off
+                //Thread.Sleep(10);
+                //m_C3d.m_CRobotis.Write(200, 0x03, 22, (byte)1); // DXL Power On
+                // 2
+                //Disconnect();
+                //Thread.Sleep(3000);
+                Ojw.CTimer CTmr = new Ojw.CTimer();
+                CTmr.Set(); while (CTmr.Get() < 5000) { Application.DoEvents(); }
+                Connect();
             }
             else
             {
@@ -2403,8 +2513,12 @@ namespace OpenJigWare.Docking
             {
                 m_C3d.RmtFileSave(GetMotionFileName(txtFileName.Text));//, false);
             }
+            else if (chkSaveArduino.Checked == true)
+            {
+                m_C3d.ArduinoFileSave(GetMotionFileName(txtFileName.Text));//, false);
+            }
             else
-                m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), false);
+                m_C3d.BinaryFileSave(chkSaveAngle.Checked, _V_10, GetMotionFileName(txtFileName.Text), false);
             m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             m_CTmr_Save.Set();            
         }
@@ -2486,7 +2600,7 @@ namespace OpenJigWare.Docking
                 }
                 else
                 {
-                    if (m_C3d.DataFileOpen(fileName, null) == false)
+                    if (m_C3d.DataFileOpen(chkSaveAngle.Checked, fileName, null) == false)
                     {
                         MessageBox.Show(ofdMotion.DefaultExt.ToUpper() + " 모션 파일이 아닙니다.");
                     }
@@ -2518,8 +2632,12 @@ namespace OpenJigWare.Docking
             {
                 m_C3d.RmtFileSave(GetMotionFileName(txtFileName.Text));//, true);
             }
+            else if (chkSaveArduino.Checked == true)
+            {
+                m_C3d.ArduinoFileSave(GetMotionFileName(txtFileName.Text));//, false);
+            }
             else
-                m_C3d.BinaryFileSave(_V_10, GetMotionFileName(txtFileName.Text), true);
+                m_C3d.BinaryFileSave(chkSaveAngle.Checked, _V_10, GetMotionFileName(txtFileName.Text), true);
             m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             m_CTmr_Save.Set(); 
         }
@@ -3029,8 +3147,11 @@ namespace OpenJigWare.Docking
             if (frmPlayerForm != null) frmPlayerForm.CloseSplash();
         }
         private Ojw.CTimer m_CTmr_Start = new Ojw.CTimer();
+        private bool m_bTmrMp3 = false;
         private void tmrMp3_Tick(object sender, EventArgs e)
         {
+            if (m_bTmrMp3 == true) return;
+            m_bTmrMp3 = true;
             if (m_bProgEnd == true) return;
 
             if (m_bStart == true)
@@ -3100,6 +3221,8 @@ namespace OpenJigWare.Docking
             CheckPlayState();
 
             OjwTmrMp3();
+
+            m_bTmrMp3 = false;
         }
 
         private void CheckPlayState()
@@ -3842,6 +3965,7 @@ namespace OpenJigWare.Docking
 
         private void btnSimul_Click(object sender, EventArgs e)
         {
+            m_nRunMode = 0;
             Ojw.CTimer.Reset();
             m_C3d.SetSimulation_Smooth(chkSmooth.Checked);
             m_C3d.SetSimulation_With_PlayFrame(true);
@@ -3941,7 +4065,7 @@ namespace OpenJigWare.Docking
                         }
                         
                         txtFileName.Text = strItem;
-                        if (m_C3d.DataFileOpen(strItem, null) == false)
+                        if (m_C3d.DataFileOpen(chkSaveAngle.Checked, strItem, null) == false)
                         {
                             MessageBox.Show("This is not a Dmt motion file.");
                         }
@@ -5161,7 +5285,7 @@ namespace OpenJigWare.Docking
                     //m_strWorkDirectory = lblPath.Text;
                     //m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(lblPath.Text);
                     txtFileName.Text = fileName;
-                    if (m_C3d.DataFileOpen(fileName, null) == false)
+                    if (m_C3d.DataFileOpen(chkSaveAngle.Checked, fileName, null) == false)
                     {
                         MessageBox.Show("This is not a Dmt motion file.");
                     }
@@ -5465,7 +5589,7 @@ namespace OpenJigWare.Docking
 
         private void txtPort_Click(object sender, EventArgs e)
         {
-
+            SetToolTip();
         }
 
         private void txtIp_Click(object sender, EventArgs e)
@@ -5526,20 +5650,218 @@ namespace OpenJigWare.Docking
         }
 
         private bool m_bTmrCheckMotor = false;
+        private DateTime m_dtFile = new DateTime();
         private void tmrCheckMotor_Tick(object sender, EventArgs e)
         {
             if (m_bTmrCheckMotor == true) return;
             tmrCheckMotor.Enabled = false;
             m_bTmrCheckMotor = true;
 
+#if _CHEKING_AUTO_FOR_DYNAMIXEL
             if (chkDynamixel.Checked == true)
             {
                 if (m_C3d.m_CRobotis.IsOpen() == true)
                     m_C3d.m_CRobotis.Read_Motor();
             }
+#endif
+            #region Excel
+            if (chkExcel.Checked == true)
+            {
+                string strFile = txtExcel.Text;
+                if (strFile.Length > 0)
+                {
+                    if (Ojw.CFile.IsFile(strFile) == true)
+                    {
+                        if (m_dtFile != Ojw.CFile.GetFile_LastWriteTime(strFile))
+                        {
+                            UpdateExcel(null);
+                            //UpdateExcel(dataGridView1);
+                            //UpdateExcel(dgExel);
+                            m_dtFile = Ojw.CFile.GetFile_LastWriteTime(strFile);
+                        }
+                    }
+                }
+            }
+            #endregion Excel
+
 
             m_bTmrCheckMotor = false;
             tmrCheckMotor.Enabled = true;
+        }
+        private void UpdateExcel(DataGridView dgExcelView)
+        {
+            try
+            {
+                string strFrame = "Ojw_Frame";
+                //string strCmd = "Provider = MicroSoft.Jet.OLEDB.4.0; Data Source=" + txtExcel.Text + "; Extended Properties = \"Excel 8.0; MDR=Yes;\";";
+                string strCmd = "Provider = MicroSoft.Jet.OLEDB.4.0; Data Source=" + txtExcel.Text + "; Extended Properties = \"Excel 8.0; HDR=No; IMEX=1; \";";
+                OleDbConnection con = new OleDbConnection(strCmd);
+                OleDbDataAdapter sda = new OleDbDataAdapter("Select * From [" + strFrame + "$]", strCmd);
+                DataTable dt = new DataTable();
+                sda.Fill(dt);
+                
+                if (dgExcelView != null)
+                {
+                    dgExcelView.DataSource = dt;
+                }
+
+                // 머릿줄은 dt.Columns[0] -> "F4" 에서 찾을 수 있고
+                // 데이타는 dt.Rows[0] 이 첫번째 줄이다.
+                int nStart = -1;
+                int nStart_Line = -1;
+                int nEnd = -1;
+                int nEnd_Line = -1;
+                int nStart2 = -1;
+                int nStart2_Line = -1;
+                int nEnd2 = -1;
+                int nEnd2_Line = -1;
+                bool bRun = false;
+                bool bSimul = false;
+                bool bCm550 = false;
+                bool bNoClear = false;
+                for (int nLine = 0; nLine < dt.Rows.Count; nLine++)
+                {
+                    for (int i = 0; i < dt.Columns.Count; i++)
+                    {
+                        if (bRun == false)
+                        {
+                            if (dt.Rows[nLine][i].ToString().ToLower() == "!run")
+                            {
+                                bRun = true;
+                            }
+                        }
+                        if (bSimul == false)
+                        {
+                            if (dt.Rows[nLine][i].ToString().ToLower() == "!simul")
+                            {
+                                bSimul = true;
+                            }
+                        }
+                        if (bCm550 == false)
+                        {
+                            if (dt.Rows[nLine][i].ToString().ToLower() == "!cm550")
+                            {
+                                bCm550 = true;
+                            }
+                        }
+                        if (bNoClear == false)
+                        {
+                            if (dt.Rows[nLine][i].ToString().ToLower() == "!noclear")
+                            {
+                                bNoClear = true;
+                            }
+                        }
+                        if (dt.Rows[nLine][i].ToString().ToLower() == "!start")
+                        {
+                            nStart = i + 1;
+                            nStart_Line = nLine + 1;
+                        }
+
+                        if (dt.Rows[nLine][i].ToString().ToLower() == "!end")
+                        {
+                            nEnd = i;
+                            nEnd_Line = nLine;
+                        }
+
+                        if (dt.Rows[nLine][i].ToString().ToLower() == "#start")
+                        {
+                            nStart2 = i + 1;
+                            nStart2_Line = nLine + 1;
+                        }
+
+                        if (dt.Rows[nLine][i].ToString().ToLower() == "#end")
+                        {
+                            nEnd2 = i;
+                            nEnd2_Line = nLine;
+                        }
+                    }
+                }
+                // 그냥 몽땅 클리어 하자.
+                if (bNoClear == false) m_C3d.GridMotionEditor_Clear();
+
+                string strCommand = String.Empty;
+                int nLineCurr = 0;
+                for (int nLine = nStart_Line; nLine < nEnd_Line; nLine++)
+                {
+                    for (int i = nStart; i < nEnd; i++)
+                    {
+                        if (dt.Rows[nLine][i].ToString() != "")
+                        {
+                            strCommand += string.Format("{0} ", dt.Rows[nLine][i].ToString());
+                        }                        
+                    }
+                    //m_C3d.GridMotionEditor_Clear(nLineCurr);
+                    m_C3d.FCommand(nLineCurr, Ojw.CConvert.RemoveChar(strCommand, '"'));
+                    strCommand = String.Empty;
+                    nLineCurr++;
+                }
+                if (nStart2 >= 0)
+                {
+                    int nCol = 0;
+                    DataGridView dg = m_C3d.m_CGridMotionEditor.GetHandle();
+                    for (int nLine = nStart2_Line; nLine < nEnd2_Line; nLine++)
+                    {
+                        nCol = 0;
+                        //m_C3d.GridMotionEditor_Clear(nLineCurr);
+                        for (int i = nStart2; i < nEnd2; i++)
+                        {
+                            if (dt.Rows[nLine][i].ToString() != "")
+                            {
+                                dg[nCol, nLineCurr].Value = dt.Rows[nLine][i].ToString();
+                            }
+                            nCol++;
+                        }
+                        strCommand = String.Empty;
+                        nLineCurr++;
+                    }
+                }
+#if false
+                string strStart = String.Empty, strEnd = String.Empty;
+                if (nStart != 0)
+                {
+                    strStart = String.Format("Start:Line[{0}], Col[{1}]", nStart_Line, nStart);
+                }
+                if (nEnd != 0)
+                {
+                    strEnd = String.Format("End:Line[{0}], Col[{1}]", nEnd_Line, nEnd);
+                }
+                if ((nStart >= 0) && (nEnd >= 0))
+                {
+                    MessageBox.Show(strStart + "\r\n" + strEnd);
+                }
+#endif
+#if true
+                if (bRun == true)
+                {
+                    Ojw.CTimer.Reset(); // Clear the Stop bit;
+                    // 위치 데이타를 받고 시작한다.(다이나믹셀)
+                    m_C3d.SetFirstMoving(true);
+
+                    tmrRun.Enabled = true;
+                }
+                else if (bSimul == true)
+                {
+                    Ojw.CTimer.Reset();
+
+                    m_C3d.SetSimulation_Smooth(chkSmooth.Checked);
+                    m_C3d.SetSimulation_With_PlayFrame(true);
+                    tmrRun.Enabled = true;
+                }
+                else if (bCm550 == true)
+                {
+                    //Ojw.CTimer.Reset();
+
+                    //m_C3d.SetSimulation_Smooth(chkSmooth.Checked);
+                    //m_C3d.SetSimulation_With_PlayFrame(true);
+                    //tmrRun.Enabled = true;
+                    m_nRunMode = 1;
+                    tmrRun.Enabled = true;
+                }                
+#endif
+            }
+            catch (Exception ex)
+            {
+            }
         }
 
         private void chkDynamixel_CheckedChanged(object sender, EventArgs e)
@@ -5547,6 +5869,745 @@ namespace OpenJigWare.Docking
             m_C3d.SetDynamixel(chkDynamixel.Checked);
         }
 
+        private string FCommand(string strCommand)
+        {
+            return m_C3d.FCommand(strCommand);            
+        }
+        private void txtCommand_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == 13)
+            {
+                string strRet = FCommand(txtCommand.Text);
+                Ojw.CMessage.Write2(txtCommand_History, ">> {0}\r\n", txtCommand.Text);
+                if (strRet != null)
+                {
+                    if (strRet.Length > 0)
+                    {
+                        Ojw.CMessage.Write2(txtCommand_History, "  {0}\r\n", strRet);
+                    }
+                }
+                txtCommand.Text = "";
+
+                txtCommand.Focus();
+            }
+        }
+
+        private void txtCommand_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnExcel_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofdMotion = new OpenFileDialog();
+            string strExe = "xlsx";
+            ofdMotion.FileName = "*." + strExe;
+            ofdMotion.Filter = string.Format("excel file(*.{0})|*.{0}", strExe);
+            ofdMotion.DefaultExt = strExe;
+            //SetDirectory(ofdMotion, m_strWorkDirectory_Dmt);
+            if (ofdMotion.ShowDialog() == DialogResult.OK)
+            {
+                //String fileName = ofdMotion.FileName;
+                txtExcel.Text = ofdMotion.FileName;
+            }
+        }
+        private int m_nRunMode = 0; // 0 - Default, 1 - Cm550 Down & Run, 2 - Cm550 Run
+        private void btnDownAndRun_Click(object sender, EventArgs e)
+        {
+            m_nRunMode = 1;
+            
+            tmrRun.Enabled = true;
+
+            //Cm550(true);
+        }
+        private void Cm550(bool bDownload)
+        {
+            if (bDownload == true)
+            {
+                CCm550 Cm550 = new CCm550();
+                if (IsConnect() == true)
+                {
+                    btnDownAndRun.Enabled = false;
+                    try
+                    {
+                        Connection();
+                        Ojw.CMonster2 CMon = new Ojw.CMonster2();
+                        if (CMon.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text)) == true)
+                        {
+                            CMon.Write(0xfe, 0x03, 112, Ojw.CConvert.IntToBytes(0));
+                            CMon.Close();
+                        }
+
+                        Cm550.Connect(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text));
+                        if (Cm550.IsConnect() == true)
+                        {
+                            //string strFile = string.Format("{0}\\{1}", m_strWorkDirectory_Dmt, "output.bin");
+                            string strFile = string.Format("{0}\\{1}", Application.StartupPath, "output.bin");
+                            BinFileSave(strFile);
+                            Cm550.FDownload(1, strFile);
+                            //byte[] buffer = Ojw.CConvert.ShortToBytes(1);
+                            //Cm550.Write(true, 2, 200, 0x03, 21, (byte)0x02);//buffer);
+                            //byte[] buffer = Ojw.CConvert.ShortToBytes(1);
+                            //Cm550.Write(true, 2, 200, 0x03, 66, buffer);
+                            Cm550.Disconnect();
+
+                            if (CMon.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text)) == true)
+                            {
+                                CMon.Write(200, 0x03, 65, (byte)3);
+                                //CMon.Write(200, 0x03, 21, (byte)2);
+                                CMon.Write(200, 0x03, 66, Ojw.CConvert.ShortToBytes(1));
+                                CMon.Close();
+                            }
+                        }
+                        Connection();
+                        Ojw.Log("Done");
+                        //MessageBox.Show("Done");
+                    }
+                    catch (Exception ex)
+                    {
+
+                    }
+                    btnDownAndRun.Enabled = true;
+                }
+            }
+            else
+            {
+                //CCm550 Cm550 = new CCm550();
+                if (IsConnect() == true)
+                {
+                    Connection();
+
+                    Ojw.CMonster2 CMon = new Ojw.CMonster2();
+                    if (CMon.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text)) == true);
+                    {
+                        //CMon.Write(200, 0x03, 21, (byte)2);
+                        CMon.Write(200, 0x03, 66, Ojw.CConvert.ShortToBytes(1));
+                        CMon.Close();
+                    }
+                    Connection();
+                    //MessageBox.Show("Done");
+                }
+                ////m_C3d.m_CRobotis.Write(200, 0x03, 21, (byte)0x02);
+                ////Ojw.CTimer.Wait(100);
+            }
+        }
+
+        public bool BinFileSave(String strFileName)
+        {
+            bool bRet = false;
+            if (strFileName == "")
+            {
+                Ojw.CMessage.Write_Error("File Saving Error - Null FileName");
+                MessageBox.Show("File Saving Error - Null FileName");
+                return false;
+            }
+            DataGridView dgAngle = m_C3d.m_CGridMotionEditor.GetHandle();
+            // 일단 먼저 선택된 프레임을 
+            int i, j;
+            //int nCntLine = dgAngle.SelectedRows.Count;
+            int[] anFrameNum;// = new int [nCntLine];
+            // Enable 되어 있는 프레임 전체 실행           
+            //anFrameNum = new int[dgAngle.RowCount];
+            int nFirstStreamNum = -1; // 이게 -1 이면 모두 검사
+            //nCntLine = 0;
+            //int nFrameNum = 0;
+            List<int> lstFrame = new List<int>();
+            lstFrame.Clear();
+            for (i = 0; i < dgAngle.RowCount; i++)
+            {
+                if (m_C3d.m_CGridMotionEditor.GetEnable(i) == true) // 가장 마지막까지 살아있는 Enable Frame 의 번호를 기록한다.
+                {    
+#if true
+                    if ((m_C3d.GridMotionEditor_GetCommand(i) == 1) || ((m_C3d.GridMotionEditor_GetCommand(i) >= 3) && (m_C3d.GridMotionEditor_GetCommand(i) <= 5))) // 반복문은 1, 3, 4, 5 가 있다.
+                    {
+                        int nFirst = i;
+                        int nLast = (int)m_C3d.GridMotionEditor_GetData0(i);
+                        int nRepeat = (int)m_C3d.GridMotionEditor_GetData1(i);
+                        for (int k = 0; k < nRepeat; k++)
+                        {
+                            if (k >= nRepeat - 1) nLast = nFirst;
+                            for (j = nFirst; j <= nLast; j++)
+                            {
+                                if (m_C3d.GridMotionEditor_GetEnable(j) == false) continue;
+                                lstFrame.Add(j);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        lstFrame.Add(i);
+                    }
+#else
+                    //anFrameNum[nFrameNum++] = i;
+                    //nCntLine++;
+#endif
+                }
+            }
+#if false
+            if (nCntLine <= 0) return false;
+            // 정렬
+            Array.Resize<int>(ref anFrameNum, nCntLine);
+            Array.Sort<int>(anFrameNum);
+            nFirstStreamNum = anFrameNum[0];// nMin;
+            int nLastStreamNum = anFrameNum[nCntLine - 1];//nMax;
+#else
+            int nCntLine = lstFrame.Count;
+            if (nCntLine <= 0) return false;
+            nFirstStreamNum = lstFrame[0];
+#endif
+            
+            #region 라인 주석(캡션)의 줄 수(2)
+#if false
+            //// Line Comment ////// 라인 주석의 줄 수
+            int nCnt_LineComment = 0;
+            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+            {
+                i = anFrameNum[nFrameNum];
+                if (m_C3d.m_CGridMotionEditor.GetEnable(i) == true)
+                {
+                    String strLineComment = m_C3d.m_CGridMotionEditor.GetCaption(i);
+                    if (strLineComment.Trim() != "") // 주석
+                        nCnt_LineComment++;
+                }
+            }
+#endif
+            #endregion 라인 주석(캡션)의 줄 수(2)
+
+            string strErrMsg = String.Empty;
+            try
+            {
+                    #region Dynamixel 512
+
+                    FileInfo f = new FileInfo(strFileName);
+                    FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
+                    string strName = m_C3d.m_strMotionFile_TableName;
+                    int nCnt = 0;
+                    int nBuffer = 0;
+                    try
+                    {
+                        // 스트림 버퍼를 비운다.
+                        fs.Flush();
+                        int nStartFrameNum = 0;
+                        while (nCntLine > 0)
+                        {
+                            nBuffer = 0;
+
+                            #region Header(64)
+                            //byteData = BitConverter.GetBytes((short)i);
+                            //fs.Write(byteData, 0, 2);
+                            #region Page Name - 14 Char
+                            if (nCntLine - nStartFrameNum <= 7) strName = "Test";
+                            // Name
+                            byte[] byteName = Encoding.Default.GetBytes(((nCnt == 0) ? strName : String.Format("{0}{1}", strName, nCnt)));// Encoding.ASCII.GetBytes(txtTableName.Text);
+                            for (i = 0; i < 14; i++)
+                            {
+                                if (i < byteName.Length) fs.WriteByte(byteName[i]);
+                                else fs.WriteByte(0);
+                            }
+                            #endregion Page Name - 14 Char
+                            int nStep = (nCntLine - nStartFrameNum);
+                            int nNext = 0;
+                            if (nStep > 7)
+                            {
+                                nStep = 7;
+                                nNext = nCnt + 1 + 1; // 1 page 부터 시작이므로 하나를 더 더하자.
+                            }
+                            // Page_Pause Time : [0:Default] 이면 다음페이지 연결, 1 이상이면 1당 8ms 씩 정지
+                            fs.WriteByte(0);
+                            // repeat_count;
+                            fs.WriteByte(1);
+                            // Control Schedule
+                            fs.WriteByte(10);
+                            // Reserve
+                            fs.WriteByte(0);
+                            fs.WriteByte(0);
+                            fs.WriteByte(0);
+                            // Page Step (7 이내...)
+                            //if (nNext > 0)
+                            //    fs.WriteByte(0);
+                            //else 
+                                fs.WriteByte((byte)(nStep & 0xff));// 일단은 테스트로 7프레임 이상 작성하지 말자.
+                            // Play_Code(X)
+                            fs.WriteByte(0);
+                            // Page_Speed : 1(32 가 1배속, 2 배속이면 16
+                            fs.WriteByte(32);
+                            // Dxl_Setup(X)
+                            fs.WriteByte(0);
+                            // Accel_Time // 32
+                            fs.WriteByte(32);
+                            // next_page;                // 25 0 - 7 프레임이 넘어가면 현재 모션의 다음 번호로...(1~)
+                            fs.WriteByte((byte)(nNext & 0xff)); //fs.WriteByte(0);  //fs.WriteByte((byte)(nNext & 0xff));
+                            // exit_page
+                            fs.WriteByte(0);
+                            // linked_page1, linked_page1_play_code, linked_page2 linked_page2_play_code(X)
+                            fs.WriteByte(0);
+                            fs.WriteByte(0);
+                            fs.WriteByte(0);
+                            fs.WriteByte(0);
+                            // page_checksum
+                            fs.WriteByte(0);
+                            // compliance_in_header[32]; // 32     // 모터 게인 (5 가 default)
+                            for (i = 0; i < 32; i++)
+                                fs.WriteByte(0x55);
+                            #endregion Header(64)
+
+                            short sData;
+                            // 
+                            int nCntCurr = 0;
+#if false
+                            for (int nFrameNum = nStartFrameNum; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+#else
+                            for (int nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = lstFrame[nFrameNum];
+#endif
+                                if (m_C3d.m_CGridMotionEditor.GetEnable(i) == true)
+                                {
+#if false
+                                    for (int nMot = 0; nMot < 31; nMot++)
+                                    {   
+#if false
+                                        //byte[] buffer = Ojw.CConvert.ShortToBytes((short)m_C3d.m_CRobotis.CalcAngle2Evd(nMot, m_C3d.m_CGridMotionEditor.Get(i, nMot) * (m_C3d.m_CHeader.pSMotorInfo[nMot].fRobotisConvertingVar)));
+                                        //byte[] buffer = Ojw.CConvert.ShortToBytes((short)m_C3d.m_CRobotis.CalcAngle2Evd(nMot, m_C3d.m_CGridMotionEditor.Get(i, nMot) * (m_C3d.m_CHeader.pSMotorInfo[nMot].nMotorDir == 0 ? 1 : -1)));
+                                        byte[] buffer = Ojw.CConvert.ShortToBytes((short)m_C3d.m_CRobotis.CalcAngle2Evd(nMot, m_C3d.m_CGridMotionEditor.Get(i, nMot)));
+                                        //byte[] buffer = Ojw.CConvert.ShortToBytes((short)m_C3d.m_CRobotis.CalcAngle2Evd(nMot, m_C3d.m_CGridMotionEditor.Get(i, nMot)));
+                                        fs.WriteByte(buffer[0]);
+                                        fs.WriteByte(buffer[1]);
+#else
+                                        int nMot2 = m_C3d.m_CHeader.pSMotorInfo[nMot].nMotorID;
+                                        byte[] buffer = Ojw.CConvert.ShortToBytes((short)m_C3d.m_CRobotis.CalcAngle2Evd(
+                                                    nMot2, 
+                                                    m_C3d.m_CGridMotionEditor.Get(i, nMot)
+                                                )
+                                            );
+                                        fs.WriteByte(buffer[0]);
+                                        fs.WriteByte(buffer[1]);
+#endif
+                                    }
+#else
+                                    short[] asMot = new short[31];
+                                    bool[] abIgnore = new bool[31];
+                                    asMot = Ojw.CConvert.Array_Short_Init(2048, asMot.Length);
+                                    Array.Clear(abIgnore, 0, abIgnore.Length);
+                                    for (int nMot = 0; nMot < 31; nMot++)
+                                    {
+                                        int nMot2 = m_C3d.m_CHeader.pSMotorInfo[nMot].nMotorID;
+                                        if (abIgnore[nMot2] == false)
+                                        {
+                                            if (nMot != nMot2)
+                                                abIgnore[nMot2] = true;
+                                            asMot[nMot2] = (short)m_C3d.m_CRobotis.CalcAngle2Evd(nMot, m_C3d.m_CGridMotionEditor.Get(i, nMot));
+                                        }
+                                    }
+                                    for (int nMot = 0; nMot < 31; nMot++)
+                                    {
+                                        byte[] buffer = Ojw.CConvert.ShortToBytes(asMot[nMot]);
+                                        
+                                        fs.WriteByte(buffer[0]);
+                                        fs.WriteByte(buffer[1]);
+                                    }
+#endif
+                                    // Pause
+#if false
+                                    int nDelay = (int)Math.Round((float)m_C3d.m_CGridMotionEditor.GetDelay(i) / 7.8125f);
+#else // R+Motion 과 맞추기 위해
+                                    //int nDelay = (int)(m_C3d.m_CGridMotionEditor.GetDelay(i) / 7.8125f);
+                                    //nDelay = (int)(nDelay * 7.8125f);
+                                    //nDelay = (int)(nDelay / 7.8125f);
+                                    int nFrame = (int)(m_C3d.m_CGridMotionEditor.GetDelay(i) / _TIME_TO_FRAME_VALUE);//_TIME_TO_FRAME_VALUE);
+                                    int nDelay = (int)(nFrame * _TIME_TO_FRAME_VALUE_FOR_FILE_SAVE);//_TIME_TO_FRAME_VALUE);
+                                    nFrame = (int)(nDelay / _TIME_TO_FRAME_VALUE_FOR_FILE_SAVE);//_TIME_TO_FRAME_VALUE);
+#endif
+                                    //fs.WriteByte((byte)(nDelay & 0xff));
+                                    fs.WriteByte((byte)(nFrame & 0xff));
+                                    // Speed
+#if false 
+                                    int nTimer = (int)Math.Round((float)m_C3d.m_CGridMotionEditor.GetTime(i) / 7.8125f);
+#else // R+Motion 과 맞추기 위해
+                                    //int nTimer = (int)(m_C3d.m_CGridMotionEditor.GetTime(i) / 7.8125f);
+                                    //nTimer = (int)(nTimer * 7.8125f);
+                                    //nTimer = (int)(nTimer / 7.8125f);
+                                    nFrame = (int)(m_C3d.m_CGridMotionEditor.GetTime(i) / _TIME_TO_FRAME_VALUE);//_TIME_TO_FRAME_VALUE);
+                                    int nTimer = (int)(nFrame * _TIME_TO_FRAME_VALUE_FOR_FILE_SAVE);//_TIME_TO_FRAME_VALUE);
+                                    nFrame = (int)(nTimer / _TIME_TO_FRAME_VALUE_FOR_FILE_SAVE);//_TIME_TO_FRAME_VALUE);
+#endif
+                                    //fs.WriteByte((byte)(nTimer & 0xff));
+                                    fs.WriteByte((byte)(nFrame & 0xff));
+
+                                    nCntCurr++;
+                                    if (nCntCurr >= 7) break;
+                                }
+                            }
+                            nStartFrameNum = nStartFrameNum + nCntCurr;
+                            nBuffer += 64 + 64 * nCntCurr;
+                            nCnt++;
+                            if (nStartFrameNum >= nCntLine) break;
+                            //if (nCntLine - nCntCurr <= 7) break;
+
+                            //while (nBuffer < 512)
+                            //{
+                            //    fs.WriteByte(0);
+                            //    nBuffer++;
+                            //}
+                        }
+                        while (nBuffer < 512)
+                        {
+                            fs.WriteByte(0);
+                            nBuffer++;
+                        }
+                        /*
+                         * m_CHeader.nMotorCnt - 모터의 총 갯수
+                         * nCnt_LineComment - 라인 주석(캡션)의 줄 수
+                         * long lTime = Grid_CalcTimer(m_nLastStreamNum); - 프레임 실행시간
+                         * 프레임 수(모션) -> nCntLine
+                         * byteComment = Encoding.Default.GetBytes(m_C3d.m_strMotionFile_Comment); - comment 글자
+                         * */
+#if false
+
+
+                        #region 실 프레임 저장
+                        // Motion
+                        float fValue;
+                        bool bEn, bCaption;
+                        for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                        {
+                            i = anFrameNum[nFrameNum];
+                            //////////////////////////////////
+                            bEn = m_CGridMotionEditor.GetEnable(i);
+                            strLineComment = m_CGridMotionEditor.GetCaption(i);
+                            bCaption = (strLineComment.Trim() == "") ? false : true;
+                            if (
+                                (bCompact == true) &&   // 압축
+                                (bEn == false) //&& // Enable 이 Set 상태가 아니고
+                                //(bCaption == false) // 주석이 없다면
+                            ) continue;
+
+                            //if ((bCompact == true) && ((bEn == false) && (bCaption == false))) continue;
+
+                            // En
+                            byte byteEn = 0;
+                            if (bEn == true) byteEn |= 0x01;
+                            if (bCaption == true) byteEn |= 0x02;
+                            fs.WriteByte(byteEn);
+
+                            // Motor
+                            for (j = 0; j < m_CHeader.nMotorCnt; j++)
+                            {
+                                fValue = GridMotionEditor_GetMotor(i, j);
+                                sData = (short)(CalcAngle2Evd(j, fValue) & 0x0fff);// (short)(((Grid_GetFlag_En(i, j) == true) ? CalcAngle2Evd(j, fValue) : 0x07ff) & 0x0fff);
+
+                                sData |= (short)(((Grid_GetFlag_Led(i, j) & 0x07) << 12) & 0xf000);
+                                sData |= (short)((Grid_GetFlag_Type(i, j) == true) ? 0x8000 : 0x0000);
+                                //sData |= (short)((Grid_GetFlag_En(i, j) == false) ? 0x8000 : 0x0000);
+                                //sData |= 0x0400; // 속도모드인때 정(0-0x0000), 역(1-0x0400)
+                                //sData |= LED;  // 00 - 0ff, 0x0800 - Red(01), 0x1000 - Blue(10), 0x1800 - Green(11)
+                                //sData |= 제어타입 // 0 - 위치, 0x2000 - 속도
+                                //sData |= 0x4000; //Enable // 개별 Enable (0 - Disable, 0x4000 - Enable)
+
+                                byteData = BitConverter.GetBytes((Int16)sData);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+                            }
+
+                        #region Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                        #region Speed(2)
+                            // Speed
+                            sData = (short)GridMotionEditor_GetTime(i);
+                            byteData = BitConverter.GetBytes(sData);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                        #endregion Speed(2)
+
+                        #region Delay(2)
+                            // Delay
+                            sData = (short)GridMotionEditor_GetDelay(i);
+                            byteData = BitConverter.GetBytes(sData);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                        #endregion Delay(2)
+
+                        #region Group(1)
+                            // Group
+                            fs.WriteByte((byte)(GridMotionEditor_GetGroup(i) & 0xff));
+                        #endregion Group(1)
+
+                        #region Command(1)
+                            // Command
+                            fs.WriteByte((byte)(GridMotionEditor_GetCommand(i) & 0xff));
+                        #endregion Command(1)
+
+                        #region Data0(2)
+                            // Data0
+                            sData = (short)(((short)GridMotionEditor_GetData0(i) & 0x3ff) | (((short)GridMotionEditor_GetExtBuzz(i) & 0x3f) << 10));
+                            byteData = BitConverter.GetBytes(sData);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                        #endregion Data0(2)
+
+                        #region Data1(2)
+                            // Data1
+                            //sData = (short)m_CGridMotionEditor.GetData1(i);
+                            sData = (short)(((short)GridMotionEditor_GetData1(i) & 0x3ff) | (((short)GridMotionEditor_GetExtLed(i) & 0x3f) << 10));
+                            byteData = BitConverter.GetBytes(sData);
+                            fs.Write(byteData, 0, 2);
+                            byteData = null;
+                        #endregion Data1(2)
+                        #endregion Speed(2), Delay(2), Group(1), Command(1), Data0(2), Data1(2)
+                            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                        #region 추가한 Frame 위치 및 자세
+                            fValue = 0;//GetFrame_X(i);
+                            byteData = BitConverter.GetBytes(fValue);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+
+                            fValue = 0;//GetFrame_Y(i);
+                            byteData = BitConverter.GetBytes(fValue);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+
+                            fValue = 0;//GetFrame_Z(i);
+                            byteData = BitConverter.GetBytes(fValue);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+
+
+                            fValue = 0;//GetFrame_Pan(i);
+                            byteData = BitConverter.GetBytes(fValue);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+
+                            fValue = 0;//GetFrame_Tilt(i);
+                            byteData = BitConverter.GetBytes(fValue);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+
+                            fValue = 0;// GetFrame_Swing(i);
+                            byteData = BitConverter.GetBytes(fValue);
+                            fs.Write(byteData, 0, 4);
+                            byteData = null;
+                        #endregion 추가한 Frame 위치 및 자세
+                        }
+                        #endregion
+
+                        fs.WriteByte((byte)('M'));
+                        fs.WriteByte((byte)('E'));
+
+                        #region Comment
+                        // Comment
+                        for (int k = 0; k < byteComment.Length; k++) fs.WriteByte(byteComment[k]);
+                        // 널 종료문자
+                        if (byteComment.Length > 0) fs.WriteByte(0);
+                        #endregion
+
+                        #region Caption 저장
+                        // Caption Size
+                        int nSize_Caption = 46;
+                        // Caption
+                        for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                        {
+                            i = anFrameNum[nFrameNum];
+                            ////////////////////////////////////////////
+                            strLineComment = m_CGridMotionEditor.GetCaption(i);
+                            strLineComment = strLineComment.Trim();
+                            if (strLineComment != "") // 주석
+                            {
+                                byteData = BitConverter.GetBytes((short)i);
+                                fs.Write(byteData, 0, 2);
+                                byteData = null;
+
+                                byteData = Encoding.Default.GetBytes(strLineComment);
+                                if (byteData.Length > nSize_Caption)
+                                {
+                                    for (int k = 0; k < nSize_Caption; k++) fs.WriteByte((byte)byteData[k]);
+                                }
+                                else
+                                {
+                                    for (int k = 0; k < byteData.Length; k++) fs.WriteByte((byte)byteData[k]);
+                                    for (int k = byteData.Length; k < nSize_Caption; k++) fs.WriteByte((byte)0);
+                                }
+                            }
+                        }
+                        #endregion
+
+
+                        fs.WriteByte((byte)('F'));
+                        fs.WriteByte((byte)('E'));
+#endif
+                        fs.Close();
+                        f = null;
+                        //if (m_bAutoSaved == false)
+                            Modify(false);
+
+                        //byteName = null;
+                        //byteComment = null;
+
+                        bRet = true;
+                    }
+                    catch
+                    {
+                        //Message("파일 저장 에러");
+                        fs.Close();
+                        f = null;
+
+                        bRet = false;
+                    }
+                    #endregion Dynamixel 512
+            }
+            catch (Exception ex)
+            {
+                bRet = false;
+                strErrMsg = ex.ToString();
+                Ojw.LogErr(strErrMsg);
+            }
+
+            //String strTmp = Ojw.CConvert.IntToStr(nFileVersion);// "V" + Ojw.CConvert.FloatToStr((float)nFileVersion / 10.0f);
+            //m_strMotionFile_FileAndTitle = "[DMT1." + strTmp + "]" + strFileName;
+
+            if (bRet == true)
+            {
+                Ojw.Log(String.Format("FileSaved: Dynamixel 512"));
+                //MessageBox.Show(String.Format("FileSaved: {0}", m_strMotionFile_FileAndTitle);
+            }
+            else
+            {
+                Ojw.LogErr(String.Format("We can't Save file:  512"));
+                //if (m_bMessageBoxShow == true) MessageBox.Show(String.Format("[Error] We can't Save file: {0}", m_strMotionFile_FileAndTitle), strErrMsg);
+            }
+            return bRet;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            
+            
+        }
+
+        private void picDisp_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnCm550_Run_Click(object sender, EventArgs e)
+        {
+            m_nRunMode = 2;
+
+            tmrRun.Enabled = true;
+
+            //Cm550(false);
+        }
+
+        private void btnSend_Click(object sender, EventArgs e)
+        {
+            SendGrid(m_C3d.m_CGridMotionEditor, txtSend.Text);
+        }
+        private void SendGrid(Ojw.CGridView OjwGrid, string strTitle)
+        {
+            DataGridView dgGrid = OjwGrid.GetHandle();
+            try
+            {
+                int nX_Limit = dgGrid.RowCount - 1;
+                int nY_Limit = dgGrid.ColumnCount;
+
+                // Check Selection
+                int nCount = 0;
+                int nLine_First = 0;
+                int nLine_Last = 0;
+                for (int nLine = 0; nLine < nX_Limit; nLine++)
+                {
+                    if (dgGrid[0, nLine].Selected == true)
+                    {
+                        if (OjwGrid.GetEnable(nLine) == true)
+                        {
+                            if (nCount == 0) nLine_First = nLine;
+                            nLine_Last = nLine;
+                            nCount++;
+                        }
+                    }
+                }
+
+                if (nCount > 0)
+                {
+                    nX_Limit = nLine_Last;
+                }
+                else 
+                    dgGrid.SelectAll();
+
+                // 클립보드 변형하기 // 클립보드의 내용을 OpenJigWare -> R+Motion 으로 변환
+            
+                //int nPos_Start_X = 0, nPos_Start_Y = 0;
+                //int nPos_End_X = 0, nPos_End_Y = 0;
+                // 첫 위치 찾아내기
+                int k = 0;
+                string strData = String.Format("{0}:Keyframes\n", strTitle);// String.Empty;
+                string strData_Joint = "Joints\n";
+                bool bStart = false;
+                int nTimer = 0;
+                int nLineAdd = 0;
+
+                int nRepeat = Ojw.CConvert.StrToInt(txtMotionCounter.Text);
+                if (nRepeat <= 0) nRepeat = 1;
+
+                //for (int nRepeatIndex = 0; nRepeatIndex < nRepeat; nRepeatIndex++)
+                {
+                    for (int nLine = nLine_First; nLine <= nX_Limit; nLine++)
+                    {
+                        bStart = false;
+                        for (int nCol = 0; nCol < nY_Limit; nCol++)
+                        {
+                            if (dgGrid[nCol, nLine].Selected == true)
+                            {
+                                if (OjwGrid.GetEnable(nLine) == true)
+                                {
+                                    bStart = true;
+                                }
+                                break;
+                            }
+                        }
+                        if (bStart == false) continue;
+
+                        strData_Joint = "Joints\n";
+
+#if _NO_ROUND
+                    nTimer += (int)(OjwGrid.GetTime(nLine) / _TIME_TO_FRAME_VALUE); // R+Motion 에서는 딜레이를 감안하지 않도록 한다.
+                    //nTimer += (int)Math.Round((float)OjwGrid.GetTime(nLine) / _TIME_TO_FRAME_VALUE); // R+Motion 에서는 딜레이를 감안하지 않도록 한다.
+#else // R+Motion 과 맞추기 위해
+                        int nTmp = (int)(OjwGrid.GetTime(nLine) / _TIME_TO_FRAME_VALUE);
+                        nTmp = (int)(nTmp * _TIME_TO_FRAME_VALUE);
+                        nTimer += (int)(nTmp / _TIME_TO_FRAME_VALUE);
+#endif
+                        strData += String.Format("Motion2+Step|<step frame=\"{0}\" pose=\"", nTimer);
+
+                        for (int i = 0; i < m_C3d.GetHeader().nMotorCnt; i++)
+                        {
+                            int nAxis = i;
+                            if (m_C3d.GetHeader().pSMotorInfo[i].nMotorEnable_For_RPTask == -1) continue; // Enable 이 죽어 있다면 패스
+                            if (i == 0) continue; // 0번 모터는 사용 안하는 경향이 있어 일단 패스. 나중에는 헤더에서 패스된걸 찾도록 한다.
+                            float fData = Convert.ToSingle(OjwGrid.GetData(nLine, nAxis)) * ((m_C3d.GetHeader().pSMotorInfo[nAxis].nMotorDir == 0) ? 1 : -1) * ((m_C3d.GetHeader().pSMotorInfo[nAxis].fRobotisConvertingVar == 0) ? 1 : m_C3d.GetHeader().pSMotorInfo[nAxis].fRobotisConvertingVar);
+                            strData += String.Format("{0} ", fData);
+
+                            strData_Joint += String.Format("System.Int32(@){0}\nSystem.Single(@){1}\nSystem.String(@)?\nSystem.String(@)?\n\n", m_C3d.GetHeader().pSMotorInfo[i].nMotorID, fData);
+
+                        }
+                        int nSpare = strData.LastIndexOf(' ');
+                        if (nSpare == strData.Length - 1) strData = strData.Remove(nSpare);
+                        //strData += "\r\n";
+                        strData += "\" />\n\n";
+
+                        //////////////////////////////////////////////////////////////////////////////////////////
+
+                        nLineAdd++;
+                    }
+                }
+                m_CServer.sock_send(Ojw.CConvert.StrToBytes(strData));
+            }
+            catch (Exception e2)
+            {
+                MessageBox.Show(e2.ToString());
+            }
+        }
 #else
 
 #endif
@@ -5646,5 +6707,890 @@ namespace OpenJigWare.Docking
             }
         }
         ////// -- treeview 탐색기 ///////
+    }
+
+    public class CCm550
+    {
+#if true
+        #region Serial 기본 함수 모음
+        private Ojw.CSerial m_CSerial = new Ojw.CSerial();
+        public void Connect(int nPort, int nBaud)
+        {
+            if (m_CSerial.IsConnect() == false)
+            {
+                //int nPort = Ojw.CConvert.StrToInt(txtComport.Text);
+                //int nBaud = Ojw.CConvert.StrToInt(txtBaudrate.Text);
+                if (m_CSerial.Connect(nPort, nBaud) == true)
+                {
+                    //btnConnect.Text = "Disconnect";
+                    Ojw.CMessage.Write("connect->OK, {0}, {1}", nPort, nBaud);
+                    //m_CSerial.RunThread(FThread_Receive);
+                }
+                else
+                {
+                    //btnConnect.Text = "Connect";
+                    Ojw.CMessage.Write_Error("Cannot connect. check your Serial port");
+                }
+            }
+        }
+        public bool IsConnect() { return m_CSerial.IsConnect(); }
+        public void Disconnect()
+        {
+            if (m_CSerial.IsConnect() == true)
+            {
+                m_CSerial.DisConnect();
+            }
+            //btnConnect.Text = "Connect";
+            Ojw.CMessage.Write("Disconnect");
+        }
+        private void FThread_Receive() // 사용 안하는 함수
+        {
+            byte[] buf;// = new char[256];
+            Ojw.CMessage.Write("[Thread_Receive] Running Thread");
+            //while ((m_bProgEnd == false) && (m_CSerial.IsConnect() == true))
+            while (m_CSerial.IsConnect() == true)
+            {
+                int nSize = m_CSerial.GetBuffer_Length();
+                if (nSize > 0)
+                {
+                    buf = m_CSerial.GetBytes();
+
+                    //if (m_nProtocolVersion == 1)
+                    //{
+                    //    Parsor1(buf, nSize);
+                    //}
+                    //else
+                    Parsor(buf);
+
+                }
+                Thread.Sleep(1);
+            }
+
+            Ojw.CMessage.Write("[Thread_Receive] Closed Thread");
+        }
+        private int FReceive(int nTimeOut) // 0 : OK, -1 : Timeout
+        {
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            CTmr.Set();
+            byte[] buf;// = new char[256];
+            Ojw.CMessage.Write("[Receive] Running");
+            bool bRet = false;
+            //while ((m_bProgEnd == false) && (m_CSerial.IsConnect() == true))
+            while (m_CSerial.IsConnect() == true)
+            {
+                int nSize = m_CSerial.GetBuffer_Length();
+                if (nSize > 0)
+                {
+                    buf = m_CSerial.GetBytes();
+
+                    //if (m_nProtocolVersion == 1)
+                    //{
+                    //    Parsor1(buf, nSize);
+                    //}
+                    //else
+                    bRet = Parsor(buf);
+
+                }
+                else
+                {
+                    if (bRet == true) return 0;
+                }
+                if (CTmr.Get() > nTimeOut)
+                {
+                    Ojw.CMessage.Write_Error("Timeout");
+                    return -1;
+                }
+                Ojw.CTimer.Wait(1);
+            }
+
+            Ojw.CMessage.Write("[Receive] Done");
+            return 0;
+        }
+
+        private int m_nIndex = 0;
+        private int m_nIndex2 = 0;
+        private uint m_unHeader = 0;
+        private int m_nPack_Length = -1;
+        private int m_nPack_ID = 0;
+        private int m_nPack_Command = 0;
+        private int m_nPack_Error = 0;
+        private byte[] m_abyReturn;
+        private int m_nPack_CRC0 = 0;
+        private int m_nPack_CRC1 = 0;
+        private bool Parsor(byte[] buf)
+        {
+            bool bRet = false;
+            for (int i = 0; i < buf.Length; i++)
+            {
+                if (m_unHeader == 0xfffffd00)
+                {
+                    m_abyReturn = new byte[4];
+                    m_nIndex = 1;
+                    m_nPack_Length = -1;
+                    m_nIndex2 = 0;
+                }
+                m_unHeader = (((m_unHeader << 8) & 0xffffffff) | buf[i]);
+
+                switch (m_nIndex)
+                {
+                    case 1: // 
+                        {
+                            //m_nPack_ID = GetAxis_By_ID(buf[i]);//buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 2: // Length
+                        {
+                            if (m_nPack_Length < 0)
+                            {
+                                m_nPack_Length = buf[i];
+                            }
+                            else
+                            {
+                                m_nPack_Length |= ((buf[i] << 8) & 0xff00);
+                                m_nIndex++;
+                            }
+                        }
+                        break;
+                    case 3: // Command : Instruction
+                        {
+                            m_nPack_Command = buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 4:
+                        {
+                            m_nPack_Error = buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 5:
+                        {
+                            int nAddress = 0;// ((m_nPack_Address < 0) ? 128 : m_nPack_Address);
+                            //m_abyReturn[m_nPack_ID, nAddress + m_nIndex2] = buf[i];
+                            m_abyReturn[m_nIndex2] = buf[i];
+
+                            if (m_nIndex2 < m_nPack_Length - 4 - 1) m_nIndex2++;
+                            else m_nIndex++;
+                        }
+                        break;
+                    case 6: // crc
+                        {
+                            m_nPack_CRC0 = buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 7: // crc
+                        {
+                            m_nPack_CRC1 = buf[i];
+                            m_nIndex = 0;
+
+                            // 이 프로그램에서는 굳이 받은 정보를 카운팅하거나 이벤트 체크할 필요 없다.
+                            //m_abReceivedPos[m_nPack_ID] = true;
+                            //m_nSeq_Receive++;
+                            if (m_nPack_Command == 0x55)
+                            {
+                                int nError = BitConverter.ToInt32(m_abyReturn, 0);
+                                Ojw.CMessage.Write("<<Received Data>> : 패킷에러는 {0}, 데이타 명령 Error Code[{1}, {2}, {3}, {4}] => {5}", ((m_nPack_Error == 0) ? "없음" : "발견"),
+                                    m_abyReturn[0],
+                                    m_abyReturn[1],
+                                    m_abyReturn[2],
+                                    m_abyReturn[3],
+                                    nError
+                                    );
+
+                                if (
+                                     (m_nPack_Error == 0) && (nError == 0)
+                                    )
+                                {
+                                    bRet = true;
+                                }
+                            }
+                            else
+                            {
+                                if (m_nPack_Error == 0) bRet = true;
+                                Ojw.CMessage.Write("<<Received Data>>");
+                            }
+                        }
+                        break;
+                }
+            }
+            return bRet;
+        }
+        public void Write(int nID, int nCommand, int nAddress, params byte[] pbyDatas) { Write(true, 2, nID, nCommand, nAddress, pbyDatas); }
+        public void Write(bool b4ByteAddress, int nProtocolVersion, int nID, int nCommand, int nAddress, params byte[] pbyDatas)
+        {
+            int i;
+
+            i = 0;
+            if (nProtocolVersion == 1)
+            {
+                int nLength = 1 + 2 + pbyDatas.Length;
+                int nDefaultSize = 6;
+                byte[] pbyteBuffer = new byte[nDefaultSize + nLength];
+                pbyteBuffer[i++] = 0xff;
+                pbyteBuffer[i++] = 0xff;
+                pbyteBuffer[i++] = (byte)(nID & 0xff);
+                pbyteBuffer[i++] = (byte)(nLength & 0xff);
+                pbyteBuffer[i++] = (byte)(nCommand & 0xff);
+                pbyteBuffer[i++] = (byte)(nAddress & 0xff);
+                if (pbyDatas != null)
+                    foreach (byte byData in pbyDatas) pbyteBuffer[i++] = byData;
+
+                int nCrc = 0;
+                for (int j = 2; j < pbyteBuffer.Length - 1; j++) nCrc += pbyteBuffer[j];
+                pbyteBuffer[i++] = (byte)(~nCrc & 0xff);
+
+                pbyteBuffer[pbyteBuffer.Length - 1] = (byte)(nCrc & 0xff);
+
+                m_CSerial.SendPacket(pbyteBuffer, pbyteBuffer.Length);
+            }
+            else // nProtocolVersion == 2
+            {
+                int nLength = 3 + ((b4ByteAddress == true) ? 4 : 2) + pbyDatas.Length;
+                int nDefaultSize = 7;
+                byte[] pbyteBuffer = new byte[nDefaultSize + nLength];
+                pbyteBuffer[i++] = 0xff;
+                pbyteBuffer[i++] = 0xff;
+                #region Packet 2.0
+                pbyteBuffer[i++] = 0xfd;
+                pbyteBuffer[i++] = 0x00;
+                #endregion Packet 2.0
+                pbyteBuffer[i++] = (byte)(nID & 0xff);
+                pbyteBuffer[i++] = (byte)(nLength & 0xff);
+                pbyteBuffer[i++] = (byte)((nLength >> 8) & 0xff);
+                pbyteBuffer[i++] = (byte)(nCommand & 0xff);
+                pbyteBuffer[i++] = (byte)(nAddress & 0xff);
+                pbyteBuffer[i++] = (byte)((nAddress >> 8) & 0xff);
+                // 제어기인 경우 4바이트 주소를 사용
+                if (b4ByteAddress == true)
+                {
+                    pbyteBuffer[i++] = (byte)((nAddress >> 16) & 0xff);
+                    pbyteBuffer[i++] = (byte)((nAddress >> 24) & 0xff);
+                }
+                if (pbyDatas != null)
+                    foreach (byte byData in pbyDatas) pbyteBuffer[i++] = byData;
+
+                MakeStuff(ref pbyteBuffer);
+                int nCrc = updateCRC(pbyteBuffer, pbyteBuffer.Length - 2);
+                pbyteBuffer[pbyteBuffer.Length - 2] = (byte)(nCrc & 0xff);
+                pbyteBuffer[pbyteBuffer.Length - 1] = (byte)((nCrc >> 8) & 0xff);
+
+                m_CSerial.SendPacket(pbyteBuffer, pbyteBuffer.Length);
+            }
+        }
+        private void MakeStuff(ref byte[] pBuff)
+        {
+            int nStuff = 0;
+            int[] pnIndex = new int[pBuff.Length];
+            Array.Clear(pnIndex, 0, pnIndex.Length);
+            int nCnt = 0;
+            for (int i = 5; i < pBuff.Length; i++)
+            {
+                switch (nStuff)
+                {
+                    case 0: { if (pBuff[i] == 0xff) nStuff++; } break;
+                    case 1: { if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; } break;
+                    case 2:
+                        {
+                            if (pBuff[i] == 0xfd)
+                            {
+                                nStuff++;
+                                pnIndex[nCnt++] = i;
+                            }
+                            else
+                            {
+                                nStuff = 0;
+                            }
+                        }
+                        break;
+                }
+            }
+            if (nCnt > 0)
+            {
+                byte[] pBuff2 = new byte[pBuff.Length];
+                Array.Copy(pBuff, pBuff2, pBuff.Length);
+                Array.Resize<byte>(ref pBuff, pBuff2.Length + nCnt);
+                int nIndex = 0;
+                int nPos = 0;
+                foreach (byte byTmp in pBuff)
+                {
+                    pBuff[nIndex + nPos] = pBuff2[nIndex];
+                    if (nIndex == pnIndex[nPos])
+                    {
+                        pBuff[nIndex + nPos + 1] = 0xfd;
+                        nPos++;
+                    }
+                    nIndex++;
+                }
+            }
+            pnIndex = null;
+        }
+        private int updateCRC(byte[] data_blk_ptr, int data_blk_size)
+        {
+            int i, j;
+            int[] crc_table = new int[256] { 0x0000,
+            0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011,
+            0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027,
+            0x0022, 0x8063, 0x0066, 0x006C, 0x8069, 0x0078, 0x807D,
+            0x8077, 0x0072, 0x0050, 0x8055, 0x805F, 0x005A, 0x804B,
+            0x004E, 0x0044, 0x8041, 0x80C3, 0x00C6, 0x00CC, 0x80C9,
+            0x00D8, 0x80DD, 0x80D7, 0x00D2, 0x00F0, 0x80F5, 0x80FF,
+            0x00FA, 0x80EB, 0x00EE, 0x00E4, 0x80E1, 0x00A0, 0x80A5,
+            0x80AF, 0x00AA, 0x80BB, 0x00BE, 0x00B4, 0x80B1, 0x8093,
+            0x0096, 0x009C, 0x8099, 0x0088, 0x808D, 0x8087, 0x0082,
+            0x8183, 0x0186, 0x018C, 0x8189, 0x0198, 0x819D, 0x8197,
+            0x0192, 0x01B0, 0x81B5, 0x81BF, 0x01BA, 0x81AB, 0x01AE,
+            0x01A4, 0x81A1, 0x01E0, 0x81E5, 0x81EF, 0x01EA, 0x81FB,
+            0x01FE, 0x01F4, 0x81F1, 0x81D3, 0x01D6, 0x01DC, 0x81D9,
+            0x01C8, 0x81CD, 0x81C7, 0x01C2, 0x0140, 0x8145, 0x814F,
+            0x014A, 0x815B, 0x015E, 0x0154, 0x8151, 0x8173, 0x0176,
+            0x017C, 0x8179, 0x0168, 0x816D, 0x8167, 0x0162, 0x8123,
+            0x0126, 0x012C, 0x8129, 0x0138, 0x813D, 0x8137, 0x0132,
+            0x0110, 0x8115, 0x811F, 0x011A, 0x810B, 0x010E, 0x0104,
+            0x8101, 0x8303, 0x0306, 0x030C, 0x8309, 0x0318, 0x831D,
+            0x8317, 0x0312, 0x0330, 0x8335, 0x833F, 0x033A, 0x832B,
+            0x032E, 0x0324, 0x8321, 0x0360, 0x8365, 0x836F, 0x036A,
+            0x837B, 0x037E, 0x0374, 0x8371, 0x8353, 0x0356, 0x035C,
+            0x8359, 0x0348, 0x834D, 0x8347, 0x0342, 0x03C0, 0x83C5,
+            0x83CF, 0x03CA, 0x83DB, 0x03DE, 0x03D4, 0x83D1, 0x83F3,
+            0x03F6, 0x03FC, 0x83F9, 0x03E8, 0x83ED, 0x83E7, 0x03E2,
+            0x83A3, 0x03A6, 0x03AC, 0x83A9, 0x03B8, 0x83BD, 0x83B7,
+            0x03B2, 0x0390, 0x8395, 0x839F, 0x039A, 0x838B, 0x038E,
+            0x0384, 0x8381, 0x0280, 0x8285, 0x828F, 0x028A, 0x829B,
+            0x029E, 0x0294, 0x8291, 0x82B3, 0x02B6, 0x02BC, 0x82B9,
+            0x02A8, 0x82AD, 0x82A7, 0x02A2, 0x82E3, 0x02E6, 0x02EC,
+            0x82E9, 0x02F8, 0x82FD, 0x82F7, 0x02F2, 0x02D0, 0x82D5,
+            0x82DF, 0x02DA, 0x82CB, 0x02CE, 0x02C4, 0x82C1, 0x8243,
+            0x0246, 0x024C, 0x8249, 0x0258, 0x825D, 0x8257, 0x0252,
+            0x0270, 0x8275, 0x827F, 0x027A, 0x826B, 0x026E, 0x0264,
+            0x8261, 0x0220, 0x8225, 0x822F, 0x022A, 0x823B, 0x023E,
+            0x0234, 0x8231, 0x8213, 0x0216, 0x021C, 0x8219, 0x0208,
+            0x820D, 0x8207, 0x0202 };
+            int crc_accum = 0;
+            for (j = 0; j < data_blk_size; j++)
+            {
+                i = (byte)(((byte)(crc_accum >> 8) ^ data_blk_ptr[j]) & 0xFF);
+                crc_accum = (crc_accum << 8) ^ crc_table[i];
+            }
+            return crc_accum;
+        }
+        #endregion Serial 기본 함수 모음
+
+        #region Task
+
+        uint unTask_Addr = 0x8010000;
+        int nTask_Size = 64 * 1024;
+
+        #endregion Task
+
+        #region Motion
+
+        uint unMotion_Addr = 0x8080000;
+        int nMotion_Size = 512 * 1024;
+
+        #endregion Motion
+
+        // 0 : Task, 1 : Motion, 2 : Python
+        // 0 : Task, 1 : Motion, 2 : Python
+        public bool FDownload(int nFileType_0_Task, string strFileName)
+        {
+            // 시작할 때 웬만하면 통신 초기화 하고 쓰자.(물론 나중에... ^^;;;)
+
+            //uint uiFw_Size = 256 * 1024 * 3;
+
+            FileInfo f = null;
+            FileStream fs = null;
+            try
+            {
+                #region byteData 에 파일을 옮겨 놓는다.
+                byte[] byteData;
+
+                f = new FileInfo(strFileName);
+                fs = f.OpenRead();
+                byteData = new byte[fs.Length];
+                fs.Read(byteData, 0, byteData.Length);
+                int nSize = byteData.Length + ((nFileType_0_Task == 2) ? 512 : 0);
+                //strFileName2 = f.Name;
+
+                fs.Close();
+                f = null;
+                #endregion byteData 에 파일을 옮겨 놓는다.
+
+                // 이제부터 byteData 에 있는 데이타를 가지고 처리... 0 ~ (byteData.Length - 1)
+
+                // 파일의 정보를 표시
+                Ojw.CMessage.Write("file Name \t: {0} ", strFileName);
+                Ojw.CMessage.Write("file Size \t: {0} KB", nSize / 1024);
+                if ((nFileType_0_Task == 0) || (nFileType_0_Task == 2)) // Task or Python
+                {
+                    if (nSize > nTask_Size)
+                    {
+                        Ojw.CMessage.Write_Error("[{0}]file size checking -> Overflow", ((nFileType_0_Task == 0) ? ("Task") : ("Python")));
+                        return false;
+                    }
+                }
+                else if (nFileType_0_Task == 1) // Motion
+                {
+                    if (nSize > nMotion_Size)
+                    {
+                        Ojw.CMessage.Write_Error("[Motion]file size checking -> Overflow");
+                        return false;
+                    }
+                }
+                #region Erase
+                //while (true)
+                //{
+                int nAddress_Start = (int)unTask_Addr;
+                if (nFileType_0_Task == 1) // Motion
+                {
+                    nAddress_Start = (int)unMotion_Addr;
+                    //uiFw_Size = uiFw_Size - (uiFw_Size % 512);
+                }
+                byte[] byteBuf = Ojw.CConvert.IntToBytes((int)nSize); //new byte[4];// Ojw.CConvert.IntToBytes((int)nSize);
+
+                byteBuf[0] = (byte)((nSize >> 0) & 0xff);
+                byteBuf[1] = (byte)((nSize >> 8) & 0xff);
+                byteBuf[2] = (byte)((nSize >> 16) & 0xff);
+                byteBuf[3] = (byte)((nSize >> 24) & 0xff);
+
+                Ojw.CMessage.Write("================ Erasing... ==============");
+                Write(200, 0xf0, nAddress_Start, byteBuf);
+
+                //Ojw.CTimer.Wait(100); // 100 ms 대기해 보자. 리턴데이타를 쏘는 대신 대기해서 돌아오는 메일 체크해 보자. 추후 리턴데이타를 여기서 직접 체크하는 것으로...
+                int nRet = FReceive(10000); // 리턴데이타 직접 체크
+
+                if (nRet < 0)
+                {
+                    Ojw.CMessage.Write_Error("Fail [Erase]");
+                    return false;
+                    //break;
+                }
+
+                Ojw.CMessage.Write("================ Writing... ==============");
+                int nSize_Tx_Block = 512;
+                int nPercent = 0;
+                //int i = 0;
+                //while ((m_bProgEnd == false) && (m_CSerial.IsConnect() == true))
+                //{
+
+                //    nPercent = (addr + readbytes) * 100 / (int)uiFw_Size;
+                //    Ojw.CMessage.Write("flash fw \t: {0}%", nPercent);
+                //    i++;
+                //}
+                nRet = -1;
+                for (int i = 0; i < byteData.Length; i += nSize_Tx_Block)
+                {
+                    int nPos = i;
+                    int nLength = (((nPos + nSize_Tx_Block) < byteData.Length) ? nSize_Tx_Block : byteData.Length - nPos);// - 1);
+                    nPercent = nPos * 100 / (byteData.Length - 1);
+                    Ojw.CMessage.Write("flash fw \t: {0}%", nPercent);
+
+
+                    for (int nRetrieve = 0; nRetrieve < 3; i++)
+                    {
+                        byte[] byteLen = Ojw.CConvert.IntToBytes((int)nLength);
+                        byte[] buff = new byte[nLength + 4];
+                        Array.Copy(byteLen, 0, buff, 0, 4);
+                        Array.Copy(byteData, i, buff, 4, nLength);
+                        Write(200, 0xf2, nAddress_Start + nPos + ((nFileType_0_Task == 2) ? 512 : 0), buff);
+                        //dxlcmdMemoryWrite(&dxl_ttl, 200, 0x8080000 + addr, (uint8_t*)block_buf, len, &errcode, 1000);
+                        nRet = FReceive(10000);
+                        if (nRet == 0)
+                        {
+                            break;
+                        }
+                    }
+                    if (nRet != 0)
+                    {
+                        break;
+                    }
+                }
+
+                if (nRet != 0)
+                {
+                    Ojw.CMessage.Write_Error("Download \t: Fail");
+                    return false;
+                }
+                else
+                {
+                    Ojw.CMessage.Write("Download \t: OK");
+                }
+
+                //}
+                #endregion Erase
+
+                if (nFileType_0_Task == 2) // Python
+                {
+                    int type = 1;
+                    byte[] byte_type = Ojw.CConvert.IntToBytes((int)type);
+                    int address = 0x8010000 + 512;
+                    byte[] byte_address = Ojw.CConvert.IntToBytes((int)address);
+                    int length = byteData.Length;
+                    byte[] byte_length = Ojw.CConvert.IntToBytes((int)length);
+                    //UInt16 crc = (UInt16)updateCRC(tmpForCRC, tmpForCRC.Length);
+                    short crc = 0;
+                    byte[] byte_crc = Ojw.CConvert.ShortToBytes(crc);
+                    byte[] fw_str = new byte[32];
+                    byte[] resserved = new byte[466];
+
+                    byte[] temp = Ojw.CConvert.StrToBytes("CM-550 Python");
+                    for (int ix = 0; ix < temp.Length; ix++)
+                        fw_str[ix] = temp[ix];
+
+                    byte[] tmpForCRC = new byte[512];
+                    Array.Copy(byte_type, 0, tmpForCRC, 0, byte_type.Length);
+                    Array.Copy(byte_address, 0, tmpForCRC, byte_type.Length, byte_address.Length);
+                    Array.Copy(byte_length, 0, tmpForCRC, byte_address.Length + byte_type.Length, byte_length.Length);
+                    Array.Copy(byte_crc, 0, tmpForCRC, byte_address.Length + byte_type.Length + byte_length.Length, byte_crc.Length);
+                    Array.Copy(fw_str, 0, tmpForCRC, byte_address.Length + byte_type.Length + byte_length.Length + byte_crc.Length, fw_str.Length);
+                    Array.Copy(resserved, 0, tmpForCRC, byte_address.Length + byte_type.Length + byte_length.Length + byte_crc.Length + fw_str.Length, resserved.Length);
+
+                    crc = (short)updateCRC(byteData, byteData.Length);
+                    byte_crc = Ojw.CConvert.ShortToBytes(crc);
+
+                    byte[] length_data = Ojw.CConvert.IntToBytes(512);
+                    byte[] tagInformation = new byte[516];
+                    Array.Copy(length_data, 0, tagInformation, 0, length_data.Length);
+                    Array.Copy(byte_type, 0, tagInformation, 4, byte_type.Length);
+                    Array.Copy(byte_address, 0, tagInformation, byte_type.Length + 4, byte_address.Length);
+                    Array.Copy(byte_length, 0, tagInformation, byte_address.Length + byte_type.Length + 4, byte_length.Length);
+                    Array.Copy(byte_crc, 0, tagInformation, byte_address.Length + byte_type.Length + byte_length.Length + 4, byte_crc.Length);
+                    Array.Copy(fw_str, 0, tagInformation, byte_address.Length + byte_type.Length + byte_length.Length + byte_crc.Length + 4, fw_str.Length);
+                    Array.Copy(resserved, 0, tagInformation, byte_address.Length + byte_type.Length + byte_length.Length + byte_crc.Length + fw_str.Length + 4, resserved.Length);
+
+                    byteBuf = null;
+                    byteData = null;
+
+                    Write(200, 0xf2, nAddress_Start, tagInformation);
+                    nRet = FReceive(10000);
+                    if (nRet != 0)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }           
+#else
+        public void Download()
+        {
+            //m_C3d.m_CRobotis.Write(200, 21, (byte)0x02);
+            //Ojw.CTimer.Wait(1000);
+            string strFile = string.Format("{0}\\{1}", m_strWorkDirectory_Dmt, "output.bin");
+            BinFileSave(strFile);
+            if (FDownload(1, strFile) == true)
+            {
+                //m_C3d.m_CRobotis.Write(200, 21, (byte)0x00);
+                //Ojw.CTimer.Wait(1000);
+                //m_C3d.m_CRobotis.Write(200, 21, (byte)0x02);
+                //m_C3d.m_CRobotis.Write(200, 66, (byte)0x01);
+                //Ojw.CTimer.Wait(100);
+                //m_C3d.m_CRobotis.Write(200, 21, (byte)0x02);
+                //Ojw.CTimer.Wait(1000);
+                //m_C3d.m_CRobotis.Write(200, 65, (byte)0x03);
+                //Ojw.CTimer.Wait(100);
+
+                //m_C3d.m_CRobotis.Write(200, 66, (byte)0x02);
+                //Ojw.CTimer.Wait(100);
+                //m_C3d.m_CRobotis.Write(200, 65, (byte)0x03);
+                //Ojw.CTimer.Wait(100);
+            }
+        }
+
+#if true
+        private int FReceive(int nTimeOut) // 0 : OK, -1 : Timeout
+        {
+            Ojw.CTimer.Wait(50);
+            return 0;
+
+            Ojw.CTimer CTmr = new Ojw.CTimer();
+            CTmr.Set();
+            byte[] buf;// = new char[256];
+            Ojw.CMessage.Write("[Receive] Running");
+            bool bRet = false;
+            while ((m_bProgEnd == false) && (m_C3d.m_CRobotis.m_CSerial.IsConnect() == true))
+            {
+                int nSize = m_C3d.m_CRobotis.m_CSerial.GetBuffer_Length();
+                if (nSize > 0)
+                {
+                    buf = m_C3d.m_CRobotis.m_CSerial.GetBytes();
+
+                    //if (m_nProtocolVersion == 1)
+                    //{
+                    //    Parsor1(buf, nSize);
+                    //}
+                    //else
+                    bRet = Parsor(buf);
+
+                }
+                else
+                {
+                    if (bRet == true) return 0;
+                }
+                if (CTmr.Get() > nTimeOut)
+                {
+                    Ojw.CMessage.Write_Error("Timeout");
+                    return -1;
+                }
+                Ojw.CTimer.Wait(1);
+            }
+
+            Ojw.CMessage.Write("[Receive] Done");
+            return 0;
+        }
+        private int m_nIndex = 0;
+        private int m_nIndex2 = 0;
+        private uint m_unHeader = 0;
+        private int m_nPack_Length = -1;
+        private int m_nPack_ID = 0;
+        private int m_nPack_Command = 0;
+        private int m_nPack_Error = 0;
+        private byte[] m_abyReturn;
+        private int m_nPack_CRC0 = 0;
+        private int m_nPack_CRC1 = 0;
+        private bool Parsor(byte[] buf)
+        {
+            bool bRet = false;
+            for (int i = 0; i < buf.Length; i++)
+            {
+                if (m_unHeader == 0xfffffd00)
+                {
+                    m_abyReturn = new byte[4];
+                    m_nIndex = 1;
+                    m_nPack_Length = -1;
+                    m_nIndex2 = 0;
+                }
+                m_unHeader = (((m_unHeader << 8) & 0xffffffff) | buf[i]);
+
+                switch (m_nIndex)
+                {
+                    case 1: // 
+                        {
+                            //m_nPack_ID = GetAxis_By_ID(buf[i]);//buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 2: // Length
+                        {
+                            if (m_nPack_Length < 0)
+                            {
+                                m_nPack_Length = buf[i];
+                            }
+                            else
+                            {
+                                m_nPack_Length |= ((buf[i] << 8) & 0xff00);
+                                m_nIndex++;
+                            }
+                        }
+                        break;
+                    case 3: // Command : Instruction
+                        {
+                            m_nPack_Command = buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 4:
+                        {
+                            m_nPack_Error = buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 5:
+                        {
+                            int nAddress = 0;// ((m_nPack_Address < 0) ? 128 : m_nPack_Address);
+                            //m_abyReturn[m_nPack_ID, nAddress + m_nIndex2] = buf[i];
+                            m_abyReturn[m_nIndex2] = buf[i];
+
+                            if (m_nIndex2 < m_nPack_Length - 4 - 1) m_nIndex2++;
+                            else m_nIndex++;
+                        }
+                        break;
+                    case 6: // crc
+                        {
+                            m_nPack_CRC0 = buf[i];
+                            m_nIndex++;
+                        }
+                        break;
+                    case 7: // crc
+                        {
+                            m_nPack_CRC1 = buf[i];
+                            m_nIndex = 0;
+
+                            // 이 프로그램에서는 굳이 받은 정보를 카운팅하거나 이벤트 체크할 필요 없다.
+                            //m_abReceivedPos[m_nPack_ID] = true;
+                            //m_nSeq_Receive++;
+                            if (m_nPack_Command == 0x55)
+                            {
+                                int nError = BitConverter.ToInt32(m_abyReturn, 0);
+                                Ojw.CMessage.Write("<<Received Data>> : 패킷에러는 {0}, 데이타 명령 Error Code[{1}, {2}, {3}, {4}] => {5}", ((m_nPack_Error == 0) ? "없음" : "발견"),
+                                    m_abyReturn[0],
+                                    m_abyReturn[1],
+                                    m_abyReturn[2],
+                                    m_abyReturn[3],
+                                    nError
+                                    );
+
+                                if (
+                                     (m_nPack_Error == 0) && (nError == 0)
+                                    )
+                                {
+                                    bRet = true;
+                                }
+                            }
+                            else
+                            {
+                                if (m_nPack_Error == 0) bRet = true;
+                                Ojw.CMessage.Write("<<Received Data>>");
+                            }
+                        }
+                        break;
+                }
+            }
+            return bRet;
+        }
+        private bool FDownload(int nFileType_0_Task, string strFileName)
+        {
+            // 시작할 때 웬만하면 통신 초기화 하고 쓰자.(물론 나중에... ^^;;;)
+
+            //uint uiFw_Size = 256 * 1024 * 3;
+            #region Task
+            uint unTask_Addr = 0x8010000;
+            int nTask_Size = 64 * 1024;
+            #endregion Task
+
+            #region Motion
+            uint unMotion_Addr = 0x8080000;
+            int nMotion_Size = 512 * 1024;
+            #endregion Motion
+
+            FileInfo f = null;
+            FileStream fs = null;
+            try
+            {
+                #region byteData 에 파일을 옮겨 놓는다.
+                byte[] byteData;
+
+                f = new FileInfo(strFileName);
+                fs = f.OpenRead();
+                byteData = new byte[fs.Length];
+                fs.Read(byteData, 0, byteData.Length);
+                int nSize = byteData.Length;
+                //strFileName2 = f.Name;
+
+                fs.Close();
+                f = null;
+                #endregion byteData 에 파일을 옮겨 놓는다.
+
+                // 이제부터 byteData 에 있는 데이타를 가지고 처리... 0 ~ (byteData.Length - 1)
+
+                // 파일의 정보를 표시
+                Ojw.CMessage.Write("file Name \t: {0} ", strFileName);
+                Ojw.CMessage.Write("file Size \t: {0} KB", nSize / 1024);
+
+                if (nSize > nMotion_Size)
+                {
+                    Ojw.CMessage.Write_Error("file size checking -> Overflow");
+                    return false;
+                }
+
+                #region Erase
+                //while (true)
+                //{
+                int nAddress_Start = (int)unTask_Addr;
+                if (nFileType_0_Task != 0) // Motion
+                {
+                    nAddress_Start = (int)unMotion_Addr;
+                    //uiFw_Size = uiFw_Size - (uiFw_Size % 512);
+                }
+                byte[] byteBuf = Ojw.CConvert.IntToBytes((int)nSize); //new byte[4];// Ojw.CConvert.IntToBytes((int)nSize);
+
+                byteBuf[0] = (byte)((nSize >> 0) & 0xff);
+                byteBuf[1] = (byte)((nSize >> 8) & 0xff);
+                byteBuf[2] = (byte)((nSize >> 16) & 0xff);
+                byteBuf[3] = (byte)((nSize >> 24) & 0xff);
+
+                Ojw.CMessage.Write("================ Erasing... ==============");
+                m_C3d.m_CRobotis.Write(200, 0xf0, nAddress_Start, byteBuf);
+
+                //Ojw.CTimer.Wait(100); // 100 ms 대기해 보자. 리턴데이타를 쏘는 대신 대기해서 돌아오는 메일 체크해 보자. 추후 리턴데이타를 여기서 직접 체크하는 것으로...
+                int nRet = FReceive(10000); // 리턴데이타 직접 체크
+
+                if (nRet < 0)
+                {
+                    Ojw.CMessage.Write_Error("Fail [Erase]");
+                    return false;
+                    //break;
+                }
+
+                Ojw.CMessage.Write("================ Writing... ==============");
+                int nSize_Tx_Block = 512;
+                int nPercent = 0;
+                //int i = 0;
+                //while ((m_bProgEnd == false) && (m_C3d.m_CRobotis.m_CSerial.IsConnect() == true))
+                //{
+
+                //    nPercent = (addr + readbytes) * 100 / (int)uiFw_Size;
+                //    Ojw.CMessage.Write("flash fw \t: {0}%", nPercent);
+                //    i++;
+                //}
+                nRet = -1;
+                for (int i = 0; i < byteData.Length; i += nSize_Tx_Block)
+                {
+                    int nPos = i;
+                    int nLength = (((nPos + nSize_Tx_Block) < byteData.Length) ? nSize_Tx_Block : byteData.Length - nPos - 1);
+                    nPercent = nPos * 100 / (byteData.Length - 1);
+                    Ojw.CMessage.Write("flash fw \t: {0}%", nPercent);
+
+
+                    for (int nRetrieve = 0; nRetrieve < 3; i++)
+                    {
+                        byte[] byteLen = Ojw.CConvert.IntToBytes((int)nLength);
+                        byte[] buff = new byte[nLength + 4];
+                        Array.Copy(byteLen, 0, buff, 0, 4);
+                        Array.Copy(byteData, i, buff, 4, nLength);
+                        m_C3d.m_CRobotis.Write(200, 0xf2, nAddress_Start + nPos, buff);
+                        //dxlcmdMemoryWrite(&dxl_ttl, 200, 0x8080000 + addr, (uint8_t*)block_buf, len, &errcode, 1000);
+                        nRet = FReceive(10000);
+                        if (nRet == 0)
+                        {
+                            break;
+                        }
+                    }
+                    if (nRet != 0)
+                    {
+                        break;
+                    }
+                }
+
+                if (nRet != 0)
+                {
+                    Ojw.CMessage.Write_Error("Download \t: Fail");
+                    return false;
+                }
+                else
+                {
+                    Ojw.CMessage.Write("Download \t: OK");
+                }
+
+                byteBuf = null;
+                byteData = null;
+                //}
+                #endregion Erase
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+
+
+        }
+#endif
+#endif
     }
 }

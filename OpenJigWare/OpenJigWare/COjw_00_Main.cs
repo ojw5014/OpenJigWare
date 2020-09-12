@@ -11,6 +11,7 @@
  * supported by Donghyeon-Lee (3 dof parallel Delta robot Kinematics function made)
  * supported by JhoYoung-Choi (Motion Editor advise = beta testing = - tajo27@naver.com) & Debugging & recommend new feature(simulation... and so on)
  * supported by Daniel Park, from DevTree (Motion Editor advise = beta testing = - www.facebook.com/DevTree)
+ * supported by Hyungon Kim, from Robotis (Excel command advise)
  * =================================================================================================================> Written by Jinwook, On
  */
 
@@ -20,6 +21,17 @@ http://blog.daum.net/toyship/112
 마우스로 클릭한 위치의 3차원 계산
 #endif
 #endregion 나중에 참고
+
+/*
+ CLR에서 60초 동안 COM 컨텍스트 0x179930에서 COM 컨텍스트 0x179b58(으)로 전환하지 못했습니다. 
+대상 컨텍스트/아파트를 소유하는 스레드가 펌프 대기를 수행하지 않거나, Windows 메시지를 펌프하지 않고 매우 긴 실행 작업을 처리하고 있는 것 같습니다. 
+이러한 상황은 대개 성능에 부정적인 영향을 주며 응용 프로그램이 응답하지 않거나 시간이 흐름에 따라 메모리 사용이 증가하는 문제로 이어질 수도 있습니다. 
+이 문제를 방지하려면 모든 STA(Single Threaded Apartment) 스레드가 펌프 대기 기본 형식(예: CoWaitForMultipleHandles)을 사용하고 긴 실행 작업 동안 지속적으로 메시지를 펌프해야 합니다.
+출처: http://captainyellow.tistory.com/556 [캡틴노랑이]
+ 
+ * => Visual Studio의 Debug 메뉴에서
+      Exceptions->Managed Debugging Assistants 트리확장 > ContextSwitchDeadlock항목 Thrown 체크 풀기
+ */
 
 using System;
 using System.Collections.Generic;
@@ -65,15 +77,181 @@ if you have some errors like this...
 //          and.. you can change it all names when you made all things completely.(check it from like COjw_00_~)
 namespace OpenJigWare
 {
+    #region 명령 설명
+#if false
+    [(퀵)명령]
+    <<Arg0 은 붙어 있는 명령>>
+    Cmd    Arg0    Arg1
+    W		안녕?   			captiondp "안녕?" 이라는 말을 넣는다.
+    G		1			Group 1 로 셋팅한다.(0은 해제)		
+    S		100			100 ms 에 맞춰 모터를 동작 시킨다.								
+    D		100			동작 후 100 ms 멈춘다.								
+    E		1			프레임 Enable(1 - Enable, 0 - Disable)								
+    R	2				2번 수식의 Forward 를 풀어 메모리에 가지고 있는다.								
+    N	2	10	20	30		2번 수식 사용 (10, 20, 30) 의 위치로 이동								
+    I	2	5	0	-7		2번 수식 사용 x 를 마지막 사용한 값에서 5 증가, z 를 마지막 사용한 값에서 7 감소								
+    T	2	10			2번 모터의 위치값을 10 으로 변경한다.								
+    P	2	3			2번 모터의 위치값을 현재의 값에 "3" 을 더한다.								
+    M	2	0.5			2번 모터의 위치값에 0.5 를 곱한다.								
+    C	2	-5			5번 모터의 값을 2번 모터에 붙인다.(-가 붙으면 반대방향으로 붙인다.)								
+    X               -1                      전체 모터 미러링
+    X               1                       1번모터 미러링
+
+
+    [명령]
+    @HELP
+    @SET_ABS,[Num],[X],[Y],[Z]
+    @SET_ABS2,[Num],[X],[Y],[Z] // 모든 Motors 의 위치가 0 일 경우의 좌표점을 기준점으로 삼는 절대값
+    @SET_INC,[Num],[X],[Y],[Z]
+    @SET_INC1,[Num][x_y_z_0_1_2],[길이],[Rot_X_Y_Z_0_1_2],[각도]
+    @SET_INC2,[Num][x],[y],[z],[Rot_X],[Rot_Y],[Rot_Z] 
+    @SET_INC3,[Num],[반경(길이)],[각도],[z]   // 원통좌표계
+    @INIT,-1  // 전체 초기화
+    @INIT,[Line]   // Line 초기화
+    @SET,[Axis],[value]   // 모터 값 설정
+    @SET_PLUS,[Axis],[Value] // 모터 값 증분
+    @CLEAR,[Line] // Line 모터 0 설정
+    @ENTER,[{LineCount}]    // [LineCount]삭제가능, LineCount 만큼 밑으로 이동
+    @SPACE,[{ColumnCount}]    // [ColumnCount]삭제가능, ColumnCount 만큼 옆으로 이동
+    @SET_COMMAND,[Value]
+    @SET_DATA0,[Value]
+    @SET_DATA1,[Value]
+    @SET_DATA2,[Value]
+    @SET_DATA3,[Value]
+    @SET_DATA4,[Value]
+    @SET_DATA5,[Value]
+    @SET_ENABLE,[Value]
+    @SET_SPEED,[Value]
+    @SET_DELAY,[Value]
+    @SET_MULTI,[Axis],[Value] // 모터 값 곱
+    @READ,[Num]    // 해당 수식의 Forward 값을 읽음
+    @COPY,[ORG],[TARGET],[DIR:0] 
+    @ROT,[X],[Y],[Z]  // Rot, Rotate, Rotation
+    @TRANS,[X],[Y],[Z] // Trans, Translate, Translation
+    @SCALE,[Value]   // 1.0 기준
+#endif
+    #endregion 명령 설명
     #region Version
     #region Cautions **********************************************************
 
     #endregion Cautions **********************************************************
     // OJW5014_20151012
     public struct SVersion_T
-    {        
-        public const string strVersion = "02.00.07";
+    {
+        public const string strVersion = "02.00.44";
         public const string strHistory = (String)(
+                "[V02.00.44]\r\n" +
+                "기준축 값 변경 명령 추가 - SetStandardAxis(bFill_true, fAlpha_1f, fThick_1, fLength_40000f)" + "\r\n" + 
+                "  [ 기준축 보이기 - ex)" + "\r\n" +
+                "  m_C3d.SetStandardAxis(true);" + "\r\n" +
+                "  bool bFill_true = true;" + "\r\n" +
+                "  float fAlpha_1f = 1.0f;" + "\r\n" +
+                "  float fThick_1 = 5.0f;" + "\r\n" +
+                "  float fLength_40000f = 40000.0f;" + "\r\n" +
+                "  ]" + "\r\n" +
+                "  m_C3d.SetStandardAxis(bFill_true, fAlpha_1f, fThick_1, fLength_40000f);" + "\r\n" +
+                "========================================\r\n" +   
+                "[V02.00.43]\r\n" +
+                "GetData_Forward() 에서 데이타가 저장되지 않는 경우의 버그를 해결\r\n" +
+                "========================================\r\n" + // Release   
+                "[V02.00.42]\r\n" +
+                "구형 버전의 Ojw파일에서 stl 뒤에 '*' 를 붙여 구분하는 것에 대해 소문자 파일이름만 적용되는 버그 해결\r\n" +
+                "========================================\r\n" + // Release   
+                "[V02.00.41]\r\n" +
+                "델타 Forward 수식 디버깅\r\n" +
+                "========================================\r\n" + // Release   
+                "[V02.00.40]\r\n" +
+                "헐크버스터 모델 추가\r\n" +
+                "신규 모델링 툴 수정 - 모델링 텍스트 클릭 시 같이 이동하는 부분 적용, Forward/Inverse Kinematics 텍스트 삭제되는 현상 수정\r\n" +
+                "========================================\r\n" + // Release   
+                "[V02.00.39]\r\n" +
+                "Motion Editor bug 해결\r\n" +
+                "Motion Editor 에서 ax-12 적용 가능하도록 수정\r\n" +
+                "Kinematics.cs 에서 Motor Setting 탭의 MotorName 부분 옆 Set 버튼으로 설정 자동화 부분 제작\r\n" +
+                "MakeDHSkeleton 에서 자동으로 추가되는 마지막 파츠 삭제\r\n" +
+                "========================================\r\n" + // Release   
+                "[V02.00.38]\r\n" +
+                "Motion Editor 작성 중\r\n" +
+                "========================================\r\n" + // No Release   
+                "[V02.00.36]\r\n" +
+                "Monster2 Library 개량 및 안정화\r\n" +
+                "========================================\r\n" + // No Release   
+                "[V02.00.35b]\r\n" +
+                "Kinematics compiler 에서 수식 버그 해결 (W변수 선언시...)\r\n" +
+                "========================================\r\n" + // No Release    
+                "[V02.00.34b]\r\n" +
+                "RemoveCaption - 지정한 캡션으로 지우는 기능 추가\r\n" + 
+                "MakeDHSkeleton 개선, 불필요한 모델링 만들어지지 않게...\r\n" +
+                "Making [new design tool]\r\n" +
+                "========================================\r\n" + // No Release              
+                "[V02.00.33b]\r\n" +
+                "Import 기능 디버깅 - 시리얼 포트가 오픈되지 않아 모터 인식이 되지 않은 경우에 null 에러가 있던 버그 해결\r\n" +
+                "========================================\r\n" + // No Release  
+                "[V02.00.32b]\r\n" +
+                "모션툴에서 파일 오픈시 소슷점 첫째자리 반올림 하도록 수정\r\n" +
+                "CM550 다운로더 버그 해결 - 사이즈 계산 미스\r\n" +
+                "========================================\r\n" + // No Release  
+                "[V02.00.31b]\r\n" +
+                "모터명령의 버그패치, 모터초기값 버그 패치(Center 값과 MechMove 값이 바뀌어있는 문제)\r\n" +
+                "scanf_answer 초기값 변경\r\n" +
+                "========================================\r\n" + // No Release  
+                "[V02.00.30b]\r\n" +
+                "Excel 을 읽어올 때 모터의 인덱스와 실제 모터 아이디가 다른 경우도 적용, 엑셀의 항목 [덧붙임 명령어] 적용\r\n" +
+                "_USING_DOTNET_3_5 적용 시 COjw_03_Message.cs 내 OjwDebugMessage() 함수에서 while 반복문을 사용해 시스템이 느려지는 현상이 있어 이를 tmpLines.CopyTo(txtOjwMessage.Lines, 0) 한줄로 변경\r\n" +
+                "FileImport 문제 해결\r\n" +
+                "========================================\r\n" + // No Release  
+                "기존 구현한 소스와의 호환성을 위해 CMonster 클래스의 EMotor_t 순서를 CDynamixel 클래스에 맞춤(ex:_MODEL_XL_430)\r\n" +
+                "========================================\r\n" + // No Release  
+                "[V02.00.28b]\r\n" +
+                "수식 부에서 Clear 있단 부분(#define _REMOVE_CLR_COMMAND) 원상복귀 - 누적 문제가 발생한다.\r\n" +
+                "3D 모델링에서의 m_pSRot 변수를 초기 클리어 하는 부분 전에 삽입했었는데 이게 문제가 되어 초기화 위치를 다른곳으로 변경\r\n" +
+                "========================================\r\n" + // Tutorial Release  
+                "[V02.00.27b]\r\n" +
+                "InitGLContext() 에서 Gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f) 함수의 AccessViolation 문제가 발생해\r\n " + 
+                "기존 public void Init(Control ctrlMain) 함수내의 this.InitializeContexts() 를 C3c() 초기화 함수 위치로 변경, \r\n" +
+                "InitGLContext() 함수보다 먼저 발생하게 하였다.\r\n" +
+                "========================================\r\n" + // Tutorial Release  
+                "[V02.00.26b]\r\n" +
+                "CM550 모션 다운로드 기능 리피트 모션 적용\r\n" +
+                "========================================\r\n" + // Tutorial Release  
+                "[V02.00.25]\r\n" +
+                "모션 스프레드시트 명령 기능 강화(x 명령 추가-미러링-)\r\n" +
+                "R+Motion 복사기능 강화 - 클립보드 변형이 아닌 그냥 복사되게 : Control^C + R 에서 Control^R 만 해도 되게 변경, 어느 한 프레임만 선택해도 복사되게\r\n" +
+                "========================================\r\n" + // Tutorial Release  
+                "[V02.00.24]\r\n" +
+                "Autoset 기능 강화\r\n" +
+                "========================================\r\n" + // Tutorial Release  
+                "[V02.00.23]\r\n" +
+                "CMonster Library 타임 추정 알고리즘 수정\r\n" +
+                "========================================\r\n" + // Tutorial Release  
+                "[V02.00.22]\r\n" +
+                "Tutorial Release - No Upload\r\n" +
+                "Monster Library 의 타임추정 알고리즘 강화\r\n" +
+                "========================================\r\n" + // Tutorial Release            
+                "[V02.00.21]\r\n" +
+                "Tutorial Release - No Upload\r\n" +
+                "Joystick bug 해결\r\n" +
+                "#18 Lines 기능 강화\r\n" +
+                "========================================\r\n" + // Tutorial Release            
+                "[V02.00.20]\r\n" +
+                "Ojw.CMessage.Write -> Ojw.Log 계열 명령으로 가능하도록 함수 추가\r\n" +
+                "Monster Libraty 1차 완성\r\n" +
+                "Socket streaming 보완. dotnet 3.5 에서도 동작하게끔 스트리밍 조건 수정\r\n" +
+                "========================================\r\n" + // No Released            
+                "[V02.00.10]\r\n" +
+                "CGrid 클래스 강화, CFile 클래스 일반 파일 로딩 부분 강화\r\n" +
+                "CMonster 라이브러리 피드백을 제외한 제어의 완성(1차 테스트 완료, ax, xl-430의 동시제어) -> xl_320 은 아직 제외\r\n" +
+                "FileImport/FileExport 개념 추가\r\n" +
+                "Monster 라이브러리 제작 중\r\n" +
+                "Downgrade : dotnetframework 4.0 -> 3.5 (for unity)\r\n" +
+                "========================================\r\n" + // No Released            
+                "[V02.00.09]\r\n" +
+                "freeglut.dll 의 자동 복사\r\n" +
+                "========================================\r\n" + // No Released            
+                "[V02.00.08]\r\n" +
+                "엑셀 호환기능 대폭강화\r\n" +
+                "COjw_12_3D.cs 의 PlayFrame 내 (nLine < 0)인 경우의 버그 해결 - Play_Motion 함수가 동작을 안하는 버그가 발생했었음.\r\n" +
+                "========================================\r\n" + // No Released            
                 "[V02.00.07]\r\n" +
                 "COjw_31_Dynamixel.cs 클래스 추가 및 다이나믹셀 프로토콜 버전 2 기능 추가(with motion tool)\r\n" + 
                 "CompareDirectory_List 함수의 버그 수정\r\n" +
@@ -350,8 +528,8 @@ namespace OpenJigWare
         public float fRpm;//0.229f); // 기본 rpm 단위
         public int nLimitRpm_Raw;//415);
         public int nProtocolVersion;//2); // Version 2(0 해도 동일)
-        public int nHwMotorName; // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12
-        public int nHwModelNum;//1060); // 0번지에 모델번호 1060, XM430_W210 : 1030, XM430_W350 : 1020
+        public int nHwMotor_Index; // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12 => 지금은 이거아님, Monster2 클래스에서 확인(dicMonster)
+        public int nHwMotor_Key;//1060); // 0번지에 모델번호 1060, XM430_W210 : 1030, XM430_W350 : 1020
         public int nAddr_Max;//146);
         public int nAddr_Torq;//64);
         public int nAddr_Led;//65);
@@ -364,9 +542,9 @@ namespace OpenJigWare
         public int nAddr_Pos_Size;//4);
         public int nSerialType;  // 0 : Default, 1 : Second ... (동시에 2개 이상의 시리얼에 연결된 경우 사용)
 
-        public int nReserve_0;
-        public int nReserve_1;
-        public int nReserve_2;
+        public int nMotorEnable_For_RPTask; // 0: Dontcare, 1: Enable, -1: Disable(이게 -1 이면 로보티즈 모션으로 복사 시 해당 값을 무시한다.)
+        public int nMotor_Enable; // 0: Dontcare, 1: Enable, -1: Disable => 이게 Disable 이면 모터 표시를 죽인다.
+        public int nMotionEditor_Index; // 0 이면 사용 안함. 1 부터 사용, 0 이상인 경우 여기의 인덱스를 우선적으로 적용, 하나를 세팅했으면 반드시 다른 하나도 세팅할 것
         public int nReserve_3;
         public int nReserve_4;
         public int nReserve_5;
@@ -374,8 +552,8 @@ namespace OpenJigWare
         public int nReserve_7;
         public int nReserve_8;
         public int nReserve_9;
-        public float fReserve_0;
-        public float fReserve_1;
+        public float fGearRatio; // 2차 기어비
+        public float fRobotisConvertingVar; // 로보티즈 모델링 매칭을 위한 컨버팅 변수
         public float fReserve_2;
         public float fReserve_3;
         public float fReserve_4;
@@ -391,38 +569,59 @@ namespace OpenJigWare
     {
         public CDhParam() // Constructor
         {
+            //nFunction = -1; // 이게 0 이상이면 Forward 수식 대신 Inverse 수식의 지정 함수가 대신 동작한다.
+            nInit = 0;
             dA = 0;
             dD = 0;
             dTheta = 0;
             nAxisNum = -1;
             nAxisDir = 0;
+            nStartGroup = 0;
+            dOffset_X = 0;
+            dOffset_Y = 0;
+            dOffset_Z = 0;
             strCaption = "";
         }
 
+        //public int nFunction;
+        public int nInit;
         public double dA;
         public double dD;
         public double dTheta;
         public double dAlpha;
         public int nAxisNum; // Motor Number(Similar with Virtual ID) : It means there is no motor when it use minus value(-)
         public int nAxisDir; // 0 - Forward, 1 - Inverse
+        public int nStartGroup;
+        public double dOffset_X;
+        public double dOffset_Y;
+        public double dOffset_Z;
 
         public string strCaption;
         public void InitData()
         {
-            SetData(0, 0, 0, 0, -1, 0, "");
+            // SetData(-1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, "");
+            SetData(0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, "");
         }
         public void SetData(CDhParam OjwDhParam)
         {
-            SetData(OjwDhParam.dA, OjwDhParam.dD, OjwDhParam.dTheta, OjwDhParam.dAlpha, OjwDhParam.nAxisNum, OjwDhParam.nAxisDir, OjwDhParam.strCaption);
+            //SetData(OjwDhParam.nFunction, OjwDhParam.nInit, OjwDhParam.dA, OjwDhParam.dD, OjwDhParam.dTheta, OjwDhParam.dAlpha, OjwDhParam.nAxisNum, OjwDhParam.nAxisDir, OjwDhParam.nStartGroup, OjwDhParam.dOffset_X, OjwDhParam.dOffset_Y, OjwDhParam.dOffset_Z, OjwDhParam.strCaption);
+            SetData(OjwDhParam.nInit, OjwDhParam.dA, OjwDhParam.dD, OjwDhParam.dTheta, OjwDhParam.dAlpha, OjwDhParam.nAxisNum, OjwDhParam.nAxisDir, OjwDhParam.nStartGroup, OjwDhParam.dOffset_X, OjwDhParam.dOffset_Y, OjwDhParam.dOffset_Z, OjwDhParam.strCaption);
         }
-        public void SetData(double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, string strDh_Caption)
+        //public void SetData(int nDh_FunctionNumber, int nDh_Init, double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, int nDh_StartGroup, double dDh_Offset_X, double dDh_Offset_Y, double dDh_Offset_Z, string strDh_Caption)
+        public void SetData(int nDh_Init, double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, int nDh_StartGroup, double dDh_Offset_X, double dDh_Offset_Y, double dDh_Offset_Z, string strDh_Caption)
         {
+            //nFunction = nDh_FunctionNumber;
+            nInit = nDh_Init;
             dA = dDh_a;
             dD = dDh_d;
             dTheta = dDh_theta;
             dAlpha = dDh_alpha;
             nAxisNum = nDh_AxisNum;
             nAxisDir = nDh_AxisDir;
+            nStartGroup = nDh_StartGroup;
+            dOffset_X = dDh_Offset_X;
+            dOffset_Y = dDh_Offset_Y;
+            dOffset_Z = dDh_Offset_Z;
             strCaption = strDh_Caption;
         }
     }
@@ -492,8 +691,7 @@ namespace OpenJigWare
         }
     }
     #endregion DH Parameter (SDhT_t, CDhParam, CDhParamAll)
-    #endregion Class
-
+    #endregion Class    
     public partial class Ojw
     {        
         public static void ShowKeyPad_Number(object sender)
@@ -506,6 +704,17 @@ namespace OpenJigWare
         }
         #region MotionTool
         #endregion MotionTool
+        public class CTools_Designer
+        {
+            public Docking.frmDesigner m_frmDesigner = new Docking.frmDesigner();
+            public void ShowTools(float fScale)
+            {
+                //m_frmDesigner.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+                //m_frmDesigner.Scale(new SizeF(fScale, fScale));
+
+                m_frmDesigner.Show();
+            }
+        }
         public class CTools_Motion
         {
             public Ojw.C3d GetC3d() { return m_frmMotion.GetC3d(); }

@@ -218,7 +218,7 @@ namespace OpenJigWare
                     long temp_Gap = temp - m_lTimer;
                     
                     /////
-                    long lCnt = temp_Gap / m_lInterval_Time;
+                    long lCnt = (m_lInterval_Time == 0) ? 0 : temp_Gap / m_lInterval_Time;
                     double dValue = m_dInterval_Value * lCnt;
                     //dValue = (Math.Abs(dValue) > Math.Abs(m_dInterval_Diff)) ? m_dInterval_Diff : dValue;
                     dValue = ((m_dInterval_Diff < 0) && (dValue < m_dInterval_Diff)) ? 

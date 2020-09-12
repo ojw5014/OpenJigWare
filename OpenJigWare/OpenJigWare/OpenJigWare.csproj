@@ -12,7 +12,8 @@
     <AssemblyName>OpenJigWare</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,6 +32,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RegisterForComInterop>false</RegisterForComInterop>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>oroca.ico</ApplicationIcon>
@@ -67,8 +69,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Lib\IronPython.Modules.dll</HintPath>
     </Reference>
-    <Reference Include="LeapCSharp.NET4.0">
-      <HintPath>..\..\Released_DLL\Leap\LeapCSharp.NET4.0.dll</HintPath>
+    <Reference Include="LeapCSharp.NET3.5">
+      <HintPath>..\..\Released_DLL\Leap\LeapCSharp.NET3.5.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Contracts">
       <HintPath>..\..\Released_DLL\Microsoft.Contracts.dll</HintPath>
@@ -90,7 +92,7 @@
       <HintPath>Lib\Microsoft.Scripting.Metadata.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Speech">
-      <HintPath>..\..\Released_DLL\Microsoft.Speech.dll</HintPath>
+      <HintPath>Lib\Microsoft.Speech.dll</HintPath>
     </Reference>
     <Reference Include="MyoSharp">
       <HintPath>..\..\Released_DLL\MyoSharp.dll</HintPath>
@@ -106,23 +108,19 @@
     <Reference Include="System.Xml" />
     <Reference Include="Tao.FreeGlut, Version=2.4.0.2, Culture=neutral, PublicKeyToken=6e602a6ad6c0d06d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Lib\Tao.FreeGlut.dll</HintPath>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <HintPath>.\Tao.FreeGlut.dll</HintPath>
     </Reference>
     <Reference Include="Tao.Ode, Version=0.9.0.0, Culture=neutral, PublicKeyToken=e499629dc69cd531, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Lib\Tao.Ode.dll</HintPath>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <HintPath>.\Tao.Ode.dll</HintPath>
     </Reference>
     <Reference Include="Tao.OpenGl, Version=2.1.0.12, Culture=neutral, PublicKeyToken=1ca010269a4501ef, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Lib\Tao.OpenGl.dll</HintPath>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <HintPath>.\Tao.OpenGl.dll</HintPath>
     </Reference>
     <Reference Include="Tao.Platform.Windows, Version=1.0.0.5, Culture=neutral, PublicKeyToken=701104b2da67a104, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Lib\Tao.Platform.Windows.dll</HintPath>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <HintPath>.\Tao.Platform.Windows.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +131,34 @@
     <Compile Include="COjw_26_Streaming.cs" />
     <Compile Include="COjw_31_Dynamixel.cs" />
     <Compile Include="COjw_32_Leap.cs" />
+    <Compile Include="COjw_33_Monster.cs" />
+    <Compile Include="COjw_34_Lattepanda.cs" />
+    <Compile Include="COjw_36_Monster2.cs" />
+    <Compile Include="COjw_35_Walking.cs" />
+    <Compile Include="Docking\AxisSetting.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\AxisSetting.Designer.cs">
+      <DependentUpon>AxisSetting.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Docking\Designer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\Designer.Designer.cs">
+      <DependentUpon>Designer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Docking\DrawText.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\DrawText.Designer.cs">
+      <DependentUpon>DrawText.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Docking\Editor_Grid.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\Editor_Grid.Designer.cs">
+      <DependentUpon>Editor_Grid.cs</DependentUpon>
+    </Compile>
     <Compile Include="Docking\frmFolder.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -150,6 +176,12 @@
     </Compile>
     <Compile Include="Docking\KeyPad2.Designer.cs">
       <DependentUpon>KeyPad2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Docking\Kinematics.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Docking\Kinematics.Designer.cs">
+      <DependentUpon>Kinematics.cs</DependentUpon>
     </Compile>
     <Compile Include="Docking\Model.cs">
       <SubType>Form</SubType>
@@ -175,6 +207,7 @@
     <Compile Include="Docking\Player.Designer.cs">
       <DependentUpon>Player.cs</DependentUpon>
     </Compile>
+    <Compile Include="LattePanda.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -215,6 +248,18 @@
     <Compile Include="COjw_30_Voice.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Docking\AxisSetting.resx">
+      <DependentUpon>AxisSetting.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\Designer.resx">
+      <DependentUpon>Designer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\DrawText.resx">
+      <DependentUpon>DrawText.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\Editor_Grid.resx">
+      <DependentUpon>Editor_Grid.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Docking\frmFolder.resx">
       <DependentUpon>frmFolder.cs</DependentUpon>
     </EmbeddedResource>
@@ -223,6 +268,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Docking\KeyPad2.resx">
       <DependentUpon>KeyPad2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Docking\Kinematics.resx">
+      <DependentUpon>Kinematics.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Docking\Model.resx">
       <DependentUpon>Model.cs</DependentUpon>
@@ -242,6 +290,12 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Resources\freeglut.dll" />
+    <Content Include="Resources\Tao.FreeGlut.dll" />
+    <Content Include="Resources\Tao.Ode.dll" />
+    <Content Include="Resources\Tao.OpenGl.dll" />
+    <Content Include="Resources\Tao.Platform.Windows.dll" />
+    <None Include="app.config" />
     <None Include="KeyPad\기호_nomal\a_normal_1_5.png" />
     <None Include="KeyPad\기호_nomal\a_normal_1_6.png" />
     <None Include="KeyPad\기호_nomal\a_normal_1_7.png" />
@@ -675,12 +729,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
-echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
-echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

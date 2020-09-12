@@ -34,9 +34,12 @@
             this.pnProperty = new System.Windows.Forms.Panel();
             this.tcControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.btnInitpos = new System.Windows.Forms.Button();
+            this.chkFreeze_Swing = new System.Windows.Forms.CheckBox();
+            this.chkSaveArduino = new System.Windows.Forms.CheckBox();
+            this.chkSaveAngle = new System.Windows.Forms.CheckBox();
             this.chkRmt = new System.Windows.Forms.CheckBox();
             this.chkFreeze_Z = new System.Windows.Forms.CheckBox();
-            this.chkFreeze_Swing = new System.Windows.Forms.CheckBox();
             this.chkFreeze_Y = new System.Windows.Forms.CheckBox();
             this.chkFreeze_Pan = new System.Windows.Forms.CheckBox();
             this.btnMotion_Download2 = new System.Windows.Forms.Button();
@@ -44,7 +47,6 @@
             this.btnSimul = new System.Windows.Forms.Button();
             this.btnRun = new System.Windows.Forms.Button();
             this.btnMotion_GetList2 = new System.Windows.Forms.Button();
-            this.btnInitpos = new System.Windows.Forms.Button();
             this.btnMotionEnd = new System.Windows.Forms.Button();
             this.btnReset = new System.Windows.Forms.Button();
             this.btnConnect = new System.Windows.Forms.Button();
@@ -206,6 +208,10 @@
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.label1 = new System.Windows.Forms.Label();
             this.txtTest = new System.Windows.Forms.TextBox();
+            this.tcCommand = new System.Windows.Forms.TabPage();
+            this.label18 = new System.Windows.Forms.Label();
+            this.txtCommand_History = new System.Windows.Forms.TextBox();
+            this.txtCommand = new System.Windows.Forms.TextBox();
             this.tmrDraw = new System.Windows.Forms.Timer(this.components);
             this.picDisp = new System.Windows.Forms.PictureBox();
             this.label9 = new System.Windows.Forms.Label();
@@ -226,6 +232,12 @@
             this.txtMp3TimeDelay = new System.Windows.Forms.TextBox();
             this.tmrRun = new System.Windows.Forms.Timer(this.components);
             this.pnButton = new System.Windows.Forms.Panel();
+            this.btnSend = new System.Windows.Forms.Button();
+            this.btnCm550_Run = new System.Windows.Forms.Button();
+            this.btnExcel = new System.Windows.Forms.Button();
+            this.txtSend = new System.Windows.Forms.TextBox();
+            this.txtExcel = new System.Windows.Forms.TextBox();
+            this.btnDownAndRun = new System.Windows.Forms.Button();
             this.btnUserButton = new System.Windows.Forms.Button();
             this.btnMode0 = new System.Windows.Forms.Button();
             this.btnMode1 = new System.Windows.Forms.Button();
@@ -242,9 +254,10 @@
             this.imglstSmall = new System.Windows.Forms.ImageList(this.components);
             this.imglstTree = new System.Windows.Forms.ImageList(this.components);
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
-            this.mpPlayer = new AxWMPLib.AxWindowsMediaPlayer();
             this.chkDynamixel = new System.Windows.Forms.CheckBox();
             this.tmrCheckMotor = new System.Windows.Forms.Timer(this.components);
+            this.chkExcel = new System.Windows.Forms.CheckBox();
+            this.mpPlayer = new AxWMPLib.AxWindowsMediaPlayer();
             ((System.ComponentModel.ISupportInitialize)(this.dgAngle)).BeginInit();
             this.tcControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -253,7 +266,9 @@
             this.tbDownload.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage3.SuspendLayout();
+            this.tcCommand.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picDisp)).BeginInit();
+            this.pnButton.SuspendLayout();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picIcon)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.mpPlayer)).BeginInit();
@@ -287,6 +302,7 @@
             this.tcControl.Controls.Add(this.tbDownload);
             this.tcControl.Controls.Add(this.tabPage2);
             this.tcControl.Controls.Add(this.tabPage3);
+            this.tcControl.Controls.Add(this.tcCommand);
             this.tcControl.Location = new System.Drawing.Point(353, 54);
             this.tcControl.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.tcControl.Name = "tcControl";
@@ -296,9 +312,12 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.btnInitpos);
+            this.tabPage1.Controls.Add(this.chkFreeze_Swing);
+            this.tabPage1.Controls.Add(this.chkSaveArduino);
+            this.tabPage1.Controls.Add(this.chkSaveAngle);
             this.tabPage1.Controls.Add(this.chkRmt);
             this.tabPage1.Controls.Add(this.chkFreeze_Z);
-            this.tabPage1.Controls.Add(this.chkFreeze_Swing);
             this.tabPage1.Controls.Add(this.chkFreeze_Y);
             this.tabPage1.Controls.Add(this.chkFreeze_Pan);
             this.tabPage1.Controls.Add(this.btnMotion_Download2);
@@ -306,7 +325,6 @@
             this.tabPage1.Controls.Add(this.btnSimul);
             this.tabPage1.Controls.Add(this.btnRun);
             this.tabPage1.Controls.Add(this.btnMotion_GetList2);
-            this.tabPage1.Controls.Add(this.btnInitpos);
             this.tabPage1.Controls.Add(this.btnMotionEnd);
             this.tabPage1.Controls.Add(this.btnReset);
             this.tabPage1.Controls.Add(this.btnConnect);
@@ -370,10 +388,59 @@
             this.tabPage1.Text = "Control";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
+            // btnInitpos
+            // 
+            this.btnInitpos.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
+            this.btnInitpos.Location = new System.Drawing.Point(467, 226);
+            this.btnInitpos.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.btnInitpos.Name = "btnInitpos";
+            this.btnInitpos.Size = new System.Drawing.Size(59, 74);
+            this.btnInitpos.TabIndex = 673;
+            this.btnInitpos.Text = "InitPos 1";
+            this.btnInitpos.UseVisualStyleBackColor = false;
+            this.btnInitpos.Click += new System.EventHandler(this.btnInitpos_Click);
+            // 
+            // chkFreeze_Swing
+            // 
+            this.chkFreeze_Swing.AutoSize = true;
+            this.chkFreeze_Swing.BackColor = System.Drawing.Color.Transparent;
+            this.chkFreeze_Swing.Location = new System.Drawing.Point(375, 262);
+            this.chkFreeze_Swing.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.chkFreeze_Swing.Name = "chkFreeze_Swing";
+            this.chkFreeze_Swing.Size = new System.Drawing.Size(95, 19);
+            this.chkFreeze_Swing.TabIndex = 653;
+            this.chkFreeze_Swing.Text = "Freeze(S)";
+            this.chkFreeze_Swing.UseVisualStyleBackColor = false;
+            this.chkFreeze_Swing.CheckedChanged += new System.EventHandler(this.chkFreeze_Swing_CheckedChanged);
+            // 
+            // chkSaveArduino
+            // 
+            this.chkSaveArduino.AutoSize = true;
+            this.chkSaveArduino.Location = new System.Drawing.Point(431, 134);
+            this.chkSaveArduino.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.chkSaveArduino.Name = "chkSaveArduino";
+            this.chkSaveArduino.Size = new System.Drawing.Size(117, 19);
+            this.chkSaveArduino.TabIndex = 674;
+            this.chkSaveArduino.Text = "Save Arduino";
+            this.chkSaveArduino.UseVisualStyleBackColor = true;
+            this.chkSaveArduino.CheckedChanged += new System.EventHandler(this.chkRmt_CheckedChanged);
+            // 
+            // chkSaveAngle
+            // 
+            this.chkSaveAngle.AutoSize = true;
+            this.chkSaveAngle.Location = new System.Drawing.Point(431, 96);
+            this.chkSaveAngle.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.chkSaveAngle.Name = "chkSaveAngle";
+            this.chkSaveAngle.Size = new System.Drawing.Size(104, 19);
+            this.chkSaveAngle.TabIndex = 674;
+            this.chkSaveAngle.Text = "Save Angle";
+            this.chkSaveAngle.UseVisualStyleBackColor = true;
+            this.chkSaveAngle.CheckedChanged += new System.EventHandler(this.chkRmt_CheckedChanged);
+            // 
             // chkRmt
             // 
             this.chkRmt.AutoSize = true;
-            this.chkRmt.Location = new System.Drawing.Point(467, 109);
+            this.chkRmt.Location = new System.Drawing.Point(431, 113);
             this.chkRmt.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.chkRmt.Name = "chkRmt";
             this.chkRmt.Size = new System.Drawing.Size(54, 19);
@@ -394,19 +461,6 @@
             this.chkFreeze_Z.Text = "Freeze(Z)";
             this.chkFreeze_Z.UseVisualStyleBackColor = false;
             this.chkFreeze_Z.CheckedChanged += new System.EventHandler(this.chkFreeze_Z_CheckedChanged);
-            // 
-            // chkFreeze_Swing
-            // 
-            this.chkFreeze_Swing.AutoSize = true;
-            this.chkFreeze_Swing.BackColor = System.Drawing.Color.Transparent;
-            this.chkFreeze_Swing.Location = new System.Drawing.Point(375, 262);
-            this.chkFreeze_Swing.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.chkFreeze_Swing.Name = "chkFreeze_Swing";
-            this.chkFreeze_Swing.Size = new System.Drawing.Size(95, 19);
-            this.chkFreeze_Swing.TabIndex = 653;
-            this.chkFreeze_Swing.Text = "Freeze(S)";
-            this.chkFreeze_Swing.UseVisualStyleBackColor = false;
-            this.chkFreeze_Swing.CheckedChanged += new System.EventHandler(this.chkFreeze_Swing_CheckedChanged);
             // 
             // chkFreeze_Y
             // 
@@ -436,9 +490,9 @@
             // 
             // btnMotion_Download2
             // 
-            this.btnMotion_Download2.BackgroundImage = global::OpenJigWare.Properties.Resources.download;
+            this.btnMotion_Download2.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnMotion_Download2.BackgroundImage")));
             this.btnMotion_Download2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.btnMotion_Download2.Location = new System.Drawing.Point(495, 59);
+            this.btnMotion_Download2.Location = new System.Drawing.Point(495, 58);
             this.btnMotion_Download2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btnMotion_Download2.Name = "btnMotion_Download2";
             this.btnMotion_Download2.Size = new System.Drawing.Size(38, 40);
@@ -481,7 +535,7 @@
             // 
             // btnMotion_GetList2
             // 
-            this.btnMotion_GetList2.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
+            this.btnMotion_GetList2.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnMotion_GetList2.BackgroundImage")));
             this.btnMotion_GetList2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.btnMotion_GetList2.Location = new System.Drawing.Point(495, 6);
             this.btnMotion_GetList2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -490,18 +544,6 @@
             this.btnMotion_GetList2.TabIndex = 1;
             this.btnMotion_GetList2.UseVisualStyleBackColor = true;
             this.btnMotion_GetList2.Click += new System.EventHandler(this.btnMotion_GetList_Click);
-            // 
-            // btnInitpos
-            // 
-            this.btnInitpos.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
-            this.btnInitpos.Location = new System.Drawing.Point(467, 226);
-            this.btnInitpos.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.btnInitpos.Name = "btnInitpos";
-            this.btnInitpos.Size = new System.Drawing.Size(59, 74);
-            this.btnInitpos.TabIndex = 673;
-            this.btnInitpos.Text = "InitPos 1";
-            this.btnInitpos.UseVisualStyleBackColor = false;
-            this.btnInitpos.Click += new System.EventHandler(this.btnInitpos_Click);
             // 
             // btnMotionEnd
             // 
@@ -527,10 +569,10 @@
             // 
             // btnConnect
             // 
-            this.btnConnect.Location = new System.Drawing.Point(408, 52);
+            this.btnConnect.Location = new System.Drawing.Point(408, 48);
             this.btnConnect.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btnConnect.Name = "btnConnect";
-            this.btnConnect.Size = new System.Drawing.Size(88, 52);
+            this.btnConnect.Size = new System.Drawing.Size(88, 50);
             this.btnConnect.TabIndex = 634;
             this.btnConnect.Text = "Connect [Wifi]";
             this.btnConnect.UseVisualStyleBackColor = true;
@@ -562,7 +604,7 @@
             // 
             // txtIp
             // 
-            this.txtIp.Location = new System.Drawing.Point(313, 52);
+            this.txtIp.Location = new System.Drawing.Point(313, 48);
             this.txtIp.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtIp.Name = "txtIp";
             this.txtIp.Size = new System.Drawing.Size(93, 25);
@@ -639,7 +681,7 @@
             this.btnConnect_Serial.Location = new System.Drawing.Point(408, 0);
             this.btnConnect_Serial.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btnConnect_Serial.Name = "btnConnect_Serial";
-            this.btnConnect_Serial.Size = new System.Drawing.Size(88, 52);
+            this.btnConnect_Serial.Size = new System.Drawing.Size(88, 50);
             this.btnConnect_Serial.TabIndex = 632;
             this.btnConnect_Serial.Text = "Connect";
             this.btnConnect_Serial.UseVisualStyleBackColor = true;
@@ -1680,7 +1722,7 @@
             // 
             // txtBaudrate
             // 
-            this.txtBaudrate.Location = new System.Drawing.Point(352, 26);
+            this.txtBaudrate.Location = new System.Drawing.Point(352, 24);
             this.txtBaudrate.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtBaudrate.Name = "txtBaudrate";
             this.txtBaudrate.Size = new System.Drawing.Size(54, 25);
@@ -1774,7 +1816,7 @@
             // 
             // txtSocket_Port
             // 
-            this.txtSocket_Port.Location = new System.Drawing.Point(352, 79);
+            this.txtSocket_Port.Location = new System.Drawing.Point(352, 73);
             this.txtSocket_Port.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtSocket_Port.Name = "txtSocket_Port";
             this.txtSocket_Port.Size = new System.Drawing.Size(54, 25);
@@ -1806,7 +1848,7 @@
             // 
             // btnCalcTime
             // 
-            this.btnCalcTime.Location = new System.Drawing.Point(431, 179);
+            this.btnCalcTime.Location = new System.Drawing.Point(431, 201);
             this.btnCalcTime.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btnCalcTime.Name = "btnCalcTime";
             this.btnCalcTime.Size = new System.Drawing.Size(95, 25);
@@ -1880,7 +1922,7 @@
             // 
             this.label4.AutoSize = true;
             this.label4.BackColor = System.Drawing.Color.Transparent;
-            this.label4.Location = new System.Drawing.Point(287, 31);
+            this.label4.Location = new System.Drawing.Point(283, 29);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(65, 15);
             this.label4.TabIndex = 649;
@@ -1971,7 +2013,7 @@
             this.txtFileName.Location = new System.Drawing.Point(351, 105);
             this.txtFileName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtFileName.Name = "txtFileName";
-            this.txtFileName.Size = new System.Drawing.Size(111, 23);
+            this.txtFileName.Size = new System.Drawing.Size(80, 23);
             this.txtFileName.TabIndex = 648;
             // 
             // label5
@@ -1979,7 +2021,7 @@
             this.label5.AutoSize = true;
             this.label5.BackColor = System.Drawing.Color.Transparent;
             this.label5.Enabled = false;
-            this.label5.Location = new System.Drawing.Point(287, 58);
+            this.label5.Location = new System.Drawing.Point(283, 53);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(20, 15);
             this.label5.TabIndex = 649;
@@ -1992,7 +2034,7 @@
             this.txtComment.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtComment.Multiline = true;
             this.txtComment.Name = "txtComment";
-            this.txtComment.Size = new System.Drawing.Size(174, 25);
+            this.txtComment.Size = new System.Drawing.Size(80, 25);
             this.txtComment.TabIndex = 642;
             // 
             // btnPos_Bottom
@@ -2011,7 +2053,7 @@
             // btnBinarySave
             // 
             this.btnBinarySave.Font = new System.Drawing.Font("Gulim", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.btnBinarySave.Location = new System.Drawing.Point(431, 155);
+            this.btnBinarySave.Location = new System.Drawing.Point(431, 178);
             this.btnBinarySave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnBinarySave.Name = "btnBinarySave";
             this.btnBinarySave.Size = new System.Drawing.Size(95, 25);
@@ -2024,7 +2066,7 @@
             // 
             this.label3.AutoSize = true;
             this.label3.BackColor = System.Drawing.Color.Transparent;
-            this.label3.Location = new System.Drawing.Point(287, 5);
+            this.label3.Location = new System.Drawing.Point(283, 5);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(62, 15);
             this.label3.TabIndex = 649;
@@ -2044,7 +2086,7 @@
             this.label6.AutoSize = true;
             this.label6.BackColor = System.Drawing.Color.Transparent;
             this.label6.Enabled = false;
-            this.label6.Location = new System.Drawing.Point(283, 84);
+            this.label6.Location = new System.Drawing.Point(283, 78);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(34, 15);
             this.label6.TabIndex = 649;
@@ -2066,7 +2108,7 @@
             // btnTextSave
             // 
             this.btnTextSave.Font = new System.Drawing.Font("Gulim", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.btnTextSave.Location = new System.Drawing.Point(431, 130);
+            this.btnTextSave.Location = new System.Drawing.Point(431, 154);
             this.btnTextSave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnTextSave.Name = "btnTextSave";
             this.btnTextSave.Size = new System.Drawing.Size(95, 25);
@@ -2104,7 +2146,7 @@
             // 
             // btnDirRefresh
             // 
-            this.btnDirRefresh.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
+            this.btnDirRefresh.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnDirRefresh.BackgroundImage")));
             this.btnDirRefresh.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.btnDirRefresh.Location = new System.Drawing.Point(6, 64);
             this.btnDirRefresh.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -2331,7 +2373,7 @@
             // 
             // btnMotion_Download
             // 
-            this.btnMotion_Download.BackgroundImage = global::OpenJigWare.Properties.Resources.download;
+            this.btnMotion_Download.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnMotion_Download.BackgroundImage")));
             this.btnMotion_Download.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.btnMotion_Download.Location = new System.Drawing.Point(237, 5);
             this.btnMotion_Download.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -2343,7 +2385,7 @@
             // 
             // btnMotion_Play
             // 
-            this.btnMotion_Play.BackgroundImage = global::OpenJigWare.Properties.Resources.action_go;
+            this.btnMotion_Play.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnMotion_Play.BackgroundImage")));
             this.btnMotion_Play.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.btnMotion_Play.Location = new System.Drawing.Point(170, 5);
             this.btnMotion_Play.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -2355,7 +2397,7 @@
             // 
             // btnMotion_GetList
             // 
-            this.btnMotion_GetList.BackgroundImage = global::OpenJigWare.Properties.Resources.search;
+            this.btnMotion_GetList.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnMotion_GetList.BackgroundImage")));
             this.btnMotion_GetList.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.btnMotion_GetList.Location = new System.Drawing.Point(7, 5);
             this.btnMotion_GetList.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -2367,7 +2409,7 @@
             // 
             // btnMotion_Delete
             // 
-            this.btnMotion_Delete.BackgroundImage = global::OpenJigWare.Properties.Resources.action_delete;
+            this.btnMotion_Delete.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnMotion_Delete.BackgroundImage")));
             this.btnMotion_Delete.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.btnMotion_Delete.Location = new System.Drawing.Point(18, 5);
             this.btnMotion_Delete.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -2452,6 +2494,50 @@
             this.txtTest.Size = new System.Drawing.Size(267, 338);
             this.txtTest.TabIndex = 488;
             // 
+            // tcCommand
+            // 
+            this.tcCommand.Controls.Add(this.label18);
+            this.tcCommand.Controls.Add(this.txtCommand_History);
+            this.tcCommand.Controls.Add(this.txtCommand);
+            this.tcCommand.Location = new System.Drawing.Point(4, 25);
+            this.tcCommand.Name = "tcCommand";
+            this.tcCommand.Padding = new System.Windows.Forms.Padding(3);
+            this.tcCommand.Size = new System.Drawing.Size(534, 377);
+            this.tcCommand.TabIndex = 5;
+            this.tcCommand.Text = "Command";
+            this.tcCommand.UseVisualStyleBackColor = true;
+            // 
+            // label18
+            // 
+            this.label18.AutoSize = true;
+            this.label18.Location = new System.Drawing.Point(6, 16);
+            this.label18.Name = "label18";
+            this.label18.Size = new System.Drawing.Size(72, 15);
+            this.label18.TabIndex = 487;
+            this.label18.Text = "Command";
+            // 
+            // txtCommand_History
+            // 
+            this.txtCommand_History.Font = new System.Drawing.Font("Gulim", 10.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.txtCommand_History.Location = new System.Drawing.Point(6, 50);
+            this.txtCommand_History.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtCommand_History.Multiline = true;
+            this.txtCommand_History.Name = "txtCommand_History";
+            this.txtCommand_History.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtCommand_History.Size = new System.Drawing.Size(522, 325);
+            this.txtCommand_History.TabIndex = 486;
+            this.txtCommand_History.WordWrap = false;
+            // 
+            // txtCommand
+            // 
+            this.txtCommand.Font = new System.Drawing.Font("Gulim", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.txtCommand.Location = new System.Drawing.Point(84, 13);
+            this.txtCommand.Name = "txtCommand";
+            this.txtCommand.Size = new System.Drawing.Size(444, 30);
+            this.txtCommand.TabIndex = 0;
+            this.txtCommand.TextChanged += new System.EventHandler(this.txtCommand_TextChanged);
+            this.txtCommand.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtCommand_KeyPress);
+            // 
             // tmrDraw
             // 
             this.tmrDraw.Interval = 40;
@@ -2466,6 +2552,7 @@
             this.picDisp.Size = new System.Drawing.Size(319, 365);
             this.picDisp.TabIndex = 481;
             this.picDisp.TabStop = false;
+            this.picDisp.Click += new System.EventHandler(this.picDisp_Click);
             // 
             // label9
             // 
@@ -2679,12 +2766,79 @@
             // pnButton
             // 
             this.pnButton.BackColor = System.Drawing.Color.Transparent;
+            this.pnButton.Controls.Add(this.btnSend);
+            this.pnButton.Controls.Add(this.btnCm550_Run);
+            this.pnButton.Controls.Add(this.btnExcel);
+            this.pnButton.Controls.Add(this.txtSend);
+            this.pnButton.Controls.Add(this.txtExcel);
+            this.pnButton.Controls.Add(this.btnDownAndRun);
             this.pnButton.Location = new System.Drawing.Point(10, 468);
             this.pnButton.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.pnButton.Name = "pnButton";
             this.pnButton.Size = new System.Drawing.Size(1149, 71);
             this.pnButton.TabIndex = 672;
             this.pnButton.Paint += new System.Windows.Forms.PaintEventHandler(this.pnButton_Paint);
+            // 
+            // btnSend
+            // 
+            this.btnSend.Location = new System.Drawing.Point(1041, 33);
+            this.btnSend.Name = "btnSend";
+            this.btnSend.Size = new System.Drawing.Size(104, 35);
+            this.btnSend.TabIndex = 651;
+            this.btnSend.Text = "Send";
+            this.btnSend.UseVisualStyleBackColor = true;
+            this.btnSend.Click += new System.EventHandler(this.btnSend_Click);
+            // 
+            // btnCm550_Run
+            // 
+            this.btnCm550_Run.Location = new System.Drawing.Point(124, 33);
+            this.btnCm550_Run.Name = "btnCm550_Run";
+            this.btnCm550_Run.Size = new System.Drawing.Size(93, 33);
+            this.btnCm550_Run.TabIndex = 651;
+            this.btnCm550_Run.Text = "Run";
+            this.btnCm550_Run.UseVisualStyleBackColor = true;
+            this.btnCm550_Run.Click += new System.EventHandler(this.btnCm550_Run_Click);
+            // 
+            // btnExcel
+            // 
+            this.btnExcel.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnExcel.BackgroundImage")));
+            this.btnExcel.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.btnExcel.Location = new System.Drawing.Point(85, 4);
+            this.btnExcel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.btnExcel.Name = "btnExcel";
+            this.btnExcel.Size = new System.Drawing.Size(33, 29);
+            this.btnExcel.TabIndex = 650;
+            this.btnExcel.UseVisualStyleBackColor = true;
+            this.btnExcel.Click += new System.EventHandler(this.btnExcel_Click);
+            // 
+            // txtSend
+            // 
+            this.txtSend.Font = new System.Drawing.Font("Gulim", 8F);
+            this.txtSend.Location = new System.Drawing.Point(1033, 5);
+            this.txtSend.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtSend.Name = "txtSend";
+            this.txtSend.Size = new System.Drawing.Size(111, 23);
+            this.txtSend.TabIndex = 649;
+            // 
+            // txtExcel
+            // 
+            this.txtExcel.Font = new System.Drawing.Font("Gulim", 8F);
+            this.txtExcel.Location = new System.Drawing.Point(7, 33);
+            this.txtExcel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtExcel.Name = "txtExcel";
+            this.txtExcel.Size = new System.Drawing.Size(111, 23);
+            this.txtExcel.TabIndex = 649;
+            // 
+            // btnDownAndRun
+            // 
+            this.btnDownAndRun.Location = new System.Drawing.Point(124, 8);
+            this.btnDownAndRun.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnDownAndRun.Name = "btnDownAndRun";
+            this.btnDownAndRun.Size = new System.Drawing.Size(93, 26);
+            this.btnDownAndRun.TabIndex = 453;
+            this.btnDownAndRun.Text = "Down && Run";
+            this.btnDownAndRun.UseVisualStyleBackColor = true;
+            this.btnDownAndRun.Click += new System.EventHandler(this.btnDownAndRun_Click);
             // 
             // btnUserButton
             // 
@@ -2857,23 +3011,12 @@
             this.imageList1.Images.SetKeyName(0, "folder.ico");
             this.imageList1.Images.SetKeyName(1, "file.ico");
             // 
-            // mpPlayer
-            // 
-            this.mpPlayer.Enabled = true;
-            this.mpPlayer.Location = new System.Drawing.Point(930, 149);
-            this.mpPlayer.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.mpPlayer.Name = "mpPlayer";
-            this.mpPlayer.OcxState = ((System.Windows.Forms.AxHost.State)(resources.GetObject("mpPlayer.OcxState")));
-            this.mpPlayer.Size = new System.Drawing.Size(200, 153);
-            this.mpPlayer.TabIndex = 674;
-            this.mpPlayer.Visible = false;
-            // 
             // chkDynamixel
             // 
             this.chkDynamixel.AutoSize = true;
             this.chkDynamixel.Checked = true;
             this.chkDynamixel.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkDynamixel.Location = new System.Drawing.Point(708, 55);
+            this.chkDynamixel.Location = new System.Drawing.Point(795, 55);
             this.chkDynamixel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.chkDynamixel.Name = "chkDynamixel";
             this.chkDynamixel.Size = new System.Drawing.Size(97, 19);
@@ -2884,19 +3027,44 @@
             // 
             // tmrCheckMotor
             // 
-            this.tmrCheckMotor.Interval = 20;
+            this.tmrCheckMotor.Interval = 1;
             this.tmrCheckMotor.Tick += new System.EventHandler(this.tmrCheckMotor_Tick);
+            // 
+            // chkExcel
+            // 
+            this.chkExcel.AutoSize = true;
+            this.chkExcel.BackColor = System.Drawing.Color.Transparent;
+            this.chkExcel.Font = new System.Drawing.Font("Gulim", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.chkExcel.ForeColor = System.Drawing.Color.Yellow;
+            this.chkExcel.Location = new System.Drawing.Point(17, 476);
+            this.chkExcel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.chkExcel.Name = "chkExcel";
+            this.chkExcel.Size = new System.Drawing.Size(62, 19);
+            this.chkExcel.TabIndex = 652;
+            this.chkExcel.Text = "Exel";
+            this.chkExcel.UseVisualStyleBackColor = false;
+            // 
+            // mpPlayer
+            // 
+            this.mpPlayer.Enabled = true;
+            this.mpPlayer.Location = new System.Drawing.Point(931, 145);
+            this.mpPlayer.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.mpPlayer.Name = "mpPlayer";
+            this.mpPlayer.OcxState = ((System.Windows.Forms.AxHost.State)(resources.GetObject("mpPlayer.OcxState")));
+            this.mpPlayer.Size = new System.Drawing.Size(200, 153);
+            this.mpPlayer.TabIndex = 674;
+            this.mpPlayer.Visible = false;
             // 
             // frmMotionEditor
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackgroundImage = global::OpenJigWare.Properties.Resources.MotionTool;
+            this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(1170, 961);
+            this.Controls.Add(this.chkExcel);
             this.Controls.Add(this.chkDynamixel);
-            this.Controls.Add(this.btnUserButton);
             this.Controls.Add(this.lbMsg);
             this.Controls.Add(this.btnOpenDesignFile);
             this.Controls.Add(this.groupBox1);
@@ -2907,7 +3075,6 @@
             this.Controls.Add(this.mpPlayer);
             this.Controls.Add(this.btnMode1);
             this.Controls.Add(this.btnMode0);
-            this.Controls.Add(this.pnButton);
             this.Controls.Add(this.chkTracking);
             this.Controls.Add(this.chkMp3);
             this.Controls.Add(this.lbTitle);
@@ -2926,6 +3093,8 @@
             this.Controls.Add(this.picDisp);
             this.Controls.Add(this.picIcon);
             this.Controls.Add(this.dgAngle);
+            this.Controls.Add(this.btnUserButton);
+            this.Controls.Add(this.pnButton);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -2951,7 +3120,11 @@
             this.tabPage2.PerformLayout();
             this.tabPage3.ResumeLayout(false);
             this.tabPage3.PerformLayout();
+            this.tcCommand.ResumeLayout(false);
+            this.tcCommand.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picDisp)).EndInit();
+            this.pnButton.ResumeLayout(false);
+            this.pnButton.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picIcon)).EndInit();
@@ -3178,5 +3351,18 @@
         private System.Windows.Forms.Button btnZ_Input;
         private System.Windows.Forms.Button btnY_Input;
         private System.Windows.Forms.Button btnX_Input;
+        private System.Windows.Forms.TabPage tcCommand;
+        private System.Windows.Forms.Label label18;
+        private System.Windows.Forms.TextBox txtCommand_History;
+        private System.Windows.Forms.TextBox txtCommand;
+        private System.Windows.Forms.CheckBox chkExcel;
+        private System.Windows.Forms.Button btnExcel;
+        private System.Windows.Forms.TextBox txtExcel;
+        private System.Windows.Forms.Button btnDownAndRun;
+        private System.Windows.Forms.Button btnCm550_Run;
+        private System.Windows.Forms.Button btnSend;
+        private System.Windows.Forms.TextBox txtSend;
+        private System.Windows.Forms.CheckBox chkSaveAngle;
+        private System.Windows.Forms.CheckBox chkSaveArduino;
     }
 }

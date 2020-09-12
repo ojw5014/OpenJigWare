@@ -1,6 +1,10 @@
+//#define _MONSTER_LIB // 몬스터 라이브러리의 사용여부
+
+#define _VIEW_THE_OUTLINE // 물체의 외곽 라인이 보이게 할 것인지 아닌 것인지를 결정
+
 #define _COPY_FLAG
 #define _ENABLE_LED_FONT_COLOR
-
+//#define _CHEKING_AUTO_FOR_DYNAMIXEL
 //#define _RPM_TEST
 //#define _CHANGE_DEFAULT_FROM_ASE_TO_DAT
 
@@ -63,6 +67,16 @@ namespace OpenJigWare
         #endregion SetCursor
         public class C3d : SimpleOpenGlControl
         {
+            //#region Design 파일 오픈 이벤트
+            //public delegate void DEventFileOpened_Design();
+
+            //public event DEventFileOpened_Design Event_FileOpened_Design;
+            //public void DoEvent()
+            //{
+            //    if (Event_FileOpened_Designl
+            //}
+            //#endregion Design 파일 오픈 이벤트
+
             #region Etc Controls
             #region Motor Controls
             private const int _CNT_LABEL_TOOLMOTOR = 100;
@@ -83,6 +97,8 @@ namespace OpenJigWare
             private TextBox m_txtAxisLimit_Id = new TextBox();
             private TextBox m_txtAxisLimit_CenterPos = new TextBox();
             private TextBox m_txtMessage_AxisLimit = new TextBox();
+
+            private TextBox m_txtReserve = new TextBox();
 
             // Kinematics
             #region Kinematics
@@ -118,6 +134,11 @@ namespace OpenJigWare
             private TextBox m_txtDH_Theta = new TextBox();
             private TextBox m_txtDH_Alpha = new TextBox();
             private TextBox m_txtDH_AxisNum = new TextBox();
+            private TextBox m_txtDH_StartGroup = new TextBox();
+            private TextBox m_txtDH_Offset_X = new TextBox();
+            private TextBox m_txtDH_Offset_Y = new TextBox();
+            private TextBox m_txtDH_Offset_Z = new TextBox();
+            private ComboBox m_cmbDH_Init = new ComboBox();
             private Button m_btnDHCompile = new Button();
             private TextBox m_txtDhParam = new TextBox();
             ////
@@ -135,6 +156,8 @@ namespace OpenJigWare
             private TextBox m_txtKinematicsSkeleton = new TextBox();
             #endregion Kinematics
 
+            public List<int> m_lstIDs_Motion = new List<int>();
+            public List<int> m_lstMotorsEn = new List<int>();
 
             private TextBox m_txtAxis_Mirror = new TextBox();
             private TextBox m_txtAxis_InitAngle = new TextBox();
@@ -182,6 +205,37 @@ namespace OpenJigWare
 
                     m_txtAxis_Mirror.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAxis_Mirror);
 
+                    string strReserve = String.Format("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9};",
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorEnable_For_RPTask) + " // nMotorEnable",
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotor_Enable),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotionEditor_Index), // 0 이면 사용 안함. 1 부터 사용, 0 이상인 경우 여기의 인덱스를 우선적으로 적용, 하나를 세팅했으면 반드시 다른 하나도 세팅할 것
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_3),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_4),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_5),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_6),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_7),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_8),
+                            Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_9)
+                    );
+
+                    strReserve += String.Format("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9}",
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fGearRatio)) + " // fGearRatio[0 은 기어비 적용 안함]",
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRobotisConvertingVar)) + " // fRobotisConvertingVar[0 은 적용 안함]",
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_2)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_3)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_4)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_5)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_6)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_7)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_8)),
+                        Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_9))
+                        );
+                    m_txtReserve.Text = String.Empty;
+                    foreach(string strLine in strReserve.Split(';'))
+                    {
+                        m_txtReserve.Text += strLine + "\r\n";
+                    }
+
                     try
                     {
                         m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType;// % 2;
@@ -192,7 +246,7 @@ namespace OpenJigWare
                         m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorControlType % m_cmbMotorControlType.Items.Count;
                     }
 
-                    m_cmbMotorName.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName;
+                    m_cmbMotorName.SelectedIndex = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index;
                 }
                 else if (((System.Windows.Forms.ComboBox)sender) == m_cmbMotorDir)
                 {
@@ -204,17 +258,22 @@ namespace OpenJigWare
                 }
                 else if (((System.Windows.Forms.ComboBox)sender) == m_cmbMotorName)
                 {
-                    if (m_cmbMotorName.Focused == true)
+                    if ((m_cmbMotorName.Focused == true) && (m_cmbAngleLimit.SelectedIndex >= 0))
                     {
-                        m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName = m_cmbMotorName.SelectedIndex;
-                        if (m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName > 0)
+
+                        m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index = m_cmbMotorName.SelectedIndex;
+                        if (m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index > 0)
                         {
-                            m_CRobotis.SetParam(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName);
+#if !_MONSTER_LIB
+                            m_CRobotis.SetParam(m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index);
+#else
+                            m_CMonster.SetParam(m_cmbAngleLimit.SelectedIndex, (Ojw.CMonster2.EMonster_t)m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index);
+#endif
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRpm = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRpm;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nLimitRpm_Raw = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nLimitRpm_Raw;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nProtocolVersion = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nProtocolVersion;
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName;
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwModelNum = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwModelNum;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Key = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Key;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Max = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Max;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Torq = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Torq;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Led = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Led;
@@ -227,9 +286,9 @@ namespace OpenJigWare
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Pos_Size = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAddr_Pos_Size;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nSerialType = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nSerialType;
 
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_0 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_0;
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_1 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_1;
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_2 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_2;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorEnable_For_RPTask = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorEnable_For_RPTask;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotor_Enable = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotor_Enable;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotionEditor_Index = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotionEditor_Index;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_3 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_3;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_4 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_4;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_5 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_5;
@@ -238,8 +297,8 @@ namespace OpenJigWare
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_8 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_8;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_9 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_9;
 
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_0 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_0;
-                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_1 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_1;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fGearRatio = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fGearRatio;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRobotisConvertingVar = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRobotisConvertingVar;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_2 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_2;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_3 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_3;
                             m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_4 = m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_4;
@@ -324,6 +383,22 @@ namespace OpenJigWare
                 {
                     m_COjwDhParam.nAxisNum = Ojw.CConvert.StrToInt(m_txtDH_AxisNum.Text);
                 }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_StartGroup)
+                {
+                    //m_COjwDhParam.nStartGroup = Ojw.CConvert.StrToInt(m_txtDH_StartGroup.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Offset_X)
+                {
+                    //m_COjwDhParam.dOffset_X = Ojw.CConvert.StrToDouble(m_txtDH_Offset_X.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Offset_Y)
+                {
+                    //m_COjwDhParam.dOffset_Y = Ojw.CConvert.StrToDouble(m_txtDH_Offset_Y.Text);
+                }
+                else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Offset_Z)
+                {
+                    //m_COjwDhParam.dOffset_Z = Ojw.CConvert.StrToDouble(m_txtDH_Offset_Z.Text);
+                }
                 else if (((System.Windows.Forms.TextBox)sender) == m_txtDhParam)
                 {
 
@@ -332,95 +407,131 @@ namespace OpenJigWare
             public void m_txtAxisMotor_TextChanged(object sender, EventArgs e)
             {
                 // number of the TextBox 
+                try
+                {
+                    //int nIndex = (int)((System.Windows.Forms.TextBox)sender).Tag;
+                    //txtArray[nIndex].Text;
+                    if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Id)
+                    {
+                        if (m_txtAxisLimit_Id.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorID = Ojw.CConvert.StrToInt(m_txtAxisLimit_Id.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Up)
+                    {
+                        if (m_txtAxisLimit_Up.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Up = Ojw.CConvert.StrToFloat(m_txtAxisLimit_Up.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Down)
+                    {
+                        if (m_txtAxisLimit_Down.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Down = Ojw.CConvert.StrToFloat(m_txtAxisLimit_Down.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_CenterPos)
+                    {
+                        if (m_txtAxisLimit_CenterPos.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nCenter_Evd = Ojw.CConvert.StrToInt(m_txtAxisLimit_CenterPos.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtMessage_AxisLimit)
+                    {
+                        
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_Mirror)
+                    {
+                        if (m_txtAxis_Mirror.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAxis_Mirror = Ojw.CConvert.StrToInt(m_txtAxis_Mirror.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtReserve)
+                    {
+                        if (m_txtReserve.Focused == true)
+                        {
+                            List<string> lstLines = new List<string>();
+                            foreach (string strLine in m_txtReserve.Lines) { if (strLine.Length > 0) lstLines.Add(Ojw.CConvert.RemoveCaption(strLine, true, true)); }
+                            int i = 0;
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorEnable_For_RPTask = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotor_Enable = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotionEditor_Index = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_3 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_4 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_5 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_6 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_7 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_8 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_9 = Ojw.CConvert.StrToInt(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
 
-                //int nIndex = (int)((System.Windows.Forms.TextBox)sender).Tag;
-                //txtArray[nIndex].Text;
-                if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Id)
-                {
-                    if (m_txtAxisLimit_Id.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorID = Ojw.CConvert.StrToInt(m_txtAxisLimit_Id.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Up)
-                {
-                    if (m_txtAxisLimit_Up.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Up = Ojw.CConvert.StrToFloat(m_txtAxisLimit_Up.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_Down)
-                {
-                    if (m_txtAxisLimit_Down.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fLimit_Down = Ojw.CConvert.StrToFloat(m_txtAxisLimit_Down.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxisLimit_CenterPos)
-                {
-                    if (m_txtAxisLimit_CenterPos.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nCenter_Evd = Ojw.CConvert.StrToInt(m_txtAxisLimit_CenterPos.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtMessage_AxisLimit)
-                {
-
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_Mirror)
-                {
-                    if (m_txtAxis_Mirror.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nAxis_Mirror = Ojw.CConvert.StrToInt(m_txtAxis_Mirror.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_InitAngle)
-                {
-                    if (m_txtAxis_InitAngle.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle = Ojw.CConvert.StrToFloat(m_txtAxis_InitAngle.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_InitAngle2)
-                {
-                    if (m_txtAxis_InitAngle2.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle2 = Ojw.CConvert.StrToFloat(m_txtAxis_InitAngle2.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_MechMov)
-                {
-                    if (m_txtAxis_MechMov.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMechMove = Ojw.CConvert.StrToInt(m_txtAxis_MechMov.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_MechAngle)
-                {
-                    if (m_txtAxis_MechAngle.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fMechAngle = Ojw.CConvert.StrToFloat(m_txtAxis_MechAngle.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtGroupNumber)
-                {
-                    if (m_txtGroupNumber.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nGroupNumber = Ojw.CConvert.StrToInt(m_txtGroupNumber.Text);
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_NickName)
-                {
-                    if (m_txtAxis_NickName.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].strNickName = m_txtAxis_NickName.Text;
-                }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_2)
-                {
-                    try
-                    {
-                        m_CHeader.nWheelCounter_2 = Ojw.CConvert.StrToInt(m_txtWheel_2.Text);
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fGearRatio = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRobotisConvertingVar = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++],true,true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_2 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_3 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_4 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_5 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_6 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_7 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_8 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                            m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_9 = Ojw.CConvert.StrToFloat(Ojw.CConvert.RemoveCaption(m_txtReserve.Lines[i++], true, true));
+                        }
                     }
-                    catch// (System.Exception ex)
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_InitAngle)
                     {
+                        if (m_txtAxis_InitAngle.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle = Ojw.CConvert.StrToFloat(m_txtAxis_InitAngle.Text);
                     }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_InitAngle2)
+                    {
+                        if (m_txtAxis_InitAngle2.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fInitAngle2 = Ojw.CConvert.StrToFloat(m_txtAxis_InitAngle2.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_MechMov)
+                    {
+                        if (m_txtAxis_MechMov.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMechMove = Ojw.CConvert.StrToInt(m_txtAxis_MechMov.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_MechAngle)
+                    {
+                        if (m_txtAxis_MechAngle.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fMechAngle = Ojw.CConvert.StrToFloat(m_txtAxis_MechAngle.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtGroupNumber)
+                    {
+                        if (m_txtGroupNumber.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nGroupNumber = Ojw.CConvert.StrToInt(m_txtGroupNumber.Text);
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtAxis_NickName)
+                    {
+                        if (m_txtAxis_NickName.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].strNickName = m_txtAxis_NickName.Text;
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_2)
+                    {
+                        try
+                        {
+                            m_CHeader.nWheelCounter_2 = Ojw.CConvert.StrToInt(m_txtWheel_2.Text);
+                        }
+                        catch// (System.Exception ex)
+                        {
+                        }
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_3)
+                    {
+                        try
+                        {
+                            m_CHeader.nWheelCounter_3 = Ojw.CConvert.StrToInt(m_txtWheel_3.Text);
+                        }
+                        catch// (System.Exception ex)
+                        {
+                        }
+                    }
+                    else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_4)
+                    {
+                        try
+                        {
+                            m_CHeader.nWheelCounter_4 = Ojw.CConvert.StrToInt(m_txtWheel_4.Text);
+                        }
+                        catch// (System.Exception ex)
+                        {
+                        }
+                    }
+                    //for (int i = 0; i < 100; i++)
+                    //{
+                    //    if (sender == m_txtAxisLimit_Id) 
+                    //    {
+                    //        MessageBox.Show("m_txtAxisLimit_Id");
+                    //        break;
+                    //    }
+                    //}
                 }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_3)
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        m_CHeader.nWheelCounter_3 = Ojw.CConvert.StrToInt(m_txtWheel_3.Text);
-                    }
-                    catch// (System.Exception ex)
-                    {
-                    }
+                    Ojw.CMessage.Write_Error(ex.ToString());
                 }
-                else if (((System.Windows.Forms.TextBox)sender) == m_txtWheel_4)
-                {
-                    try
-                    {
-                        m_CHeader.nWheelCounter_4 = Ojw.CConvert.StrToInt(m_txtWheel_4.Text);
-                    }
-                    catch// (System.Exception ex)
-                    {
-                    }
-                }
-                //for (int i = 0; i < 100; i++)
-                //{
-                //    if (sender == m_txtAxisLimit_Id) 
-                //    {
-                //        MessageBox.Show("m_txtAxisLimit_Id");
-                //        break;
-                //    }
-                //}
             }
             //private TextBox 
             private TextBox m_txtObjectName = new TextBox();
@@ -542,7 +653,7 @@ namespace OpenJigWare
                 //Array.Resize<Control>(ref aCtrl, i + 1);
                 //Array.Resize<Label>(ref m_albTools_Motor, i + 1);
                 int nDefaultTop = 10;
-                int nGapH = 26;
+                int nGapH = 22;
                 m_txtGroupName.Left = 175;
                 m_txtGroupName.Top = nDefaultTop + i * nGapH;
                 m_txtGroupName.Width = 300;
@@ -773,9 +884,9 @@ namespace OpenJigWare
                 m_tabpgSkeleton.Controls.Add(m_txtKinematicsSkeleton);
                 i++; nItems++;                
                 #endregion Skeleton
-
-                i = 0;
+                //////////////////////////////////////////////////////////////////////////////////////////////////////
                 GroupBox gbDh = new GroupBox();
+                i = 0;
                 gbDh.Text = "Kinematics Test";
                 gbDh.Left = m_tabKinematics.Right + 10;
                 gbDh.Top = 10;
@@ -783,12 +894,15 @@ namespace OpenJigWare
                 //gbDh.Width = m_pnKinematics.Width - gbDh.Left;// -m_tabKinematics.Left;// m_tabKinematics.Width - gbDh.Left - 10;
                 gbDh.Height = m_pnKinematics.Height - gbDh.Top;
                 m_pnKinematics.Controls.Add(gbDh);
-
+                //////////////////////////////////////////////////////////////////////////////////////////////////////
+                
                 nDefaultTop += 15;
 
-                m_txtDH_Draw_Size.Left = gbDh.Width / 2;
+                int nLeft_Second = gbDh.Width / 4 + 10; //gbDh.Width / 2;
+                int nSize_Second = gbDh.Width / 4; //gbDh.Width / 2 - 20;
+                m_txtDH_Draw_Size.Left = nLeft_Second;
                 m_txtDH_Draw_Size.Top = nDefaultTop + i * nGapH;
-                m_txtDH_Draw_Size.Width = gbDh.Width / 2 - 20;
+                m_txtDH_Draw_Size.Width = nSize_Second;
                 //m_txtDH_Draw_Size.Height = 300;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_Draw_Size.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
@@ -799,9 +913,10 @@ namespace OpenJigWare
                 if (bInit == true) m_txtDH_Draw_Size.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
                 i++; nItems++;
-                m_txtDH_Draw_Color.Left = gbDh.Width / 2;
+                m_txtDH_Draw_Color.Left = nLeft_Second;
                 m_txtDH_Draw_Color.Top = nDefaultTop + i * nGapH;
-                m_txtDH_Draw_Color.Width = gbDh.Width / 2 - 20;
+                m_txtDH_Draw_Color.Width = nSize_Second;
+                m_txtDH_Draw_Color.Height = 15;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_Draw_Color.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Color";
@@ -812,10 +927,9 @@ namespace OpenJigWare
                 //
                 i++; nItems++;
                 m_btnDhColor.Text = "Color";
-                m_btnDhColor.Left = gbDh.Width / 2;
+                m_btnDhColor.Left = nLeft_Second;
                 m_btnDhColor.Top = nDefaultTop + i * nGapH;
-                m_btnDhColor.Width = gbDh.Width / 2 - 20;
-                m_btnDhColor.Height = 30;
+                m_btnDhColor.Width = nSize_Second;
                 gbDh.Controls.Add(m_btnDhColor);
                 // Event
                 if (bInit == true) m_btnDhColor.Click += new EventHandler(m_btnKinematics_Click);
@@ -827,10 +941,10 @@ namespace OpenJigWare
                 m_cmbDH_AxisDir.Items.Add("0 - Forward");
                 m_cmbDH_AxisDir.Items.Add("1 - Inverse");
                 m_cmbDH_AxisDir.SelectedIndex = 0;
-                
-                m_cmbDH_AxisDir.Left = gbDh.Width / 2;
+
+                m_cmbDH_AxisDir.Left = nLeft_Second;
                 m_cmbDH_AxisDir.Top = nDefaultTop + i * nGapH;
-                m_cmbDH_AxisDir.Width = gbDh.Width / 2 - 20;
+                m_cmbDH_AxisDir.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_cmbDH_AxisDir.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Direction";
@@ -841,9 +955,9 @@ namespace OpenJigWare
                 //
                 i++; nItems++;
 
-                m_txtDH_Caption.Left = gbDh.Width / 2;
+                m_txtDH_Caption.Left = nLeft_Second;
                 m_txtDH_Caption.Top = nDefaultTop + i * nGapH;
-                m_txtDH_Caption.Width = gbDh.Width / 2 - 20;
+                m_txtDH_Caption.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_Caption.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Comment";
@@ -854,9 +968,9 @@ namespace OpenJigWare
                 //
                 i++; nItems++;
                 m_txtDH_Draw_Alpha.Text = "0";
-                m_txtDH_Draw_Alpha.Left = gbDh.Width / 2;
+                m_txtDH_Draw_Alpha.Left = nLeft_Second;
                 m_txtDH_Draw_Alpha.Top = nDefaultTop + i * nGapH;
-                m_txtDH_Draw_Alpha.Width = gbDh.Width / 2 - 20;
+                m_txtDH_Draw_Alpha.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_Draw_Alpha.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Alpha(transparency)";
@@ -873,9 +987,9 @@ namespace OpenJigWare
                 gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
                 i++; nItems++;
 
-                m_txtDH_A.Left = gbDh.Width / 2;
+                m_txtDH_A.Left = nLeft_Second;
                 m_txtDH_A.Top = nDefaultTop + i * nGapH;
-                m_txtDH_A.Width = gbDh.Width / 2 - 20;
+                m_txtDH_A.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_A.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "A";
@@ -884,11 +998,36 @@ namespace OpenJigWare
                 // Event
                 if (bInit == true) m_txtDH_A.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
+
+
+                    nItems++;
+                    #region 한줄 더
+                    ///////한줄 더
+                    m_cmbDH_Init.Left = nLeft_Second + nSize_Second + 100;
+                    m_cmbDH_Init.Top = nDefaultTop + i * nGapH;
+                    m_cmbDH_Init.Width = nSize_Second;
+                    m_albTools_Kinematics[nItems].Top = m_cmbDH_Init.Top;
+                    m_albTools_Kinematics[nItems].Left = nLeft_Second + nSize_Second + 5;
+                    m_albTools_Kinematics[nItems].Text = "Init(Start Pos)";
+                    gbDh.Controls.Add(m_cmbDH_Init);
+                    gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+
+                    m_cmbDH_Init.Items.Clear();
+                    m_cmbDH_Init.Items.Add("False(0)");
+                    m_cmbDH_Init.Items.Add("True(1)");
+
+                    // Event
+                    if (bInit == true) m_cmbDH_Init.SelectedIndexChanged += new EventHandler(m_cmbKinematics_SelectedIndexChanged);//m_cmbDH_Init);
+                    //
+                    m_cmbDH_Init.SelectedIndex = 0;
+                    /////////////////
+                    #endregion 한줄 더
+                    
                 i++; nItems++;
 
-                m_txtDH_D.Left = gbDh.Width / 2;
+                m_txtDH_D.Left = nLeft_Second;
                 m_txtDH_D.Top = nDefaultTop + i * nGapH;
-                m_txtDH_D.Width = gbDh.Width / 2 - 20;
+                m_txtDH_D.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_D.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "D";
@@ -897,11 +1036,29 @@ namespace OpenJigWare
                 // Event
                 if (bInit == true) m_txtDH_D.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
+                    nItems++;
+                    #region 한줄 더
+                    ///////한줄 더
+                    m_txtDH_StartGroup.Left = nLeft_Second + nSize_Second + 100;
+                    m_txtDH_StartGroup.Top = nDefaultTop + i * nGapH;
+                    m_txtDH_StartGroup.Width = nSize_Second;
+                    m_albTools_Kinematics[nItems].Top = m_txtDH_StartGroup.Top;
+                    m_albTools_Kinematics[nItems].Left = nLeft_Second + nSize_Second + 5;
+                    m_albTools_Kinematics[nItems].Text = "Start Group";
+                    gbDh.Controls.Add(m_txtDH_StartGroup);
+                    gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                    // Event
+                    if (bInit == true) m_txtDH_StartGroup.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                    //
+                    /////////////////
+                    #endregion 한줄 더
                 i++; nItems++;
 
-                m_txtDH_Theta.Left = gbDh.Width / 2;
+                    
+
+                m_txtDH_Theta.Left = nLeft_Second;
                 m_txtDH_Theta.Top = nDefaultTop + i * nGapH;
-                m_txtDH_Theta.Width = gbDh.Width / 2 - 20;
+                m_txtDH_Theta.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_Theta.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Theta";
@@ -910,11 +1067,27 @@ namespace OpenJigWare
                 // Event
                 if (bInit == true) m_txtDH_Theta.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
+                    nItems++;
+                    #region 한줄 더
+                    ///////한줄 더
+                    m_txtDH_Offset_X.Left = nLeft_Second + nSize_Second + 100;
+                    m_txtDH_Offset_X.Top = nDefaultTop + i * nGapH;
+                    m_txtDH_Offset_X.Width = nSize_Second;
+                    m_albTools_Kinematics[nItems].Top = m_txtDH_Offset_X.Top;
+                    m_albTools_Kinematics[nItems].Left = nLeft_Second + nSize_Second + 5;
+                    m_albTools_Kinematics[nItems].Text = "Offset(X)";
+                    gbDh.Controls.Add(m_txtDH_Offset_X);
+                    gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                    // Event
+                    if (bInit == true) m_txtDH_Offset_X.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                    //
+                    /////////////////
+                    #endregion 한줄 더
                 i++; nItems++;
 
-                m_txtDH_Alpha.Left = gbDh.Width / 2;
+                m_txtDH_Alpha.Left = nLeft_Second;
                 m_txtDH_Alpha.Top = nDefaultTop + i * nGapH;
-                m_txtDH_Alpha.Width = gbDh.Width / 2 - 20;
+                m_txtDH_Alpha.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_Alpha.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Alpha";
@@ -923,11 +1096,27 @@ namespace OpenJigWare
                 // Event
                 if (bInit == true) m_txtDH_Alpha.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
+                    nItems++;
+                    #region 한줄 더
+                    ///////한줄 더
+                    m_txtDH_Offset_Y.Left = nLeft_Second + nSize_Second + 100;
+                    m_txtDH_Offset_Y.Top = nDefaultTop + i * nGapH;
+                    m_txtDH_Offset_Y.Width = nSize_Second;
+                    m_albTools_Kinematics[nItems].Top = m_txtDH_Offset_Y.Top;
+                    m_albTools_Kinematics[nItems].Left = nLeft_Second + nSize_Second + 5;
+                    m_albTools_Kinematics[nItems].Text = "Offset(Y)";
+                    gbDh.Controls.Add(m_txtDH_Offset_Y);
+                    gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                    // Event
+                    if (bInit == true) m_txtDH_Offset_Y.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                    //
+                    /////////////////
+                    #endregion 한줄 더
                 i++; nItems++;
 
-                m_txtDH_AxisNum.Left = gbDh.Width / 2;
+                m_txtDH_AxisNum.Left = nLeft_Second;
                 m_txtDH_AxisNum.Top = nDefaultTop + i * nGapH;
-                m_txtDH_AxisNum.Width = gbDh.Width / 2 - 20;
+                m_txtDH_AxisNum.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtDH_AxisNum.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Axis";
@@ -936,13 +1125,29 @@ namespace OpenJigWare
                 // Event
                 if (bInit == true) m_txtDH_AxisNum.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
+                    nItems++;
+                    #region 한줄 더
+                    ///////한줄 더
+                    m_txtDH_Offset_Z.Left = nLeft_Second + nSize_Second + 100;
+                    m_txtDH_Offset_Z.Top = nDefaultTop + i * nGapH;
+                    m_txtDH_Offset_Z.Width = nSize_Second;
+                    m_albTools_Kinematics[nItems].Top = m_txtDH_Offset_Z.Top;
+                    m_albTools_Kinematics[nItems].Left = nLeft_Second + nSize_Second + 5;
+                    m_albTools_Kinematics[nItems].Text = "Offset(Z)";
+                    gbDh.Controls.Add(m_txtDH_Offset_Z);
+                    gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                    // Event
+                    if (bInit == true) m_txtDH_Offset_Z.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                    //
+                    /////////////////
+                    #endregion 한줄 더
                 i++; nItems++;
 
                 m_btnDHCompile.Text = "Add Current D-H Parameter";
                 m_btnDHCompile.Left = 10;
                 m_btnDHCompile.Top = nDefaultTop + i * nGapH;
                 m_btnDHCompile.Width = gbDh.Width - 20;
-                m_btnDHCompile.Height = 30;
+                m_btnDHCompile.Height = 20;
                 gbDh.Controls.Add(m_btnDHCompile);
                 // Event
                 if (bInit == true) m_btnDHCompile.Click += new EventHandler(m_btnKinematics_Click);
@@ -977,7 +1182,7 @@ namespace OpenJigWare
 
                 m_chkVisible.Text = "Visible skeleton";
                 m_chkVisible.Width = 250;
-                m_chkVisible.Left = gbDh.Width / 2;
+                m_chkVisible.Left = nLeft_Second;
                 m_chkVisible.Top = m_btnCheckDH.Bottom + 5;
                 gbDh.Controls.Add(m_chkVisible);
                 
@@ -996,9 +1201,9 @@ namespace OpenJigWare
                 }
                 m_cmbInverseKinematics.SelectedIndex = 0;
 
-                m_cmbInverseKinematics.Left = gbDh.Width / 2;
+                m_cmbInverseKinematics.Left = nLeft_Second;
                 m_cmbInverseKinematics.Top = nDefaultTop + i * nGapH;
-                m_cmbInverseKinematics.Width = gbDh.Width / 2 - 20;
+                m_cmbInverseKinematics.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_cmbInverseKinematics.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Function Number(Inverse)";
@@ -1019,31 +1224,32 @@ namespace OpenJigWare
                 if (bInit == true) m_chkTestObject.CheckedChanged += new EventHandler(m_chkKinematics_CheckedChanged);
                 i++; nItems++;
                 //
-                
-                m_txtTestObjectSize.Left = gbDh.Width / 2;
+
+                m_txtTestObjectSize.Left = nLeft_Second;
                 m_txtTestObjectSize.Top = nDefaultTop + i * nGapH;
-                m_txtTestObjectSize.Width = gbDh.Width / 2 - 20;
+                m_txtTestObjectSize.Width = nSize_Second;
                 m_albTools_Kinematics[nItems].Top = m_txtTestObjectSize.Top;
                 m_albTools_Kinematics[nItems].Left = 10;
                 m_albTools_Kinematics[nItems].Text = "Ball Size";
                 gbDh.Controls.Add(m_txtTestObjectSize);
                 gbDh.Controls.Add(m_albTools_Kinematics[nItems]);
+                m_txtTestObjectSize.BringToFront();
                 // Event
                 if (bInit == true) m_txtTestObjectSize.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
                 //
                 i++; nItems++;
                 int nW = m_txtTestObjectSize.Width / 3;// (gbDh.Width / 2) / 3;// - 20 - 2;
-                m_txtPos_X.Left = gbDh.Width / 2;
+                m_txtPos_X.Left = nLeft_Second;
                 m_txtPos_X.Top = nDefaultTop + i * nGapH;
                 m_txtPos_X.Width = nW;// (gbDh.Width / 2) / 3 - 20;
                 gbDh.Controls.Add(m_txtPos_X);
 
-                m_txtPos_Y.Left = gbDh.Width / 2 + nW;
+                m_txtPos_Y.Left = nLeft_Second + nW;
                 m_txtPos_Y.Top = nDefaultTop + i * nGapH;
                 m_txtPos_Y.Width = nW;// (gbDh.Width / 2) / 3 - 20;
                 gbDh.Controls.Add(m_txtPos_Y);
 
-                m_txtPos_Z.Left = gbDh.Width / 2 + nW * 2;
+                m_txtPos_Z.Left = nLeft_Second + nW * 2;
                 m_txtPos_Z.Top = nDefaultTop + i * nGapH;
                 m_txtPos_Z.Width = nW;// (gbDh.Width / 2) / 3 - 20;
                 gbDh.Controls.Add(m_txtPos_Z);
@@ -1053,7 +1259,7 @@ namespace OpenJigWare
                 m_btnChangePos.Text = "Go";
                 m_btnChangePos.Top = nDefaultTop + i * nGapH;
                 m_btnChangePos.Width = m_txtTestObjectSize.Width / 2 - 10; //m_txtTestObjectSize.Right - m_btnChangePos.Left;// nW * 2;
-                m_btnChangePos.Left = m_txtTestObjectSize.Right - m_btnChangePos.Width;//gbDh.Width / 2 + nW * 3;
+                m_btnChangePos.Left = m_txtTestObjectSize.Right - m_btnChangePos.Width;//nLeft_Second + nW * 3;
                 m_btnChangePos.Height = 30;
                 gbDh.Controls.Add(m_btnChangePos);
                 // Event
@@ -1064,7 +1270,7 @@ namespace OpenJigWare
                 m_btnGetForward.Text = "Get";
                 m_btnGetForward.Top = nDefaultTop + i * nGapH;
                 m_btnGetForward.Width = m_txtTestObjectSize.Width / 2 - 10;// nW * 2;
-                m_btnGetForward.Left = m_txtTestObjectSize.Left;//gbDh.Width / 2 + (gbDh.Width / 2 - 20) - m_btnGetForward.Width; //nW * 3;
+                m_btnGetForward.Left = m_txtTestObjectSize.Left;//nLeft_Second + (nLeft_Second - 20) - m_btnGetForward.Width; //nW * 3;
                 m_btnGetForward.Height = 30;
                 gbDh.Controls.Add(m_btnGetForward);
                 // Event
@@ -1093,7 +1299,11 @@ namespace OpenJigWare
                 m_txtPos_Y.Text = "0";
                 m_txtPos_Z.Text = "0";
                 m_txtDH_Draw_Color.Text = Ojw.CConvert.IntToStr(Color.Red.ToArgb());
-
+                m_cmbDH_Init.SelectedIndex = 0;
+                m_txtDH_StartGroup.Text = "0";
+                m_txtDH_Offset_X.Text = "0";
+                m_txtDH_Offset_Y.Text = "0";
+                m_txtDH_Offset_Z.Text = "0";
                 //m_bTools_Motor_ = true;
                 //InitToolsMotorVar_();
 
@@ -1155,10 +1365,21 @@ namespace OpenJigWare
                     m_txtDH_Caption.Text = m_COjwDhParam.strCaption;
                     m_cmbDH_AxisDir.SelectedIndex = m_COjwDhParam.nAxisDir;
 
+                    //m_txtDH_StartGroup.Text = Ojw.CConvert.IntToStr(m_COjwDhParam.nStartGroup);
+                    //m_txtDH_Offset_X.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dOffset_X);
+                    //m_txtDH_Offset_Y.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dOffset_Y);
+                    //m_txtDH_Offset_Z.Text = Ojw.CConvert.DoubleToStr(m_COjwDhParam.dOffset_Z);
+                    m_cmbDH_Init.SelectedIndex = m_COjwDhParam.nInit;
+
                     MoveToDhPosition(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), 1.0f, Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)));
 
                     if (m_chkSkeletonView.Checked == true)
-                        MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
+                        MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text,
+                                Ojw.CConvert.StrToInt(m_txtDH_StartGroup.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_X.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Y.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Z.Text)
+                                );
                 }
                 else if (((System.Windows.Forms.Button)sender) == m_btnChangePos) // "Go" 버튼
                 {
@@ -1180,7 +1401,11 @@ namespace OpenJigWare
                     SetColor_Test(Color.Red);
                     // 테스트 값 입력
                     SetSize_Test(Ojw.CConvert.StrToFloat(m_txtTestObjectSize.Text));
-                    SetPos_Test(fX, fY, fZ);
+                    SetPos_Test(
+                        fX + Ojw.CConvert.StrToFloat(m_txtDH_Offset_X.Text),
+                        fY + Ojw.CConvert.StrToFloat(m_txtDH_Offset_Y.Text),
+                        fZ + Ojw.CConvert.StrToFloat(m_txtDH_Offset_Z.Text)
+                        );
 
                     // 현재의 모터각을 전부 집어 넣도록 한다.
                     //UpdateMotorCommand();
@@ -1260,7 +1485,12 @@ namespace OpenJigWare
                     MoveToDhPosition(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), 1.0f, Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)));
 
                     if (m_chkSkeletonView.Checked == true)
-                        MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
+                        MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text,
+                                Ojw.CConvert.StrToInt(m_txtDH_StartGroup.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_X.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Y.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Z.Text)
+                                );
                 }
             }
 
@@ -1273,7 +1503,8 @@ namespace OpenJigWare
 
                 double[] adMot = new double[256];
                 Array.Clear(adMot, 0, adMot.Length);
-                for (i = 0; i < GetHeader_nMotorCnt(); i++) adMot[i] = (double)GetData(i);
+                //for (i = 0; i < GetHeader_nMotorCnt(); i++) adMot[i] = (double)GetData(i);
+                for (i = 0; i < 256; i++) adMot[i] = (double)GetData(i);
                 return Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], adMot, out dcolX, out dcolY, out dcolZ, out dX, out dY, out dZ);                  
             }
 
@@ -1323,12 +1554,28 @@ namespace OpenJigWare
                 int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
                 if (m_bDynamixel == true)
                 {
-                    for (int i = 0; i < nCnt; i++)
+#if !_MONSTER_LIB
+                    if (m_CRobotis.IsOpen() == true)
                     {
-                        SetData(anMotorID[i], (float)adValue[i]);
-                        m_CRobotis.Set_Angle(anMotorID[i], (float)adValue[i], nTime_Milliseconds);
+                        for (int i = 0; i < nCnt; i++)
+                        {
+                            SetData(anMotorID[i], (float)adValue[i]);
+                            m_CRobotis.Set_Angle(anMotorID[i], (float)adValue[i], nTime_Milliseconds);
+                        }
+                        m_CRobotis.Send_Motor();
                     }
-                    m_CRobotis.Send_Motor();
+                    else if (m_CMonster.IsOpen() == true)
+#else
+                    if (m_CMonster.IsOpen() == true)
+#endif
+                    {
+                        for (int i = 0; i < nCnt; i++)
+                        {
+                            SetData(anMotorID[i], (float)adValue[i]);
+                            m_CMonster.Set(anMotorID[i], (float)adValue[i]);
+                        }
+                        m_CMonster.Send_Motor(nTime_Milliseconds);
+                    }
                 }
                 else
                 {
@@ -1364,20 +1611,56 @@ namespace OpenJigWare
                 }
                 CMotor.Send_Motor(nTime_Milliseconds);
             }
+            public void SetData_XYZ(int nInverseFunctionNumber, double dX, double dY, double dZ)
+            {
+                int[] anMotorID = new int[256];
+                double[] adValue = new double[256];
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                for (int i = 0; i < nCnt; i++)
+                {
+                    SetData(anMotorID[i], (float)adValue[i]);
+                }
+            }
+            public void SetData_XYZ(CMonster CMon, int nInverseFunctionNumber, double dX, double dY, double dZ, int nMilliSeconds)
+            {
+                int[] anMotorID = new int[256];
+                double[] adValue = new double[256];
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                for (int i = 0; i < nCnt; i++)
+                {
+                    SetData(anMotorID[i], (float)adValue[i]);
+                    CMon.Set(anMotorID[i], (float)adValue[i]);
+                }
+                CMon.Send_Motor(nMilliSeconds);
+            }
             private String MakeDHSkeleton(float fSize, Color cColor, string strString)
+            {
+                return MakeDHSkeleton(fSize, cColor, strString, Ojw.CConvert.StrToInt(m_txtDH_StartGroup.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_X.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Y.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Z.Text)
+                                );
+            }
+            public String MakeDHSkeleton(float fSize, Color cColor, string strString, int nStartGroupNumber, float fOffset_X, float fOffset_Y, float fOffset_Z)
             {
                 String strModel_Bar = (m_chkVisible.Checked == true) ? "#8" : "#19";
                 String strModel_Ball = (m_chkVisible.Checked == true) ? "#9" : "#20";
+                string strModel_End = (m_chkVisible.Checked == true) ? "#8" : "#19";
                 String strData = String.Empty;
                 String strDisp = String.Empty;
                 //SetHeader_strDrawModel(String.Empty);
                 String strConvert0 = CConvert.RemoveCaption(strString, true, true);
+                //String strConvert0 = CConvert.RemoveCaption("@", CConvert.RemoveCaption("//", strString, true, true), true, true);
                 String strConvert1 = CConvert.RemoveChar(strConvert0, '[');
                 String strConvert2 = CConvert.RemoveChar(strConvert1, ']');
                 String strConvert3 = CConvert.RemoveChar(strConvert2, '\r');
                 String[] pstrLines = strConvert3.Split('\n');
 
                 User_Clear();
+
+                User_Set_Init(true); // 초기점
+                User_Set_Translation(0, fOffset_X, fOffset_Y, fOffset_Z);
+
                 //
                 //m_C3d.User_Set_Width_Or_Radius(300.0f);
                 //m_C3d.User_Add();
@@ -1390,14 +1673,21 @@ namespace OpenJigWare
                 //InitVirtualClass();
                 //Prop_Set_Init(true);
                 //int nCnt = 0;
+                int nLine = 0;
+                bool bEnd = false;
                 foreach (string strLine in pstrLines)
                 {
+                    if (nLine == pstrLines.Length - 1) bEnd = true;
+                    else bEnd = false;
+
+                    nLine++;
                     float fA = 0.0f;
                     float fD = 0.0f;
                     float fTheta = 0.0f;
                     float fAlpha = 0.0f;
                     int nAxis = -1;
                     int nDir = 0;
+                    int nInit = 0;
 
                     #region Items
                     String [] pstrItems = strLine.Split(',');
@@ -1414,6 +1704,7 @@ namespace OpenJigWare
                                 case 3: fAlpha = Ojw.CConvert.StrToFloat(strItem); break;
                                 case 4: nAxis = Ojw.CConvert.StrToInt(strItem); break;
                                 case 5: nDir = Ojw.CConvert.StrToInt(strItem); break;
+                                case 6: nInit = CConvert.StrToInt(strItem); break;
                             }
                         }
                         catch
@@ -1426,93 +1717,108 @@ namespace OpenJigWare
                                 case 3: fAlpha = 0.0f; break;
                                 case 4: nAxis = 0; break;
                                 case 5: nDir = 0; break;
+                                case 6: nInit = 0; break;
                             }
                         }
                         i++;
                     }
                     //if (i != 6) return null; // 해석 에러
-                    if (i != 6) continue; // 해석 에러
+                    //if (i != 7) continue; // 해석 에러 => 굳이 초기화 없이도 해석 되게...
                     #endregion Items
 
                     //Prop_Set_DispObject(strModel_Ball);
                     //Prop_Set_Width_Or_Radius(fSize);
                     //AddVirtualClassToReal();
-                    User_Set_Model(strModel_Ball);
-                    User_Set_Color(cColor);
-                    User_Set_Width_Or_Radius(fSize);
-                    User_Add();
-
-
-                    //Prop_Set_DispObject(strModel_Bar);
-                    User_Set_Model(strModel_Bar);
-                    User_Set_Color(cColor);
-                    User_Set_Width_Or_Radius(fSize);
-                    if (fD < 0)
+                    if (nInit > 0)
                     {
-                        ////Prop_Set_Offset_Trans(new Ojw.SVector3D_t(fA, 0, 0));
-                        //Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(180, 0, 0));
-                        //Prop_Set_Width_Or_Radius(fSize);
-                        //Prop_Set_Height_Or_Depth(-fD);
-                        User_Set_Offset_Rotation(180, 0, 0);
-                        User_Set_Height_Or_Depth(-fD);
+                        User_Set_Init(true);
                     }
-                    else User_Set_Height_Or_Depth(fD);
-                    User_Add();
+                    if (fD != 0)
+                    {
+                        User_Set_Model(strModel_Ball);
+                        User_Set_Color(cColor);
+                        User_Set_Width_Or_Radius(fSize);
+                        User_Add();
 
 
-                    //Prop_Set_DispObject(strModel_Ball);
-                    //Prop_Set_Width_Or_Radius(fSize);
-                    //Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
-                    User_Set_Model(strModel_Ball);
-                    User_Set_Color(cColor);
-                    User_Set_Width_Or_Radius(fSize);
-                    User_Set_Offset_Translation(0, 0, fD);
-                    
-                    User_Set_AxisName(nAxis);
+                        User_Set_Model(strModel_Bar);
+                        User_Set_Color(cColor);
+                        User_Set_Width_Or_Radius(fSize);
+                        if (fD < 0)
+                        {
+                            User_Set_Offset_Rotation(180, 0, 0);
+                            User_Set_Height_Or_Depth(-fD);
+                        }
+                        else User_Set_Height_Or_Depth(fD);
+                        User_Add();
+                    }
+                    if (nAxis >= 0)
+                    {
+                        User_Set_Model(strModel_Ball);
+                        User_Set_Color(cColor);
+                        User_Set_Width_Or_Radius(fSize);
+                        User_Set_Offset_Translation(0, 0, fD);
 
-                    // [0 ~ 2(Pan, Tilt, Swing), 3~5(x,y,z), 6(cw), 7(ccw)]
-                    if ((nDir == 0) || (nDir == 1)) User_Set_AxisMoveType(2);
-                    else if ((nDir == 2) || (nDir == 3)) User_Set_AxisMoveType(5);
-                    if ((nDir == 0) || (nDir == 2)) User_Set_Dir(0);
-                    else if ((nDir == 1) || (nDir == 3)) User_Set_Dir(1);
+                        User_Set_AxisName(nAxis);
 
-                    User_Add();
+                        // [0 ~ 2(Pan, Tilt, Swing), 3~5(x,y,z), 6(cw), 7(ccw)]
+                        if ((nDir == 0) || (nDir == 1)) User_Set_AxisMoveType(2);
+                        else if ((nDir == 2) || (nDir == 3)) User_Set_AxisMoveType(5);
+                        if ((nDir == 0) || (nDir == 2)) User_Set_Dir(0);
+                        else if ((nDir == 1) || (nDir == 3)) User_Set_Dir(1);
 
-                    if ((nDir == 2) || (nDir == 3))
+                        User_Add();
+                        if ((nDir == 2) || (nDir == 3))
+                        {
+                            User_Set_Model(strModel_Bar);
+                            User_Set_Color(Color.FromArgb(cColor.R / 2, cColor.G / 2, cColor.B / 2));
+                            User_Set_Width_Or_Radius(fSize);
+
+                            if (nDir == 2) User_Set_Offset_Rotation(180, 0, 0);
+
+                            User_Set_Height_Or_Depth(GetData(nAxis));
+
+                            User_Add();
+                        }
+                    }
+
+                    if (fA != 0)
                     {
                         User_Set_Model(strModel_Bar);
-                        User_Set_Color(Color.FromArgb(cColor.R / 2, cColor.G / 2, cColor.B / 2));
-                        User_Set_Width_Or_Radius(fSize);
-
-                        if (nDir == 2) User_Set_Offset_Rotation(180, 0, 0);
-
-                        User_Set_Height_Or_Depth(GetData(nAxis));
-
+                        User_Set_Color(cColor);
+                        if (fA < 0)
+                        {
+                            User_Set_Offset_Translation(0, 0, fD);
+                            User_Set_Offset_Rotation(-90, fTheta, 0);
+                            User_Set_Width_Or_Radius(fSize);
+                            User_Set_Height_Or_Depth(-fA);
+                        }
+                        else
+                        {
+                            User_Set_Offset_Translation(0, 0, fD);
+                            User_Set_Offset_Rotation(90, -fTheta, 0);
+                            User_Set_Width_Or_Radius(fSize);
+                            User_Set_Height_Or_Depth(fA);
+                        }
                         User_Add();
                     }
 
-                    User_Set_Model(strModel_Bar);
-                    User_Set_Color(cColor);
-                    if (fA < 0)
+                    if (bEnd == true)
                     {
-                        User_Set_Offset_Translation(0, 0, fD);
-                        User_Set_Offset_Rotation(-90, fTheta, 0);
-                        User_Set_Width_Or_Radius(fSize);
-                        User_Set_Height_Or_Depth(-fA);
+                        User_Set_Model(strModel_End);
                     }
                     else
                     {
-                        User_Set_Offset_Translation(0, 0, fD);
-                        User_Set_Offset_Rotation(90, -fTheta, 0);
-                        User_Set_Width_Or_Radius(fSize);
-                        User_Set_Height_Or_Depth(fA);
+                        User_Set_Model(strModel_Ball);
                     }
-                    User_Add();
-
-                    User_Set_Model(strModel_Ball);
                     User_Set_Color(cColor);
 
-                    User_Set_Width_Or_Radius(fSize);
+#if true
+                    //User_Set_Width_Or_Radius(fSize * ((bEnd == true) ? 1.0f : 1.0f));
+#else
+                    User_Set_Width_Or_Radius(fSize * ((bEnd == true) ? 2.0f : 1.0f));
+#endif
+
                     int nIndex = 0;
                     User_Set_Translation(nIndex, 0, 0, fD);
                     User_Set_Rotation(nIndex, 0, 0, fTheta);
@@ -1525,7 +1831,6 @@ namespace OpenJigWare
 
 
 
-                    
                     //strDisp = GetHeader_strDrawModel();
 
                 }
@@ -1538,24 +1843,52 @@ namespace OpenJigWare
 #else
                 sbResult.Clear(); // Dotnet 4.0 이상에서만 사용
 #endif
-                int nGroupNum = 0;
+                int nGroupNum = nStartGroupNumber;
                 int nMotorNum = -1;
                 int nCnt = User_GetCnt();
                 Color [] acColor = new Color[7] {Color.Orange, Color.Cyan, Color.Blue, Color.Lime, Color.Yellow, Color.LightGreen, Color.Magenta};
                 for (int i = 0; i < nCnt; i++) // Except 3 Directions
                 {
                     String strResult = String.Empty;
+#if true
                     if (User_Get_AxisName() >= 0)
                     {
                         nGroupNum++;
                         nMotorNum = User_Get_AxisName();
                         sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
                     }
+#else
+                    if ((User_Get_AxisName() >= 0) || (nCnt - 1 == i))
+                    {
+                        nGroupNum++;
+
+                        if (i < (nCnt - 1))
+                        {
+                            nMotorNum = User_Get_AxisName();
+                            sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
+                        }
+                        else sbResult.Append(String.Format("// End Position\r\n"));
+                    }
+#endif
                     #region
                     COjwDisp CDisp = User_Get(i);
-                    CDisp.SetData_Color(acColor[nGroupNum % acColor.Length]);
-                    CDisp.SetData_nPickGroup_A(nGroupNum);
-                    CDisp.SetData_nPickGroup_B(nMotorNum);
+                    
+                    if (User_Get_Init() == true)
+                    {
+                        CDisp.SetData_Color(acColor[0]);
+                        CDisp.SetData_nPickGroup_A(0);
+                        CDisp.SetData_nPickGroup_B(0);
+                    }
+                    else
+                    {
+                        CDisp.SetData_Color(acColor[nGroupNum % acColor.Length]);
+                        CDisp.SetData_nPickGroup_A(nGroupNum);
+                        CDisp.SetData_nPickGroup_B(nMotorNum);
+                    }
+                    //if (bEnd == true)
+                    //{
+                    //    CDisp.SetData_nInverseKinematicsNumber();
+                    //}
                     //User_Set(i, CDisp);
                     #endregion
                     //Convert_CDisp_To_String(User_Get(i), ref strResult);
@@ -1592,7 +1925,7 @@ namespace OpenJigWare
                 User_Add();
                 //////////////////////////
 
-                return null;// strDisp;
+                return sbResult.ToString(); // null;// strDisp;
 #if false
                 for (int i = 0; i < m_CGridView.GetLineCount(); i++)
                 {
@@ -1720,6 +2053,12 @@ namespace OpenJigWare
 
             private void MoveToDhPosition(float fSize, float fAlpha, Color cColor)
             {
+                ///////////////////
+                float fOffset_X = Ojw.CConvert.StrToFloat(m_txtDH_Offset_X.Text);
+                float fOffset_Y = Ojw.CConvert.StrToFloat(m_txtDH_Offset_Y.Text);
+                float fOffset_Z = Ojw.CConvert.StrToFloat(m_txtDH_Offset_Z.Text);
+                ///////////////////
+
                 int i;
                 CDhParamAll COjwDhParamAll = new CDhParamAll();
                 Ojw.CKinematics.CForward.MakeDhParam(m_txtDhParam.Text, out COjwDhParamAll);
@@ -1737,8 +2076,14 @@ namespace OpenJigWare
                 Ojw.CKinematics.CForward.CalcKinematics_ToString(COjwDhParamAll, adMot, out strResult);
 
                 //txtError.Text = strResult;
-                m_txtKinematicsString.Text = strResult;
-
+                try
+                {
+                    m_txtKinematicsString.Text = strResult;
+                }
+                catch (Exception ex)
+                {
+                    LogErr(ex.ToString());
+                }
                 //Ojw.CMessage.Write_Error(strResult);
 
                 //m_afTestPoint[0] = dX;
@@ -1748,7 +2093,7 @@ namespace OpenJigWare
                 SetTestDh_Size(fSize);
                 SetTestDh_Color(cColor);
                 SetTestDh_Alpha(fAlpha);
-                SetTestDh_Pos((float)dX, (float)dY, (float)dZ);
+                SetTestDh_Pos((float)dX + fOffset_X, (float)dY + fOffset_Y, (float)dZ + fOffset_Z);
                 
                 //m_lbTestDh.Text = "[x=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dX, 3)) + ", y=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dY, 3)) + ", z=" + Ojw.CConvert.DoubleToStr((double)Math.Round(dZ, 3)) + "]";
 
@@ -1805,6 +2150,14 @@ namespace OpenJigWare
                 SetTestDh_Angle(afX, afY, afZ);
 
                 #endregion Checking Direction
+
+                dcolX = null;
+                dcolY = null;
+                dcolZ = null;
+                afX = null;
+                afY = null;
+                afZ = null;
+                adMot = null;
             }
 
             void m_chkKinematics_CheckedChanged(object sender, EventArgs e)
@@ -1823,7 +2176,12 @@ namespace OpenJigWare
                     {
                         SetSkeletonView(m_chkSkeletonView.Checked);
                         if (m_chkSkeletonView.Checked == true)
-                            MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text);
+                            MakeDHSkeleton(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text), Color.FromArgb(Ojw.CConvert.StrToInt(m_txtDH_Draw_Color.Text)), m_txtDhParam.Text,
+                                Ojw.CConvert.StrToInt(m_txtDH_StartGroup.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_X.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Y.Text),
+                                Ojw.CConvert.StrToFloat(m_txtDH_Offset_Z.Text)
+                                );
                     }
                 }
                 if (((System.Windows.Forms.CheckBox)sender) == m_chkTestObject)
@@ -1866,7 +2224,11 @@ namespace OpenJigWare
             private CDhParamAll m_COjwDhParamAll = new CDhParamAll(); // for DH Checking
             void m_cmbKinematics_SelectedIndexChanged(object sender, EventArgs e)
             {
-                if (((System.Windows.Forms.ComboBox)sender) == m_cmbDh)
+                if (((System.Windows.Forms.ComboBox)sender) == m_cmbDH_Init)
+                {
+                    m_COjwDhParam.nInit = m_cmbDH_Init.SelectedIndex;
+                }
+                else if (((System.Windows.Forms.ComboBox)sender) == m_cmbDh)
                 {
                     if ((m_cmbDh.Focused == true) && (m_cmbDh.SelectedIndex >= 0))
                     {
@@ -1987,7 +2349,14 @@ namespace OpenJigWare
                 m_albTools_Motor[i].Text = "Motor Name";
                 i++;
 
-                if (m_cmbMotorName.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotorName = m_cmbMotorName.SelectedIndex;
+                m_txtReserve.Multiline = true;
+                m_txtReserve.ScrollBars = ScrollBars.Both;
+                m_txtReserve.Height = 100;
+                aCtrl[i] = m_txtReserve;
+                m_albTools_Motor[i].Text = "Reserve(include -GearRatio, RobotisConvertingVar)";
+                i++;
+
+                if (m_cmbMotorName.Focused == true) m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nHwMotor_Index = m_cmbMotorName.SelectedIndex;
                 
                 int nCnt = i;
                 //Array.Resize<Control>(ref aCtrl, i);
@@ -2024,8 +2393,7 @@ namespace OpenJigWare
                 if (m_bTools_Motor == true)
                 {
                     int i = 0;
-
-
+                    
                     m_cmbMotorDir.Items.Clear();
                     m_cmbMotorDir.Items.Add("0 - Forward");
                     m_cmbMotorDir.Items.Add("1 - Backward");
@@ -2037,11 +2405,18 @@ namespace OpenJigWare
                     m_cmbMotorControlType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 
                     m_cmbMotorName.Items.Clear();
-                    m_cmbMotorName.Items.Add("0 - None");
-                    m_cmbMotorName.Items.Add("1 - XL_320");
-                    m_cmbMotorName.Items.Add("2 - XL_430");
-                    m_cmbMotorName.Items.Add("3 - AX_12");
-                    m_cmbMotorName.Items.Add("4 - AX_18");
+                    foreach (KeyValuePair<int, string> Item in m_CMonster.dicMonster)
+                    {
+                        m_cmbMotorName.Items.Add(Item.Value);
+                    }
+
+                    //m_cmbMotorName.Items.Clear();
+                    //m_cmbMotorName.Items.Add("0 - None");
+                    //m_cmbMotorName.Items.Add("1 - XL_320");
+                    //m_cmbMotorName.Items.Add("2 - XL_430");
+                    //m_cmbMotorName.Items.Add("3 - AX_12");
+                    //m_cmbMotorName.Items.Add("4 - AX_18");
+
                     m_cmbMotorName.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 
                     m_cmbAngleLimit.Items.Clear();
@@ -2062,7 +2437,7 @@ namespace OpenJigWare
                     m_txtAxisLimit_CenterPos.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nCenter_Evd);
                     m_cmbMotorDir.SelectedIndex = m_CHeader.pSMotorInfo[i].nMotorDir;
                     m_cmbMotorControlType.SelectedIndex = m_CHeader.pSMotorInfo[i].nMotorControlType;
-                    m_cmbMotorName.SelectedIndex = m_CHeader.pSMotorInfo[i].nHwMotorName;
+                    m_cmbMotorName.SelectedIndex = m_CHeader.pSMotorInfo[i].nHwMotor_Index;
 
                     m_txtAxis_InitAngle.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInitAngle, 3));
                     m_txtAxis_InitAngle2.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fInitAngle2, 3));
@@ -2070,7 +2445,49 @@ namespace OpenJigWare
                     m_txtAxis_MechAngle.Text = Ojw.CConvert.FloatToStr((float)Math.Round(m_CHeader.pSMotorInfo[i].fMechAngle, 3));
                     m_txtAxis_NickName.Text = m_CHeader.pSMotorInfo[i].strNickName;
                     m_txtGroupNumber.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nGroupNumber);
-                    m_txtAxis_Mirror.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nAxis_Mirror);                    
+                    m_txtAxis_Mirror.Text = Ojw.CConvert.IntToStr(m_CHeader.pSMotorInfo[i].nAxis_Mirror);
+
+                    string strReserve = String.Format("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9};",
+                            0 + " // nMotorEnable_For_RPTask",
+                            0,0,0,0,0,0,0,0,0
+                    );  
+                    strReserve += String.Format("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9}",
+                        1 + " // fGearRatio[0 은 기어비 적용 안함]",
+                        1 + " // fRobotisConvertingVar[0 은 적용 안함]",
+                        0,0,0,0,0,0,0,0
+                        );
+                    m_txtReserve.Text = String.Empty;
+                    foreach (string strLine in strReserve.Split(';'))
+                    {
+                        m_txtReserve.Text += strLine + "\r\n";
+                    }
+                    //m_txtReserve.Text = strReserve;
+                    
+                    List<string> lstLines = new List<string>();
+                    foreach (string strLine in m_txtReserve.Lines) { if (strLine.Length > 0) lstLines.Add(Ojw.CConvert.RemoveCaption(strLine, true, true)); }
+                    i = 0;
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotorEnable_For_RPTask = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotor_Enable = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nMotionEditor_Index = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_3 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_4 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_5 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_6 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_7 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_8 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].nReserve_9 = Ojw.CConvert.StrToInt(m_txtReserve.Lines[i++]);
+
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fGearRatio = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fRobotisConvertingVar = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_2 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_3 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_4 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_5 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_6 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_7 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_8 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                    m_CHeader.pSMotorInfo[m_cmbAngleLimit.SelectedIndex].fReserve_9 = Ojw.CConvert.StrToFloat(m_txtReserve.Lines[i++]);
+                     
                 }
             }
             #endregion Motor Controls
@@ -3121,15 +3538,19 @@ namespace OpenJigWare
 #else
                             String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
 #endif
-                            
-                            FileInfo f = new FileInfo(strFileName);
+
+                            FileInfo f;
+                            int nOld = strFileName.LastIndexOf('*');
+                            //MessageBox.Show(strFileName + "," + strFileName.Length.ToString() + ',' + nOld.ToString());
+                            if (nOld == strFileName.Length - 1) f = new FileInfo(strFileName.Substring(0, strFileName.Length - 1));
+                            else f = new FileInfo(strFileName);
                             if (f.Exists == true)
                             {
                                 if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                     OjwFileOpen_3D_ASE(strFileName);
                                 else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
                                     OjwFileOpen_3D_SSTL(strFileName);
-                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
                                     OjwFileOpen_3D_STL(strFileName);
                                 else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
                                     OjwFileOpen_3D_Dat(strFileName);
@@ -4466,14 +4887,16 @@ namespace OpenJigWare
                 }
                 return fValue;
             }
-            public void SetData(int nMot, float fValue) { if (nMot < m_afMot.Length) m_afMot[nMot] = CalcLimit(nMot, fValue); }
-            public float GetData(int nMot) { if (nMot < m_afMot.Length) return m_afMot[nMot]; return 0; }
+            public void SetData(int nMot, float fValue) { if ((nMot >= 0) && (nMot < m_afMot.Length)) m_afMot[nMot] = CalcLimit(nMot, fValue); }
+            public float GetData(int nMot) { if ((nMot >= 0) && (nMot < m_afMot.Length)) return m_afMot[nMot]; return 0; }
             public float [] GetData() { return m_afMot; }
 
             #region CsGL Class / The actual drawing and initialization functions are all based here.(Kor: CsGL Class / 실제 그리기 및 초기화(즉, Main) 함수 모음)
 
                 private List<COjwAse> m_lstOjwAse = new List<COjwAse>();
                 private List<String> m_lstModel = new List<string>();
+                public List<string> GetModelingFiles() { return m_lstModel; }
+                public int GetModelingFiles_Count() { return m_lstModel.Count; }
 
                 #region BaseVar
 
@@ -4615,7 +5038,7 @@ namespace OpenJigWare
                             m_bMouseLeftClick = true;
                             m_nMouse_X_Left = e.X;
                             m_nMouse_Y_Left = e.Y;
-                            Ojw.CMessage.Write("MouseDown(Left) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Left, m_nMouse_Y_Left);
+                            //Ojw.CMessage.Write("MouseDown(Left) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Left, m_nMouse_Y_Left);
                         }
                         else
                         {
@@ -4625,7 +5048,7 @@ namespace OpenJigWare
                             // mousecontrol mode 인 경우에만...
                             //if ((GetMouseMode() == 0) && (e.Button == MouseButtons.Right)) m_nMenuStatus = 1;
 
-                            Ojw.CMessage.Write("MouseDown(Right) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Right, m_nMouse_Y_Right);
+                            //Ojw.CMessage.Write("MouseDown(Right) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Right, m_nMouse_Y_Right);
 
                             if (e.Button == MouseButtons.Right) m_nMenuStatus = 1;
                         }
@@ -4642,6 +5065,32 @@ namespace OpenJigWare
 
                         adMot = null;
                         #endregion Forward
+
+
+                        if ((m_CGridMotionEditor !=null) && (m_CGridMotionEditor.m_nGridMode == 1))
+                        {
+                            //m_CGridMotionEditor.SelectMotor(
+                            for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                            {
+                                int nID = m_CHeader.anMotorIDs[i];
+                                float fValue = GetData(nID);
+                                int nIndex = m_lstIDs_Motion.FindIndex(x => x == nID);
+                                if (nID < 0) continue;
+                                if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                    continue;
+                                try
+                                {
+                                    GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nIndex, fValue);
+                                    //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                    //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                }
+                                catch
+                                {
+                                    fValue = GetData(nID);
+                                    SetData(nID, fValue);
+                                }
+                            }
+                        }
                     }
                 }
                 public void OjwMouseUp(object sender, MouseEventArgs e) { OjwMouseUp(e); }
@@ -4654,10 +5103,13 @@ namespace OpenJigWare
                 private const int _MENU_SUB_OPEN = 0;
                 private const int _MENU_SUB_SAVE = 1;
                 private const int _MENU_SUB_CLOSE = 2;
+                private const int _MENU_SUB_EXPORT = 4;
+                private const int _MENU_SUB_IMPORT = 5;
                 private const int _MENU_SUB_ITEM_ADD = 0;
 
                 public CUserEvent Event_FileOpen = new CUserEvent();
                 public CUserEvent Event_ItemAdd = new CUserEvent();
+                public CUserEvent Event_Compile = new CUserEvent();
                 //private void EventAdd()
                 //{
                 //    try
@@ -4670,6 +5122,12 @@ namespace OpenJigWare
                 //        //throw;
                 //    }
                 //}
+                private void Compiled(object sender, EventArgs e)
+                {
+                    if (m_CMonster != null) m_CMonster.SetHeader(m_CHeader);
+                    Log("Monster Library Header Setting");
+                }
+
                 private bool m_bItemAdded = false;
                 private void ItemAdded(object sender, EventArgs e)
                 {
@@ -4700,7 +5158,11 @@ namespace OpenJigWare
                     Ojw.CMessage.Write("FileOpened");
                     for (int i = 0; i < m_CHeader.nMotorCnt; i++)
                     {
+#if !_MONSTER_LIB
                         m_CRobotis.Read_Motor_Push(m_CHeader.pSMotorInfo[i].nMotorID);
+#else
+                        //m_CMonster.
+#endif
                     }                    
                 }
                 public void FileRestore()//(object sender, EventArgs e)
@@ -4740,10 +5202,10 @@ namespace OpenJigWare
             
                 #region MotionFile
                             
-                private string m_strMotionFile_FileName = String.Empty;
-                private string m_strMotionFile_TableName = String.Empty;
+                public string m_strMotionFile_FileName = String.Empty;
+                public string m_strMotionFile_TableName = String.Empty;
                 private int m_nMotionFile_StartPosition = 0;
-                private string m_strMotionFile_Comment = String.Empty;
+                public string m_strMotionFile_Comment = String.Empty;
                 public String GetMotionFile_Title() { return m_strMotionFile_TableName; }
                 public String GetMotionFile_Comment() { return m_strMotionFile_Comment; }
                 public int GetMotionFile_StartPosition() { return m_nMotionFile_StartPosition; }
@@ -5683,10 +6145,14 @@ namespace OpenJigWare
                 }
                 private bool m_bDynamixel = false;
                 public void SetDynamixel(bool bDynamixel)
-                {
+                {                    
                     m_bDynamixel = bDynamixel;
                 }
-                public bool DataFileOpen(String strFileName, byte[] byteArrayData)//, bool bMessage)//, bool bTableOut)
+                public bool DataFileOpen(String strFileName, byte[] byteArrayData)
+                {
+                    return DataFileOpen(false, strFileName, byteArrayData);
+                }
+                public bool DataFileOpen(bool bSavedAngle, String strFileName, byte[] byteArrayData)//, bool bMessage)//, bool bTableOut)
                 {
                     //ojw5014_v11
                     this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
@@ -5856,10 +6322,16 @@ namespace OpenJigWare
                                             //Grid_SetFlag_Type(j, nAxis, (((nData & 0x8000) != 0) ? true : false));
                                             //Grid_SetFlag_En(j, nAxis, ((sData == 0x7ff) ? false : true));
 
-                                            
-                                                fValue = CalcEvd2Angle(nAxis, nData);
-                                                //m_CGridMotionEditor.SetData(j, nAxis, fValue);
-                                                GridMotionEditor_SetMotor(j, nAxis, fValue);
+                                            if (bSavedAngle)
+                                            {
+                                                // 2 바이트 연산이라 float 을 표현하기는 어려우니 100 채배를 한 각도값을 사용
+                                                fValue = (float)(nData / 100);
+                                                fValue *= ((m_CHeader.pSMotorInfo[j].nMotorDir == 0) ? 1.0f : -1.0f);
+                                            }
+                                            else
+                                                fValue = (float)Math.Round(CalcEvd2Angle(nAxis, nData), 1);
+                                            //m_CGridMotionEditor.SetData(j, nAxis, fValue);
+                                            GridMotionEditor_SetMotor(j, nAxis, fValue);
                                         }
                                         else
                                         {
@@ -5877,7 +6349,7 @@ namespace OpenJigWare
                                             }
                                             else
                                             {
-                                                fValue = CalcEvd2Angle(nAxis, (int)sData);
+                                                fValue = (float)Math.Round(CalcEvd2Angle(nAxis, (int)sData), 1);
                                                 //m_CGridMotionEditor.SetData(j, nAxis, fValue);
                                                 GridMotionEditor_SetMotor(j, nAxis, fValue);
                                             }
@@ -6115,7 +6587,7 @@ namespace OpenJigWare
                                         else
 #endif
                                         {
-                                            fValue = CalcEvd2Angle(nAxis, (int)nData2);
+                                            fValue = (float)Math.Round(CalcEvd2Angle(nAxis, (int)nData2), 1);
                                             m_CGridMotionEditor.SetData(j, nAxis, fValue);
                                         }
 
@@ -6372,7 +6844,7 @@ namespace OpenJigWare
                                         }
                                         else
                                         {
-                                            fValue = CalcEvd2Angle(nAxis, (int)sData);
+                                            fValue = (float)Math.Round(CalcEvd2Angle(nAxis, (int)sData), 1);
                                             m_CGridMotionEditor.SetData(j, nAxis, fValue);
                                         }
 
@@ -6591,11 +7063,11 @@ namespace OpenJigWare
                 private const int _V_11 = 1;
                 private const int _V_12 = 2;
                 private bool m_bMessageBoxShow = true;
-                public bool BinaryFileSave(int nFileVersion, String strFileName, bool bCompact, bool bMessageBoxShow)
+                public bool BinaryFileSave(bool bSaveAngle, int nFileVersion, String strFileName, bool bCompact, bool bMessageBoxShow)
                 {
                     bool bMsg = m_bMessageBoxShow;
                     m_bMessageBoxShow = bMessageBoxShow;
-                    bool bRet = BinaryFileSave(nFileVersion, strFileName, bCompact);
+                    bool bRet = BinaryFileSave(bSaveAngle, nFileVersion, strFileName, bCompact);
                     m_bMessageBoxShow = bMsg;
                     return bRet;
                 }
@@ -6777,7 +7249,237 @@ namespace OpenJigWare
                     }
                     return bRet;
                 }
-                public bool BinaryFileSave(int nFileVersion, String strFileName, bool bCompact)
+                public bool ArduinoFileSave(string strFileName)//, bool bCompact)
+                {
+                    bool bRet = false;
+                    if (strFileName == "")
+                    {
+                        Ojw.CMessage.Write_Error("File Saving Error - Null FileName");
+                        MessageBox.Show("File Saving Error - Null FileName");
+                        return false;
+                    }
+                    DataGridView dgAngle = m_CGridMotionEditor.GetHandle();
+                    // 일단 먼저 선택된 프레임을 
+                    int i, j;
+                    int nCntLine = dgAngle.SelectedRows.Count;
+                    int[] anFrameNum;
+                    // Enable 되어 있는 프레임 전체 실행           
+                    anFrameNum = new int[dgAngle.RowCount];
+                    m_nFirstStreamNum = -1;
+                    nCntLine = 0;
+                    int nFrameNum = 0;
+                    //if (bCompact == true)
+                    //{
+                    for (i = 0; i < dgAngle.RowCount; i++)
+                    {
+                        if (m_CGridMotionEditor.GetEnable(i) == true) // 가장 마지막까지 살아있는 Enable Frame 의 번호를 기록한다.
+                        {
+                            anFrameNum[nFrameNum++] = i;
+                            nCntLine++;// = i + 1;
+                        }
+                    }
+                    //}
+                    //else
+                    //{
+                    //    for (i = 0; i < dgAngle.RowCount; i++)
+                    //    {
+                    //        anFrameNum[nFrameNum++] = i;
+                    //        nCntLine++;
+                    //    }
+                    //}
+                    // 정렬
+                    Array.Resize<int>(ref anFrameNum, nCntLine);
+                    Array.Sort<int>(anFrameNum);
+                    m_nFirstStreamNum = anFrameNum[0];// nMin;
+                    m_nLastStreamNum = anFrameNum[nCntLine - 1];//nMax;
+
+                    //if (bCompact == false) { nCntLine = dgAngle.RowCount; m_nLastStreamNum = dgAngle.RowCount - 1; }
+
+                    #region 라인 주석(캡션)의 줄 수(2)
+                    //// Line Comment ////// 라인 주석의 줄 수
+                    //int nCnt_LineComment = 0;
+                    //for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                    //{
+                    //    i = anFrameNum[nFrameNum];
+                    //    if (m_CGridMotionEditor.GetEnable(i) == true)
+                    //    {
+                    //        String strLineComment = m_CGridMotionEditor.GetCaption(i);
+                    //        if (strLineComment.Trim() != "") // 주석
+                    //            nCnt_LineComment++;
+                    //    }
+                    //}
+                    #endregion 라인 주석(캡션)의 줄 수(2)
+
+                    string strErrMsg = String.Empty;
+                    try
+                    {
+                        #region Rmt File
+                        FileInfo f = new FileInfo(strFileName);
+                        FileStream fs = f.Create();//OpenWrite();//Create();//f.OpenWrite();
+
+                        try
+                        {
+                            // 스트림 버퍼를 비운다.
+                            fs.Flush();                            
+                            
+                            byte[] byteBuffer;
+
+                            byteBuffer = Ojw.CConvert.StrToBytes("#ifndef MOTOR_INFO\r\n#define MOTOR_INFO\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            byteBuffer = Ojw.CConvert.StrToBytes("// OpenJigWare_Arduino\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            byteBuffer = Ojw.CConvert.StrToBytes("// 1.0\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            byteBuffer = Ojw.CConvert.StrToBytes("// total motors\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            int nCnt_Motors = 0;
+                            List<int> lstIDs = new List<int>();
+                            lstIDs.Clear();
+                            for (int nIndex = 0; nIndex < m_CHeader.nMotorCnt; nIndex++)
+                            {
+                                if (m_CHeader.pSMotorInfo[nIndex].nMotor_Enable >= 0)
+                                {
+                                    lstIDs.Add(m_CHeader.pSMotorInfo[nIndex].nMotorID);
+                                    nCnt_Motors++;
+                                }
+                            }
+
+                            byteBuffer = Ojw.CConvert.StrToBytes(String.Format("int32_t nCnt_Motors = {0}\r\n", nCnt_Motors));
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            byteBuffer = Ojw.CConvert.StrToBytes("// motor ID\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            byteBuffer = Ojw.CConvert.StrToBytes(String.Format("int m_anMotorIDs[{0}] = ", nCnt_Motors));
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            byteBuffer = Ojw.CConvert.StrToBytes("{ ");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            for (int nIndex = 0; nIndex < m_CHeader.nMotorCnt; nIndex++)
+                            {
+                                if (nIndex < (nCnt_Motors - 1))
+                                    byteBuffer = Ojw.CConvert.StrToBytes(String.Format(" {0},", lstIDs[nIndex]));
+                                else
+                                    byteBuffer = Ojw.CConvert.StrToBytes(String.Format(" {0}", lstIDs[nIndex]));
+                                fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            }
+                            byteBuffer = Ojw.CConvert.StrToBytes(" };\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            byteBuffer = Ojw.CConvert.StrToBytes(String.Format("// Frames(Lines:{0}, Cols:{1})\r\n", nCntLine, nCnt_Motors));
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            byteBuffer = Ojw.CConvert.StrToBytes(String.Format("int m_anFrames[{0}] = ", nCntLine * nCnt_Motors));
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            byteBuffer = Ojw.CConvert.StrToBytes("{\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            int nLine = 0;
+                            for (nFrameNum = 0; nFrameNum < nCntLine; nFrameNum++)
+                            {
+                                i = anFrameNum[nFrameNum];
+                                int nSpeedValue = m_CGridMotionEditor.GetTime(i);
+                                int nDelayValue = m_CGridMotionEditor.GetTime(i) + m_CGridMotionEditor.GetDelay(i);
+
+                                //byteBuffer = Ojw.CConvert.StrToBytes("\t{ ");
+                                byteBuffer = Ojw.CConvert.StrToBytes("\t");
+                                fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                                for (int nID = 0; nID < nCnt_Motors; nID++)
+                                {
+                                    m_CRobotis.SetParam_Dir(nID, m_CHeader.pSMotorInfo[nID].nMotorDir);
+                                    //int nRpm = m_CMotor.CalcAngle2Evd(nID, (float)m_CGridMotionEditor.GetData(i, nID));
+                                    int nEvd = m_CMotor.CalcAngle2Evd(nID, (float)m_CGridMotionEditor.GetData(i, nID));//(int)(float)m_CGridMotionEditor.GetData(i, nID);
+                                    //float fRpm = (float)Math.Abs(m_CRobotis.CalcTime2Rpm(m_CGridMotionEditor.Get(nLine, nID) - m_CRobotis.CalcEvd2Angle(nID, m_CRobotis.m_SMotion_Pos.anMot[nID]), (float)nSpeedValue));
+                                    //float fVal = (float)Math.Round((float)m_CGridMotionEditor.Get(nLine, nID));
+
+
+                                    //Ojw.CMessage.Write("Rpm = {0}, aMot[{1}]:{2}, Curr:{3}", fRpm, nAxis, CalcEvd2Angle(nAxis, m_SMotion_Pos.anMot[nAxis]), OjwGrid.Get(nLine, nAxis));
+
+                                    // save previous motion
+                                    //if ((nDelayValue < 0) && (nSpeedValue > 0))
+                                    //{
+                                    //    // -Delay 의 % 를 감안해서 빼 줌
+                                    //    m_CRobotis.m_SMotion_Pos.anMot[nID] = m_CRobotis.Get(nID) - (int)Math.Round((m_CRobotis.Get(nID) - m_CRobotis.m_SMotion_Pos.anMot[nID]) * ((float)nDelayValue / (float)nSpeedValue));
+                                    //}
+                                    //else
+                                    //    m_CRobotis.m_SMotion_Pos.anMot[nID] = m_CRobotis.Get(nID);
+                                    //////////////////////////////////////////////////////////////////////                                       
+                                    
+                                    if (nID < (nCnt_Motors - 1))
+                                        byteBuffer = Ojw.CConvert.StrToBytes(String.Format(" {0},", nEvd));
+                                    //else
+                                    //    byteBuffer = Ojw.CConvert.StrToBytes(String.Format(" {0}", nEvd));
+                                    fs.Write(byteBuffer, 0, byteBuffer.Length);
+                                }
+                                
+                                byteBuffer = Ojw.CConvert.StrToBytes(String.Format("{0}, {1}", nSpeedValue, nDelayValue));
+                                fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                                //byteBuffer = Ojw.CConvert.StrToBytes(" }\r\n");
+                                //fs.Write(byteBuffer, 0, byteBuffer.Length);
+                                if (i < (nCntLine - 1))
+                                {
+                                    byteBuffer = Ojw.CConvert.StrToBytes(",\r\n");
+                                    fs.Write(byteBuffer, 0, byteBuffer.Length);
+                                }
+                            }
+
+                            byteBuffer = Ojw.CConvert.StrToBytes("\t};\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+
+
+                            byteBuffer = Ojw.CConvert.StrToBytes("#endif\r\n");
+                            fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+                            // 프레임 실행시간 저장(4)
+                            //long lTime = Grid_CalcTimer(m_nLastStreamNum);
+                            //byteBuffer = Ojw.CConvert.StrToBytes(String.Format("time =\t{0}\r\n", lTime)); fs.Write(byteBuffer, 0, byteBuffer.Length);
+                            //byteBuffer = Ojw.CConvert.StrToBytes("motion end\r\n"); fs.Write(byteBuffer, 0, byteBuffer.Length);
+
+
+
+                            fs.Close();
+                            f = null;
+                            if (m_bAutoSaved == false) Modify(false);
+
+                            bRet = true;
+                        }
+                        catch
+                        {
+                            //Message("파일 저장 에러");
+                            fs.Close();
+                            f = null;
+
+                            bRet = false;
+                        }
+                        #endregion Rmt File
+                    }
+                    catch (Exception ex)
+                    {
+                        bRet = false;
+                        strErrMsg = ex.ToString();
+                        CMessage.Write_Error(strErrMsg);
+                    }
+                
+                    if (bRet == true)
+                    {
+                        Ojw.CMessage.Write(String.Format("FileSaved: {0}", m_strMotionFile_FileAndTitle));
+                        if (m_bMessageBoxShow == true) MessageBox.Show(String.Format("FileSaved: {0}", m_strMotionFile_FileAndTitle));
+                    }
+                    else
+                    {
+                        Ojw.CMessage.Write_Error(String.Format("We can't Save file: {0}", m_strMotionFile_FileAndTitle));
+                        if (m_bMessageBoxShow == true) MessageBox.Show(String.Format("[Error] We can't Save file: {0}", m_strMotionFile_FileAndTitle), strErrMsg);
+                    }
+                    return bRet;
+                }
+                //public bool BinaryFileSave(int nFileVersion, String strFileName, bool bCompact)
+                //{
+                //    return BinaryFileSave(false, nFileVersion, strFileName, bCompact);
+                //}
+                public bool BinaryFileSave(bool bSaveAngle, int nFileVersion, String strFileName, bool bCompact)
                 {
                     bool bRet = false;
                     if (strFileName == "")
@@ -6960,8 +7662,16 @@ namespace OpenJigWare
                                     for (j = 0; j < m_CHeader.nMotorCnt; j++)
                                     {
                                         fValue = GridMotionEditor_GetMotor(i, j);
-                                        sData = (short)(CalcAngle2Evd(j, fValue) & 0x0fff);// (short)(((Grid_GetFlag_En(i, j) == true) ? CalcAngle2Evd(j, fValue) : 0x07ff) & 0x0fff);
-
+                                        if (bSaveAngle)
+                                        {
+                                            fValue *= ((m_CHeader.pSMotorInfo[j].nMotorDir == 0) ? 1.0f : -1.0f);
+                                            fValue *= 100; // 2 바이트 연산이라 float 을 표현하기는 어려우니 100 채배를 한 각도값을 사용
+                                            sData = (short)Math.Round(fValue);
+                                        }
+                                        else
+                                        {
+                                            sData = (short)CalcAngle2Evd(j, fValue);//(short)(CalcAngle2Evd(j, fValue) & 0x0fff);// (short)(((Grid_GetFlag_En(i, j) == true) ? CalcAngle2Evd(j, fValue) : 0x07ff) & 0x0fff);
+                                        }
                                         sData |= (short)(((Grid_GetFlag_Led(i, j) & 0x07) << 12) & 0xf000);
                                         sData |= (short)((Grid_GetFlag_Type(i, j) == true) ? 0x8000 : 0x0000);
                                         //sData |= (short)((Grid_GetFlag_En(i, j) == false) ? 0x8000 : 0x0000);
@@ -7490,7 +8200,7 @@ namespace OpenJigWare
                                     }
                                     //else
                                     //{
-                                    //    sData = (short)COjwConvert.BoolToInt(m_CGridMotionEditor.GetEnable(i)); // En
+                                    //    sData = (short)Ojw.CConvert.BoolToInt(m_CGridMotionEditor.GetEnable(i)); // En
                                     //    if (sData != 0) nFrameSize++; // En
                                     //}
     #endif
@@ -7764,7 +8474,7 @@ namespace OpenJigWare
                         CMessage.Write_Error(strErrMsg);
                     }
 
-                    String strTmp = Ojw.CConvert.IntToStr(nFileVersion);// "V" + COjwConvert.FloatToStr((float)nFileVersion / 10.0f);
+                    String strTmp = Ojw.CConvert.IntToStr(nFileVersion);// "V" + Ojw.CConvert.FloatToStr((float)nFileVersion / 10.0f);
                     //lbTitle.Text = m_strTitle + "[DMT1." + strTmp + "]" + strFileName;
                     m_strMotionFile_FileAndTitle = "[DMT1." + strTmp + "]" + strFileName;
 
@@ -7810,6 +8520,184 @@ namespace OpenJigWare
 
                 
                 public string m_strDesignerFilePath = String.Empty;
+                public void FileImport()
+                {
+#if true
+                    if (MessageBox.Show("Do you want me to copy all 3d-files for you?", "Files Copy(Import)", MessageBoxButtons.OKCancel) == System.Windows.Forms.DialogResult.OK)
+                    {
+
+                        OpenFileDialog dlg = new OpenFileDialog();
+                        dlg.Multiselect = true;
+                        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                        //Ojw.CFile.FileCopy(String.Format("{0}{1}", Application.StartupPath, GetAseFile_Path()), dlg.FileNames);   
+#if true
+                        List<string> lstFiles = new List<string>();
+                        lstFiles.Clear();
+
+                        Ojw.C3d.COjwDesignerHeader CHeader = new COjwDesignerHeader();
+                        int nMotorCount;
+                        string strError;
+                        string strPath = CFile.GetPath(dlg.FileName);
+                        for (int i = 0; i < dlg.FileNames.Length; i++)
+                        {
+                            FileOpen_Without_Event(dlg.FileNames[i], out CHeader);
+                            COjwDispAll CDispAll = new COjwDispAll();
+                            int[] anMotorIDs;
+                            CompileDesign(CHeader.strDrawModel, out CDispAll, out nMotorCount, out anMotorIDs, out strError);
+                            //COjwDisp[] pCDisp;
+                            string[] pstrLines = CHeader.strDrawModel.Split('\n');
+                            COjwDisp CDisp = new COjwDisp();
+                            string strItem;
+                            for (int j = 0; j < CDispAll.GetCount(); j++)
+                            {
+                                strItem = Ojw.CConvert.RemoveChar(CDispAll.GetData(j).strDispObject, '!');
+                                strItem = Ojw.CConvert.RemoveChar(strItem, '?');
+                                if (strItem.IndexOf('#') < 0)
+                                {
+                                    strItem += ((strItem.IndexOf('.') < 0) ? ".ase" : "");
+                                    if (lstFiles.Contains(strItem) == false)
+                                    {
+                                        lstFiles.Add(strItem);
+                                    }
+                                }
+                            }
+                            
+
+
+                            
+                            //int nMotorCount;
+                            //string strError;
+                            //CompileDesign(CHeader.strDrawModel, out nMotorCount, out strError);
+                            //MessageBox.Show("Models[" + dlg.FileNames[i] + "] -> " + GetNoLoadedModelingFile());
+                        }
+
+                        string strTest = String.Empty;
+                        string strTest_Fail = String.Empty;
+                        if (lstFiles.Count > 0)
+                        {
+                            List<string> lstFind = new List<string>();
+                            lstFind.Clear();
+                            List<string> lstFind_Not = new List<string>();
+                            lstFind_Not.Clear();
+
+                            lstFind.AddRange(dlg.FileNames);
+                            for (int i = 0; i < lstFiles.Count; i++)
+                            {
+                                string strFind = CFile.FindFile(strPath, lstFiles[i]);
+                                if (strFind != null)
+                                {
+                                    lstFind.Add(strFind);
+                                    strTest += strFind + "\r\\n";
+                                }
+                                else
+                                {
+                                    lstFind_Not.Add(lstFiles[i]);
+                                    strTest_Fail += lstFiles[i] + "\r\n";
+                                }
+                            }
+                            if (lstFind_Not.Count > 0)
+                            {
+                                strTest += "\r\n===============\r\n[fail]\r\n" + strTest_Fail;
+                            }
+                            //MessageBox.Show(strTest);
+
+                            Ojw.CFile.FileCopy(String.Format("{0}{1}", Application.StartupPath, GetAseFile_Path()), lstFind.ToArray());
+                        }
+
+                        //else MessageBox.Show("No Files...");
+#endif
+                    }
+#else
+                    if (MessageBox.Show("Do you want me to Import all 3d-files(STL & Ojw) from Source?", "Files Copy(Import)", MessageBoxButtons.OKCancel) == System.Windows.Forms.DialogResult.OK)
+                    {
+                        OpenFileDialog dlg = new OpenFileDialog();
+                        dlg.Multiselect = true;
+                        if (dlg.ShowDialog() != DialogResult.OK) return;
+                        
+                        Ojw.C3d.COjwDesignerHeader CHeader = new COjwDesignerHeader();
+                        for (int i = 0; i < dlg.FileNames.Length; i++)
+                        {
+                            if (FileOpen(dlg.FileNames[i], out CHeader) == true)
+                            {
+                                //CHeader.
+                            }
+                        }
+
+
+                    }
+                    if (FileOpen() == true)
+                    {
+                        string[] pstrList = GetNoLoadedModelingFile().Split(',');
+                        string strTmp = Ojw.CConvert.ChangeString(GetNoLoadedModelingFile(), ",", "\r\n");
+                        //MessageBox.Show(strTmp
+                        ////if (GetModelingFiles_Count() > 0)
+                        ////{
+                        //    if (MessageBox.Show("Do you want me to Import all 3d-files(STL & Ojw) from Source?", "Files Copy(Import)", MessageBoxButtons.OKCancel) == System.Windows.Forms.DialogResult.OK)
+                        //    {
+                        //        string strPath = Application.StartupPath;
+                        //        DirectoryInfo dirInfo = new DirectoryInfo(strPath);
+                        //        List<string> lststrMissing = new List<string>();
+                        //        lststrMissing.Clear();
+                        //        if (dirInfo.Exists == true)
+                        //        {
+                        //            List<String> lstFiles = new List<string>();
+                        //            lstFiles.Clear();
+                        //            lstFiles.AddRange(GetModelingFiles());
+                        //            lstFiles.Add(GetFileName());
+
+                        //            string[] pstrMissing = Ojw.CFile.FileCopy(String.Format("{0}", Application.StartupPath), dirInfo.FullName, GetModelingFiles().ToArray());
+                        //            if (pstrMissing.Length > 0)
+                        //            {
+                        //                string strError = String.Empty;
+                        //                foreach (string strItem in pstrMissing) strError += strItem + ", ";
+                        //                Ojw.CMessage.Write_Error("File Import Error => {0}", strError);
+                        //            }
+                        //            else Ojw.CMessage.Write("Done : (File Import)");
+                        //        }        
+                        //    }
+                        ////}
+                    }
+#endif
+                }
+                public void FileExport()//FileExtract()
+                {
+                    if (FileOpen() == true)
+                    {
+                        if (GetModelingFiles_Count() > 0)
+                        {
+                            if (MessageBox.Show("Do you want me to copy all 3d-files for you?", "Files Copy(Export)", MessageBoxButtons.OKCancel) == System.Windows.Forms.DialogResult.OK)
+                            {
+                                FolderBrowserDialog dlg = new FolderBrowserDialog();
+                                //dlg.SelectedPath = 
+
+                                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                                string strPath = dlg.SelectedPath;
+                                DirectoryInfo dirInfo = new DirectoryInfo(strPath);
+                                List<string> lststrMissing = new List<string>();
+                                lststrMissing.Clear();
+                                if (dirInfo.Exists == true)
+                                {
+                                    string[] pstrMissing = Ojw.CFile.FileCopy(String.Format("{0}{1}", Application.StartupPath, GetAseFile_Path()), dirInfo.FullName, GetModelingFiles().ToArray());
+                                    if (pstrMissing.Length > 0)
+                                    {
+                                        string strError = String.Empty;
+                                        foreach (string strItem in pstrMissing) strError += strItem + ", ";
+                                        Ojw.CMessage.Write_Error("FileCopy Error => {0}", strError);
+                                    }
+                                    else Ojw.CMessage.Write("Done : (File Copy)");
+                                    //foreach (string strItem in m_C3d.GetModelingFiles())
+                                    //{
+                                    //    string strFile = String.Format("{0}\\{1}{2}", m_C3d.GetAseFile_Path(), strItem, (strItem.IndexOf('.') < 0) ? ".ase" : "");
+                                    //    //Ojw.CMessage.Write2("{0}\r\n", strItem);
+
+                                    //}
+                                }
+                            }
+                        }
+                    }
+                }
                 private void m_ctxmenuMouse_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
                 {
                     //MessageBox.Show("[Sub]" + e.ClickedItem.Text);
@@ -7851,22 +8739,24 @@ namespace OpenJigWare
                         }
                         else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_CLOSE])
                         {
-                            m_CHeader.strDrawModel = String.Empty;
-                            CompileDesign();
-                            //StringListToGrid();
-                            m_lstDraw.Clear();
-                            if (m_CGridMotionEditor != null) m_CGridMotionEditor.Delete();
-                            
-                            if (m_CProperty_Selected != null) m_CProperty_Selected.Destroy();
-                            m_CDisp_Selected = null;                
-                            m_panelSelected = null;
+                            FileClose();
+                        }
+                        else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_EXPORT])
+                        {
+                            #region File Extract
+                            FileExport();
+                            #endregion File Extract
+                        }
+                        else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems[_MENU_SUB_IMPORT])
+                        {
+                            #region File Import
+                            FileImport();
+                            #endregion File Import
                         }
                         else if (e.ClickedItem == (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItems[_MENU_SUB_ITEM_ADD])
                         {
                             AddVirtualClassToReal();
                         }
-
-
                     }
                 }
                 //private TextBox m_txtDraw = null;
@@ -7919,7 +8809,7 @@ namespace OpenJigWare
                     {
                         //GridToStringList();
                         SetHeader_strDrawModel(m_rtxtDraw.Text);
-                        CompileDesign();
+                        if (m_bFileOpening == false) CompileDesign();
                         StringListToGrid(); // for Gridview only
                     }
                 }
@@ -7968,11 +8858,15 @@ namespace OpenJigWare
                 private void PopupMenu()
                 {
 #if true
+                    m_ctxmenuMouse = new System.Windows.Forms.ContextMenuStrip();
                     m_ctxmenuMouse.Items.Clear();
                     m_ctxmenuMouse.Items.Add("File");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Open");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Save");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Close");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("-");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Export");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Import");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItemClicked += new ToolStripItemClickedEventHandler(m_ctxmenuMouse_DropDownItemClicked);
                     m_ctxmenuMouse.Items.Add("Item");
                     (m_ctxmenuMouse.Items[_MENU_ITEM] as ToolStripMenuItem).DropDownItems.Add("Add");
@@ -8158,14 +9052,79 @@ namespace OpenJigWare
                             }
                         }
                         
-                        //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
-                        if (m_bGridInit == true)
+                        //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...                        
+                        if (m_CGridMotionEditor != null)
                         {
-                            if (m_CHeader != null)
+                            if (m_CGridMotionEditor.m_nGridMode == 1)
                             {
-                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                if (m_CHeader != null)
                                 {
-                                    GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
+#if true
+                                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                    {
+                                        int nID = m_CHeader.anMotorIDs[i];
+                                        float fValue = GetData(nID);
+                                        int nIndex = m_lstIDs_Motion.FindIndex(x => x == nID);
+                                        if (nID < 0) continue;
+                                        if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                            continue;
+                                        try
+                                        {
+                                            GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nIndex, fValue);
+                                            //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                            //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                        }
+                                        catch
+                                        {
+                                            fValue = GetData(nID);
+                                            SetData(nID, fValue);
+                                        }
+                                    }
+#else
+                                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                    {
+                                        //GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
+                                        int nID = m_CHeader.anMotorIDs[i];
+                                        if (nID < 0) continue;
+                                        if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                            continue;
+                                        try
+                                        {
+                                            GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nID, GetData(nID));
+                                            //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                            //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                        }
+#if false
+                                        int nID = m_CHeader.anMotorIDs[i];
+                                        if (nID < 0) continue;
+                                        if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                            continue;
+                                        try
+                                        {
+                                            SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                            //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                        }
+#endif
+                                        catch
+                                        {
+                                            float fValue = GetData(nID);
+                                            SetData(nID, fValue);
+                                        }
+                                    }
+#endif
+                                }
+                            }
+                            else if (m_bGridInit == true)
+                            {
+                                if (m_CHeader != null)
+                                {
+                                    for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                    {
+                                        int nID = i;
+                                        if (m_CHeader.anMotorIDs != null)
+                                            nID = m_CHeader.anMotorIDs[i];
+                                        GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nID, GetData(nID));
+                                    }
                                 }
                             }
                         }
@@ -8489,6 +9448,73 @@ namespace OpenJigWare
                             }
 
                             //// 마우스 제어시에 그리드를 생성한 경우 그리드에 값이 갱신되도록 ...
+#if true
+                            if (m_CGridMotionEditor != null)
+                            {
+                                if (m_CGridMotionEditor.m_nGridMode == 1)
+                                {
+                                    if (m_CHeader != null)
+                                    {
+#if false
+                                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                        {
+                                            //GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
+
+                                            int nID = m_CHeader.anMotorIDs[i];
+                                            if (nID < 0) continue;
+                                            if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                                continue;
+                                            try
+                                            {
+                                                GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nID, GetData(nID));
+                                                //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                                //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                            }
+                                            catch
+                                            {
+                                                float fValue = GetData(nID);
+                                                SetData(nID, fValue);
+                                            }
+                                        }
+#else
+                                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                        {
+                                            int nID = m_CHeader.anMotorIDs[i];
+                                            float fValue = GetData(nID);
+                                            int nIndex = m_lstIDs_Motion.FindIndex(x => x == nID);
+                                            if (nID < 0) continue;
+                                            if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                                continue;
+                                            try
+                                            {
+                                                GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nIndex, fValue);
+                                                //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                                //SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                            }
+                                            catch
+                                            {
+                                                fValue = GetData(nID);
+                                                SetData(nID, fValue);
+                                            }
+                                        }
+#endif
+                                    }
+                                }
+                                else if (m_bGridInit == true)
+                                {
+                                    if (m_CHeader != null)
+                                    {
+                                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                        {
+                                            int nID = i;
+                                            if (m_CHeader.anMotorIDs != null)
+                                                nID = m_CHeader.anMotorIDs[i];
+                                            GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), nID, GetData(nID));
+                                        }
+                                    }
+                                }
+                            }
+#else
                             if (m_bGridInit == true)
                             {
                                 for (int i = 0; i < m_CHeader.nMotorCnt; i++)
@@ -8496,7 +9522,34 @@ namespace OpenJigWare
                                     GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
                                 }
                             }
+                            if (m_CGridMotionEditor != null)
+                            {
+                                if (m_CGridMotionEditor.m_nGridMode == 1)
+                                {
+                                    if (m_CHeader != null)
+                                    {
+                                        for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                        {
+                                            //GridMotionEditor_SetMotor(GridMotionEditor_GetCurrentLine(), i, GetData(i));
 
+                                            int nID = m_CHeader.anMotorIDs[i];
+                                            if (nID < 0) continue;
+                                            if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                                continue;
+                                            try
+                                            {
+                                                SetData(nID, GridMotionEditor_GetMotor(GridMotionEditor_GetCurrentLine(), nID));
+                                            }
+                                            catch
+                                            {
+                                                float fValue = GetData(nID);
+                                                SetData(nID, fValue);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+#endif
                             m_nMouse_X_Left = e.X;
                             m_nMouse_Y_Left = e.Y;                            
                         }
@@ -8687,6 +9740,81 @@ namespace OpenJigWare
                 public C3d()//CCsgl()
                     : base()
                 {
+                    this.InitializeContexts();
+
+                    m_lstMotorsEn.Clear(); // 여기에 만들어진 모터의 수량 및 인덱스를 넣는다.
+#if false
+                    string [] pstrFiles = new string[5] {
+                        "freeglut", 
+                        "tao.freeglut", 
+                        "tao.ode", 
+                        "tao.opengl", 
+                        "tao.platform.windows"
+                    };
+                    
+                    foreach (string strFile in pstrFiles)
+                    {
+                        //if (Ojw.CFile.IsFile(string.Format(Application.StartupPath + "\\" + strFile + ".dll")) == false)
+                        {
+#if true
+                            // 이분 꼼수 방법(스스로 꼼수라 칭함) 참조 - 이 방법이 제일 마음에 든다. 로그인 해서 감사인사 하고 싶어도... 해당 계정이 휴면 계정이라서인지 티스토리에서 비 로그인시 댓글 허용이 안된다... ㅠ.ㅠ                            
+                            // http://imjuni.tistory.com/437
+                            FileStream fs = new FileStream(strFile + ".dll", FileMode.Create);
+                            fs.Write(OpenJigWare.Properties.Resources.freeglut, 0, OpenJigWare.Properties.Resources.freeglut.Length);
+                            fs.Close();
+#else
+
+                            FileStream fs = new FileStream(strFile + ".dll", FileMode.Create);
+                            UnmanagedMemoryStream umsFile = OpenJigWare.Properties.Resources.ResourceManager.GetStream(strFile + ".dll");
+                            byte [] pbyStream = new byte[umsFile.Length];
+                            umsFile.Read(pbyStream, 0, (int)umsFile.Length);
+                            fs.Write(pbyStream, 0, (int)umsFile.Length);
+                            fs.Close();
+                            //System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
+                            
+                            //   using (Stream strmFile = asm.GetManifestResourceStream(strFile))
+                            //{ if (strmFile != null)
+                            //    {
+                            //        byte[] pbyStream = new byte[strmFile.Length];
+                            //        //strmFile.Read(pbyStream, 0, pbyStream.Length);
+                            //        FileStream fs = new FileStream(strFile + ".dll", FileMode.Create);
+                            //        fs.Write(OpenJigWare.Properties.Resources.freeglut, 0, OpenJigWare.Properties.Resources.freeglut.Length);
+                            //        fs.Close();
+                            //    }
+                            //}
+#endif
+                        }
+                    }
+#else
+                    // 이분 꼼수 방법(스스로 꼼수라 칭함) 참조 - 이 방법이 제일 마음에 든다. 로그인 해서 감사인사 하고 싶어도... 해당 계정이 휴면 계정이라서인지 티스토리에서 비 로그인시 댓글 허용이 안된다... ㅠ.ㅠ                            
+                    // http://imjuni.tistory.com/437
+                    FileStream fs = new FileStream("freeglut.dll", FileMode.Create);
+                    fs.Write(OpenJigWare.Properties.Resources.freeglut, 0, OpenJigWare.Properties.Resources.freeglut.Length);
+                    fs.Close();
+
+                    //fs = new FileStream("Tao.FreeGlut.dll", FileMode.Create);
+                    //fs.Write(OpenJigWare.Properties.Resources.Tao_FreeGlut, 0, OpenJigWare.Properties.Resources.Tao_FreeGlut.Length);
+                    //fs.Close();
+
+                    //fs = new FileStream("Tao.Ode.dll", FileMode.Create);
+                    //fs.Write(OpenJigWare.Properties.Resources.Tao_Ode, 0, OpenJigWare.Properties.Resources.Tao_Ode.Length);
+                    //fs.Close();
+
+                    //fs = new FileStream("Tao.OpenGl.dll", FileMode.Create);
+                    //fs.Write(OpenJigWare.Properties.Resources.Tao_OpenGl, 0, OpenJigWare.Properties.Resources.Tao_OpenGl.Length);
+                    //fs.Close();
+
+                    //fs = new FileStream("Tao.Platform.Windows.dll", FileMode.Create);
+                    //fs.Write(OpenJigWare.Properties.Resources.Tao_Platform_Windows, 0, OpenJigWare.Properties.Resources.Tao_Platform_Windows.Length);
+                    //fs.Close();
+
+                    //LoadDll("Tao.FreeGlut.dll");
+                    //LoadDll("Tao.Ode.dll");
+                    //LoadDll("Tao.OpenGl.dll");
+                    //LoadDll("Tao.Platform.Windows.dll");
+#endif
+
+
                     // 변수 초기화
                     for (int i = 0; i < _SIZE_MAX_MOT; i++)
                     {
@@ -8744,8 +9872,10 @@ namespace OpenJigWare
                     Event_ItemAdd.UserEvent += new EventHandler(ItemAdded);//+= new (ItemAdded);
                     
                     Event_FileOpen.UserEvent += new EventHandler(FileRestore);
-                }
 
+                    Event_Compile.UserEvent += new EventHandler(Compiled);
+                }
+                
                 //void m_txtDraw_MouseDown(object sender, MouseEventArgs e)
                 //{
                 //    //throw new NotImplementedException();
@@ -8825,7 +9955,7 @@ namespace OpenJigWare
                     {
                     }
                 }
-                private void SelectLine(int nLine)
+                public void SelectLine(int nLine)
                 {
                     try
                     {
@@ -8973,33 +10103,127 @@ namespace OpenJigWare
                 //    //SizeChange(m_szDisplaySize);
                 //    SizeChange(this.Size);
                 //}
+
+                //http://blog.danggun.net/2147 출처
+                //private bool LoadDll(string sFileName)
+                //{
+                //    //Dll이 있는지 여부
+                //    if (false == File.Exists(sFileName))
+                //    {	//없으면 에러
+                //        return false;
+                //    }
+
+                //    //Dll 로드
+                //    Assembly asm = Assembly.LoadFrom(sFileName);
+
+                //    //로드가 되었나?
+                //    if (asm == null)
+                //    {
+                //        return false;
+                //    }
+
+                //    //로드가되었으면 
+                //    //Dll에 소속된 구성요소 리스트를 받아온다.
+                //    Type[] types = asm.GetExportedTypes();
+
+                //    //types[]의 내용으로 원하는 네임스페이스나 클래스를 찾을수 있다.
+                //    //이 예제에서는 네임스페이스와 클래스가 한개뿐이기 때문에 그냥 0번 오브젝트를 사용한다.
+                //    //m_Type = Activator.CreateInstance(types[0]);
+                //    Activator.CreateInstance(types[0]);
+
+                //    //Dll로드가 정상적으로 끝났다.
+                //    return true;
+                //}
+
+
+
+                private Form m_frm3D;
+                void m_frm3D_FormClosing(object sender, FormClosingEventArgs e)
+                {
+                    //throw new NotImplementedException();
+                }
+                void tmr_Tick(object sender, EventArgs e)
+                {
+                    //throw new NotImplementedException();
+                    OjwDraw();
+                }
+                public void Init()
+                {                    
+                    Init(800, 600);
+                }
+                public void Init(int nWidth, int nHeight)
+                {
+                    m_frm3D = new Form();
+                    //m_frm3D.Left = 0;
+                    //m_frm3D.Top = 0;
+                    m_frm3D.Width = 600;
+                    m_frm3D.Height = 600;
+                    m_frm3D.FormClosing += new FormClosingEventHandler(m_frm3D_FormClosing);
+                    
+                    m_frm3D.Show();
+                    System.Windows.Forms.Timer tmr = new System.Windows.Forms.Timer();
+                    tmr.Interval = 100;
+                    tmr.Enabled = true;
+                    tmr.Tick += new EventHandler(tmr_Tick);
+                    //m_
+
+
+#if true
+                    this.Left = m_frm3D.Left + m_frm3D.Width;
+                    this.Top = m_frm3D.Top;// + m_frm3D.Height;
+                    //Ojw.CMessage.Init(txtMessage);
+                    //MakeBox(pnMotors, 256);
+
+                    Init(m_frm3D);//pnDisp);
+                    //CreateProb_VirtualObject(pnProp);
+                    //CreateProp_Selected(pnProp_Selected, null);
+
+                    SetAseFile_Path("ase");
+
+                    // 기준축 보이기
+                    SetStandardAxis(true);
+                    // 빛 사용
+                    Enable_Light(true);
+
+                    // 클릭한 부분 색 / 투명도 지정
+                    ////m_C3d.SetAlpha_Display_Enalbe(true);
+                    SetPick_ColorMode(true);
+                    SetPick_ColorValue(Color.Green); // 클릭된 부분을 녹색으로 설정
+                    SetPick_AlphaMode(true); // 투명 모드 활성화
+                    SetPick_AlphaValue(0.5f); // 클릭된 부분을 반투명으로 한다.
+                    
+                    SetVirtualClass_Enable(true);
+
+                    #region PropertyGrid
+
+                    ////m_C3d.InitTools_Motor(pnMotors);
+                    //SetTextboxes_ForAngle(m_atxtAngle);
+#if false
+            m_C3d.InitTools_Kinematics(m_pnKinematics);
+            //m_C3d.InitTools_Background(pnBackground);
+            // 
+            m_C3d.Prop_Set_Main_ShowStandardAxis(true);
+            m_C3d.Prop_Set_Main_ShowVirtualAxis(true);
+            m_C3d.Prop_Update_VirtualObject();
+
+#endif
+                    #endregion PropertyGrid
+#endif
+                }
+                            
                 private Control m_ctrlMain = new Control();
                 public void Init(Control ctrlMain)
-                {
+                {                    
                     m_ctrlMain = ctrlMain;
                     this.Parent = ctrlMain;
                     this.Dock = DockStyle.Fill;
                     ctrlMain.Controls.Add(this);
-                    this.InitializeContexts();
+                    //this.InitializeContexts();
                     //m_szDisplaySize = ctrlMain.Size;
                     //SizeChange(m_szDisplaySize);
                     SizeChange(this.Size);
 
-                    for (int i = 0; i < _CNT_TRACK_BALL; i++) m_aSTrack[i] = new STrackD_t();
-
-                    // previous 추정을 위해 추가
-                    int nMotCnt = _SIZE_MAX_MOT;
-                    m_SMotion_Pos.abEn = new bool[nMotCnt];
-                    m_SMotion_Pos.abType = new bool[nMotCnt];
-                    m_SMotion_Pos.anLed = new int[nMotCnt];
-                    m_SMotion_Pos.anMot = new int[nMotCnt];
-                    for (int i = 0; i < nMotCnt; i++)
-                    {
-                        m_SMotion_Pos.abEn[i] = false;
-                        m_SMotion_Pos.abType[i] = false;
-                        m_SMotion_Pos.anLed[i] = 0;
-                        m_SMotion_Pos.anMot[i] = CalcAngle2Evd(i, CalcLimit(i, 0.0f));
-                    }                    
+                    for (int i = 0; i < _CNT_TRACK_BALL; i++) m_aSTrack[i] = new STrackD_t();                                   
                 }
                 public void DInit()
                 {
@@ -9864,8 +11088,13 @@ namespace OpenJigWare
                                     {
                                         if (m_bDynamixel == true)
                                         {
+#if !_MONSTER_LIB
                                             m_CRobotis.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
                                             GridMotionEditor_SetMotor(m_CGridMotionEditor.m_nCurrntCell, nAxis, m_CRobotis.Get_Pos_Angle(nAxis));
+#else
+                                            m_CMonster.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                                            GridMotionEditor_SetMotor(m_CGridMotionEditor.m_nCurrntCell, nAxis, m_CMonster.Read_Pos(nAxis));
+#endif
                                         }
                                         else
                                         {
@@ -10363,7 +11592,8 @@ namespace OpenJigWare
 
                                         // 복사된 행의 열을 구하기 위하여 클립보드 사용.
                                         IDataObject iData = Clipboard.GetDataObject();
-                                        string strClp = (string)iData.GetData(DataFormats.Text);
+                                        //string strClp = (string)iData.GetData(DataFormats.Text);
+                                        string strClp = Ojw.CConvert.RemoveChar((string)iData.GetData(DataFormats.Text), '"');
 
                                         if (strClp == null) break;
 
@@ -10376,6 +11606,8 @@ namespace OpenJigWare
                                         string strDisp = "";
                                         for (int i = 0; i < strClp.Length; i++)
                                         {
+                                            //if (strClp[i] == '"')
+                                            //    continue;
                                             if (strClp[i] == '\t') nT_Cnt++;
                                             else if (strClp[i] == '\n') nLine_Cnt++;
                                             if (strClp[i] != '\r')
@@ -10458,18 +11690,29 @@ namespace OpenJigWare
 
                                             int nNum = 0;
                                             int nLine = 0;
-                                            float fX = 0.0f, fY = 0.0f, fZ = 0.0f;
+                                            //float fX = 0.0f, fY = 0.0f, fZ = 0.0f;
+                                            float[] afX = new float[256];
+                                            float[] afY = new float[256];
+                                            float[] afZ = new float[256];
+                                            Array.Clear(afX, 0, afX.Length);
+                                            Array.Clear(afY, 0, afY.Length);
+                                            Array.Clear(afZ, 0, afZ.Length);
 
                                             for (int j = 0; j < nH - nOffset_j; j++)
                                             {
+                                                // 2차 라인부터는 상대값이 적용되지 않게 한다.
+                                                Array.Clear(afX, 0, afX.Length);
+                                                Array.Clear(afY, 0, afY.Length);
+                                                Array.Clear(afZ, 0, afZ.Length);
+
                                                 strTmp = "";
                                                 // Line : nPos_X + j
                                                 nLine = nPos_X + j;// j + nOffset_j;
-                                                GridMotionEditor_Clear(nLine);
+                                                //GridMotionEditor_Clear(nLine);
                                                 int nCommand = 0;
                                                 // Enable
                                                 //dgGrid[0, j + nOffset_j].Value = Ojw.CConvert.StrToInt(pstrValue[nOffset_i, j + nOffset_j]);
-
+                                                bool bInc = false;
                                                 for (int i = 0; i < nW - nOffset_i; i++)
                                                 {
                                                     //nLine = j + nOffset_j;
@@ -10481,20 +11724,586 @@ namespace OpenJigWare
                                                             if (strTmp[0] == 't')
                                                             {
                                                                 nCommand = 1; // Motor
+                                                                //nNum = m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
                                                                 nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                //m_CRobotis.GetParam_RealID(nNum);
+                                                                continue;
+                                                            }
+                                                            else if (strTmp[0] == 'n') // Function
+                                                            {
+                                                                bInc = false;
+                                                                nCommand = 2;
+                                                                nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                continue;
+                                                            }
+                                                            else if (strTmp[0] == 'i') // Function(incremental)
+                                                            {
+                                                                bInc = true;
+                                                                nCommand = 2;
+                                                                nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+
+                                                                #region Read Forward
+                                                                // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], afMot, out afX[nNum], out afY[nNum], out afZ[nNum]);
+                                                                #endregion Read Forward
+
                                                                 continue;
                                                             }
                                                             else if (strTmp[0] == 'p') // plus
                                                             {
                                                                 nCommand = 8; // Motor
+                                                                //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                //nNum = m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
                                                                 nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
                                                                 continue;
                                                             }
-                                                            else if (strTmp[0] == 'n') // Function
+                                                            else if (strTmp[0] == 'c') // copy
                                                             {
-                                                                nCommand = 2;
+                                                                nCommand = 9; // Motor
+                                                                //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                //nNum = m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
                                                                 nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
                                                                 continue;
+                                                            }
+                                                            else if (strTmp[0] == 'm') // multi
+                                                            {
+                                                                nCommand = 10; // Motor
+                                                                //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                //nNum = m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
+                                                                nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                continue;
+                                                            }
+                                                            //else if (strTmp[0] == 'x') // mirror
+                                                            //{
+                                                            //    nCommand = 13; // mirror
+                                                            //    //if (Ojw.CConvert.IsDigit(strTmp.Substring(1, strTmp.Length - 1)) == false)
+                                                            //    if (strTmp == "xa") nNum = -1;
+                                                            //    else if (Ojw.CConvert.IsDigit(strTmp.Substring(1, strTmp.Length - 1)) == true)
+                                                            //    {
+                                                            //        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                            //    }
+                                                            //    continue;
+                                                            //}
+                                                            else if (strTmp[0] == 'r') // refresh
+                                                            {
+                                                                nCommand = 0; // refresh
+                                                                nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                
+                                                                // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                float [] afMot = new float[m_CHeader.nMotorCnt];
+                                                                for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+
+                                                                Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], afMot, out afX[nNum], out afY[nNum], out afZ[nNum]);
+                                                                continue;
+                                                            }
+                                                            else if (strTmp[0] == 'f') // Function 000 ~ 
+                                                            {
+                                                                nCommand = 1000; // Motor
+                                                                nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                continue;
+                                                            }
+                                                            // @Command,operand0,operand1,operand2,...
+                                                            else if (strTmp[0] == '@')
+                                                            {                                                                
+                                                                string[] pstrFunctions = strTmp.ToUpper().Split(',');
+                                                                if (pstrFunctions.Length > 0)
+                                                                {
+                                                                    int nIndex = 0;
+                                                                    //switch (pstrFunctions[0])
+                                                                    switch (pstrFunctions[nIndex++])
+                                                                    {
+#if false
+                                                                        case "@SET_ABS":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nIndex = 0;
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    afX[nFunction] = fX;
+                                                                                    afY[nFunction] = fY;
+                                                                                    afZ[nFunction] = fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_ABS2":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nIndex = 0;
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    Array.Clear(afMot, 0, afMot.Length);
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] = afX[nFunction] + fX;
+                                                                                    afY[nFunction] = afY[nFunction] + fY;
+                                                                                    afZ[nFunction] = afZ[nFunction] + fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_INC":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nIndex = 0;
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += fX;
+                                                                                    afY[nFunction] += fY;
+                                                                                    afZ[nFunction] += fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        // @SET_INC2,[x],[y],[z],[Rot_X],[Rot_Y],[Rot_Z] 
+                                                                        case "@SET_INC2":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nIndex = 0;
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fRot_X = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fRot_Y = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fRot_Z = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    Ojw.CMath.Rotation(fRot_X, fRot_Y, fRot_Z, ref fX, ref fY, ref fZ);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += fX;
+                                                                                    afY[nFunction] += fY;
+                                                                                    afZ[nFunction] += fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        // 원통좌표계
+                                                                        // http://blog.naver.com/PostView.nhn?blogId=mindo1103&logNo=90155554939&redirect=Dlog&widgetTypeCall=true
+                                                                        // x = rcosΘ
+                                                                        // y = rsinΘ
+                                                                        // z = z
+                                                                        // r^2 = (x^2 + y^2)
+                                                                        // tanΘ = y / z
+                                                                        // z = z
+                                                                        case "@SET_INC3":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nIndex = 0;
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fR = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fTheta = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += (float)(fR * Ojw.CMath.Cos(fTheta));
+                                                                                    afY[nFunction] += (float)(fR * Ojw.CMath.Sin(fTheta));
+                                                                                    afZ[nFunction] += fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+#else
+                                                                        case "@HELP":
+                                                                            {
+                                                                                //strRet = FCommand_Help();
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_ABS":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    afX[nFunction] = fX;
+                                                                                    afY[nFunction] = fY;
+                                                                                    afZ[nFunction] = fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_ABS2":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    Array.Clear(afMot, 0, afMot.Length);
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] = afX[nFunction] + fX;
+                                                                                    afY[nFunction] = afY[nFunction] + fY;
+                                                                                    afZ[nFunction] = afZ[nFunction] + fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_INC":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += fX;
+                                                                                    afY[nFunction] += fY;
+                                                                                    afZ[nFunction] += fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        // @SET_INC1,[Num][x_y_z_0_1_2],[길이],[Rot_X_Y_Z_0_1_2],[각도]
+                                                                        case "@SET_INC1":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 6)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    String strXyz = pstrFunctions[nIndex++];
+                                                                                    float fXyz = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    String strRot = pstrFunctions[nIndex++];
+                                                                                    float fRot = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    if (strXyz.Length != 1) continue;// return null;
+                                                                                    if (strRot.Length != 1) continue;//return null;
+
+                                                                                    float[] afRot = new float[3];
+                                                                                    float[] afXyz = new float[3];
+                                                                                    Array.Clear(afRot, 0, afRot.Length);
+                                                                                    Array.Clear(afXyz, 0, afXyz.Length);
+
+                                                                                    int nXyz = (int)((strXyz[0] >= 'X') ? strXyz[0] - 'X' : Ojw.CConvert.StrToInt(strXyz));
+                                                                                    int nRot = (int)((strRot[0] >= 'X') ? strRot[0] - 'X' : Ojw.CConvert.StrToInt(strRot));
+                                                                                    if ((nXyz < 0) || (nXyz > 2) || (nRot < 0) || (nRot > 2)) continue;//return null;
+                                                                                    afXyz[nXyz] = fXyz;
+                                                                                    afRot[nRot] = fRot;
+
+                                                                                    Ojw.CMath.Rotation(afRot[0], afRot[1], afRot[2], ref afXyz[0], ref afXyz[1], ref afXyz[2]);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += afXyz[0];
+                                                                                    afY[nFunction] += afXyz[1];
+                                                                                    afZ[nFunction] += afXyz[2];
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        // @SET_INC2,[Num][x],[y],[z],[Rot_X],[Rot_Y],[Rot_Z] 
+                                                                        case "@SET_INC2":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 8)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fRot_X = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fRot_Y = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fRot_Z = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    Ojw.CMath.Rotation(fRot_X, fRot_Y, fRot_Z, ref fX, ref fY, ref fZ);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += fX;
+                                                                                    afY[nFunction] += fY;
+                                                                                    afZ[nFunction] += fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        // 원통좌표계
+                                                                        // http://blog.naver.com/PostView.nhn?blogId=mindo1103&logNo=90155554939&redirect=Dlog&widgetTypeCall=true
+                                                                        // x = rcosΘ
+                                                                        // y = rsinΘ
+                                                                        // z = z
+                                                                        // r^2 = (x^2 + y^2)
+                                                                        // tanΘ = y / z
+                                                                        // z = z
+                                                                        case "@SET_INC3":
+                                                                            {
+                                                                                if (pstrFunctions.Length >= 4)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                    float fR = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fTheta = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                    float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                                                    #region Read Forward
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    #endregion Read Forward
+
+                                                                                    afX[nFunction] += (float)(fR * Ojw.CMath.Cos(fTheta));
+                                                                                    afY[nFunction] += (float)(fR * Ojw.CMath.Sin(fTheta));
+                                                                                    afZ[nFunction] += fZ;
+                                                                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        case "@INIT":// Init
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                if (nTmp < 0) m_CGridMotionEditor.Clear();
+                                                                                else m_CGridMotionEditor.Clear(nLine);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET":// Set Motor
+                                                                            {
+                                                                                //int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                //int nAxis = m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                                int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);// Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                                                                float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                GridMotionEditor_SetMotor(nLine, nAxis, fValue);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_PLUS":// Set Motor
+                                                                            {
+                                                                                //int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                                float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                GridMotionEditor_SetMotor(nLine, nAxis, GridMotionEditor_GetMotor(nLine, nAxis) + fValue);
+                                                                            }
+                                                                            break;
+                                                                        case "@Clear":// Clear Motor
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) GridMotionEditor_SetMotor(nLine, nAxis, 0.0f);
+                                                                            }
+                                                                            break;
+                                                                        case "@ENTER": // Moving Next Line
+                                                                            {
+                                                                                int nValue = 1;
+                                                                                if (pstrFunctions.Length > 1)
+                                                                                {
+                                                                                    nValue = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                }
+                                                                                int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                                                                int nCurrCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                                                                m_CGridMotionEditor.ChangePos_Command(m_CGridMotionEditor.GetHandle(), nCurrLine + nValue, nCurrCol);//.SetChangeCurrentLine(nCurrLine + nValue);
+                                                                            }
+                                                                            break;
+                                                                        case "@SPACE": // Moving Next Column
+                                                                            {
+                                                                                int nValue = 1;
+                                                                                if (pstrFunctions.Length > 1)
+                                                                                {
+                                                                                    nValue = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                }
+                                                                                int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                                                                int nCurrCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                                                                //m_CGridMotionEditor.SetChangeCurrentCol(nCurrLine + nValue);
+                                                                                m_CGridMotionEditor.ChangePos_Command(m_CGridMotionEditor.GetHandle(), nCurrLine, nCurrCol + nValue);//.SetChangeCurrentLine(nCurrLine + nValue);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_COMMAND":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetCommand(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DATA0":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetData0(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DATA1":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetData1(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DATA2":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetData2(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DATA3":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetData3(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DATA4":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetData4(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DATA5":
+                                                                            {
+                                                                                int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                m_CGridMotionEditor.SetData5(nLine, nTmp);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_ENABLE":
+                                                                            {
+                                                                                GridMotionEditor_SetEnable(nLine, Ojw.CConvert.StrToBool(pstrFunctions[nIndex++]));
+                                                                            }
+                                                                            break;
+                                                                        case "@ROT":
+                                                                        case "@ROTATE":
+                                                                        case "@ROTATION":
+                                                                            {
+                                                                                float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                SetAngle_Display(fY, fX, fZ);
+                                                                            }
+                                                                            break;
+                                                                        case "@TRANS":
+                                                                        case "@TRANSLATE":
+                                                                        case "@TRANSLATION":
+                                                                            {
+                                                                                float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                SetPos_Display(fY, fX, fZ);
+                                                                            }
+                                                                            break;
+                                                                        case "@SCALE":
+                                                                            {
+                                                                                float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                SetScale(fValue);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_GROUP": // Group
+                                                                            {
+                                                                                GridMotionEditor_SetGroup(nLine, Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_CAPTION": // Caption
+                                                                            {
+                                                                                m_CGridMotionEditor.SetCaption(nLine, pstrFunctions[nIndex++]);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_SPEED":
+                                                                            {
+                                                                                m_CGridMotionEditor.SetTime(nLine, Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_DELAY":
+                                                                            {
+                                                                                m_CGridMotionEditor.SetDelay(nLine, Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                            }
+                                                                            break;
+                                                                        case "@COPY":
+                                                                            {
+                                                                                //int nID1 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                //int nID2 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                int nID1 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                                int nID2 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);//m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                                int nDir = ((strTmp.IndexOf('-') >= 0) ? -1 : 1);
+                                                                                if (nDir < 0) nID2 = -nID2;
+                                                                                GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nID2) * nDir);
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_MULTI":
+                                                                            {
+                                                                                //int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                                int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);//m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                                                float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                                                GridMotionEditor_SetMotor(nLine, nAxis, GridMotionEditor_GetMotor(nLine, nAxis) * fValue);
+                                                                            }
+                                                                            break;
+                                                                        case "@READ":
+                                                                            {
+                                                                                if (pstrFunctions.Length > 1)
+                                                                                {
+                                                                                    int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+
+                                                                                    // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                                                    float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                                                    for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+
+                                                                                    Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                                                    //Ojw.CMessage.Write2("Position : {0}, {1}, {2}", afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                    //strRet = String.Format("Position[{0}] : {1}, {2}, {3}", GetHeader_pstrGroupName()[nFunction], afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                                                }
+                                                                            }
+                                                                            break;
+                                                                        case "@SET_LINE": // Group
+                                                                            {
+                                                                                nLine = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                                            }
+                                                                            break;
+#endif
+                                                                    }
+                                                                }
+                                                                nCommand = 0;
+                                                                //return; // 이 명령어 이후는 굳이 실행할 필요 없다.
                                                             }
                                                         }
                                                         else if (strTmp.Length == 1)
@@ -10514,6 +12323,23 @@ namespace OpenJigWare
                                                                 nCommand = 7;
                                                                 continue;
                                                             }
+                                                            else if (strTmp == "g") // group
+                                                            {
+                                                                nCommand = 11;
+                                                                continue;
+                                                            }
+                                                            else if (strTmp == "w") // write
+                                                            {
+                                                                nCommand = 12;
+
+                                                                //SetRobot_Rot(30, 10, 20);
+                                                                continue;
+                                                            }
+                                                            else if (strTmp == "x") // mirror
+                                                            {
+                                                                nCommand = 13;
+                                                                continue;
+                                                            }
                                                         }
                                                     }
                                                     //else if (strTmp.Le
@@ -10527,41 +12353,202 @@ namespace OpenJigWare
                                                             //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
                                                             nCommand = 0;
                                                         }
+                                                        #region Function - Absolute / Incremental
                                                         else if (nCommand == 2)
                                                         {
-                                                            fX = Ojw.CConvert.StrToFloat(strTmp);
+                                                            if (bInc == true)
+                                                                afX[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                                                            else
+                                                                afX[nNum] = Ojw.CConvert.StrToFloat(strTmp);
                                                             nCommand++;
                                                         }
                                                         else if (nCommand == 3)
                                                         {
-                                                            fY = Ojw.CConvert.StrToFloat(strTmp);
+                                                            if (bInc == true)
+                                                                afY[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                                                            else
+                                                                afY[nNum] = Ojw.CConvert.StrToFloat(strTmp);
                                                             nCommand++;
                                                         }
                                                         else if (nCommand == 4)
                                                         {
-                                                            fZ = Ojw.CConvert.StrToFloat(strTmp);
-                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nNum, fX, fY, fZ);
+                                                            if (bInc == true)
+                                                                afZ[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                                                            else
+                                                                afZ[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nNum, afX[nNum], afY[nNum], afZ[nNum]);
                                                             nCommand = 0;
                                                         }
-                                                        if (nCommand == 5) // Enable
+                                                        #endregion
+                                                        else if (nCommand == 5) // Enable
                                                         {
                                                             GridMotionEditor_SetEnable(nLine, Ojw.CConvert.StrToBool(strTmp));
                                                             nCommand = 0;
                                                         }
-                                                        if (nCommand == 6) // Speed
+                                                        else if (nCommand == 6) // Speed
                                                         {
                                                             GridMotionEditor_SetTime(nLine, Ojw.CConvert.StrToInt(strTmp));
                                                             nCommand = 0;
                                                         }
-                                                        if (nCommand == 7) // Delay
+                                                        else if (nCommand == 7) // Delay
                                                         {
                                                             GridMotionEditor_SetDelay(nLine, Ojw.CConvert.StrToInt(strTmp));
                                                             nCommand = 0;
                                                         }
-                                                        if (nCommand == 8) // plus
+                                                        else if (nCommand == 8) // plus
                                                         {
                                                             GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nNum) + Ojw.CConvert.StrToFloat(strTmp));
                                                             //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                                            nCommand = 0;
+                                                        }
+                                                        else if (nCommand == 9) // copy
+                                                        {
+                                                            int nID2 = Ojw.CConvert.StrToInt(strTmp);
+                                                            int nDir = ((strTmp.IndexOf('-') >= 0) ? -1 : 1);
+                                                            //if (nID2 < 0)
+                                                            //{
+                                                            //    nDir = -1;
+                                                            //    nID2 = -nID2;
+                                                            //}
+                                                            if (nDir < 0)
+                                                            {
+                                                                nID2 = -nID2;
+                                                            }
+                                                            GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nID2) * nDir);
+                                                            //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                                            nCommand = 0;
+                                                        }
+                                                        else if (nCommand == 10) // multi
+                                                        {
+                                                            GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nNum) * Ojw.CConvert.StrToFloat(strTmp));
+                                                            //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                                            nCommand = 0;
+                                                        }
+                                                        else if (nCommand == 11) // Group
+                                                        {
+                                                            GridMotionEditor_SetGroup(nLine, Ojw.CConvert.StrToInt(strTmp));
+                                                            nCommand = 0;
+                                                        }
+                                                        else if (nCommand == 12) // Caption
+                                                        {
+                                                            m_CGridMotionEditor.SetCaption(nLine, strTmp);
+                                                            // 색칠하기...
+                                                            //GridMotionEditor_SetColorGrid(nLine, 2);
+                                                            //GridMotionEditor_
+                                                            nCommand = 0;
+                                                        }
+                                                        else if (nCommand == 13) // Mirror
+                                                        {                                           
+                                                            if (Ojw.CConvert.IsDigit(strTmp) == true)
+                                                            {
+                                                                int nMotorID = Ojw.CConvert.StrToInt(strTmp);
+                                                                if (nMotorID < 0)
+                                                                {
+                                                                    // Mirror All(이중 복사 방지)
+                                                                    bool [] abSet = new bool[m_CHeader.nMotorCnt];
+                                                                    for (int nMotor = 0; nMotor < m_CHeader.nMotorCnt; nMotor++)
+                                                                    {
+                                                                        int nMirror = m_CHeader.pSMotorInfo[nMotor].nAxis_Mirror;
+                                                                        if (abSet[nMotor] == true) continue;
+                                                                        abSet[nMotor] = true;
+                                                                        if (nMirror >= 0)
+                                                                        {
+                                                                            if (abSet[nMirror] == true) continue;
+                                                                            abSet[nMirror] = true;
+                                                                        }
+
+                                                                        if (nMirror == -2)
+                                                                        {
+                                                                            GridMotionEditor_SetMotor(nLine, nMotor, -GridMotionEditor_GetMotor(nLine, nMotor));
+                                                                        }
+                                                                        else if ((nMirror >= 0) && (nMirror < m_CHeader.nMotorCnt))
+                                                                        {
+                                                                            float fTmp = GridMotionEditor_GetMotor(nLine, nMotor);
+                                                                            GridMotionEditor_SetMotor(nLine, nMotor, GridMotionEditor_GetMotor(nLine, nMirror));
+                                                                            GridMotionEditor_SetMotor(nLine, nMirror, fTmp);
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    int nMotor = nMotorID;
+                                                                    int nMirror = m_CHeader.pSMotorInfo[nMotor].nAxis_Mirror;
+                                                                    if (nMirror == -2)
+                                                                    {
+                                                                        GridMotionEditor_SetMotor(nLine, nMotor, -GridMotionEditor_GetMotor(nLine, nMotor));
+                                                                    }
+                                                                    else if ((nMirror >= 0) && (nMirror < m_CHeader.nMotorCnt))
+                                                                    {
+                                                                        float fTmp = GridMotionEditor_GetMotor(nLine, nMotor);
+                                                                        GridMotionEditor_SetMotor(nLine, nMotor, GridMotionEditor_GetMotor(nLine, nMirror));
+                                                                        GridMotionEditor_SetMotor(nLine, nMirror, fTmp);
+                                                                    }
+                                                                }
+                                                            }
+                                                            nCommand = 0;
+                                                        }
+                                                        else if (nCommand >= 1000)
+                                                        {
+                                                            if (nNum == 0) // Function 000 ~ Clear
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                if (nTmp < 0) m_CGridMotionEditor.Clear();
+                                                                else m_CGridMotionEditor.Clear(nLine);
+                                                                //m_CGridMotionEditor.SetData1(nLine, 1);
+                                                                //m_CGridMotionEditor.SetData2(nLine, 1);
+                                                            }
+                                                            else if (nNum == 1) // Function 001 ~ Clear Motor
+                                                            {
+                                                                float fValue = Ojw.CConvert.StrToFloat(strTmp);
+                                                                for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) GridMotionEditor_SetMotor(nLine, nAxis, fValue);
+                                                            }
+                                                            else if (nNum == 2) // Function 002 ~ Moving Next Line
+                                                            {
+                                                                int nValue = Ojw.CConvert.StrToInt(strTmp);
+                                                                int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                                                m_CGridMotionEditor.SetChangeCurrentLine(nCurrLine + nValue);
+                                                            }
+                                                            else if (nNum == 3) // Function 003 ~ Moving Next Column
+                                                            {
+                                                                int nValue = Ojw.CConvert.StrToInt(strTmp);
+                                                                int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                                                m_CGridMotionEditor.SetChangeCurrentCol(nCurrLine + nValue);
+                                                            }
+                                                            else if (nNum == 99)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetCommand(nLine, nTmp);
+                                                            }
+                                                            else if (nNum == 100)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetData0(nLine, nTmp);
+                                                            }
+                                                            else if (nNum == 101)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetData1(nLine, nTmp);
+                                                            }
+                                                            else if (nNum == 102)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetData2(nLine, nTmp);
+                                                            }
+                                                            else if (nNum == 103)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetData3(nLine, nTmp);
+                                                            }
+                                                            else if (nNum == 104)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetData4(nLine, nTmp);
+                                                            }
+                                                            else if (nNum == 105)
+                                                            {
+                                                                int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                                                m_CGridMotionEditor.SetData5(nLine, nTmp);
+                                                            }
                                                             nCommand = 0;
                                                         }
                                                     }
@@ -10740,7 +12727,16 @@ namespace OpenJigWare
                                                     int nAxis = nColumn + nColumnAdd - 1;
                                                     if ((nAxis >= 0) && (nAxis < m_CHeader.nMotorCnt))
                                                     {
-                                                        strData += String.Format("{0}\t", m_CMotor.CalcAngle2Evd(nAxis, Ojw.CConvert.StrToFloat(strItem)));
+                                                        if (m_bDynamixel == false)
+                                                            strData += String.Format("{0}\t", m_CMotor.CalcAngle2Evd(nAxis, Ojw.CConvert.StrToFloat(strItem)));
+                                                        else
+                                                        {
+#if !_MONSTER_LIB
+                                                            strData += String.Format("{0}\t", m_CRobotis.CalcAngle2Evd(nAxis, Ojw.CConvert.StrToFloat(strItem)));
+#else
+                                                            strData += String.Format("{0}\t", m_CMonster.CalcAngle2Evd(nAxis, Ojw.CConvert.StrToFloat(strItem)));
+#endif
+                                                        }
                                                     }
                                                     else strData += strItem + "\t";
                                                 }
@@ -10763,6 +12759,440 @@ namespace OpenJigWare
                             }
                             break;
                         #endregion Keys.E - 클립보드 Evd 전환
+                        #region Keys.R - 클립보드 R+호환 프레임 전환
+                        case Keys.R:
+                            {
+                                if (dgGrid.Focused == true)
+                                {
+                                    if (e.Shift) // 클립보드의 내용을 R+Motion -> OpenJigWare 로 변환
+                                    {                        
+#if true
+
+                                            //// 복사된 행의 열을 구하기 위하여 클립보드 사용.
+                                        //IDataObject iData = Clipboard.GetDataObject();
+                                        //string strClp = (string)iData.GetData(DataFormats.Text);
+
+                                        //// 데이터 변형
+                                        //int nOffsetIndex = strClp.IndexOf("pose=");
+                                        //if (nOffsetIndex >= 0)
+                                        //{
+                                        //    string strTmp = String.Empty;
+
+                                        //    int nTime = 0;
+                                        //    string[] pstrLines = strClp.Split(' ');
+                                        //    foreach (string strItem in pstrLines)
+                                        //    {
+                                        //        if (strItem.IndexOf("Keyframes") >= 0) continue;
+                                        //        else if (strItem.IndexOf("Motion2+Step") >= 0) continue;
+                                        //        else if (strItem.IndexOf("frame") >= 0)
+                                        //        {
+                                        //            nTime = Ojw.CConvert.StrToInt(strItem.Substring(7, strItem.Length - 7 - 1));
+                                        //            GridMotionEditor_SetTime(nLine + nLineAdd) / 7.8125f);
+                                        //            continue;
+                                        //        }
+                                        //        else if (strItem.IndexOf("/>") >= 0)
+                                        //        {
+                                        //            continue;
+                                        //        }
+                                        //        else if (strItem.IndexOf('\"') >= 0)
+                                        //        {
+                                        //            strTmp += strItem.Remove(strItem.IndexOf('\"')) + "\t";
+                                        //        }
+                                        //    }
+                                        //    //strClp = strClp.Substring(nOffsetIndex + 6);
+                                        //    //strClp = strClp.Substring(0, strClp.IndexOf('\"'));
+                                        //}
+                                        ///////////////////////////////////////////////////////////////
+                                        try
+                                        {
+                                            int nLine = dgGrid.RowCount;
+                                            int nLineAdd = 0;
+                                            int nColumn = dgGrid.ColumnCount;
+                                            // 첫 위치 찾아내기
+
+                                            int nMin_Line = 9999999;
+                                            int nMin_Column = 2;//nMin_Line; // -> MinColumn 을 그냥 첫 위치로 잡는다.
+                                            for (int j = 0; j < nColumn; j++)
+                                            {
+                                                for (int i = 0; i < nLine; i++)
+                                                {
+                                                    if (dgGrid[j, i].Selected == true)
+                                                    {
+                                                        if (nMin_Line > i) nMin_Line = i;
+                                                        //if (nMin_Column > j) nMin_Column = j;
+                                                    }
+                                                }
+                                            }
+                                            //MessageBox.Show(String.Format("Line {0}, Column {1}", nMin_Line, nMin_Column));
+
+                                            string strClips = (string)Clipboard.GetDataObject().GetData(typeof(string));
+                                            string[] pstrClips = strClips.Split('\n');
+                                            int nOffsetIndex = strClips.IndexOf("Keyframes");
+                                            nLineAdd = 0;
+                                            nLine = nMin_Line;
+                                            int nIncrease = 1;
+                                            if (nOffsetIndex >= 0)
+                                            {
+                                                int nFrame = -1;
+                                                List<String> lstClips = new List<string>();
+                                                List<int> lstTime = new List<int>();
+                                                lstClips.Clear();
+                                                lstTime.Clear();
+                                                foreach (string strClipData in pstrClips)
+                                                {
+                                                    if (strClipData.IndexOf("Motion2+Step") >= 0)
+                                                    {
+                                                        lstClips.Add(strClipData);
+
+
+                                                        string strClip = strClipData;
+                                                        nOffsetIndex = strClip.IndexOf("frame=");
+                                                        strClip = strClip.Substring(nOffsetIndex + 7);
+                                                        int nTmp = strClip.IndexOf('\"');
+                                                        nFrame = Ojw.CConvert.StrToInt(strClip.Substring(0, nTmp));
+                                                        lstTime.Add(nFrame);
+                                                    }
+                                                }
+                                                if (lstClips.Count > 1)
+                                                {
+                                                    //if (lstClips[lstClips.Count - 1]
+                                                    //string strClip = lstClips[0];
+                                                    //nOffsetIndex = strClip.IndexOf("frame=");
+                                                    //strClip = strClip.Substring(nOffsetIndex + 7);
+                                                    //int nTmp = strClip.IndexOf('\"');
+                                                    //int nFrame0 = Ojw.CConvert.StrToInt(strClip.Substring(0, nTmp));
+
+                                                    //strClip = lstClips[lstClips.Count - 1];
+                                                    //nOffsetIndex = strClip.IndexOf("frame="); 
+                                                    //strClip = strClip.Substring(nOffsetIndex + 7);
+                                                    //nTmp = strClip.IndexOf('\"');
+                                                    //int nFrame1 = Ojw.CConvert.StrToInt(strClip.Substring(0, nTmp));
+                                                    if (lstTime[0] > lstTime[lstTime.Count - 1])
+                                                    {
+                                                        nIncrease = -1;
+                                                        nLineAdd = lstClips.Count - 1;
+                                                        lstTime.Reverse();
+                                                    }
+                                                }
+
+                                                foreach (string strClipData in pstrClips)
+                                                {
+                                                    if (strClipData.IndexOf("Motion2+Step") < 0) continue;
+                                                    string strClip = strClipData;
+                                                    //if (strLine.Length < 3) continue
+                                                    string strData = String.Empty;
+                                                    nOffsetIndex = strClip.IndexOf("frame=");
+                                                    if (nOffsetIndex >= 0)
+                                                    {
+                                                        //strClip = strClip.Substring(nOffsetIndex + 7);
+                                                        //int nTmp = strClip.IndexOf('\"');
+                                                        //nFrame = Ojw.CConvert.StrToInt(strClip.Substring(0, nTmp));
+                                                        //strClip = strClip.Substring(nTmp);
+                                                        nFrame = lstTime[nLineAdd];
+                                                        if (nLineAdd > 0)
+                                                        {
+                                                            nFrame -= lstTime[nLineAdd - 1];
+                                                        }
+                                                        GridMotionEditor_SetTime(nLine + nLineAdd, (int)Math.Round(nFrame * 7.8125f));
+                                                    }
+                                                    //// 데이터 변형
+                                                    nOffsetIndex = strClip.IndexOf("pose=");
+                                                    if (nOffsetIndex >= 0)
+                                                    {
+                                                        GridMotionEditor_SetEnable(nLine + nLineAdd, true);
+
+                                                        strClip = strClip.Substring(nOffsetIndex + 6);
+                                                        strClip = strClip.Substring(0, strClip.IndexOf('\"'));
+
+                                                        //string strTmp = String.Empty;
+
+                                                        ////int nTime = 0;
+                                                        //string[] pstrLines = strClip.Split(' ');
+                                                        //foreach (string strItem in pstrLines)
+                                                        //{
+                                                        //    if (strItem.IndexOf('\"') >= 0)
+                                                        //    {
+                                                        //        strTmp += strItem.Remove(strItem.IndexOf('\"')) + "\t";
+                                                        //    }
+                                                        //}
+                                                        //strClp = strClp.Substring(nOffsetIndex + 6);
+                                                        //strClp = strClp.Substring(0, strClp.IndexOf('\"'));
+
+
+
+                                                        //MessageBox.Show(strClip);
+                                                        //string[] pstrClipLine = Ojw.CConvert.RemoveString(Ojw.CConvert.RemoveChar(strClip, '\r'), "\n\n").Split('\n');
+                                                        
+
+                                                        int nColumnPos = (nMin_Column - 1); // Enable 위치를 뺀다.
+                                                        // nColumnPos = nMin_Column;
+                                                        
+                                                        int nColumnAdd = 0;
+                                                        //foreach (string strLine in pstrClipLine)
+                                                        //{
+                                                            nColumnAdd = 0;
+                                                            strData += Ojw.CConvert.ChangeChar(strClip, ' ', '\t');
+                                                            string[] pstrItems = strClip.Split(' ');
+                                                            foreach (string strItem in pstrItems)
+                                                            {
+                                                                //if (nColumnPos + nColumnAdd >= m_CHeader.nMotorCnt) continue; // 마지막은 Time Cell 위치
+                                                                //if (m_CHeader.pSMotorInfo[nColumnPos + nColumnAdd]
+                                                                //if (nColumnPos + nColumnAdd == 0) continue; // 이건 나중 헤더의 Enable 을 넣어 처리하도록 한다.
+                                                                //if (nColumnPos + nColumnAdd < 0) continue; // 외적인것 삭제
+                                                                GridMotionEditor_SetMotor(nLine + nLineAdd, nColumnPos + nColumnAdd, Ojw.CConvert.StrToFloat(strItem) * ((m_CHeader.pSMotorInfo[nColumnPos + nColumnAdd].nMotorDir) > 0 ? -1 : 1) * ((m_CHeader.pSMotorInfo[nColumnPos + nColumnAdd].fRobotisConvertingVar) == 0 ? 1 : m_CHeader.pSMotorInfo[nColumnPos + nColumnAdd].fRobotisConvertingVar));
+                                                                //    if (strItem.Length > 0)
+                                                                //    {
+                                                                //        // Data
+                                                                //        int nAxis = nColumn + nColumnAdd - 1;
+                                                                //        if ((nAxis >= 0) && (nAxis < m_CHeader.nMotorCnt))
+                                                                //        {
+                                                                //            strData += String.Format("{0}\t", m_CMotor.CalcAngle2Evd(nAxis, Ojw.CConvert.StrToFloat(strItem)));
+                                                                //        }
+                                                                //        else strData += strItem + "\t";
+                                                                //    }
+                                                                //    else
+                                                                //    {
+                                                                //        strData += strItem + "\t";
+                                                                //    }
+
+                                                                //    nColumnAdd++;
+
+                                                                //    //if (strItem.IndexOf("Keyframes") >= 0) continue;
+                                                                //    //else if (strItem.IndexOf("Motion2+Step") >= 0) continue;
+                                                                //    //else if (strItem.IndexOf("frame") >= 0)
+                                                                //    //{
+                                                                //    //    int nTime = Ojw.CConvert.StrToInt(strItem.Substring(7, strItem.Length - 7 - 1));
+                                                                //    //    GridMotionEditor_SetTime(nLine + nLineAdd - 1, (int)Math.Round(nTime * 7.8125f));
+                                                                //    //    continue;
+                                                                //    //}
+                                                                //    //else if (strItem.IndexOf("/>") >= 0)
+                                                                //    //{
+                                                                //    //    continue;
+                                                                //    //}
+                                                                //    //else if (strItem.IndexOf('\"') >= 0)
+                                                                //    //{
+                                                                //    strData += strItem.Remove(strItem.IndexOf('\"')) + "\t";
+                                                                //    //}
+                                                                nColumnAdd++;
+                                                            }
+                                                            //strData += "\r\n";
+                                                            //nLineAdd++;
+                                                        //}
+                                                        //Clipboard.SetText(strData);
+                                                    }
+                                                    ///////////////////////////////////////////////////////////////
+                                                    //nLineAdd++;
+                                                    nLineAdd += nIncrease;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // 조인트일때도 찾자.
+                                                nOffsetIndex = strClips.IndexOf("Joints");
+                                                if (nOffsetIndex >= 0)
+                                                {
+                                                    strClips = Ojw.CConvert.ChangeString(strClips.Substring(nOffsetIndex = strClips.IndexOf("\n") + 1), "\n\n", ";");
+                                                    string[] pstrLines = strClips.Split(';');
+                                                    foreach (string strLine in pstrLines)
+                                                    {
+                                                        int nAxis = -1;
+                                                        if (strLine.IndexOf("System.Int32(@)") >= 0)
+                                                        {
+                                                            int nTmp0 = strLine.IndexOf(")") + 1;
+                                                            nAxis = Ojw.CConvert.StrToInt(strLine.Substring(nTmp0));
+                                                        }
+                                                        else if ((nAxis >= 0) && (strLine.IndexOf("System.Single(@)") >= 0))
+                                                        {
+                                                            int nTmp0 = strLine.IndexOf(")") + 1;
+                                                            GridMotionEditor_SetMotor(nLine + nLineAdd, nAxis, Ojw.CConvert.StrToFloat(strLine.Substring(nTmp0)) * ((m_CHeader.pSMotorInfo[nAxis].nMotorDir) > 0 ? -1 : 1) * ((m_CHeader.pSMotorInfo[nAxis].fRobotisConvertingVar) == 0 ? 1 : m_CHeader.pSMotorInfo[nAxis].fRobotisConvertingVar));
+                                                        }
+                                                    }
+                                                }
+                                            }                                            
+                                        }
+                                        catch (Exception e2)
+                                        {
+                                            MessageBox.Show(e2.ToString());
+                                        }
+#endif
+                                    }
+                                    else // 클립보드 변형하기 // 클립보드의 내용을 OpenJigWare -> R+Motion 으로 변환
+                                    {
+#if true
+                                        try
+                                        {
+                                            m_nFirstPos_Min_X = 9999999;
+                                            m_nFirstPos_Min_Line = 9999999;
+
+                                            int nPos_Start_X = 0, nPos_Start_Y = 0;
+                                            int nPos_End_X = 0, nPos_End_Y = 0;
+                                            int nX_Limit = dgGrid.RowCount;
+                                            int nY_Limit = dgGrid.ColumnCount;
+                                            // 첫 위치 찾아내기
+                                            int k = 0;
+                                            string strData = "Keyframes\n";// String.Empty;
+                                            string strData_Joint = "Joints\n";
+                                            bool bStart = false;
+                                            int nTimer = 0;
+                                            int nFrame = 0;
+                                            int nLineAdd = 0;
+                                            for (int nLine = 0; nLine < nX_Limit; nLine++)
+                                            {
+                                                bStart = false;
+                                                for (int nCol = 0; nCol < nY_Limit; nCol++)
+                                                {
+                                                    if (dgGrid[nCol, nLine].Selected == true) 
+                                                    {
+                                                        if (GridMotionEditor_GetEnable(nLine) == true)
+                                                        {
+                                                            bStart = true;
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                                if (bStart == false) continue;
+                                                
+                                                strData_Joint = "Joints\n";
+#if true
+                                                nFrame += (int)Math.Round((float)GridMotionEditor_GetTime(nLine) / 7.8125f); // R+Motion 에서는 딜레이를 감안하지 않도록 한다.
+                                                //strData += String.Format("Motion2+Step(@)<step frame=\"{0}\" pose=\"", nFrame);
+                                                strData += String.Format("Motion2+Step|<step frame=\"{0}\" pose=\"", nFrame);
+#else
+                                                int nTmp_nFrame = (int)(GridMotionEditor_GetTime(nLine) / 7.8125f);//_TIME_TO_FRAME_VALUE);
+                                                nTimer = (int)(nTmp_nFrame * 7.8125f);//_TIME_TO_FRAME_VALUE);
+                                                nFrame += (int)(nTimer / 7.8125f);//_TIME_TO_FRAME_VALUE);                                                
+                                                //strData += String.Format("Motion2+Step(@)<step frame=\"{0}\" pose=\"", nFrame);
+                                                strData += String.Format("Motion2+Step|<step frame=\"{0}\" pose=\"", nFrame);
+#endif
+
+                                                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                                                {
+                                                    int nAxis = i;
+                                                    if (m_CHeader.pSMotorInfo[i].nMotorEnable_For_RPTask == -1) continue; // Enable 이 죽어 있다면 패스
+                                                    if (i == 0) continue; // 0번 모터는 사용 안하는 경향이 있어 일단 패스. 나중에는 헤더에서 패스된걸 찾도록 한다.
+                                                    float fData = GridMotionEditor_GetMotor(nLine, nAxis) * ((m_CHeader.pSMotorInfo[nAxis].nMotorDir == 0) ? 1 : -1) * ((m_CHeader.pSMotorInfo[nAxis].fRobotisConvertingVar == 0) ? 1 : m_CHeader.pSMotorInfo[nAxis].fRobotisConvertingVar);
+                                                    strData += String.Format("{0} ", fData);
+
+                                                    strData_Joint += String.Format("System.Int32(@){0}\nSystem.Single(@){1}\nSystem.String(@)?\nSystem.String(@)?\n\n", m_CHeader.pSMotorInfo[i].nMotorID, fData);
+                                                    
+                                                }
+                                                int nSpare = strData.LastIndexOf(' ');
+                                                if (nSpare == strData.Length - 1) strData = strData.Remove(nSpare);
+                                                //strData += "\r\n";
+                                                strData += "\" />\n\n";
+
+                                                //////////////////////////////////////////////////////////////////////////////////////////
+
+                                                nLineAdd++;  
+                                            }
+                                            //if (nLineAdd == 1) Clipboard.SetText(strData_Joint); // 이거 그냥 안쓰는게 더 편한듯...
+                                            //else 
+                                                Clipboard.SetText(strData);
+                                            //Grid_DisplayLine(m_nCurrntCell);
+                                        }
+                                        catch (Exception e2)
+                                        {
+                                            MessageBox.Show(e2.ToString());
+                                        }
+#else
+                                        try
+                                        {
+                                            int nLine = dgGrid.RowCount;
+                                            int nColumn = dgGrid.ColumnCount;
+                                            // 첫 위치 찾아내기
+
+                                            int nMin_Line = 9999999;
+                                            int nMin_Column = nMin_Line;
+                                            for (int j = 0; j < nColumn; j++)
+                                            {
+                                                for (int i = 0; i < nLine; i++)
+                                                {
+                                                    if (dgGrid[j, i].Selected == true)
+                                                    {
+                                                        if (nMin_Line > i) nMin_Line = i;
+                                                        if (nMin_Column > j) nMin_Column = j;
+                                                    }
+                                                }
+                                            }
+                                            //MessageBox.Show(String.Format("Line {0}, Column {1}", nMin_Line, nMin_Column));
+
+                                            string strClip = (string)Clipboard.GetDataObject().GetData(typeof(string));
+                                            //MessageBox.Show(strClip);
+                                            string strData = "Keyframes\n";// String.Empty;
+                                            string strData_Joint = "Joints\n";
+                                            string[] pstrClipLine = Ojw.CConvert.RemoveChar(strClip, '\r').Split('\n');
+                                            nLine = nMin_Line;
+                                            nColumn = nMin_Column;
+                                            int nLineAdd = 0;
+                                            int nColumnAdd = 0;
+                                            int nTimer = 0;
+                                            foreach (string strLine in pstrClipLine)
+                                            {
+
+                                                if (GridMotionEditor_GetEnable(nLine + nLineAdd) == false)
+                                                {
+                                                    nLineAdd++;
+                                                    // Enable == 1 인 프레임만 넣는다.
+                                                    continue;
+                                                }
+
+                                                strData_Joint = "Joints\n"; //String.Empty; // 이건 그냥 지워둔다.
+
+                                                nTimer += (int)Math.Round((float)GridMotionEditor_GetTime(nLine + nLineAdd) / 7.8125f); // R+Motion 에서는 딜레이를 감안하지 않도록 한다.
+                                                strData += String.Format("Motion2+Step(@)<step frame=\"{0}\" pose=\"", nTimer);
+                                                nColumnAdd = 0;
+                                                string[] pstrItems = strLine.Split('\t');
+                                                foreach (string strItem in pstrItems)
+                                                {
+                                                    if (strItem.Length > 0)
+                                                    {
+                                                        // Data
+                                                        int nAxis = nColumn + nColumnAdd - 1;
+                                                        if (nAxis == 0)
+                                                        {
+                                                            //nPassMotor++;
+                                                            nColumnAdd++;
+                                                            continue; // 0번 모터는 사용 안하는 경향이 있어 패스 (나중에는 고치도록 한다. 일단은 쉽게)
+                                                        }
+                                                        if ((nAxis >= 0) && (nAxis < m_CHeader.nMotorCnt))
+                                                        {
+                                                            float fData = GridMotionEditor_GetMotor(nLine + nLineAdd, nAxis) * ((m_CHeader.pSMotorInfo[nAxis].nMotorDir == 0) ? 1 : -1) * ((m_CHeader.pSMotorInfo[nAxis].fRobotisConvertingVar == 0) ? 1 : m_CHeader.pSMotorInfo[nAxis].fRobotisConvertingVar);
+                                                            strData += String.Format("{0} ", fData);
+
+                                                            strData_Joint += String.Format("System.Int32(@){0}\nSystem.Single(@){1}\nSystem.String(@)?\nSystem.String(@)?\n\n", nAxis, fData);
+                                                            //if (nColumnAdd < pstrItems.Length - 1)
+                                                            //{
+                                                            //    strData += " ";
+                                                            //}
+                                                            //else strData += " ";
+                                                        }
+                                                        //else strData += strItem + " ";
+                                                    }
+                                                    else
+                                                    {
+                                                        if (strItem.Length > 0) strData += strItem + " ";
+                                                    }
+                                                    nColumnAdd++;
+                                                }
+                                                int nSpare = strData.LastIndexOf(' ');
+                                                if (nSpare == strData.Length - 1) strData = strData.Remove(nSpare);
+                                                //strData += "\r\n";
+                                                strData += "\" />\n\n";
+                                                nLineAdd++;
+                                            }
+                                            if (nLineAdd == 1)  Clipboard.SetText(strData_Joint);
+                                            else                Clipboard.SetText(strData);
+                                        }
+                                        catch (Exception e2)
+                                        {
+                                            MessageBox.Show(e2.ToString());
+                                        }
+#endif
+                                    }
+                                }
+                            }
+                            break;
+                        #endregion Keys.R - 클립보드 R+호환 프레임 전환
                         #region Keys.C - 복사하기
                         case Keys.C:
                             {
@@ -10896,6 +13326,1237 @@ namespace OpenJigWare
                             break;
                         #endregion Keys.C - 복사하기
                     }
+                }
+                
+                public string FCommand(string strCommand)
+                {
+                    //m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[nLine].Cells[1];
+                    //int nX = dgAngle.CurrentCell.ColumnIndex;
+                    int nLine = m_dgAngle.CurrentCell.RowIndex;
+                    string strRet = FCommand(nLine, strCommand);
+
+
+
+                    // 속도 느려질 수도...
+                    float[] afMot = new float[256];
+                    for (int i = 0; i < GetHeader_nMotorCnt(); i++) SetData(i, m_CGridMotionEditor.Get(nLine, i));//afMot[0] = m_C3d.m_CGridMotionEditor.Get(//GridMotionEditor_GetMotor(nLine);
+                    //OjwDraw();
+
+                    return strRet;
+                }
+                public string FCommand(int nLine, string strCommand)
+                {
+                    strCommand = Ojw.CConvert.ChangeChar(strCommand, '\t', ' ');
+                    string strRet = String.Empty;
+                    string strTmp;
+                    int nNum = 0;
+                    //int nLine = 0;
+                    //float fX = 0.0f, fY = 0.0f, fZ = 0.0f;
+                    float[] afX = new float[256];
+                    float[] afY = new float[256];
+                    float[] afZ = new float[256];
+                    Array.Clear(afX, 0, afX.Length);
+                    Array.Clear(afY, 0, afY.Length);
+                    Array.Clear(afZ, 0, afZ.Length);
+
+                    if (strCommand.Length < 1) return null;
+                    string strCommand2 = String.Empty;
+                    strCommand2 += strCommand[0];
+                    for (int k = 1; k < strCommand.Length; k++)
+                    {
+                        if ((strCommand[k - 1] == ' ') && (strCommand[k] == ' '))
+                        {
+                        }
+                        else
+                            strCommand2 += strCommand[k];
+                    }
+                    string[] pstrValue = Ojw.CConvert.ChangeString(strCommand2, "  ", " ").Split(' ');
+
+                    //for (int j = 0; j < 1; j++)//nH - nOffset_j; j++)
+                    {
+                        // 2차 라인부터는 상대값이 적용되지 않게 한다.
+                        Array.Clear(afX, 0, afX.Length);
+                        Array.Clear(afY, 0, afY.Length);
+                        Array.Clear(afZ, 0, afZ.Length);
+
+                        strTmp = "";
+                        // Line : nPos_X + j
+                        //nLine = //nPos_X + j;// j + nOffset_j;
+                        //GridMotionEditor_Clear(nLine);
+                        int nCommand = 0;
+                        // Enable
+                        //dgGrid[0, j + nOffset_j].Value = Ojw.CConvert.StrToInt(pstrValue[nOffset_i, j + nOffset_j]);
+                        bool bInc = false;
+                        for (int i = 0; i < pstrValue.Length; i++)//nW - nOffset_i; i++)
+                        {
+                            //nLine = j + nOffset_j;
+                            strTmp = pstrValue[i].ToLower();//pstrValue[i + nOffset_i, j + nOffset_j].ToLower();
+                            if (nCommand == 0)
+                            {
+                                if (strTmp.Length > 1)
+                                {
+                                    if (strTmp[0] == 't')
+                                    {
+                                        nCommand = 1; // Motor
+                                        //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
+                                        continue;
+                                    }
+                                    else if (strTmp[0] == 'n') // Function
+                                    {
+                                        bInc = false;
+                                        nCommand = 2;
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                        continue;
+                                    }
+                                    else if (strTmp[0] == 'i') // Function(incremental)
+                                    {
+                                        bInc = true;
+                                        nCommand = 2;
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+
+                                        #region Read Forward
+                                        // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                        float[] afMot = new float[m_CHeader.nMotorCnt];
+                                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                        Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], afMot, out afX[nNum], out afY[nNum], out afZ[nNum]);
+                                        #endregion Read Forward
+
+                                        continue;
+                                    }
+                                    else if (strTmp[0] == 'p') // plus
+                                    {
+                                        nCommand = 8; // Motor
+                                        //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
+                                        continue;
+                                    }
+                                    else if (strTmp[0] == 'c') // copy
+                                    {
+                                        nCommand = 9; // Motor
+                                        //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
+                                        continue;
+                                    }
+                                    else if (strTmp[0] == 'm') // multi
+                                    {
+                                        nCommand = 10; // Motor
+                                        //nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1)));
+                                        continue;
+                                    }
+                                    //else if (strTmp[0] == 'u') // set user data
+                                    //{
+                                    //    nCommand = 14;
+                                    //    nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                    //    continue;
+                                    //}
+                                    else if (strTmp[0] == 'r') // refresh
+                                    {
+                                        nCommand = 0; // refresh
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+
+                                        // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                        float[] afMot = new float[m_CHeader.nMotorCnt];
+                                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+
+                                        Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], afMot, out afX[nNum], out afY[nNum], out afZ[nNum]);
+                                        strRet = String.Format("Position[{0}] : {1}, {2}, {3}", GetHeader_pstrGroupName()[nNum], afX[nNum], afY[nNum], afZ[nNum]);
+                                        continue;
+                                    }
+                                    else if (strTmp[0] == 'f') // Function 000 ~ 
+                                    {
+                                        nCommand = 1000; // Motor
+                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                                        continue;
+                                    }
+#if true
+
+                                    // @Command,operand0,operand1,operand2,...
+                                    else if (strTmp[0] == '?')
+                                    {
+
+                                    }
+                                    else if (strTmp[0] == '@')
+                                    {
+                                        nCommand = 0;
+                                        string[] pstrFunctions = strTmp.ToUpper().Split(',');
+                                        if (pstrFunctions.Length > 0)
+                                        {
+                                            int nIndex = 0;
+                                            switch (pstrFunctions[nIndex++])
+                                            {
+                                                case "@HELP":
+                                                    {
+                                                        strRet = FCommand_Help();
+                                                    }
+                                                    break;
+                                                case "@SET_ABS":
+                                                    {
+                                                        if (pstrFunctions.Length >= 4)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                            float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                            afX[nFunction] = fX;
+                                                            afY[nFunction] = fY;
+                                                            afZ[nFunction] = fZ;
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                case "@SET_ABS2":
+                                                    {
+                                                        if (pstrFunctions.Length >= 4)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                            float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                            #region Read Forward
+                                                            // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                            float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                            Array.Clear(afMot, 0, afMot.Length);
+                                                            Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                            #endregion Read Forward
+
+                                                            afX[nFunction] = afX[nFunction] + fX;
+                                                            afY[nFunction] = afY[nFunction] + fY;
+                                                            afZ[nFunction] = afZ[nFunction] + fZ;
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                case "@SET_INC":
+                                                    {
+                                                        if (pstrFunctions.Length >= 4)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                            float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                            #region Read Forward
+                                                            // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                            float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                            for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                            Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                            #endregion Read Forward
+
+                                                            afX[nFunction] += fX;
+                                                            afY[nFunction] += fY;
+                                                            afZ[nFunction] += fZ;
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                // @SET_INC1,[Num][x_y_z_0_1_2],[길이],[Rot_X_Y_Z_0_1_2],[각도]
+                                                case "@SET_INC1":
+                                                    {
+                                                        if (pstrFunctions.Length >= 6)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                            String strXyz = pstrFunctions[nIndex++];
+                                                            float fXyz = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            String strRot = pstrFunctions[nIndex++];
+                                                            float fRot = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                            if (strXyz.Length != 1) return null;
+                                                            if (strRot.Length != 1) return null;
+
+                                                            float[] afRot = new float[3];
+                                                            float[] afXyz = new float[3];
+                                                            Array.Clear(afRot, 0, afRot.Length);
+                                                            Array.Clear(afXyz, 0, afXyz.Length);
+
+                                                            int nXyz = (int)((strXyz[0] >= 'X') ? strXyz[0] - 'X' : Ojw.CConvert.StrToInt(strXyz));
+                                                            int nRot = (int)((strRot[0] >= 'X') ? strRot[0] - 'X' : Ojw.CConvert.StrToInt(strRot));
+                                                            if ((nXyz < 0) || (nXyz > 2) || (nRot < 0) || (nRot > 2)) return null;
+                                                            afXyz[nXyz] = fXyz;
+                                                            afRot[nRot] = fRot;
+
+                                                            Ojw.CMath.Rotation(afRot[0], afRot[1], afRot[2], ref afXyz[0], ref afXyz[1], ref afXyz[2]);
+
+                                                            #region Read Forward
+                                                            // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                            float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                            for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                            Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                            #endregion Read Forward
+
+                                                            afX[nFunction] += afXyz[0];
+                                                            afY[nFunction] += afXyz[1];
+                                                            afZ[nFunction] += afXyz[2];
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                // @SET_INC2,[Num][x],[y],[z],[Rot_X],[Rot_Y],[Rot_Z] 
+                                                case "@SET_INC2":
+                                                    {
+                                                        if (pstrFunctions.Length >= 8)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                            float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fRot_X = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fRot_Y = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fRot_Z = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                            Ojw.CMath.Rotation(fRot_X, fRot_Y, fRot_Z, ref fX, ref fY, ref fZ);
+
+                                                            #region Read Forward
+                                                            // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                            float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                            for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                            Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                            #endregion Read Forward
+
+                                                            afX[nFunction] += fX;
+                                                            afY[nFunction] += fY;
+                                                            afZ[nFunction] += fZ;
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                // 원통좌표계
+                                                // http://blog.naver.com/PostView.nhn?blogId=mindo1103&logNo=90155554939&redirect=Dlog&widgetTypeCall=true
+                                                // x = rcosΘ
+                                                // y = rsinΘ
+                                                // z = z
+                                                // r^2 = (x^2 + y^2)
+                                                // tanΘ = y / z
+                                                // z = z
+                                                case "@SET_INC3":
+                                                    {
+                                                        if (pstrFunctions.Length >= 4)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                            float fR = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fTheta = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                            float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+
+                                                            #region Read Forward
+                                                            // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                            float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                            for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                                                            Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                            #endregion Read Forward
+
+                                                            afX[nFunction] += (float)(fR * Ojw.CMath.Cos(fTheta));
+                                                            afY[nFunction] += (float)(fR * Ojw.CMath.Sin(fTheta));
+                                                            afZ[nFunction] += fZ;
+                                                            Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nFunction, afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                case "@INIT":// Init
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        if (nTmp < 0) m_CGridMotionEditor.Clear();
+                                                        else m_CGridMotionEditor.Clear(nLine);
+                                                    }
+                                                    break;
+                                                case "@SET":// Set Motor
+                                                    {
+                                                        //int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);// m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                        float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        GridMotionEditor_SetMotor(nLine, nAxis, fValue);
+                                                    }
+                                                    break;
+                                                case "@SET_PLUS":// Set Motor
+                                                    {
+                                                        //int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);//m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                        float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        GridMotionEditor_SetMotor(nLine, nAxis, GridMotionEditor_GetMotor(nLine, nAxis) + fValue);
+                                                    }
+                                                    break;
+                                                case "@Clear":// Clear Motor
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) GridMotionEditor_SetMotor(nLine, nAxis, 0.0f);
+                                                    }
+                                                    break;
+                                                case "@ENTER" : // Moving Next Line
+                                                    {
+                                                        int nValue = 1;
+                                                        if (pstrFunctions.Length > 1)
+                                                        {
+                                                            nValue = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        }
+                                                        int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                                        int nCurrCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                                        m_CGridMotionEditor.ChangePos_Command(m_CGridMotionEditor.GetHandle(), nCurrLine + nValue, nCurrCol);//.SetChangeCurrentLine(nCurrLine + nValue);
+                                                    }
+                                                    break;
+                                                case "@SPACE": // Moving Next Column
+                                                    {
+                                                        int nValue = 1;
+                                                        if (pstrFunctions.Length > 1)
+                                                        {
+                                                            nValue = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        }
+                                                        int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                                        int nCurrCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                                        //m_CGridMotionEditor.SetChangeCurrentCol(nCurrLine + nValue);
+                                                        m_CGridMotionEditor.ChangePos_Command(m_CGridMotionEditor.GetHandle(), nCurrLine, nCurrCol + nValue);//.SetChangeCurrentLine(nCurrLine + nValue);
+                                                    }
+                                                    break;
+                                                case "@SET_COMMAND":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetCommand(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_DATA0":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetData0(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_DATA1":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetData1(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_DATA2":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetData2(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_DATA3":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetData3(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_DATA4":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetData4(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_DATA5":
+                                                    {
+                                                        int nTmp = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        m_CGridMotionEditor.SetData5(nLine, nTmp);
+                                                    }
+                                                    break;
+                                                case "@SET_ENABLE":
+                                                    {
+                                                        GridMotionEditor_SetEnable(nLine, Ojw.CConvert.StrToBool(pstrFunctions[nIndex++]));                                    
+                                                    }
+                                                    break;
+                                                case "@ROT":
+                                                case "@ROTATE":
+                                                case "@ROTATION":
+                                                    {
+                                                        float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        SetAngle_Display(fY, fX, fZ);
+                                                    }
+                                                    break;
+                                                case "@TRANS":
+                                                case "@TRANSLATE":
+                                                case "@TRANSLATION":
+                                                    {
+                                                        float fX = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        float fY = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        float fZ = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        SetPos_Display(fY, fX, fZ);
+                                                    }
+                                                    break;
+                                                case "@SCALE":
+                                                    {
+                                                        float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        SetScale(fValue);
+                                                    }
+                                                    break;
+                                                case "@SET_GROUP": // Group
+                                                    {
+                                                        GridMotionEditor_SetGroup(nLine, Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                    }
+                                                    break;
+                                                case "@SET_CAPTION": // Caption
+                                                    {
+                                                        m_CGridMotionEditor.SetCaption(nLine, pstrFunctions[nIndex++]);
+                                                    }
+                                                    break;
+                                                case "@SET_SPEED":
+                                                    {
+                                                        m_CGridMotionEditor.SetTime(nLine, Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                    }
+                                                    break;
+                                                case "@SET_DELAY":
+                                                    {
+                                                        m_CGridMotionEditor.SetDelay(nLine, Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                    }
+                                                    break;
+                                                case "@COPY":
+                                                    {
+                                                        //int nID1 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        //int nID2 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        int nID1 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);//m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                        int nID2 = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);//m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                        int nDir = ((strTmp.IndexOf('-') >= 0) ? -1 : 1);
+                                                        if (nDir < 0) nID2 = -nID2;
+                                                        GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nID2) * nDir);
+                                                    }
+                                                    break;
+                                                case "@SET_MULTI":
+                                                    {
+                                                        //int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                        int nAxis = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);//m_CRobotis.GetParam_Axis_From_RealID(Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]));
+                                                        float fValue = Ojw.CConvert.StrToFloat(pstrFunctions[nIndex++]);
+                                                        GridMotionEditor_SetMotor(nLine, nAxis, GridMotionEditor_GetMotor(nLine, nAxis) * fValue);
+                                                    }
+                                                    break;
+                                                case "@READ":
+                                                    {
+                                                        if (pstrFunctions.Length > 1)
+                                                        {
+                                                            int nFunction = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+
+                                                            // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                                                            float[] afMot = new float[m_CHeader.nMotorCnt];
+                                                            for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+
+                                                            Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nFunction], afMot, out afX[nFunction], out afY[nFunction], out afZ[nFunction]);
+                                                            //Ojw.CMessage.Write2("Position : {0}, {1}, {2}", afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                            strRet = String.Format("Position[{0}] : {1}, {2}, {3}", GetHeader_pstrGroupName()[nFunction], afX[nFunction], afY[nFunction], afZ[nFunction]);
+                                                        }
+                                                    }
+                                                    break;
+                                                case "@SET_LINE": // Group
+                                                    {
+                                                        nLine = Ojw.CConvert.StrToInt(pstrFunctions[nIndex++]);
+                                                    }
+                                                    break;
+                                            }
+                                        }
+
+                                        nCommand = 0; 
+                                        //return strRet; // 이 명령어 이후는 굳이 실행할 필요 없다.
+                                    }
+#endif
+                                }
+                                else if (strTmp.Length == 1)
+                                {
+                                    if (strTmp == "e") // Enable
+                                    {
+                                        nCommand = 5;
+                                        continue;
+                                    }
+                                    else if (strTmp == "s") // Speed
+                                    {
+                                        nCommand = 6;
+                                        continue;
+                                    }
+                                    else if (strTmp == "d") // Delay
+                                    {
+                                        nCommand = 7;
+                                        continue;
+                                    }
+                                    else if (strTmp == "g") // group
+                                    {
+                                        nCommand = 11;
+                                        continue;
+                                    }
+                                    else if (strTmp == "w") // write
+                                    {
+                                        nCommand = 12;
+                                        //m_CGridMotionEditor.SetCaption(nLine, strTmp);
+                                        //SetRobot_Rot(30, 10, 20);
+                                        continue;
+                                    }
+                                    else if (strTmp == "x") // mirror
+                                    {
+                                        nCommand = 13;
+                                        continue;
+                                    }
+                                }
+                            }
+                            //else if (strTmp.Le
+                            ///////////////////
+                            // Value
+                            if (nCommand != 0)
+                            {
+                                if (nCommand == 1)
+                                {
+                                    GridMotionEditor_SetMotor(nLine, nNum, Ojw.CConvert.StrToFloat(strTmp));
+                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                    nCommand = 0;
+                                }
+                                #region Function - Absolute / Incremental
+                                else if (nCommand == 2)
+                                {
+                                    if (bInc == true)
+                                        afX[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                                    else
+                                        afX[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                                    nCommand++;
+                                }
+                                else if (nCommand == 3)
+                                {
+                                    if (bInc == true)
+                                        afY[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                                    else
+                                        afY[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                                    nCommand++;
+                                }
+                                else if (nCommand == 4)
+                                {
+                                    if (bInc == true)
+                                        afZ[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                                    else
+                                        afZ[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nNum, afX[nNum], afY[nNum], afZ[nNum]);
+                                    nCommand = 0;
+                                }
+                                #endregion
+                                else if (nCommand == 5) // Enable
+                                {
+                                    GridMotionEditor_SetEnable(nLine, Ojw.CConvert.StrToBool(strTmp));
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 6) // Speed
+                                {
+                                    GridMotionEditor_SetTime(nLine, Ojw.CConvert.StrToInt(strTmp));
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 7) // Delay
+                                {
+                                    GridMotionEditor_SetDelay(nLine, Ojw.CConvert.StrToInt(strTmp));
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 8) // plus
+                                {
+                                    GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nNum) + Ojw.CConvert.StrToFloat(strTmp));
+                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 9) // copy
+                                {
+                                    int nID2 = Ojw.CConvert.StrToInt(strTmp);
+                                    int nDir = ((strTmp.IndexOf('-') >= 0) ? -1 : 1);
+                                    //if (nID2 < 0)
+                                    //{
+                                    //    nDir = -1;
+                                    //    nID2 = -nID2;
+                                    //}
+                                    if (nDir < 0)
+                                    {
+                                        nID2 = -nID2;
+                                    }
+                                    GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nID2) * nDir);
+                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 10) // multi
+                                {
+                                    GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nNum) * Ojw.CConvert.StrToFloat(strTmp));
+                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 11) // Group
+                                {
+                                    GridMotionEditor_SetGroup(nLine, Ojw.CConvert.StrToInt(strTmp));
+                                    GridMotionEditor_SetColorGrid(nLine, 2);
+                                    //m_CGridMotionEditor.GetHandle().InvalidateRow(nLine);
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 12) // Caption
+                                {
+                                    m_CGridMotionEditor.SetCaption(nLine, strTmp);
+                                    //m_CGridMotionEditor.GetHandle().Invalidate();
+                                    m_CGridMotionEditor.GetHandle().InvalidateRow(nLine);
+                                    // 색칠하기...
+                                    //GridMotionEditor_SetColorGrid(nLine, 2);
+                                    //GridMotionEditor_
+                                    nCommand = 0;
+                                }
+                                else if (nCommand == 13) // Mirror
+                                {
+                                    if (Ojw.CConvert.IsDigit(strTmp) == true)
+                                    {
+                                        int nMotorID = Ojw.CConvert.StrToInt(strTmp);
+                                        if (nMotorID < 0)
+                                        {
+                                            // Mirror All(이중 복사 방지)
+                                            bool[] abSet = new bool[m_CHeader.nMotorCnt];
+                                            for (int nMotor = 0; nMotor < m_CHeader.nMotorCnt; nMotor++)
+                                            {
+                                                int nMirror = m_CHeader.pSMotorInfo[nMotor].nAxis_Mirror;
+                                                if (abSet[nMotor] == true) continue;
+                                                abSet[nMotor] = true;
+                                                if (nMirror >= 0)
+                                                {
+                                                    if (abSet[nMirror] == true) continue;
+                                                    abSet[nMirror] = true;
+                                                }
+
+                                                if (nMirror == -2)
+                                                {
+                                                    GridMotionEditor_SetMotor(nLine, nMotor, -GridMotionEditor_GetMotor(nLine, nMotor));
+                                                }
+                                                else if ((nMirror >= 0) && (nMirror < m_CHeader.nMotorCnt))
+                                                {
+                                                    float fTmp = GridMotionEditor_GetMotor(nLine, nMotor);
+                                                    GridMotionEditor_SetMotor(nLine, nMotor, GridMotionEditor_GetMotor(nLine, nMirror));
+                                                    GridMotionEditor_SetMotor(nLine, nMirror, fTmp);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            int nMotor = nMotorID;
+                                            int nMirror = m_CHeader.pSMotorInfo[nMotor].nAxis_Mirror;
+                                            if (nMirror == -2)
+                                            {
+                                                GridMotionEditor_SetMotor(nLine, nMotor, -GridMotionEditor_GetMotor(nLine, nMotor));
+                                            }
+                                            else if ((nMirror >= 0) && (nMirror < m_CHeader.nMotorCnt))
+                                            {
+                                                float fTmp = GridMotionEditor_GetMotor(nLine, nMotor);
+                                                GridMotionEditor_SetMotor(nLine, nMotor, GridMotionEditor_GetMotor(nLine, nMirror));
+                                                GridMotionEditor_SetMotor(nLine, nMirror, fTmp);
+                                            }
+                                        }
+                                    }
+                                    nCommand = 0;
+                                }
+                                //else if (nCommand == 14)
+                                //{
+                                //    string [] pstrDatas = strTmp.Split(';');
+                                //    int nPos = 0;
+                                //    foreach (string strData in pstrDatas)
+                                //    {
+                                //        int nData = Ojw.CConvert.StrToInt(strData);
+                                //        switch (nPos)
+                                //        {
+                                //            case 0: GridMotionEditor_SetCommand(nLine, nData); break;
+                                //            case 1: GridMotionEditor_SetData0(nLine, nData); break;
+                                //            case 2: GridMotionEditor_SetData1(nLine, nData); break;
+                                //            case 3: GridMotionEditor_SetData2(nLine, nData); break;
+                                //            case 4: GridMotionEditor_SetData3(nLine, nData); break;
+                                //            case 5: GridMotionEditor_SetData4(nLine, nData); break;
+                                //            case 6: GridMotionEditor_SetData5(nLine, nData); break;
+                                //        }
+                                //        nPos++;
+                                //    }
+                                //    nCommand = 0;
+                                //}
+                                else if (nCommand >= 1000)
+                                {
+                                    if (nNum == 0) // Function 000 ~ Clear
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        if (nTmp < 0) m_CGridMotionEditor.Clear();
+                                        else m_CGridMotionEditor.Clear(nLine);
+                                        //m_CGridMotionEditor.SetData1(nLine, 1);
+                                        //m_CGridMotionEditor.SetData2(nLine, 1);
+                                    }
+                                    else if (nNum == 1) // Function 000 ~ Clear Motor
+                                    {
+                                        float fValue = Ojw.CConvert.StrToFloat(strTmp);
+                                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) GridMotionEditor_SetMotor(nLine, nAxis, fValue);
+                                    }
+                                    else if (nNum == 2) // Function 002 ~ Moving Next Line
+                                    {
+                                        int nValue = Ojw.CConvert.StrToInt(strTmp);
+                                        int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                        int nCurrCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                        m_CGridMotionEditor.ChangePos_Command(m_CGridMotionEditor.GetHandle(), nCurrLine + nValue, nCurrCol);//.SetChangeCurrentLine(nCurrLine + nValue);
+                                    }
+                                    else if (nNum == 3) // Function 003 ~ Moving Next Column
+                                    {
+                                        int nValue = Ojw.CConvert.StrToInt(strTmp);
+                                        int nCurrLine = m_CGridMotionEditor.OjwGrid_GetCurrentLine();
+                                        int nCurrCol = m_CGridMotionEditor.OjwGrid_GetCurrentColumn();
+                                        //m_CGridMotionEditor.SetChangeCurrentCol(nCurrLine + nValue);
+                                        m_CGridMotionEditor.ChangePos_Command(m_CGridMotionEditor.GetHandle(), nCurrLine, nCurrCol + nValue);//.SetChangeCurrentLine(nCurrLine + nValue);
+                                    }
+                                    else if (nNum == 99)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetCommand(nLine, nTmp);
+                                    }
+                                    else if (nNum == 100)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetData0(nLine, nTmp);
+                                    }
+                                    else if (nNum == 101)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetData1(nLine, nTmp);
+                                    }
+                                    else if (nNum == 102)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetData2(nLine, nTmp);
+                                    }
+                                    else if (nNum == 103)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetData3(nLine, nTmp);
+                                    }
+                                    else if (nNum == 104)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetData4(nLine, nTmp);
+                                    }
+                                    else if (nNum == 105)
+                                    {
+                                        int nTmp = Ojw.CConvert.StrToInt(strTmp);
+                                        m_CGridMotionEditor.SetData5(nLine, nTmp);
+                                    }
+                                    nCommand = 0;
+                                }
+                            }
+                            //strTmp += pstrValue[i + nOffset_i, j + nOffset_j] + "[]";
+                        }
+                        //MessageBox.Show(strTmp);
+                    }
+                    return strRet;
+                }
+                //    {
+                //        if (dgGrid.Focused == true)
+                //        {
+                //            try
+                //            {
+                //                int nPos_X = 0, nPos_Y = 0;
+                //                bool bPass = false;
+                //                int nX_Limit = dgGrid.RowCount;
+                //                int nY_Limit = dgGrid.ColumnCount;
+
+                //                #region 첫 위치 찾아내기
+                //                for (int i = 0; i < nX_Limit; i++)
+                //                {
+                //                    for (int j = 0; j < nY_Limit; j++)
+                //                    {
+                //                        if ((dgGrid[j, i].Selected == true) && (bPass == false))
+                //                        {
+                //                            nPos_X = i; nPos_Y = j;
+                //                            bPass = true;
+                //                            break;
+                //                        }
+                //                    }
+                //                    if (bPass == true) break;
+                //                }
+                //                #endregion
+
+                //                // 복사된 행의 열을 구하기 위하여 클립보드 사용.
+                //                IDataObject iData = Clipboard.GetDataObject();
+                //                string strClp = (string)iData.GetData(DataFormats.Text);
+
+                //                if (strClp == null) break;
+
+                //                string strClip = "";
+
+                //                #region Tab, \r\n 의 개수를 셈
+                //                int nCnt = 0;
+                //                int nT_Cnt = 0;
+                //                int nLine_Cnt = 0;
+                //                string strDisp = "";
+                //                for (int i = 0; i < strClp.Length; i++)
+                //                {
+                //                    if (strClp[i] == '\t') nT_Cnt++;
+                //                    else if (strClp[i] == '\n') nLine_Cnt++;
+                //                    if (strClp[i] != '\r')
+                //                    {
+                //                        if ((i == strClp.Length - 1) && (strClp[i] < 0x20)) break;
+                //                        if ((strClp[i] >= 0x20) && (strClp[i] != '\t') && (strClp[i] != '\n'))
+                //                        {
+                //                            nCnt++;
+                //                            strDisp += strClp[i];
+                //                        }
+                //                        strClip += strClp[i];
+                //                    }
+                //                }
+                //                #endregion
+
+                //                int nW = 0, nH = 0;
+                //                int nAll = 0;
+                //                if (strClip.Length > 0)
+                //                {
+                //                    // strClip -> 이 데이타가 진짜
+                //                    //nW = 1; 
+                //                    nH = 1;
+                //                    nAll = 1;
+                //                    for (int i = 0; i < strClip.Length; i++)
+                //                    {
+                //                        // 가로열, 세로열 카운트
+                //                        if (strClip[i] == '\n') nH++;
+                //                        if ((strClip[i] == '\n') || (strClip[i] == '\t')) nAll++;
+                //                    }
+                //                    nW = (int)Math.Round((float)nAll / (float)nH, 0);
+                //                    //Message("nW = " + CConvert.IntToStr(nW) + ", nH = " + CConvert.IntToStr(nH));
+
+                //                    bool bW = false, bH = false;
+                //                    if (nW >= nY_Limit) bW = true;
+                //                    if (nH >= nX_Limit) bH = true;
+
+                //                    String[,] pstrValue = new string[nW, nH];
+                //                    bool[,] pbValid = new bool[nW, nH];
+                //                    int nX = 0, nY = 0;
+                //                    for (int i = 0; i < nW; i++) // 초기화
+                //                        for (int j = 0; j < nH; j++)
+                //                        {
+                //                            pstrValue[i, j] = "";
+                //                            pbValid[i, j] = false;
+                //                        }
+
+                //                    for (int i = 0; i < strClip.Length; i++)
+                //                    {
+                //                        if (strClip[i] == '\n') { nY++; nX = 0; }
+                //                        else if (strClip[i] == '\t') nX++;
+                //                        else
+                //                        {
+                //                            pbValid[nX, nY] = true;
+                //                            pstrValue[nX, nY] += strClip[i];
+                //                        }
+                //                    }
+
+                //                    if (e.Shift)
+                //                        m_CGridMotionEditor.Insert(m_CGridMotionEditor.m_nCurrntCell, nH);
+                //                    //Grid_Insert(nPos_X, nH);
+                //                    else
+                //                    {
+                //                        // 모자란 라인 채우기
+                //                        if (nH > dgGrid.RowCount)
+                //                        {
+                //                            m_CGridMotionEditor.Insert(m_CGridMotionEditor.m_nCurrntCell, nH - dgGrid.RowCount);
+                //                        }
+                //                    }
+
+                //                    #region 실 데이타 저장
+                //                    ////// 실 데이타 저장 ///////
+                //                    // Display
+                //                    int nOffset_i = 0, nOffset_j = 0;
+                //                    //if (bW == true) nOffset_i++; // 이 형식에서는 해당 안됨
+                //                    if (bH == true) nOffset_j++;
+                //                    string strTmp;
+
+                //                    //bool bLed = false; // For Led Copy
+                //                    //bool bChoose = false;
+
+                //                    int nNum = 0;
+                //                    int nLine = 0;
+                //                    //float fX = 0.0f, fY = 0.0f, fZ = 0.0f;
+                //                    float[] afX = new float[256];
+                //                    float[] afY = new float[256];
+                //                    float[] afZ = new float[256];
+                //                    Array.Clear(afX, 0, afX.Length);
+                //                    Array.Clear(afY, 0, afY.Length);
+                //                    Array.Clear(afZ, 0, afZ.Length);
+
+                //                    for (int j = 0; j < nH - nOffset_j; j++)
+                //                    {
+                //                        // 2차 라인부터는 상대값이 적용되지 않게 한다.
+                //                        Array.Clear(afX, 0, afX.Length);
+                //                        Array.Clear(afY, 0, afY.Length);
+                //                        Array.Clear(afZ, 0, afZ.Length);
+
+                //                        strTmp = "";
+                //                        // Line : nPos_X + j
+                //                        nLine = nPos_X + j;// j + nOffset_j;
+                //                        //GridMotionEditor_Clear(nLine);
+                //                        int nCommand = 0;
+                //                        // Enable
+                //                        //dgGrid[0, j + nOffset_j].Value = Ojw.CConvert.StrToInt(pstrValue[nOffset_i, j + nOffset_j]);
+                //                        bool bInc = false;
+                //                        for (int i = 0; i < nW - nOffset_i; i++)
+                //                        {
+                //                            //nLine = j + nOffset_j;
+                //                            strTmp = pstrValue[i + nOffset_i, j + nOffset_j].ToLower();
+                //                            if (nCommand == 0)
+                //                            {
+                //                                if (strTmp.Length > 1)
+                //                                {
+                //                                    if (strTmp[0] == 't')
+                //                                    {
+                //                                        nCommand = 1; // Motor
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'n') // Function
+                //                                    {
+                //                                        bInc = false;
+                //                                        nCommand = 2;
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'i') // Function(incremental)
+                //                                    {
+                //                                        bInc = true;
+                //                                        nCommand = 2;
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+
+                //                                        #region Read Forward
+                //                                        // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                //                                        float[] afMot = new float[m_CHeader.nMotorCnt];
+                //                                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+                //                                        Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], afMot, out afX[nNum], out afY[nNum], out afZ[nNum]);
+                //                                        #endregion Read Forward
+
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'p') // plus
+                //                                    {
+                //                                        nCommand = 8; // Motor
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'c') // copy
+                //                                    {
+                //                                        nCommand = 9; // Motor
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'm') // multi
+                //                                    {
+                //                                        nCommand = 10; // Motor
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'r') // refresh
+                //                                    {
+                //                                        nCommand = 0; // refresh
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+
+                //                                        // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
+                //                                        float[] afMot = new float[m_CHeader.nMotorCnt];
+                //                                        for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++) { afMot[nAxis] = GridMotionEditor_GetMotor(nLine, nAxis); }
+
+                //                                        Ojw.CKinematics.CForward.CalcKinematics(m_CHeader.pDhParamAll[nNum], afMot, out afX[nNum], out afY[nNum], out afZ[nNum]);
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp[0] == 'f') // Function 000 ~ 
+                //                                    {
+                //                                        nCommand = 1000; // Motor
+                //                                        nNum = Ojw.CConvert.StrToInt(strTmp.Substring(1, strTmp.Length - 1));
+                //                                        continue;
+                //                                    }
+                //                                }
+                //                                else if (strTmp.Length == 1)
+                //                                {
+                //                                    if (strTmp == "e") // Enable
+                //                                    {
+                //                                        nCommand = 5;
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp == "s") // Speed
+                //                                    {
+                //                                        nCommand = 6;
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp == "d") // Delay
+                //                                    {
+                //                                        nCommand = 7;
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp == "g") // group
+                //                                    {
+                //                                        nCommand = 11;
+                //                                        continue;
+                //                                    }
+                //                                    else if (strTmp == "w") // write
+                //                                    {
+                //                                        nCommand = 12;
+
+                //                                        SetRobot_Rot(30, 10, 20);
+                //                                        continue;
+                //                                    }
+                //                                }
+                //                            }
+                //                            //else if (strTmp.Le
+                //                            ///////////////////
+                //                            // Value
+                //                            if (nCommand != 0)
+                //                            {
+                //                                if (nCommand == 1)
+                //                                {
+                //                                    GridMotionEditor_SetMotor(nLine, nNum, Ojw.CConvert.StrToFloat(strTmp));
+                //                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    nCommand = 0;
+                //                                }
+                //                                #region Function - Absolute / Incremental
+                //                                else if (nCommand == 2)
+                //                                {
+                //                                    if (bInc == true)
+                //                                        afX[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                //                                    else
+                //                                        afX[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    nCommand++;
+                //                                }
+                //                                else if (nCommand == 3)
+                //                                {
+                //                                    if (bInc == true)
+                //                                        afY[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                //                                    else
+                //                                        afY[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    nCommand++;
+                //                                }
+                //                                else if (nCommand == 4)
+                //                                {
+                //                                    if (bInc == true)
+                //                                        afZ[nNum] += Ojw.CConvert.StrToFloat(strTmp);
+                //                                    else
+                //                                        afZ[nNum] = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    Ojw.CGridView.Grid_Xyz2Angle(this, nLine, nNum, afX[nNum], afY[nNum], afZ[nNum]);
+                //                                    nCommand = 0;
+                //                                }
+                //                                #endregion
+                //                                else if (nCommand == 5) // Enable
+                //                                {
+                //                                    GridMotionEditor_SetEnable(nLine, Ojw.CConvert.StrToBool(strTmp));
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 6) // Speed
+                //                                {
+                //                                    GridMotionEditor_SetTime(nLine, Ojw.CConvert.StrToInt(strTmp));
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 7) // Delay
+                //                                {
+                //                                    GridMotionEditor_SetDelay(nLine, Ojw.CConvert.StrToInt(strTmp));
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 8) // plus
+                //                                {
+                //                                    GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nNum) + Ojw.CConvert.StrToFloat(strTmp));
+                //                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 9) // copy
+                //                                {
+                //                                    int nID2 = Ojw.CConvert.StrToInt(strTmp);
+                //                                    int nDir = ((strTmp.IndexOf('-') >= 0) ? -1 : 1);
+                //                                    //if (nID2 < 0)
+                //                                    //{
+                //                                    //    nDir = -1;
+                //                                    //    nID2 = -nID2;
+                //                                    //}
+                //                                    if (nDir < 0)
+                //                                    {
+                //                                        nID2 = -nID2;
+                //                                    }
+                //                                    GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nID2) * nDir);
+                //                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 10) // multi
+                //                                {
+                //                                    GridMotionEditor_SetMotor(nLine, nNum, GridMotionEditor_GetMotor(nLine, nNum) * Ojw.CConvert.StrToFloat(strTmp));
+                //                                    //dgGrid[nNum, nLine].Value = Ojw.CConvert.StrToFloat(strTmp);
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 11) // Group
+                //                                {
+                //                                    GridMotionEditor_SetGroup(nLine, Ojw.CConvert.StrToInt(strTmp));
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand == 12) // Caption
+                //                                {
+                //                                    m_CGridMotionEditor.SetCaption(nLine, strTmp);
+                //                                    // 색칠하기...
+                //                                    //GridMotionEditor_SetColorGrid(nLine, 2);
+                //                                    //GridMotionEditor_
+                //                                    nCommand = 0;
+                //                                }
+                //                                else if (nCommand >= 1000)
+                //                                {
+                //                                    if (nNum == 0) // Function 000 ~ 
+                //                                    {
+
+                //                                        //m_CGridMotionEditor.SetData1(nLine, 1);
+                //                                        //m_CGridMotionEditor.SetData2(nLine, 1);
+                //                                    }
+                //                                    nCommand = 0;
+                //                                }
+                //                            }
+                //                        }
+                //                    }
+                //                    #endregion
+
+
+
+                //                }
+                //                m_nFirstPos_Min_X = 9999999;
+                //                m_nFirstPos_Min_Line = 9999999;
+                //                //Grid_DisplayLine(m_nCurrntCell);
+
+                //                CheckFlag(m_CGridMotionEditor.m_nCurrntCell);
+                //                // 색칠하기...
+                //                GridMotionEditor_SetColorGrid(0, dgGrid.RowCount);
+                //            }
+                //            catch (Exception e2)
+                //            {
+                //                MessageBox.Show(e2.ToString());
+                //            }
+                //        }
+                //    }
+                //}
+                private string FCommand_Help()
+                {
+                    string strMsg = "[(퀵)명령]\r\n" +
+                                    "<<Arg0 은 붙어 있는 명령>>\r\n" +
+                                    "Cmd    Arg0    Arg1\r\n" +
+                                    "W		안녕?   			captiondp \"안녕?\" 이라는 말을 넣는다.\r\n" +
+                                    "G		1			Group 1 로 셋팅한다.(0은 해제)		\r\n" +
+                                    "S		100			100 ms 에 맞춰 모터를 동작 시킨다.\r\n" +
+                                    "D		100			동작 후 100 ms 멈춘다.\r\n" +
+                                    "E		1			프레임 Enable(1 - Enable, 0 - Disable)\r\n" +
+                                    "R	2				2번 수식의 Forward 를 풀어 메모리에 가지고 있는다.\r\n" +
+                                    "N	2	10	20	30		2번 수식 사용 (10, 20, 30) 의 위치로 이동\r\n" +
+                                    "I	2	5	0	-7		2번 수식 사용 x 를 마지막 사용한 값에서 5 증가, z 를 마지막 사용한 값에서 7 감소\r\n" +
+                                    "T	2	10			2번 모터의 위치값을 10 으로 변경한다.\r\n" +
+                                    "P	2	3			2번 모터의 위치값을 현재의 값에 \"3\" 을 더한다.\r\n" +
+                                    "M	2	0.5			2번 모터의 위치값에 0.5 를 곱한다.\r\n" +
+                                    "C	2	-5			5번 모터의 값을 2번 모터에 붙인다.(-가 붙으면 반대방향으로 붙인다.)\r\n" +
+                                    "\r\n" +
+                                    "[명령]\r\n" +
+                                    "@HELP\r\n" +
+                                    "@SET_ABS,[Num],[X],[Y],[Z]\r\n" +
+                                    "@SET_ABS2,[Num],[X],[Y],[Z] // 모든 Motors 의 위치가 0 일 경우의 좌표점을 기준점으로 삼는 절대값\r\n" +
+                                    "@SET_INC,[Num],[X],[Y],[Z]\r\n" +
+                                    "@SET_INC1,[Num][x_y_z_0_1_2],[길이],[Rot_X_Y_Z_0_1_2],[각도]\r\n" +
+                                    "@SET_INC2,[Num][x],[y],[z],[Rot_X],[Rot_Y],[Rot_Z] \r\n" +
+                                    "@SET_INC3,[Num],[반경(길이)],[각도],[z]   // 원통좌표계\r\n" +
+                                    "@INIT,-1  // 전체 초기화\r\n" +
+                                    "@INIT,[Line]   // Line 초기화\r\n" +
+                                    "@SET,[Axis],[value]   // 모터 값 설정\r\n" +
+                                    "@SET_PLUS,[Axis],[Value] // 모터 값 증분\r\n" +
+                                    "@CLEAR,[Line] // Line 모터 0 설정\r\n" +
+                                    "@ENTER,[{LineCount}]    // [LineCount]삭제가능, LineCount 만큼 밑으로 이동\r\n" +
+                                    "@SPACE,[{ColumnCount}]    // [ColumnCount]삭제가능, ColumnCount 만큼 옆으로 이동\r\n" +
+                                    "@SET_COMMAND,[Value]\r\n" +
+                                    "@SET_DATA0,[Value]\r\n" +
+                                    "@SET_DATA1,[Value]\r\n" +
+                                    "@SET_DATA2,[Value]\r\n" +
+                                    "@SET_DATA3,[Value]\r\n" +
+                                    "@SET_DATA4,[Value]\r\n" +
+                                    "@SET_DATA5,[Value]\r\n" +
+                                    "@SET_ENABLE,[Value]\r\n" +
+                                    "@SET_SPEED,[Value]\r\n" +
+                                    "@SET_DELAY,[Value]\r\n" +
+                                    "@SET_MULTI,[Axis],[Value] // 모터 값 곱\r\n" +
+                                    "@READ,[Num]    // 해당 수식의 Forward 값을 읽음\r\n" +
+                                    "@COPY,[ORG],[TARGET],[DIR:0] \r\n" +
+                                    "@ROT,[X],[Y],[Z]  // Rot, Rotate, Rotation\r\n" +
+                                    "@TRANS,[X],[Y],[Z] // Trans, Translate, Translation\r\n" +
+                                    "@SCALE,[Value]   // 1.0 기준\r\n";
+                    return strMsg;
                 }
                 private void OjwGrid_KeyUp(object sender, KeyEventArgs e)
                 {
@@ -11041,7 +14702,10 @@ namespace OpenJigWare
                 //}
                 public COjwMotor m_CMotor = new COjwMotor();
                 public CHerkulex2 m_CMotor2 = new CHerkulex2();
-                public CDynamixel m_CRobotis = new CDynamixel();
+#if !_MONSTER_LIB                
+            public CDynamixel m_CRobotis = new CDynamixel();
+#endif
+            public CMonster2 m_CMonster = new CMonster2();
                 //public void OjwGrid_SetHandle_Herculex(COjwMotor CMotor)
                 //{
                 //    m_CMotor = CMotor;
@@ -11072,10 +14736,16 @@ namespace OpenJigWare
                             Ojw.CMessage.Write_Error("Can't find a Serial or Socket Connection");
                             return;
                         }
+#if !_MONSTER_LIB
                         m_CRobotis.Reset();
                         m_CRobotis.SetTorque(true);
-
-                        SetFirstMoving(true);
+#else
+                        m_CMonster.Reset();
+                        //m_CMonster.Delay(100);
+                        m_CMonster.SetTorq(true);
+#endif
+                        //SetFirstMoving(true);
+                        SetFirstMoving(false);
                         PlayFrame_Dynamixel(m_CGridMotionEditor.m_nCurrntCell);
                     }
                     else
@@ -11137,6 +14807,7 @@ namespace OpenJigWare
                 {
                     try
                     {
+#if !_MONSTER_LIB
                         SMotion_t SMotion = new SMotion_t();
                         if (BinaryFileOpen(strFileName, out SMotion) == true)
                         {
@@ -11150,8 +14821,9 @@ namespace OpenJigWare
                                 {
                                     if (STable.bEn == true)
                                     {
-                                        PlayFrame(STable, b3D_Display);
-
+                                        if (m_CRobotis.IsOpen() == true) PlayFrame_Dynamixel(STable, b3D_Display, 100);
+                                        else PlayFrame(STable, b3D_Display);
+#if false
                                         int nDelay = STable.nTime + STable.nDelay;
                                         //m_nSimulTime_For_Last = -STable.nDelay;// nSpeedValue - nDelay;
                                         //if (GetSimulation_With_PlayFrame() == true) { SetSimulation_Calc(STable.nTime, 1.0f); }
@@ -11166,6 +14838,7 @@ namespace OpenJigWare
                                         //        //OjwDraw();
                                         //    }
                                         //}
+#endif
                                     }
                                 }
 
@@ -11173,6 +14846,9 @@ namespace OpenJigWare
                                 m_bMotionEnd = false;
                             }
                         }
+#else
+                        m_CMonster.Motion_Play(strFileName);
+#endif
                     }
                     catch(Exception ex)
                     {
@@ -12084,8 +15760,29 @@ namespace OpenJigWare
                             }
                         }
                     }
+                    //int nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
+                    //int nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+#if false
                     int nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
                     int nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+#else
+                    int nSpeedValue = 0;
+                    int nDelayValue = 0;
+                    if (nLine < 0)
+                    {
+                        nSpeedValue = (int)Math.Round((float)fPercent * (float)STable.nTime);
+                        nDelayValue = (int)Math.Round((float)fPercent * (float)STable.nDelay);
+                    }
+                    else
+                    {
+                        nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
+                        nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+                    }
+                    //if (bSock == true) m_CMotor2.Set(nAxis, STable.anMot[nAxis]);
+                    //bRed = GetFlag_Led_Red(STable.anLed[nAxis]);
+                    //bBlue = GetFlag_Led_Blue(STable.anLed[nAxis]);
+                    //bGreen = GetFlag_Led_Green(STable.anLed[nAxis]);
+#endif
 
                     if (GetSimulation_With_PlayFrame() == false)
                     {
@@ -12093,7 +15790,20 @@ namespace OpenJigWare
                         if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
                     }
 
+                    int nSync = 0;
+                    if (nLine < 0)
+                    {
+                        nSync = STable.nCmd;
+                    }
+                    else
+                    {
+                        nSync = GridMotionEditor_GetCommand(nLine);
+                    }
+#if false
                     if (GridMotionEditor_GetCommand(nLine) != 2) // if it is not a "sync"
+#else
+                    if (nSync != 2)
+#endif
                     {
                         int nDelay = nSpeedValue + nDelayValue;
                         m_nSimulTime_For_Last = -nDelayValue;// nSpeedValue - nDelay;
@@ -12111,8 +15821,18 @@ namespace OpenJigWare
                         }
                     }
 
+                    if (nLine < 0)
+                    {
+                        // Sound & Buzz
+                        if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(STable.nData4, STable.nData3);
+                    }
+                    else
+                    {
+                        // Sound & Buzz
+                        if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
+                    }
                     // Sound & Buzz
-                    if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
+                    //if (GetSimulation_With_PlayFrame() == false) m_CMotor.Mpsu_Play_HeadLed_Buzz(GridMotionEditor_GetExtLed(nLine), GridMotionEditor_GetExtBuzz(nLine));
 
                     //frmMain.m_DrBluetooth.drbluetooth_set_id(frmMain.m_pnBluetoothAddress[m_nCurrentRobot]);
                     //frmMain.m_DrBluetooth.drbluetooth_client_serial_mpsu_play_headled_buzz(0xfe, Grid_GetExtLed(nLine), Grid_GetExtBuzz(nLine));
@@ -12283,7 +16003,6 @@ namespace OpenJigWare
 #endregion Herkulex
                 }
                 private bool m_bFirstMoving = true;
-                public SMotionTable_t m_SMotion_Pos = new SMotionTable_t();
                 public void SetFirstMoving(bool bFirstmoving) { m_bFirstMoving = bFirstmoving; }
                 public void PlayFrame_Dynamixel(int nLine) { PlayFrame_Dynamixel(nLine, LineToMotionTable(nLine), false, 0); }
                 public void PlayFrame_Dynamixel(int nLine, int nAddSpeedPercent) { PlayFrame_Dynamixel(nLine, LineToMotionTable(nLine), false, nAddSpeedPercent); }
@@ -12291,8 +16010,12 @@ namespace OpenJigWare
                 public void PlayFrame_Dynamixel(int nLine, SMotionTable_t STable, bool b3D_Display, int nAddSpeedPercent) { PlayFrame_Dynamixel(m_bFirstMoving, nLine, STable, b3D_Display, nAddSpeedPercent); }
                 public void PlayFrame_Dynamixel(bool bGetPos, int nLine, SMotionTable_t STable, bool b3D_Display, int nAddSpeedPercent) // 100% + nAddSpeedPercent
                 {
-                    if (m_bFirstMoving == true) m_bFirstMoving = false; // 어찌 되었던 함수 실행하면 변수 클리어 시킨다. bGetPos 만 가지고 확인
-                    #region Herkulex
+                    if (m_bFirstMoving == true)
+                    {
+                        bGetPos = true;
+                        m_bFirstMoving = false; // 어찌 되었던 함수 실행하면 변수 클리어 시킨다. bGetPos 만 가지고 확인
+                    }
+                    #region Dynamixel
 #if false
                     bool bSock = m_CMotor2.IsOpen_Socket();
                     CGridView OjwGrid = m_CGridMotionEditor;
@@ -12518,15 +16241,55 @@ namespace OpenJigWare
 
                     if (GetSimulation_With_PlayFrame() == true) { SetSimulation_SetCurrentData(); }
 
+#if false
                     int nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
                     int nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+#else
+                    int nSpeedValue = 0;
+                    int nDelayValue = 0;
+                    if (nLine < 0)
+                    {
+                        nSpeedValue = (int)Math.Round((float)fPercent * (float)STable.nTime);
+                        nDelayValue = (int)Math.Round((float)fPercent * (float)STable.nDelay);
+                    }
+                    else
+                    {
+                        nSpeedValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetTime(nLine));
+                        nDelayValue = (int)Math.Round((float)fPercent * (float)GridMotionEditor_GetDelay(nLine));
+                    }
+#endif
 
                     if (bGetPos == true)
                     {
+#if !_CHEKING_AUTO_FOR_DYNAMIXEL
+                        Ojw.CTimer CTmr = new CTimer();                        
+                        List<byte> lstError = new List<byte>();
+                        lstError.Clear();
+                        // 다이나믹셀은 0번 아이디를 잘 사용 안한다.
+                        for (int i = 1; i < m_CHeader.nMotorCnt; i++)
+                        {                            
+#if !_MONSTER_LIB
+                            m_CRobotis.Read_Motor(i);
+                            CTmr.Set(); 
+                            while (true)
+                            {
+                                if (m_CRobotis.Read_Motor_IsReceived() == true) break;
+                                if (CTmr.Get() > 50)
+                                {
+                                    break;
+                                }
+                            }
+                            m_CRobotis.m_SMotion_Pos.anMot[i] = m_CRobotis.Get_Pos_Evd(i);
+#else
+                            m_CMonster.Read_Pos(i);
+#endif
+                        }
+#else
                         for (int i = 0; i < _SIZE_MAX_MOT; i++)
                         {
-                            m_SMotion_Pos.anMot[i] = m_CRobotis.Get_Pos_Evd(i);
+                            m_CRobotis.m_SMotion_Pos.anMot[i] = m_CRobotis.Get_Pos_Evd(i);
                         }
+#endif
                     }
 
                     for (int nAxis = 0; nAxis < m_CHeader.nMotorCnt; nAxis++)
@@ -12600,14 +16363,14 @@ namespace OpenJigWare
 
                             //float fRpm = (float)nSpeedValue;
                             float fRpm = 0;//m_CRobotis.CalcTime(
+#if !_MONSTER_LIB                            
                             m_CRobotis.Set_Flag_Mode(nAxis, 0);//Ojw.CConvert.IntToBool(m_CHeader.pSMotorInfo[nAxis].nMotorControlType));
                             m_CRobotis.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
-
+                            
                             //if (bSock == true) m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
-
                             if (nLine < 0)
                             {
-                                fRpm = (float)Math.Abs(m_CRobotis.CalcTime2Rpm(m_CRobotis.CalcRaw2Rpm(nAxis, STable.anMot[nAxis] - m_SMotion_Pos.anMot[nAxis]), (float)nSpeedValue));
+                                fRpm = (float)Math.Abs(m_CRobotis.CalcTime2Rpm(m_CRobotis.CalcRaw2Rpm(nAxis, STable.anMot[nAxis] - m_CRobotis.m_SMotion_Pos.anMot[nAxis]), (float)nSpeedValue));
                                 m_CRobotis.Set(nAxis, STable.anMot[nAxis], fRpm);
                                 //if (bSock == true) m_CRobotis.Set(nAxis, STable.anMot[nAxis]);
                                 bRed = GetFlag_Led_Red(STable.anLed[nAxis]);
@@ -12616,7 +16379,7 @@ namespace OpenJigWare
                             }
                             else
                             {
-                                fRpm = (float)Math.Abs(m_CRobotis.CalcTime2Rpm(OjwGrid.Get(nLine, nAxis) - m_CRobotis.CalcEvd2Angle(nAxis, m_SMotion_Pos.anMot[nAxis]), (float)nSpeedValue));
+                                fRpm = (float)Math.Abs(m_CRobotis.CalcTime2Rpm(OjwGrid.Get(nLine, nAxis) - m_CRobotis.CalcEvd2Angle(nAxis, m_CRobotis.m_SMotion_Pos.anMot[nAxis]), (float)nSpeedValue));
                                 fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
                                 m_CRobotis.Set_Angle(nAxis, fVal, fRpm);
                                 //if (bSock == true) m_CRobotis.Set_Angle(nAxis, fVal);
@@ -12632,10 +16395,10 @@ namespace OpenJigWare
                             if ((nDelayValue < 0) && (nSpeedValue > 0))
                             {
                                 // -Delay 의 % 를 감안해서 빼 줌
-                                m_SMotion_Pos.anMot[nAxis] = m_CRobotis.Get(nAxis) - (int)Math.Round((m_CRobotis.Get(nAxis) - m_SMotion_Pos.anMot[nAxis]) * ((float)nDelayValue / (float)nSpeedValue));
+                                m_CRobotis.m_SMotion_Pos.anMot[nAxis] = m_CRobotis.Get(nAxis) - (int)Math.Round((m_CRobotis.Get(nAxis) - m_CRobotis.m_SMotion_Pos.anMot[nAxis]) * ((float)nDelayValue / (float)nSpeedValue));
                             }
                             else
-                                m_SMotion_Pos.anMot[nAxis] = m_CRobotis.Get(nAxis);
+                                m_CRobotis.m_SMotion_Pos.anMot[nAxis] = m_CRobotis.Get(nAxis);
                             //if (bSock == true) m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
                             /////////////////////////////////////
                             // //// 동작 ////
@@ -12650,17 +16413,86 @@ namespace OpenJigWare
                                     SetSimulation_SetNextData(nAxis, (float)CalcEvd2Angle(nAxis, STable.anMot[nAxis]));
                                 }
                             }
+#else
+                            m_CMonster.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+
+                            //if (bSock == true) m_CMotor2.SetParam_Dir(nAxis, m_CHeader.pSMotorInfo[nAxis].nMotorDir);
+                            if (nLine < 0)
+                            {
+                                fRpm = (float)Math.Abs(m_CMonster.CalcTime2Rpm(m_CMonster.CalcRaw2Rpm(nAxis, STable.anMot[nAxis] - m_CMonster.m_SMotion_Pos.anMot[nAxis]), (float)nSpeedValue));
+                                m_CMonster.Set(nAxis, STable.anMot[nAxis], fRpm);
+                                //if (bSock == true) m_CMonster.Set(nAxis, STable.anMot[nAxis]);
+                                bRed = GetFlag_Led_Red(STable.anLed[nAxis]);
+                                bBlue = GetFlag_Led_Blue(STable.anLed[nAxis]);
+                                bGreen = GetFlag_Led_Green(STable.anLed[nAxis]);
+                            }
+                            else
+                            {
+                                fRpm = (float)Math.Abs(m_CMonster.CalcTime2Rpm(OjwGrid.Get(nLine, nAxis) - m_CMonster.CalcEvd2Angle(nAxis, m_CMonster.m_SMotion_Pos.anMot[nAxis]), (float)nSpeedValue));
+                                fVal = (float)Math.Round((float)OjwGrid.Get(nLine, nAxis)); //GridMotionEditor_GetMotor(m_nCurrntCell, nAxis);
+                                m_CMonster.Set(nAxis, fVal, fRpm);
+                                //if (bSock == true) m_CMonster.Set_Angle(nAxis, fVal);
+
+                                bRed = (Grid_GetFlag_Led(nLine, nAxis) == 1) ? true : false;
+                                bBlue = (Grid_GetFlag_Led(nLine, nAxis) == 2) ? true : false;
+                                bGreen = (Grid_GetFlag_Led(nLine, nAxis) == 4) ? true : false;
+                                //m_CMonster.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            }
+                            //Ojw.CMessage.Write("Rpm = {0}, aMot[{1}]:{2}, Curr:{3}", fRpm, nAxis, CalcEvd2Angle(nAxis, m_SMotion_Pos.anMot[nAxis]), OjwGrid.Get(nLine, nAxis));
+
+                            // save previous motion
+                            if ((nDelayValue < 0) && (nSpeedValue > 0))
+                            {
+                                // -Delay 의 % 를 감안해서 빼 줌
+                                m_CMonster.Set(nAxis, m_CMonster.Get(nAxis) - (int)Math.Round((m_CMonster.Get(nAxis) - m_CMonster.Get(nAxis)) * ((float)nDelayValue / (float)nSpeedValue)));
+                            }
+                            else
+                                m_CMonster..anMot[nAxis] = m_CMonster.Get(nAxis);
+                            //if (bSock == true) m_CMotor2.Set_Flag_Led(nAxis, bGreen, bBlue, bRed);
+                            /////////////////////////////////////
+                            // //// 동작 ////
+                            if (m_bSimulation == true)
+                            {
+                                if (GetSimulation_With_PlayFrame() == true)
+                                {
+                                    if (m_bSimulation_Smooth == false)
+                                    {
+                                        SetData(nAxis, (float)CalcEvd2Angle(nAxis, STable.anMot[nAxis]));
+                                    }
+                                    SetSimulation_SetNextData(nAxis, (float)CalcEvd2Angle(nAxis, STable.anMot[nAxis]));
+                                }
+                            }
+#endif
+
+                            
                         }
 #endregion Position Type
                     }
 
                     if (GetSimulation_With_PlayFrame() == false)
                     {
+#if !_MONSTER_LIB
                         m_CRobotis.Send_Motor();
+#else
+                        m_CMonster.Send_Motor();
+#endif
                         //if (bSock == true) m_CMotor2.Send_Motor(nSpeedValue);
                     }
 
+                    int nSync = 0;
+                    if (nLine < 0)
+                    {
+                        nSync = STable.nCmd;
+                    }
+                    else
+                    {
+                        nSync = GridMotionEditor_GetCommand(nLine);
+                    }
+#if false
                     if (GridMotionEditor_GetCommand(nLine) != 2) // if it is not a "sync"
+#else
+                    if (nSync != 2)
+#endif
                     {
                         int nDelay = nSpeedValue + nDelayValue;
                         m_nSimulTime_For_Last = -nDelayValue;// nSpeedValue - nDelay;
@@ -12845,7 +16677,7 @@ namespace OpenJigWare
                     }
 #endif
 #endif
-                    #endregion Herkulex
+                    #endregion Dynamixel
                 }
 
                 public bool GetFlag_En(int nFlag) { return (((nFlag & 0x10) != 0) ? true : false); }
@@ -13084,7 +16916,7 @@ namespace OpenJigWare
                         for (int i = 0; i < m_CHeader.nMotorCnt; i++)
                         {
                             int nMotWidth = nWidth;
-
+                            if (m_pbtnEnable.Length < m_CHeader.nMotorCnt) continue;
                             // Enable
                             m_pbtnEnable[i].Left = m_CGridMotionEditor.GetHandle().Left + (m_CGridMotionEditor.GetHandle().RowHeadersWidth + nWidth_Offset) + nWidth_Interval - e.NewValue;
                             // Type
@@ -13249,7 +17081,8 @@ namespace OpenJigWare
                 {
                     try
                     {
-                        float fValue = Convert.ToSingle(m_CGridMotionEditor.GetData(nLine, nMotorID));
+                        int nIndex = m_CGridMotionEditor.MotorID_2_GridIndex(nMotorID);
+                        float fValue = Convert.ToSingle(m_CGridMotionEditor.GetData(nLine, nIndex));
                         return fValue;
                         //return Convert.ToSingle(m_CGridMotionEditor.GetData(nLine, nMotorID));
                     }
@@ -13318,7 +17151,11 @@ namespace OpenJigWare
                 }
                 public void GridMotionEditor_SetMotor(int nLine, int nMotorID, float fValue)
                 {
+                    //m_CGridMotionEditor.SetData(nLine, nMotorID, fValue);
+
+                    //int nIndex = m_CGridMotionEditor.MotorID_2_GridIndex(nMotorID);
                     m_CGridMotionEditor.SetData(nLine, nMotorID, fValue);
+                    //return Convert.ToSingle(m_CGridMotionEditor.GetData(nLine, nMotorID));
                 }
                 public void GridMotionEditor_SetSelectedGroup(int nGroup) { m_CGridMotionEditor.SetSelectedGroup(nGroup); }
                 #region LED
@@ -13475,6 +17312,9 @@ namespace OpenJigWare
                 public bool Grid_GetFlag_Led_Green(int nLine, int nMotNum) { if ((nLine < 0) || (nLine >= m_pnFlag.GetLength(0)) || (nMotNum < 0) || (nMotNum >= m_CHeader.nMotorCnt)) return false; return (((m_pnFlag[nLine, nMotNum] & 0x04) != 0) ? true : false); }
                 public void CheckFlag(int nLine, int nMotNum) // nLedNum 0, 1, 2 - nLedNum
                 {
+                    //return;
+                    if (m_pbtnEnable == null) { return; }
+                    else if (m_pbtnEnable.Length <= 0) { return; }
                     if (m_pnFlag != null)
                     {
                         // En
@@ -13528,6 +17368,8 @@ namespace OpenJigWare
                         for (int i = 0; i < m_CHeader.nMotorCnt; i++)
                         {
                             float fValue = GetData(i);
+                            int nID = m_CHeader.anMotorIDs[i];
+                            if (m_CGridMotionEditor.CheckMotorEn(nID) == false) continue;
                             try
                             {
                                 SetData(i, GridMotionEditor_GetMotor(nLine, i));
@@ -13624,6 +17466,64 @@ namespace OpenJigWare
                     nMotor = m_anSelectedGroup[1];
                     nServeGroup = m_anSelectedGroup[2];
                     nKinematicsNum = m_nSelected_InverseKinematicsNumber;
+                }
+                public void UserDrawing(float[] afData, COjwDesignerHeader CHeader, ref bool bLimit, ref COjwDisp CDisp)
+                {
+                    #region User
+                    int nCntUser = OjwDispAll_User.GetCount();
+
+#if false
+                            foreach (COjwDisp CDispItem in OjwDispAll_User.GetData()) // OJW5014_20151012
+                            {
+                                float fAlpha = m_fAlpha;
+                                CDisp = CDispItem;// OjwDispAll_User.GetData(i);
+                                if (CDisp != null)
+                                {
+                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+
+                                    // Limit Check(Kor: 각도의 Limit 체크) //
+                                    if (CDisp.nName >= 0)
+                                    {
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                    }
+
+                                    OjwDraw_Class(CDisp);
+                                }
+                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
+                            }
+#else
+                    for (int i = 0; i < nCntUser; i++)
+                    {
+                        float fAlpha = m_fAlpha;
+                        CDisp = OjwDispAll_User.GetData(i);
+                        if (CDisp != null)
+                        {
+                            if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                                CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+
+                            // Limit Check(Kor: 각도의 Limit 체크) //
+                            if (CDisp.nName >= 0)
+                            {
+                                if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                                if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                            }
+
+                            OjwDraw_Class(CDisp);
+                        }
+                        if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
+                    }
+#endif
+
+
+
+                    #endregion User
+                }
+                private int m_nFirst_0_nLast_1 = 0;
+                public void SetUserDrawingSequence(int nFirst_0_nLast_1)
+                {
+                    m_nFirst_0_nLast_1 = nFirst_0_nLast_1;
                 }
                 public void OjwDraw(float[] afData, COjwDesignerHeader CHeader, out int nGroupA, out int nGroupB, out int nGroupC, out int nInverseKinematicsNumber, out bool bPick, out bool bLimit)
                 {
@@ -13783,52 +17683,7 @@ namespace OpenJigWare
                                   0, -80, 60);
 #endif
                             COjwDisp CDisp = new COjwDisp();
-                            #region User
-                            int nCntUser = OjwDispAll_User.GetCount();
-
-#if false
-                            foreach (COjwDisp CDispItem in OjwDispAll_User.GetData()) // OJW5014_20151012
-                            {
-                                float fAlpha = m_fAlpha;
-                                CDisp = CDispItem;// OjwDispAll_User.GetData(i);
-                                if (CDisp != null)
-                                {
-                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
-                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
-
-                                    // Limit Check(Kor: 각도의 Limit 체크) //
-                                    if (CDisp.nName >= 0)
-                                    {
-                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
-                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
-                                    }
-
-                                    OjwDraw_Class(CDisp);
-                                }
-                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
-                            }
-#else
-                            for (i = 0; i < nCntUser; i++)
-                            {
-                                float fAlpha = m_fAlpha;
-                                CDisp = OjwDispAll_User.GetData(i);
-                                if (CDisp != null)
-                                {
-                                    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
-                                        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
-
-                                    // Limit Check(Kor: 각도의 Limit 체크) //
-                                    if (CDisp.nName >= 0)
-                                    {
-                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
-                                        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
-                                    }
-
-                                    OjwDraw_Class(CDisp);
-                                }
-                                if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
-                            }
-#endif
+                            if (m_nFirst_0_nLast_1 == 0) UserDrawing(afData, CHeader, ref bLimit, ref CDisp);
 
                             #region Territory
 #if true
@@ -13843,7 +17698,7 @@ namespace OpenJigWare
                                 //float fBlock_Depth = m_fTerritory_Block_Depth;
                                 //float fBlock_Height = m_fTerritory_Block_Height;
                                 //InitPosAngle();
-                                
+
                                 //// 로봇의 움직임 구현
                                 //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                                 //OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
@@ -13865,17 +17720,6 @@ namespace OpenJigWare
                             }
 #endif
                             #endregion Territory
-
-                            //#region Init Again
-                            //InitPosAngle();
-                            //m_afCalcPos[0] = 0;
-                            //m_afCalcPos[1] = 0;
-                            //m_afCalcPos[2] = 0;
-                            //m_afCalcAngle[0] = 0;
-                            //m_afCalcAngle[1] = 0;
-                            //m_afCalcAngle[2] = 0;
-                            //#endregion Init Again
-                            #endregion User
 
                             //// The actual part to be drawn(Kor: 실제 그려질 부분) ////
                             if (_CNT_FILEOPEN != m_nBackupCnt_HistoryFileOpen)
@@ -13939,6 +17783,8 @@ namespace OpenJigWare
                             }
                             #endregion Main Drawing
 
+                            if (m_nFirst_0_nLast_1 != 0) UserDrawing(afData, CHeader, ref bLimit, ref CDisp);
+
                             #region Test Drawing
                             if (IsTestCircle() == true)
                             {
@@ -13998,9 +17844,46 @@ namespace OpenJigWare
                                                         //m_CGridMotionEditor.GetHandle().MultiSelect = false;
                                                         //m_CGridMotionEditor.GetHandle()[nGroupB + 1, m_CGridMotionEditor.m_nCurrntCell].Selected = true;
 
+#if true
+                                                        if (m_CHeader.anMotorIDs != null)
+                                                        {
+                                                            if (m_CGridMotionEditor.m_nGridMode == 1)
+                                                            {
+                                                                if (Array.IndexOf(m_CHeader.anMotorIDs, nMot) >= 0)
+                                                                {
+                                                                    int nID = nMot;// m_CHeader.anMotorIDs[i];
+                                                                    int nIndex = m_lstIDs_Motion.FindIndex(x => x == nID);
+                                                                    if ((m_CHeader.pSMotorInfo[nID].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nID].nMotor_Enable > 1))
+                                                                    {
+                                                                        //continue;
+                                                                    }
+                                                                    else if (nID >= 0)
+                                                                    {
+                                                                        try
+                                                                        {
+                                                                            m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[m_CGridMotionEditor.m_nCurrntCell].Cells[nIndex + 1];
+                                                                        }
+                                                                        catch
+                                                                        {
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                if (Array.IndexOf(m_CHeader.anMotorIDs, nMot) >= 0)
+                                                                {
+                                                                    m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[m_CGridMotionEditor.m_nCurrntCell].Cells[m_CGridMotionEditor.MotorID_2_GridIndex(nMot)];
+                                                                }
+                                                            }
+                                                        }
+#else
                                                         if ((nMot >= 0) && (nMot < m_CHeader.nMotorCnt))
+                                                        {
                                                             m_CGridMotionEditor.GetHandle().CurrentCell = m_CGridMotionEditor.GetHandle().Rows[m_CGridMotionEditor.m_nCurrntCell].Cells[nMot + 1];
+                                                        }
                                                         //m_CGridMotionEditor.GetHandle().MultiSelect = bMulti;
+#endif
                                                     }
                                                 }
                                             }
@@ -14357,7 +18240,35 @@ namespace OpenJigWare
                         return 0;
                     }
                     else
-                    {
+                    {                        
+#if false // Test TEXT : freeglut.dll 이 있어야 함
+                        if (Ojw.CFile.IsFile(string.Format(Application.StartupPath + "\\freeglut.dll")) == true)
+                        {
+                            Gl.glMatrixMode(Gl.GL_PROJECTION);
+                            double[] adMatrix = new double[16];
+                            Gl.glGetDoublev(Gl.GL_PROJECTION_MATRIX, adMatrix);
+                            Gl.glLoadIdentity();
+                            Gl.glOrtho(0, 800, 0, 600, -5, 5);
+                            Gl.glMatrixMode(Gl.GL_MODELVIEW);
+                            Gl.glLoadIdentity();
+                            Gl.glPushMatrix();
+
+                            Gl.glLoadIdentity();
+                            Gl.glRasterPos2i(10, 10);
+                            string strText = "Hello World";
+                            for (int i = 0; i < strText.Length; i++)
+                            {
+                                Glut.glutBitmapCharacter(Glut.GLUT_BITMAP_9_BY_15, (int)strText[i]);
+                            }
+                            Gl.glPopMatrix();
+                            Gl.glMatrixMode(Gl.GL_PROJECTION);
+                            Gl.glLoadMatrixd(adMatrix);
+                            Gl.glMatrixMode(Gl.GL_MODELVIEW);
+                        }
+#endif
+
+
+
                         //SwapBuffers();
                         glFlush();
                         //Refresh();
@@ -14496,12 +18407,12 @@ namespace OpenJigWare
                 private bool m_bEnable_Light = true;
                 public void Enable_Light(bool bEnable) { m_bEnable_Light = bEnable; }
 
-                private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -10.0f, 1.0f };
-                private float[] m_light1_position = new float[4] { 10.0f, 20.0f, 1.0f, 1.0f };
+                private float[] m_light0_position = new float[4] { 50.0f, 200.0f, -1000.0f, 1.0f };
+                private float[] m_light1_position = new float[4] { -10.0f, -200.0f, -500.0f, 1.0f };
                 //private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -2000.0f, 1.0f };
                 //private float[] m_light1_position = new float[4] { 2000.0f, 1000.0f, 1.0f, 1.0f };
 
-                private float[] m_light0_direction = new float[3] { -0.7f, 0.2f, 0.7f };
+                private float[] m_light0_direction = new float[3] { 0.7f, 0.2f, 0.7f };
                 private float[] m_light1_direction = new float[3] { -0.5f, -0.5f, 1.0f };
 
 #if false
@@ -14547,10 +18458,10 @@ namespace OpenJigWare
                 //private float[] m_mat_shiness = new float[1] { 80.0f };
 
                 //private int m_nShiness = 128;
-                private float m_fSpot = 85;//85.0f;
-                private float m_fExponent = 3.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
-                private float m_fSpot2 = 85;//85.0f;
-                private float m_fExponent2 = 3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
+                private float m_fSpot = 85.0f;//95;//85.0f;
+                private float m_fExponent = 0.5f;//3.0f;//1.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
+                private float m_fSpot2 = 85.0f;//95;//85.0f;
+                private float m_fExponent2 = 0.5f;//3.0f;//5.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
                 public void SetLight_Position(float fA, float fB, float fC, float fD) { m_light0_position[0] = fA; m_light0_position[1] = fB; m_light0_position[2] = fC; m_light0_position[3] = fD; }
                 public void SetLight_Ambient(float fA, float fB, float fC, float fD) { m_ambient[0] = fA; m_ambient[1] = fB; m_ambient[2] = fC; m_ambient[3] = fD; }
                 public void SetLight_diffuseLight(float fA, float fB, float fC, float fD) { m_diffuseLight[0] = fA; m_diffuseLight[1] = fB; m_diffuseLight[2] = fC; m_diffuseLight[3] = fD; }
@@ -14588,9 +18499,9 @@ namespace OpenJigWare
                     //ambient - 0.24725 0.1995 0.0745 diffuse - 0.75164 0.60648 0.22648 specular - 0.628281 0.555802 0.366065 shininess - 0.4 
                     //chrome // http://devernay.free.fr/cours/opengl/materials.html
                     // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
-                    float[] afmat_diffuse = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
-                    float[] afmat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
-                    float[] afmat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
+                    float[] afmat_diffuse = new float[4] {1.0f, 1.0f, 1.0f, 1.0f};//{ 0.4f, 0.4f, 0.4f, 1.0f };
+                    float[] afmat_specular = new float[4] { 0.0f, 0.0f, 0.0f, 0.0f };//{ 0.774597f, 0.774597f, 0.774597f, 1.0f };
+                    float[] afmat_ambient = new float[4] { 0.0f, 0.0f, 0.0f, 0.0f };//{ 0.25f, 0.25f, 0.25f, 1.0f };
                     float[] afmat_shiness = new float[1] { 0.6f * 128.0f };
 
                     Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_DIFFUSE, afmat_diffuse);
@@ -14778,9 +18689,9 @@ namespace OpenJigWare
                             //Gl.glAlphaFunc(Gl.GL_LESS, 1.0f);
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
                             //Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO);
-                            Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO);
+                            //Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO); // 원래 이거였음.
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
-                            //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> 이걸하면 겉의 윤곽이 검어진다.
+                             Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> 이걸하면 겉의 윤곽이 검어진다.
                             //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // -> 이건 별로...
 
                             // 20150527
@@ -14855,7 +18766,7 @@ namespace OpenJigWare
                             //Gl.glEdgeFlag(Gl.GL_FALSE );
                             Gl.glEdgeFlag((m_bDisplay_Edge == true) ? Gl.GL_TRUE : Gl.GL_FALSE);//Gl.GL_TRUE); // 1
 
-
+                            //float[] afEmission = new float[4] { 1f, 1f, 1f, 1.0f };
                             //float[] afEmission = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
                             //float[] afEmission = new float[4] { 0.15f, 0.15f, 0.15f, 1.0f };
                             //Gl.glMaterialfv(Gl.GL_FRONT_AND_BACK, Gl.GL_EMISSION, afEmission); // 발광체 선언
@@ -15045,6 +18956,18 @@ namespace OpenJigWare
                 //public float[] m_afCalcPos_Event = new float[16];// { 0.0f, 0.0f, 0.0f };
                 // Init position
                 #region InitPosAngle
+                private bool m_bStandardAxis_Fill = true;
+                private float m_fStandardAxis_Alpha = 1.0f;
+                private float m_fStandardAxis_Thick = 1.0f;
+                private float m_fStandardAxis_Length = 40000.0f;
+
+                public void SetStandardAxis(bool bFill_true, float fAlpha_1f, float fThick_1, float fLength_40000f)
+                {
+                    m_bStandardAxis_Fill = bFill_true;
+                    m_fStandardAxis_Alpha = fAlpha_1f;
+                    m_fStandardAxis_Thick = fThick_1;
+                    m_fStandardAxis_Length = fLength_40000f;
+                }
                 private void InitPosAngle_WithAxis()
                 {
                     Gl.glLoadIdentity();
@@ -15057,11 +18980,20 @@ namespace OpenJigWare
                     // display axis
                     if (IsStandardAxis() == true)
                     {
+#if false
                         float fSize = 1.0f;// 2.0f;
-                        float fSize2 = 1.0f;// 5.0f;
+                        //float fSize2 = 1.0f;// 5.0f;
                         Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize, 40000);
-                        Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize2, 200);
+                        //Axis(true, Color.Red, 1.0f, Color.Green, 1.0f, Color.Blue, 1.0f, fSize2, 200);
+#else
+                        Axis(m_bStandardAxis_Fill, Color.Red, m_fStandardAxis_Alpha, Color.Green, m_fStandardAxis_Alpha, Color.Blue, m_fStandardAxis_Alpha, m_fStandardAxis_Thick, m_fStandardAxis_Length);
+#endif
                     }
+
+
+                    OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                    OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
+
 
                     //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                     //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
@@ -15076,6 +19008,10 @@ namespace OpenJigWare
                     // 로봇의 움직임 구현 -> 이걸 지면 움직임으로 이동
                     //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
                     //OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
+
+
+                    OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                    OjwTranslate(m_fX_Robot, m_fY_Robot, m_fZ_Robot);
                 }
 
                 public void InitPosAngle(float fPan, float fTilt, float fSwing, float fX, float fY, float fZ)
@@ -15291,7 +19227,7 @@ namespace OpenJigWare
                 private float m_fSwingDisplay_Rot_Limit = 360.0f;
                 private int m_nBackupCnt_HistoryFileOpen = 0;
                 private int m_nDrawClass_Pos = 0;
-                private const int _CNT_TRACK_BALL = 256;
+                private const int _CNT_TRACK_BALL = 256;//*10;
                 private int m_nTrackBall = 0;
                 //private SVector3D_t[] m_aSVec_Track = new SVector3D_t[_CNT_TRACK_BALL];
                 private STrackD_t[] m_aSTrack = new STrackD_t[_CNT_TRACK_BALL];
@@ -15313,7 +19249,8 @@ namespace OpenJigWare
                 public void SelectInverseKinematics(int nNum) { m_nSelectedInverseKinematics = nNum; m_nSelectedMotor = -1; } // -1을 넣으면 선택 안함
                 private float m_fTest = (float)Math.PI / 2.0f;
                 public void OjwDraw_Class(COjwDisp OjwDisp)
-                {                    
+                {
+                    bool bWheel = false;
                     // 0x 1111 1111(Formular group)   1111 1111(group A) 1 1111 1111(group B(0~255:motor, 256~511:etc group))  111 1111(group C(0~127))
                     //uint nObjectName = (uint)OjwDisp.nPickGroup_A * 256 * 256 + (uint)OjwDisp.nPickGroup_B * 256 + (uint)OjwDisp.nPickGroup_C;
                     //uint unObjectName = (uint)(OjwDisp.nInverseKinematicsNumber & 0xff) * 256 * 256 * 256 + (uint)(OjwDisp.nPickGroup_A & 0xff) * 256 * 256 + ((uint)OjwDisp.nPickGroup_B & 0x1ff) * 128 + ((uint)OjwDisp.nPickGroup_C & 0x7f);
@@ -15432,7 +19369,7 @@ namespace OpenJigWare
                     //Gl.glEnable(Gl.GL_ALPHA_TEST);
 
                     //SetLight2();
-
+                                        
                     for (int j = 0; j < 3; j++)
                     {
                         OjwTranslate(OjwDisp.afTrans[j].x, OjwDisp.afTrans[j].y, OjwDisp.afTrans[j].z);
@@ -15611,6 +19548,7 @@ namespace OpenJigWare
                         int nID = OjwDisp.GetData_AxisName();
                         if (nID >= 0)
                         {
+                            bWheel = true; // 속도제어
 #if false//_RPM_TEST
                             if (m_fPanDisplay_Rot_Limit != 0.0f) SRot.pan %= m_fPanDisplay_Rot_Limit;
                             if (m_fTiltDisplay_Rot_Limit != 0.0f) SRot.tilt %= m_fTiltDisplay_Rot_Limit;
@@ -15647,6 +19585,18 @@ namespace OpenJigWare
                             //m_pSTmrTrack[nID].Set();
 #endif
                         }
+                    }
+
+                    if (bWheel == true)
+                    {
+                        //int nID = OjwDisp.GetData_AxisName();
+                        //m_pSRot[nID].pan = m_pSRot[nID].tilt = m_pSRot[nID].pan = m_pSRot[nID].swing = 0.0f;
+                    }
+                    else
+                    {
+                        int nID = OjwDisp.GetData_AxisName();
+                        if ((nID >= 0) && (nID < m_pSRot.Length))
+                            m_pSRot[nID].pan = m_pSRot[nID].tilt = m_pSRot[nID].pan = m_pSRot[nID].swing = 0.0f;
                     }
 
                     if (OjwDisp.strDispObject == "#-1")
@@ -15721,12 +19671,18 @@ namespace OpenJigWare
                         //OjwDisp.Points.Add(new SVector3D_t(10, 10+30, 10+30));
                         ////OjwDisp.Points.Add(new SVector3D_t(10, 10, 10));
                         /////////////////////////////////////////////
-
-                        OjwLines(bFilled, cColor, fAlpha,
+                        OjwLines(
+                            (((OjwDisp.Points[OjwDisp.Points.Count - 1].x == OjwDisp.Points[0].x) && (OjwDisp.Points[OjwDisp.Points.Count - 1].y == OjwDisp.Points[0].y) && (OjwDisp.Points[OjwDisp.Points.Count - 1].z == OjwDisp.Points[0].z)) ? bFilled : false),
+                            cColor, fAlpha,
                                 OjwDisp.Points,
                                 OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing,
                                 OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z
                                         );
+                        //OjwLines(bFilled, cColor, fAlpha,
+                        //        OjwDisp.Points,
+                        //        OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing,
+                        //        OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z
+                        //                );
                     }
                     else if (OjwDisp.strDispObject == "#19") // Skeleton Bar
                     {
@@ -16043,7 +19999,11 @@ namespace OpenJigWare
                                 else if (bColor == false)
                                 {
                                     bColor = true;
-                                    CDisp.cColor = Color.FromArgb(CConvert.StrToInt(strItem));
+                                    int nHex = strItem.IndexOf("0x");
+                                    if (nHex >= 0)
+                                        CDisp.cColor = Color.FromArgb(CConvert.HexStrToInt(strItem.Substring(nHex + 2)));
+                                    else
+                                        CDisp.cColor = Color.FromArgb(CConvert.StrToInt(strItem));
                                 }
                                 else if (bAlpha == false)
                                 {
@@ -17559,8 +21519,8 @@ namespace OpenJigWare
                         InitPosAngle();
 
                         // 로봇의 움직임 구현
-                        OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
-                        OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
+                        //OjwRotation(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot);
+                        //OjwTranslate(m_fX_Robot % fBlock_Width, m_fY_Robot, m_fZ_Robot % fBlock_Depth);
                         float fGap = -20.0f;
                         for (int nTerritory_W = -nW; nTerritory_W < nW; nTerritory_W++)
                         {
@@ -17605,7 +21565,7 @@ namespace OpenJigWare
                             {
                                 if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                     OjwFileOpen_3D_ASE(strFileName);
-                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
                                     OjwFileOpen_3D_STL(strFileName);
                             }
                         }
@@ -17666,7 +21626,7 @@ namespace OpenJigWare
                 //            {
                 //                if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                 //                    OjwFileOpen_3D_ASE(strFileName);
-                //                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                //                else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
                 //                    OjwFileOpen_3D_STL(strFileName);
                 //            }
                 //        }
@@ -17739,7 +21699,7 @@ namespace OpenJigWare
                             {
                                 if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                     OjwFileOpen_3D_ASE(strFileName);
-                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
                                     OjwFileOpen_3D_STL(strFileName);
                             }
                         }
@@ -17989,7 +21949,7 @@ namespace OpenJigWare
 
                         //fAngle += (float)Ojw.CMath.ATan2(fLength, (afValue[nR1] - afValue[nR0]));
 #if true
-                        #region Line
+                #region Line
                         nCnt = (int)Math.Round(fLength_Out / (fTrack_Distance));
                         // Offset
                         OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
@@ -18007,7 +21967,7 @@ namespace OpenJigWare
                         if (strTrackFile != null)
                         {
 
-                            #region Test
+                #region Test
                             if (OjwAse_GetIndex(strTrackFile) < 0)
                             {
                                 //string strObject = strTrackFile;
@@ -18017,11 +21977,11 @@ namespace OpenJigWare
                                 {
                                     if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                         OjwFileOpen_3D_ASE(strFileName);
-                                    else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                    else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
                                         OjwFileOpen_3D_STL(strFileName);
                                 }
                             }
-                            #endregion Test
+                #endregion Test
 
                             for (int j = 0; j < nCnt; j++)
                             {
@@ -18063,10 +22023,10 @@ namespace OpenJigWare
                         // Offset
                         OjwRotation(-fOffsetPan, -fOffsetTilt, -fOffsetSwing);
                         OjwTranslate(-fOffsetX, -fOffsetY, -fOffsetZ);
-                        #endregion Line
+                #endregion Line
 #endif
 #if false
-                        #region Circle
+                #region Circle
                         // 원호의 길이 = 2 * pi * r * (각도 / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * afValue[nR1]);
@@ -18115,9 +22075,9 @@ namespace OpenJigWare
                         OjwRotation(-fOffsetPan, -fOffsetTilt, -fOffsetSwing);
                         OjwTranslate(-fOffsetX, -fOffsetY, -fOffsetZ);
 
-                        #endregion Circle
+                #endregion Circle
 #else
-                        #region Circle
+                #region Circle
                         // 원호의 길이 = 2 * pi * r * (각도 / 360)
                         // fDistance = 2 * Math.PI * fRadius * (fDegree / 360.0f);
                         float fDegree = (fTrack_Distance * 360.0f) / (2.0f * (float)Math.PI * afValue[nR1]);
@@ -18158,7 +22118,7 @@ namespace OpenJigWare
 
                         OjwRotation(-fAngle2, 0, 0);
                         OjwTranslate(0, -afValue[nR1], 0);
-                        #endregion Circle
+                #endregion Circle
 #endif
                     }
                 }
@@ -18331,9 +22291,23 @@ namespace OpenJigWare
                     //nCnt -= nCnt2;
 #endif
 #endif
+                    string strTrack = string.Empty;
                     if (strTrackFile != null)
                     {
-                        if (OjwAse_GetIndex(strTrackFile) < 0)
+
+
+
+                        //int nOld = strTrackFile.LastIndexOf('*');
+                        //if (nOld == strTrackFile.Length - 1)
+                        //{
+                        //    strTrackFile = strTrackFile.Substring(0, strTrackFile.Length - 1);
+                        //}
+
+                        //if (strTrackFile.Length == 0) return;
+
+
+                        strTrack = strTrackFile.Substring(0, strTrackFile.Length - ((strTrackFile.LastIndexOf('*') == (strTrackFile.Length - 1)) ? 1 : 0));
+                        if (OjwAse_GetIndex(strTrack) < 0)
                         {
                             //string strObject = strTrackFile;
 #if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
@@ -18341,14 +22315,18 @@ namespace OpenJigWare
 #else
                             String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strTrackFile + ((strTrackFile.IndexOf('.') < 0) ? ".ase" : "");
 #endif
-                            FileInfo f = new FileInfo(strFileName);
+                            FileInfo f;
+                            int nOld = strFileName.LastIndexOf('*');
+                            //MessageBox.Show(strFileName + "," + strFileName.Length.ToString() + ',' + nOld.ToString());
+                            if (nOld == strFileName.Length - 1) f = new FileInfo(strFileName.Substring(0, strFileName.Length - 1));
+                            else f = new FileInfo(strFileName);
                             if (f.Exists == true)
                             {
                                 if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                     OjwFileOpen_3D_ASE(strFileName);
                                 else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
                                     OjwFileOpen_3D_SSTL(strFileName);
-                                else if (CFile.GetExe(strFileName).ToUpper() == "STL")
+                                else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
                                     OjwFileOpen_3D_STL(strFileName);
                                 else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
                                     OjwFileOpen_3D_Dat(strFileName);
@@ -18420,12 +22398,12 @@ namespace OpenJigWare
                         {
                             while (fPos <= fLength_Out)
                             {
-                                if (strTrackFile.Length > 0)
+                                if (strTrack.Length > 0)
                                 {
                                     //OjwBall_Outside(bFill, Color.Green, fAlpha, fR / 10, 50, 0, 0, 0, fPos, 0, 0);
                                     OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
                                             fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
-                                            fTrack_OffsetX + fPos, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                            fTrack_OffsetX + fPos, fTrack_OffsetY, fTrack_OffsetZ, strTrack);
                                 }
                                 else
                                 {
@@ -18540,13 +22518,13 @@ namespace OpenJigWare
                                         OjwRotation(0, 0, fDeg);
 
 
-                                        if (strTrackFile.Length > 0)
+                                        if (strTrack.Length > 0)
                                         {
                                             //OjwRotation(0, 0, fAngle + 90.0f - fAngleDiff);
                                             //OjwBall_Outside(bFill, Color.Cyan, fAlpha, fR / 10, 50, 0, 0, 0, fR1, 0, 0);
                                             OjwAse_Outside(bFill, colorTmp, fAlpha, fTrack_W, fTrack_H, fTrack_D,
                                                 fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing - 90.0f - fDegree,// / 2,
-                                                fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrackFile);
+                                                fTrack_OffsetX, fTrack_OffsetY, fTrack_OffsetZ, strTrack);
                                             //OjwRotation(0, 0, -(fAngle + 90.0f - fAngleDiff));
                                         }
                                         else
@@ -19481,6 +23459,7 @@ namespace OpenJigWare
                     return nIndex;
 #endif
                 }
+                private List<string> m_lststrModelingFiles = new List<string>();
                 private string m_strNoLoaded_ModelingFile = "";
                 public bool IsNoLoadedModelingFile() { return (m_strNoLoaded_ModelingFile.Length > 0) ? true : false; }
                 public string GetNoLoadedModelingFile() { return m_strNoLoaded_ModelingFile; }
@@ -19491,6 +23470,12 @@ namespace OpenJigWare
                                     String strIndex_Ase  // File Index name(Kor: 파일 인덱싱 이름)
                                 )
                 {
+                    int nOld = strIndex_Ase.LastIndexOf('*');
+                    if (nOld == strIndex_Ase.Length - 1)
+                    {
+                        strIndex_Ase = strIndex_Ase.Substring(0, strIndex_Ase.Length - 1);
+                    }        
+
                     if (strIndex_Ase.Length == 0) return;
 
                     int nIndex_Ase = OjwAse_GetIndex(strIndex_Ase);
@@ -19554,8 +23539,10 @@ namespace OpenJigWare
                             );
                         //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
 
-                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
-
+#if _VIEW_THE_OUTLINE
+                        //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+#endif
                         //Gl.glPolygonMode(Gl.GL_FRONT,
                         //        (int)(
                         //            (bFill == true) ?
@@ -19572,9 +23559,10 @@ namespace OpenJigWare
                                 )
                             );
                         //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
-
-                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
-
+#if _VIEW_THE_OUTLINE
+                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+                        //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+#endif
                         //Gl.glPolygonMode(Gl.GL_FRONT,
                         //        (int)(
                         //            (bFill == true) ?
@@ -19679,7 +23667,23 @@ namespace OpenJigWare
 #else
                         //SVector3D_t[] pSVec = m_lstOjwAse[nIndex_Ase].Data_Get();
                         //foreach (SVector3D_t SVec in pSVec) Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
-                        foreach (SVector3D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get()) Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
+
+                        Gl.glPushMatrix();
+                        bool bStart = true;
+                        foreach (SVector4D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get())
+                        {
+                            if (SVec.w != 0)
+                            {
+                                if (bStart == false)
+                                {
+                                    Gl.glPopMatrix();
+                                    Gl.glPushMatrix();
+                                }
+                                else bStart = false;
+                            }
+                            Gl.glVertex3f(SVec.x, SVec.y, SVec.z);                            
+                        }
+                        Gl.glPopMatrix();
 #endif
                         
                         //for (int i = 0; i < pSVec.Length; i += 3)
@@ -19695,12 +23699,22 @@ namespace OpenJigWare
                     else
                     {
 #if true
+                        Gl.glPushMatrix();
                         for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Face_GetCnt(); i++)
-                        {                            
+                        {
+                            if (m_lstOjwAse[nIndex_Ase].Data_Get(i).w != 0)
+                            {
+                                if (i != 0)
+                                {
+                                    Gl.glPopMatrix();
+                                    Gl.glPushMatrix();
+                                }
+                            }
                             Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).z);
                             Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).z);
                             Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).z);
                         }
+                        Gl.glPopMatrix();
 #else
                         SPoint3D_t[] pSData = m_lstOjwAse[nIndex_Ase].Face_Get();
                         foreach (SPoint3D_t SPnt in pSData)
@@ -20013,7 +24027,21 @@ namespace OpenJigWare
                         return false;
                     }
                 }
+                public bool OjwFileOpen_3D_STL_Old(String strFileName)
+                {
+                    return OjwFileOpen_3D_STL(strFileName, true);
+                }
                 public bool OjwFileOpen_3D_STL(String strFileName)
+                {
+                    int nOld = strFileName.LastIndexOf('*');
+                    if (nOld == strFileName.Length - 1)
+                    {
+                        strFileName = strFileName.Substring(0, strFileName.Length - 1);
+                        return OjwFileOpen_3D_STL(strFileName, true);
+                    }                    
+                    return OjwFileOpen_3D_STL(strFileName, false);
+                }
+                public bool OjwFileOpen_3D_STL(String strFileName, bool bSub_InitPoint)
                 {
                     int nTmp = 0;
                     String strName = "";
@@ -20065,9 +24093,19 @@ namespace OpenJigWare
                                     if (bFirst)
                                     {
                                         bFirst = false;
-                                        afPos[0] = afData[0]; //0;//fA;
-                                        afPos[1] = afData[1]; //0;//fB;
-                                        afPos[2] = afData[2]; //0;//fC;
+                                        if (bSub_InitPoint)
+                                        {
+                                            afPos[0] = afData[0]; //0;//fA;
+                                            afPos[1] = afData[1]; //0;//fB;
+                                            afPos[2] = afData[2]; //0;//fC;
+                                        }
+                                        else
+                                        {
+                                            afPos[0] = 0;
+                                            afPos[1] = 0;
+                                            afPos[2] = 0;
+                                        }
+                                        
                                     }
                                     else
                                     {
@@ -20130,9 +24168,23 @@ namespace OpenJigWare
                                         {
                                             if ((i == 0) && (j == 1))// First data
                                             {
-                                                afPos[_x] = afTmp[_x]; //0;// fA; //0;//fA;
-                                                afPos[_y] = afTmp[_y]; //0;// fC; //0;//fB;
-                                                afPos[_z] = afTmp[_z]; //0;// fB; //0;//fC;
+
+                                                if (bSub_InitPoint)
+                                                {
+                                                    afPos[_x] = afTmp[_x]; //0;// fA; //0;//fA;
+                                                    afPos[_y] = afTmp[_y]; //0;// fC; //0;//fB;
+                                                    afPos[_z] = afTmp[_z]; //0;// fB; //0;//fC;
+                                                }
+                                                else
+                                                {
+                                                    afPos[_x] = 0;
+                                                    afPos[_y] = 0;
+                                                    afPos[_z] = 0;
+                                                }
+
+                                                //afPos[_x] = 0;// afTmp[_x]; //0;// fA; //0;//fA;
+                                                //afPos[_y] = 0;// afTmp[_y]; //0;// fC; //0;//fB;
+                                                //afPos[_z] = 0;// afTmp[_z]; //0;// fB; //0;//fC;
                                             }
                                             //m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(fA - afPos[0], fB - afPos[1], fC - afPos[2]);
                                             m_lstOjwAse[m_nCnt_Obj_Ase - 1].Data_Add(afTmp[_x] - afPos[_x], afTmp[_y] - afPos[_y], afTmp[_z] - afPos[_z]);
@@ -20674,7 +24726,7 @@ namespace OpenJigWare
                                 bInverse = true;
                             }
 
-                            SVector3D_t SVec;
+                            SVector4D_t SVec;
                             for (int i = 0; i < nCnt; i++)
                             {
 #if false
@@ -21284,7 +25336,7 @@ namespace OpenJigWare
                                 bInverse = true;
                             }
 
-                            SVector3D_t SVec;
+                            SVector4D_t SVec;
                             for (int i = 0; i < nCnt; i++)
                             {
 #if false
@@ -21502,7 +25554,7 @@ namespace OpenJigWare
                             pbyte = BitConverter.GetBytes(24); fws.Write(pbyte, 0, 4);
                             fws.Write(pbyte, 0, 4);
 
-                            SVector3D_t SVec;
+                            SVector4D_t SVec;
                             for (int i = 0; i < nCnt; i++)
                             {
 #if false
@@ -21821,6 +25873,7 @@ namespace OpenJigWare
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
                 // Kor: 내부적 핸들을 결정, 단, 0보다 작으면(-) ID 없음. => 즉, OpenGL 의 픽킹 시 이름을 결정
                 public void User_Set_AxisName(int nValue) { m_CDisp.nName = nValue; }
+                public void User_Set_Alpha(float fValue) { m_CDisp.fAlpha = fValue; }            
                 public void User_Set_Color(Color cValue) { m_CDisp.cColor = cValue; }
                 public void User_Set_Model(String strValue) { m_CDisp.strDispObject = strValue; CheckObjectModelFile(strValue); } // Recording the type of data to be drawn Modeling(Kor: 그려질 모델링 데이타의 종류를 기록 - 사각형, 원형, 구, ...)
                 public void User_Set_Fill(bool bValue) { m_CDisp.bFilled = bValue; }    // Determining the populate the attributes of the picture(Kor: 그림의 속을 채울지를 결정)
@@ -21863,6 +25916,7 @@ namespace OpenJigWare
                 public int User_Get_AxisName() { return m_CDisp.nName; }
                 public Color User_Get_Color() { return m_CDisp.cColor; }
                 public String User_Get_DispObject() { return m_CDisp.strDispObject; }
+                public String User_Get_Model() { return m_CDisp.strDispObject; }
                 public bool User_Get_Fill() { return m_CDisp.bFilled; }
                 public int User_Get_Texture() { return m_CDisp.nTexture; }
                 public bool User_Get_Init() { return m_CDisp.bInit; }
@@ -21990,7 +26044,7 @@ namespace OpenJigWare
                 public bool CompileDesign()
                 {
                     String strError = String.Empty;
-                    return CompileDesign(m_CHeader.strDrawModel, out m_CHeader.nMotorCnt, out strError);
+                    return CompileDesign(m_CHeader.strDrawModel, out m_CHeader.nMotorCnt, out m_CHeader.anMotorIDs, out strError);
                 }
                 private string m_strAseFilePath = "\\";
                 public void SetAseFile_Path(String strPath)
@@ -22000,8 +26054,12 @@ namespace OpenJigWare
                 public string GetAseFile_Path() { return m_strAseFilePath; }
                 private int m_nSeq_Compile = 0;
                 private int m_nSeq_Compile_Back = 0;
-                public bool CompileDesign(String strDraw, out int nMotorCount, out String strError)
+                private int[] m_pnName_List = null; 
+                public bool CompileDesign(String strDraw, out int nMotorCount, out int [] anMotorIDs, out String strError)
                 {
+                    List<int> lstnMotors = new List<int>();
+                    lstnMotors.Clear();
+
                     bool bRet = true;
                     strError = "";
                     nMotorCount = 0;
@@ -22018,7 +26076,8 @@ namespace OpenJigWare
                         bool bInsufficient = false;
                         int nName_Max = 0;
                         int nName_Cnt = 0;
-                        int[] pnName_List = new int[1];
+                        m_pnName_List = new int[1];
+                        //int[] pnName_List = new int[1];
                         for (int i = 0; i < pCDisp.Length; i++)
                         {
                             // if you never had loaded ase files, you need to load it in here
@@ -22040,15 +26099,19 @@ namespace OpenJigWare
 #else
                                         String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
 #endif
-                                        FileInfo f = new FileInfo(strFileName);
+                                        FileInfo f;
+                                        int nOld = strFileName.LastIndexOf('*');
+                                        //MessageBox.Show(strFileName + "," + strFileName.Length.ToString() + ',' + nOld.ToString());
+                                        if (nOld == strFileName.Length - 1) f = new FileInfo(strFileName.Substring(0, strFileName.Length - 1));
+                                        else f = new FileInfo(strFileName);
                                         if (f.Exists == true)
                                         {
                                             if (CFile.GetExe(strFileName).ToUpper() == "ASE")
                                                 OjwFileOpen_3D_ASE(strFileName);
                                             else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
                                                 OjwFileOpen_3D_SSTL(strFileName);
-                                            else if (CFile.GetExe(strFileName).ToUpper() == "STL")
-                                                OjwFileOpen_3D_STL(strFileName);
+                                            else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
+                                                OjwFileOpen_3D_STL(strFileName);                                            
                                             else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
                                                 OjwFileOpen_3D_Dat(strFileName);
                                             else if (CFile.GetExe(strFileName).ToUpper() == "OBJ")
@@ -22066,21 +26129,48 @@ namespace OpenJigWare
                                 bDuplication = false;
                                 for (int j = 0; j < nName_Cnt; j++)
                                 {
-                                    if (pCDisp[i].nName == pnName_List[j]) bDuplication = true; // Find duplicates(Kor: 중복 발견)                            
+                                    if (pCDisp[i].nName == m_pnName_List[j]) bDuplication = true; // Find duplicates(Kor: 중복 발견)                            
                                 }
                                 if (bDuplication == false)
                                 {
-                                    Array.Resize<int>(ref pnName_List, nName_Cnt + 1);
-                                    pnName_List[nName_Cnt++] = pCDisp[i].nName;
+                                    Array.Resize<int>(ref m_pnName_List, nName_Cnt + 1);
+                                    m_pnName_List[nName_Cnt++] = pCDisp[i].nName;
                                 }
-                                if (pCDisp[i].nName > nName_Max) nName_Max = pCDisp[i].nName;    // Check the number of the entire motor.(Kor: 전체 모터의 갯수를 파악)
+                                if (lstnMotors.Exists(x => x == pCDisp[i].nName) == false)
+                                {
+                                    lstnMotors.Add(pCDisp[i].nName);
+                                }
+                                if (pCDisp[i].nName > nName_Max)
+                                {
+                                    //lstnMotors.Add(pCDisp[i].nName);
+                                    nName_Max = pCDisp[i].nName;    // Check the number of the entire motor.(Kor: 전체 모터의 갯수를 파악)
+                                }
                             }
                             OjwDispAll.AddData(pCDisp[i]);
                         }
                         if (nName_Cnt != (nName_Max + 1)) bInsufficient = true;                 // The number of motor error(The number of motor inconsistency)(Kor: 모터의 갯수가 모자람 (모터의 Max Number 와 갯수가 불일치))
 
                         //// 
+#if false
+#if false
                         nMotorCount = nName_Cnt;
+#else
+                        if (nName_Cnt != nName_Max + 1)
+                        {
+                            if (MessageBox.Show(String.Format("Motor Count [{0}] != nTop motor Number + 1 [{1}], Do you want to change your motor count?", nName_Cnt, nName_Max + 1), "Motor Count", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                            {
+                                string strMotor = (nName_Max + 1).ToString();
+                                if (Ojw.CInputBox.Show("Input your new motor Count", String.Format("nName_Cnt={0}, nName_Max + 1={1}", nName_Cnt, nName_Max + 1), ref strMotor) == DialogResult.OK)
+                                    nMotorCount = Ojw.CConvert.StrToInt(strMotor);
+                                else nMotorCount = nName_Cnt;
+                            }
+                            else nMotorCount = nName_Cnt;
+                        }
+                        else nMotorCount = nName_Cnt;
+#endif
+#else
+                        //nMotorCount = nName_Max + 1;
+#endif
                         //if ((bInsufficient == true) || (bDuplication == true))
                         if (bInsufficient == true)
                         {
@@ -22098,12 +26188,215 @@ namespace OpenJigWare
                         m_nSeq_Compile++;
                     }
                     pCDisp = null;
+                    lstnMotors.Sort();
+                    anMotorIDs = lstnMotors.ToArray();
+                    nMotorCount = lstnMotors.Count;
+
+
+                    GenerateMotionID();
+
+                    // 컴파일 이벤트 발생
+                    Event_Compile.RunEvent();
+
+                    return bRet;
+                }
+                //public bool CompileDesign(String strDraw, out int nMotorCount, out String strError)
+                //{
+                //    int[] anMotors;
+                //    return CompileDesign(strDraw, out nMotorCount, out anMotors, out strError);
+                //}
+                //public bool CompileDesign(String strDraw, out COjwDispAll CDispAll, out int nMotorCount, out String strError)
+                //{
+                //    int [] anMotors;
+                //    return CompileDesign(strDraw, out CDispAll, out nMotorCount, out anMotors, out strError);
+                //}
+                public bool CompileDesign(String strDraw, out COjwDispAll CDispAll, out int nMotorCount, out int [] anMotorIDs, out String strError)
+                {
+                    List<int> lstnMotors = new List<int>();
+                    lstnMotors.Clear();
+                    bool bRet = true;
+                    strError = "";
+                    nMotorCount = 0;
+                    CDispAll = new COjwDispAll();
+                    CDispAll.DeleteAll();
+                    COjwDisp[] pCDisp;
+                    TextBox txtDraw = new TextBox();
+                    txtDraw.Text = strDraw;
+                    TextBox_To_CodeString(txtDraw, out pCDisp);
+                    txtDraw = null;
+                    if (pCDisp != null)
+                    {
+                        bool bDuplication = false;
+                        bool bInsufficient = false;
+                        int nName_Max = 0;
+                        int nName_Cnt = 0;
+                        m_pnName_List = new int[1];
+                        //int[] pnName_List = new int[1];
+                        for (int i = 0; i < pCDisp.Length; i++)
+                        {
+                            // if you never had loaded ase files, you need to load it in here
+                            if (pCDisp[i].strDispObject.Length > 0)
+                            {
+                                if (pCDisp[i].strDispObject.IndexOf('#') < 0)
+                                {
+                                    if (OjwAse_GetIndex(pCDisp[i].strDispObject) < 0)
+                                    {
+                                        //this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
+                                        String strFile = pCDisp[i].strDispObject;
+                                        if ((strFile.IndexOf('?') >= 0) || (strFile.IndexOf('/') >= 0))
+                                        //if ((strFile.IndexOf('?') >= 0) || (strFile.IndexOf('/') >= 0) || (strFile.IndexOf('!') >= 0))
+                                        {
+                                            strFile = strFile.Substring(1);
+                                        }
+#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
+                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : "");
+#else
+                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+#endif
+                                        FileInfo f;
+                                        int nOld = strFileName.LastIndexOf('*');
+                                        //MessageBox.Show(strFileName + "," + strFileName.Length.ToString() + ',' + nOld.ToString());
+                                        if (nOld == strFileName.Length - 1) f = new FileInfo(strFileName.Substring(0, strFileName.Length - 1));
+                                        else f = new FileInfo(strFileName);
+                                        if (f.Exists == true)
+                                        {
+                                            if (CFile.GetExe(strFileName).ToUpper() == "ASE")
+                                                OjwFileOpen_3D_ASE(strFileName);
+                                            else if (CFile.GetExe(strFileName).ToUpper() == "SSTL")
+                                                OjwFileOpen_3D_SSTL(strFileName);
+                                            else if ((CFile.GetExe(strFileName).ToUpper() == "STL") || (CFile.GetExe(strFileName).ToUpper() == "STL*"))
+                                                OjwFileOpen_3D_STL(strFileName);                                                                             
+                                            else if (CFile.GetExe(strFileName).ToUpper() == "DAT")
+                                                OjwFileOpen_3D_Dat(strFileName);
+                                            else if (CFile.GetExe(strFileName).ToUpper() == "OBJ")
+                                                OjwFileOpen_3D_OBJ(strFileName);
+
+                                        }
+
+                                        //this.Cursor = System.Windows.Forms.Cursors.Default;
+                                    }
+                                }
+                            }
+
+                            if (pCDisp[i].nName >= 0)
+                            {
+                                bDuplication = false;
+                                for (int j = 0; j < nName_Cnt; j++)
+                                {
+                                    if (pCDisp[i].nName == m_pnName_List[j]) bDuplication = true; // Find duplicates(Kor: 중복 발견)                            
+                                }
+                                if (bDuplication == false)
+                                {
+                                    Array.Resize<int>(ref m_pnName_List, nName_Cnt + 1);
+                                    m_pnName_List[nName_Cnt++] = pCDisp[i].nName;
+                                }
+                                if (lstnMotors.Exists(x => x == pCDisp[i].nName) == false)
+                                {
+                                    lstnMotors.Add(pCDisp[i].nName);
+                                }
+                                if (pCDisp[i].nName > nName_Max)
+                                {
+                                    nName_Max = pCDisp[i].nName;    // Check the number of the entire motor.(Kor: 전체 모터의 갯수를 파악)
+                                }
+                            }
+                            CDispAll.AddData(pCDisp[i]);
+                        }
+                        if (nName_Cnt != (nName_Max + 1)) bInsufficient = true;                 // The number of motor error(The number of motor inconsistency)(Kor: 모터의 갯수가 모자람 (모터의 Max Number 와 갯수가 불일치))
+
+                        //// 
+#if false
+#if false
+                        nMotorCount = nName_Cnt;
+#else
+                        if (nName_Cnt != nName_Max + 1)
+                        {
+                            if (MessageBox.Show(String.Format("Motor Count [{0}] != nTop motor Number + 1 [{1}], Do you want to change your motor count?", nName_Cnt, nName_Max + 1), "Motor Count", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                            {
+                                string strMotor = (nName_Max + 1).ToString();
+                                if (Ojw.CInputBox.Show("Input your new motor Count", String.Format("nName_Cnt={0}, nName_Max + 1={1}", nName_Cnt, nName_Max + 1), ref strMotor) == DialogResult.OK)
+                                    nMotorCount = Ojw.CConvert.StrToInt(strMotor);
+                                else nMotorCount = nName_Cnt;
+                            }
+                            else nMotorCount = nName_Cnt;
+                        }
+                        else nMotorCount = nName_Cnt;
+#endif
+#else
+                        //nMotorCount = nName_Cnt; //nMotorCount = nName_Max + 1;
+                        nMotorCount = nName_Max + 1;
+#endif
+                        //if ((bInsufficient == true) || (bDuplication == true))
+                        if (bInsufficient == true)
+                        {
+                            //bRet = false; // 모터개수 맞지 않을 경우 에러
+                            //strError = "[Warning] 모터의 번호 확인요망" + ((bInsufficient == true) ? ", 갯수 모자름" : "") + ((bDuplication == true) ? ", 모터 번호 중복 발견" : "");
+                            //strError = "[Warning] 모터의 번호 확인요망" + ((bInsufficient == true) ? ", 갯수 모자름" : "");
+                            strError = "[Warning] Check the motor ID" + ((bInsufficient == true) ? ", The number of the motor is not consistent." : "");
+                        }
+                        else strError = "The number of motor coincide.";
+                        //else strError = "모터 갯수 이상없음";
+
+                        m_strNoLoaded_ModelingFile = String.Empty;
+                        // 컴파일 운영시 카운터 증가
+                        m_nSeq_Compile_Back = m_nSeq_Compile;
+                        m_nSeq_Compile++;
+                    }
+                    pCDisp = null;
+                    anMotorIDs = lstnMotors.ToArray();
+
+
+                    GenerateMotionID();
+
+
+                    // 컴파일 이벤트 발생
+                    Event_Compile.RunEvent();
 
                     return bRet;
                 }
                 //}
             #endregion CsGL Class / The actual drawing and initialization functions are all based here.(Kor: CsGL Class / 실제 그리기 및 초기화(즉, Main) 함수 모음)
-
+            private void GenerateMotionID()
+            {
+                #region Motor ID Arrange
+                List<int> lstIDs = new List<int>();
+                lstIDs.Clear();
+                int nAxis, nIndex;
+                m_lstIDs_Motion.Clear();
+                for (nIndex = 0; nIndex < m_CHeader.nMotorCnt; nIndex++)
+                {
+                    nAxis = m_CHeader.anMotorIDs[nIndex];
+                    if ((m_CHeader.pSMotorInfo[nAxis].nMotor_Enable < 0) || (m_CHeader.pSMotorInfo[nAxis].nMotor_Enable > 1)) continue;
+                    int nID = m_CHeader.pSMotorInfo[nAxis].nMotionEditor_Index;
+                    if (nID != 0)
+                    {
+                        m_lstIDs_Motion.Add(nID);
+                    }
+                    else lstIDs.Add(nAxis);
+                }
+                bool bSet = false;
+                do
+                {
+                    bSet = false;
+                    int nValue;
+                    int nValue2;
+                    for (nIndex = 1; nIndex < m_lstIDs_Motion.Count; nIndex++)
+                    {
+                        int nID = m_lstIDs_Motion[nIndex - 1];
+                        nValue = m_CHeader.pSMotorInfo[nID].nMotionEditor_Index;
+                        int nID2 = m_lstIDs_Motion[nIndex];
+                        nValue2 = m_CHeader.pSMotorInfo[nID2].nMotionEditor_Index;
+                        if (nValue > nValue2)
+                        {
+                            m_lstIDs_Motion[nIndex - 1] = m_lstIDs_Motion[nIndex];
+                            m_lstIDs_Motion[nIndex] = nID;
+                            bSet = true;
+                        }
+                    }
+                }
+                while (bSet);
+                m_lstIDs_Motion.AddRange(lstIDs);
+                #endregion Motor ID Arrange
+            }
             public void SetFunctionNumber(int nNum)
             {
                 //m_CHeader.nDefaultFunctionNumber = m_CPropAll.nMain_DefaultFunctionNum = m_nFunctionNumber = nNum;
@@ -22334,7 +26627,9 @@ namespace OpenJigWare
             #region Version - Version Designer History header file(Kor: 디자이너 헤더 파일의 버전 기록)
             public static String _STR_EXT = "ojw"; // OpenJigWare File
 
-            public static String _STR_EXT_VERSION = "01.04.00"; // Dynamixel 모델 추가
+            public static String _STR_EXT_VERSION = "01.06.00"; // stl 모델파일 초기점 기준이동기능 삭제, 기존 파일로드할때 파일로드 시 특이점 들어가게 수정
+            //public static String _STR_EXT_VERSION = "01.05.00"; // m_lstMotorsEn 추가
+            //public static String _STR_EXT_VERSION = "01.04.00"; // Dynamixel 모델 추가
             //public static String _STR_EXT_VERSION = "01.03.00"; // Python 기능 추가
             //public static String _STR_EXT_VERSION = "01.02.00"; // Center_Evd, MechMove 의 값 16비트에서 32비트로 변경
             //public static String _STR_EXT_VERSION = "01.01.00";
@@ -22374,6 +26669,11 @@ namespace OpenJigWare
             //private int m_nSeq_FileOpened_Back = 0;
             private string m_strDesignFileName = String.Empty;
             public string GetFileName() { return m_strDesignFileName; }
+            private bool m_bNoBuild_MotionEditor = false;
+            public void SetMotionEditor_NoBuild() // 한번만 Set 된다.
+            {
+                m_bNoBuild_MotionEditor = true;
+            }
             public bool FileOpen(String strFileName)
             {
                 bool bRet = FileOpen(strFileName, out m_CHeader);
@@ -22393,7 +26693,8 @@ namespace OpenJigWare
 
                     m_rtxtDraw.Text = GetHeader_strDrawModel();
                     int nWidth = (IsGridInit() == true) ? GetWidth_GridItem() : 70;
-                    GridMotionEditor_Init(nWidth, 999, false);
+                    if (m_bNoBuild_MotionEditor == false) GridMotionEditor_Init(nWidth, 999, false);
+                    m_bNoBuild_MotionEditor = false; // 한번만 Set되는것
                     StringListToGrid(); // 현재는 사용 안하지만 그래도 일단 넣고 계속 테스트...
 
                     //if (m_cmbDh.Items.Count < 512)
@@ -22433,8 +26734,16 @@ namespace OpenJigWare
                                 );
                         }
                     }
+#if !_MONSTER_LIB
                     if (m_CRobotis != null)
                     {
+                        for (int i = 0; i < nMotorCount; i++)
+                        {
+                            if (m_CHeader.pSMotorInfo[i].nHwMotor_Index > 0)
+                            {
+                                m_CRobotis.SetParam(m_CHeader.pSMotorInfo[i].nHwMotor_Index);
+                            }
+                        }
                         for (int i = 0; i < nMotorCount; i++)
                         {
                             m_CRobotis.SetParam(
@@ -22448,12 +26757,31 @@ namespace OpenJigWare
                                        (float)m_CHeader.pSMotorInfo[i].nMechMove,
                                        m_CHeader.pSMotorInfo[i].fMechAngle
                                        );
-                            if (m_CHeader.pSMotorInfo[i].nHwMotorName > 0)
-                            {
-                                m_CRobotis.SetParam(m_CHeader.pSMotorInfo[i].nHwMotorName);
-                            }                            
+                            
+                            int nTmp;
+                            float fEvd, fTmp, fMechMove, fAngle;
+                            m_CRobotis.GetParam(
+                                       i,
+                                       out m_CHeader.pSMotorInfo[i].nMotorID,
+                                       out m_CHeader.pSMotorInfo[i].nMotorDir,
+                                       out m_CHeader.pSMotorInfo[i].fLimit_Up,
+                                       out m_CHeader.pSMotorInfo[i].fLimit_Down,
+                                       out fEvd,//m_CHeader.pSMotorInfo[i].nCenter_Evd,
+                                       out fTmp, // Dislay
+                                       out fMechMove,//m_CHeader.pSMotorInfo[i].nMechMove,
+                                       out fAngle//m_CHeader.pSMotorInfo[i].fMechAngle
+                                       );
+                            m_CHeader.pSMotorInfo[i].nCenter_Evd = (int)fEvd;
+                            m_CHeader.pSMotorInfo[i].nMechMove = (int)fMechMove;
+                            m_CHeader.pSMotorInfo[i].fMechAngle = fAngle;
                         }
                     }
+                    if (m_CMonster != null) m_CMonster.SetHeader(m_CHeader);
+#else
+                    if (m_CMonster != null) 
+                        if (m_CMonster.IsOpen() == true) 
+                            m_CMonster.Set3DHeader(m_CHeader);
+#endif
 
                     if (m_bProb_Virtual == true)
                     {
@@ -22467,10 +26795,62 @@ namespace OpenJigWare
 
                     m_strDesignFileName = strFileName;
 
-                    return CompileDesign(m_CHeader.strDrawModel, out nMotorCount, out strError);
+                    bool bCompile = CompileDesign(m_CHeader.strDrawModel, out m_CHeader.nMotorCnt, out m_CHeader.anMotorIDs, out strError);
+                    //if (m_CMonster != null) m_CMonster.Set3DHeader(m_CHeader);
+                    return bCompile;
+                    //int[] anMotorIDs;
+                    //return CompileDesign(m_CHeader.strDrawModel, out nMotorCount, out anMotorIDs, out strError);
                 }
                 return false;
             }
+
+            #region openfiledialog OLE 호출을 수행하려면 현재 스레드를 STA(단일 스레드 아파트) 모드로 설정해야 합니다. 표시된 STAThreadAttribute가 Main 함수에 있는지 확인하십시오. 이 예외는 디버거가 프로세스에 연결된 경우에만 발생합니다. 에러 발생시 해결법
+            // 출처 : https://blogs.msdn.microsoft.com/smondal/2010/09/08/current-thread-must-be-set-to-single-thread-apartment-sta-mode-before-ole-calls-can-be-made/
+             /* STAShowDialog takes a FileDialog and shows it on a background STA thread and returns the results.
+             * Usage:
+             *   OpenFileDialog d = new OpenFileDialog();
+             *   DialogResult ret = STAShowDialog(d);
+             *   if (ret == DialogResult.OK)
+             *      MessageBox.Show(d.FileName);
+             */
+            private DialogResult STAShowDialog(FileDialog dialog)
+            {
+                DialogState state = new DialogState();
+                state.dialog = dialog;
+                System.Threading.Thread t = new System.Threading.Thread(state.ThreadProcShowDialog);
+                t.SetApartmentState(System.Threading.ApartmentState.STA);
+                t.Start();
+                t.Join();
+                return state.result;
+            }
+             /* Helper class to hold state and return value in order to call FileDialog.ShowDialog on a background thread.
+             * Usage:
+             *   DialogState state = new DialogState();
+             *   state.dialog = // <any class that derives from FileDialog>
+             *   System.Threading.Thread t = new System.Threading.Thread(state.ThreadProcShowDialog);
+             *   t.SetApartmentState(System.Threading.ApartmentState.STA);
+             *   t.Start();
+             *   t.Join();
+             *   return state.result;
+             */
+            public class DialogState
+            {
+                public DialogResult result;
+                public FileDialog dialog;
+ 
+                public void ThreadProcShowDialog()
+                {
+                    result = dialog.ShowDialog();
+                }
+            }
+            #endregion openfiledialog OLE 호출을 수행하려면 현재 스레드를 STA(단일 스레드 아파트) 모드로 설정해야 합니다. 표시된 STAThreadAttribute가 Main 함수에 있는지 확인하십시오. 이 예외는 디버거가 프로세스에 연결된 경우에만 발생합니다. 에러 발생시 해결법
+
+            public void SetFilePath_Design(string strPath)
+            {
+                // 디자인 파일 오픈 경로 설정
+                m_strDesignerFilePath = strPath;
+            }
+            public string GetFilePath_Design() { return m_strDesignerFilePath; }
             public bool FileOpen()
             {
                 OpenFileDialog ofdDesign = new OpenFileDialog();
@@ -22482,7 +26862,10 @@ namespace OpenJigWare
                 ofdDesign.Filter = "Design File(*." + _STR_EXT + ")|*." + _STR_EXT;
 
                 ofdDesign.DefaultExt = _STR_EXT;
-                if (ofdDesign.ShowDialog() == DialogResult.OK)
+
+                DialogResult ret = STAShowDialog(ofdDesign);
+                //if (ofdDesign.ShowDialog() == DialogResult.OK)
+                if (ret == DialogResult.OK)
                 {
                     String fileName = ofdDesign.FileName;
                     if (FileOpen(fileName) == false)
@@ -22517,6 +26900,22 @@ namespace OpenJigWare
                     }
                 }
                 return false;
+            }
+            public void FileClose()
+            {
+                m_CHeader.strDrawModel = String.Empty;
+                CompileDesign();
+                //StringListToGrid();
+                m_lstDraw.Clear();
+                if (m_CGridMotionEditor != null) m_CGridMotionEditor.Delete();
+
+                if (m_CProperty_Selected != null) m_CProperty_Selected.Destroy();
+                m_CDisp_Selected = null;
+                m_panelSelected = null;
+                
+
+                m_lstModel.Clear();
+
             }
             private int m_nCnt_Forward = 0;
             private int m_nCnt_Inverse = 0;
@@ -22840,8 +27239,8 @@ namespace OpenJigWare
 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nLimitRpm_Raw); fs.Write(byteData, 0, 4); byteData = null; //415);
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nProtocolVersion); fs.Write(byteData, 0, 4); byteData = null; //2); // Version 2(0 해도 동일)
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nHwMotorName); fs.Write(byteData, 0, 4); byteData = null;  // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nHwModelNum); fs.Write(byteData, 0, 4); byteData = null; //1060); // 0번지에 모델번호 1060, XM430_W210 : 1030, XM430_W350 : 1020
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nHwMotor_Index); fs.Write(byteData, 0, 4); byteData = null;  // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nHwMotor_Key); fs.Write(byteData, 0, 4); byteData = null; //1060); // 0번지에 모델번호 1060, XM430_W210 : 1030, XM430_W350 : 1020
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nAddr_Max); fs.Write(byteData, 0, 4); byteData = null;//146);
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nAddr_Torq); fs.Write(byteData, 0, 4); byteData = null;//64);
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nAddr_Led); fs.Write(byteData, 0, 4); byteData = null;//65);
@@ -22854,19 +27253,19 @@ namespace OpenJigWare
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nAddr_Pos_Size); fs.Write(byteData, 0, 4); byteData = null;//4);
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nSerialType); fs.Write(byteData, 0, 4); byteData = null;  // 0 : Default, 1 : Second ... (동시에 2개 이상의 시리얼에 연결된 경우 사용)
 
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_0); fs.Write(byteData, 0, 4); byteData = null; 
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_1); fs.Write(byteData, 0, 4); byteData = null; 
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_2); fs.Write(byteData, 0, 4); byteData = null; 
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nMotorEnable_For_RPTask); fs.Write(byteData, 0, 4); byteData = null;
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nMotor_Enable); fs.Write(byteData, 0, 4); byteData = null;
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nMotionEditor_Index); fs.Write(byteData, 0, 4); byteData = null; // 0 이면 사용 안함. 1 부터 사용, 0 이상인 경우 여기의 인덱스를 우선적으로 적용, 하나를 세팅했으면 반드시 다른 하나도 세팅할 것
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_3); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_4); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_5); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_6); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_7); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_8); fs.Write(byteData, 0, 4); byteData = null; 
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_9); fs.Write(byteData, 0, 4); byteData = null; 
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].nReserve_9); fs.Write(byteData, 0, 4); byteData = null;
 
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fReserve_0); fs.Write(byteData, 0, 4); byteData = null; 
-                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fReserve_1); fs.Write(byteData, 0, 4); byteData = null; 
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fGearRatio); fs.Write(byteData, 0, 4); byteData = null;
+                            byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fRobotisConvertingVar); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fReserve_2); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fReserve_3); fs.Write(byteData, 0, 4); byteData = null; 
                             byteData = BitConverter.GetBytes(m_CHeader.pSMotorInfo[i].fReserve_4); fs.Write(byteData, 0, 4); byteData = null; 
@@ -22994,7 +27393,15 @@ namespace OpenJigWare
                     fs.WriteByte((byte)('F'));  // File 
                     fs.WriteByte((byte)('E'));  // End
                     #endregion Set the separation code(Kor: 구분 코드 부여) // HE - File End ( 2 Bytes )
-                                        
+                    
+                    if (nVersion >= 10500)
+                    {
+                        byteData = BitConverter.GetBytes(m_lstMotorsEn.Count); fs.Write(byteData, 0, 4); byteData = null;
+                        for (i = 0; i < m_lstMotorsEn.Count; i++)
+                        {
+                            byteData = BitConverter.GetBytes(m_lstMotorsEn[i]); fs.Write(byteData, 0, 4); byteData = null;
+                        }
+                    }
                     fs.Close();
 
                     //if (m_bAutoSaved == false) Modify(false);
@@ -23033,6 +27440,7 @@ namespace OpenJigWare
             {
                 m_bFileOpening = true;
                 bool bFileOpened = true;
+                bool bCheckOldStl = false;
                 CHeader = null;
                 string strVersion = String.Empty;
                 try
@@ -23079,6 +27487,8 @@ namespace OpenJigWare
 
                         CDesignHeder.strVersion = strTmp.Substring(0, 6);
                         CDesignHeder.nVersion = nVersion;
+
+                        bCheckOldStl = true;
 
                         if (nVersion < 12)
                         {
@@ -23415,6 +27825,10 @@ namespace OpenJigWare
                             //}
                         }
                         CDesignHeder.strDrawModel = sbAll.ToString();
+                        if (bCheckOldStl)
+                        {
+                            CDesignHeder.strDrawModel = Ojw.CConvert.ChangeString(CDesignHeder.strDrawModel.ToLower(), ".stl", ".stl*");
+                        }
                         // Set a new version
                         CDesignHeder.strVersion = _STR_EXT.ToUpper() + C3d._STR_EXT_VERSION.ToUpper();
                         #endregion String - Actual design string
@@ -23472,6 +27886,11 @@ namespace OpenJigWare
                                 //SetFunctionNumber(CDesignHeder.nDefaultFunctionNumber);                                
                                 //Prop_Set_Main_DefaultFunctionNum(CDesignHeder.nDefaultFunctionNumber);
                                 nPos += 4;
+                            }
+
+                            if (nVersion < 010600)
+                            {
+                                bCheckOldStl = true;
                             }
                             #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
 
@@ -23668,8 +28087,8 @@ namespace OpenJigWare
 
                                     CDesignHeder.pSMotorInfo[i].nLimitRpm_Raw = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nProtocolVersion = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nHwMotorName = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nHwModelNum = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nHwMotor_Index = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nHwMotor_Key = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nAddr_Max = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nAddr_Torq = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nAddr_Led = BitConverter.ToInt32(byteData, nPos); nPos += 4;
@@ -23682,9 +28101,9 @@ namespace OpenJigWare
                                     CDesignHeder.pSMotorInfo[i].nAddr_Pos_Size = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nSerialType = BitConverter.ToInt32(byteData, nPos); nPos += 4;
 
-                                    CDesignHeder.pSMotorInfo[i].nReserve_0 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nReserve_1 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nReserve_2 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nMotorEnable_For_RPTask = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nMotor_Enable = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nMotionEditor_Index = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_3 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_4 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_5 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
@@ -23693,8 +28112,8 @@ namespace OpenJigWare
                                     CDesignHeder.pSMotorInfo[i].nReserve_8 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_9 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
 
-                                    CDesignHeder.pSMotorInfo[i].fReserve_0 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].fReserve_1 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].fGearRatio = BitConverter.ToSingle(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].fRobotisConvertingVar = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_2 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_3 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_4 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
@@ -23704,14 +28123,19 @@ namespace OpenJigWare
                                     CDesignHeder.pSMotorInfo[i].fReserve_8 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_9 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
 
-                                    if (CDesignHeder.pSMotorInfo[i].nHwMotorName > 0)
+                                    if (CDesignHeder.pSMotorInfo[i].nHwMotor_Index > 0)
                                     {
                                         // 모델명이 지정되어 있다면 앞의것들 무시...
-                                        m_CRobotis.SetParam(i, CDesignHeder.pSMotorInfo[i].nHwMotorName);
+#if !_MONSTER_LIB
+                                        m_CRobotis.SetParam(i, CDesignHeder.pSMotorInfo[i].nHwMotor_Index);
+#endif
+                                        
                                     }
                                 }
                                 #endregion 추가 - version 10400
                             }
+
+                            m_CMonster.SetHeader(CDesignHeder);
 
                             #region set the separation code [ HE - Header End ( 2 Bytes ) ]
                             strData = "";
@@ -23808,6 +28232,11 @@ namespace OpenJigWare
                             //CDesignHeder.strDrawModel = "";
                             CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);
 
+                            if (bCheckOldStl)
+                            {
+                                CDesignHeder.strDrawModel = Ojw.CConvert.ChangeString(CDesignHeder.strDrawModel.ToLower(), ".stl", ".stl*");
+                            }
+
                             nPos += nSize_0;
                             #endregion String - Actual design string
                             #endregion Actual design string
@@ -23864,6 +28293,7 @@ namespace OpenJigWare
                 m_bFileOpening = true;
                 _CNT_FILEOPEN++;
                 bool bFileOpened = true;
+                bool bCheckOldStl = false;
                 CHeader = null;
                 m_strVersion = "";
                                 
@@ -23904,6 +28334,7 @@ namespace OpenJigWare
 #if _DHF_FILE
                     if ((strTmp[0] == 'D') & (strTmp[1] == 'H') & (strTmp[2] == 'F'))
                     {
+                        #region DHF
                         m_strVersion += (char)byteData[3];
                         m_strVersion += (char)byteData[4];
                         m_strVersion += (char)byteData[5];
@@ -23920,6 +28351,8 @@ namespace OpenJigWare
 
                         CDesignHeder.strVersion = strTmp.Substring(0, 6);
                         CDesignHeder.nVersion = nVersion;
+
+                        bCheckOldStl = true;
 
                         if (nVersion < 12)
                         {
@@ -24260,6 +28693,10 @@ namespace OpenJigWare
                             //}
                         }
                         CDesignHeder.strDrawModel = sbAll.ToString();
+                        if (bCheckOldStl)
+                        {
+                            CDesignHeder.strDrawModel = Ojw.CConvert.ChangeString(CDesignHeder.strDrawModel.ToLower(), ".stl", ".stl*");
+                        }
                         // Set a new version
                         CDesignHeder.strVersion = _STR_EXT.ToUpper() + C3d._STR_EXT_VERSION.ToUpper();
                         #endregion String - Actual design string
@@ -24288,13 +28725,14 @@ namespace OpenJigWare
                         //fs.Close();
                         //bFileOpened = true;
 
-
+                        #endregion DHF
                     }
                     else
 #endif // _DHF_FILE
 #if true
                         if ((strTmp[0] == 'O') & (strTmp[1] == 'J') & (strTmp[2] == 'W'))//(strTmp == strData) 
                         {
+                            #region OJW
                             int nVersion = 0;// 010000; // 01.00.00
                             for (i = 3; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++)
                             {
@@ -24319,6 +28757,10 @@ namespace OpenJigWare
                                 nPos += 4;
                             }
 
+                            if (nVersion < 010600)
+                            {
+                                bCheckOldStl = true;
+                            }
                             #endregion From Version 1.1.0(_STR_EXT_VERSION = "01.01.00")( 4 Bytes )
 
                             #region Model type ( 2 Bytes )
@@ -24514,9 +28956,9 @@ namespace OpenJigWare
 
                                     CDesignHeder.pSMotorInfo[i].nLimitRpm_Raw = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nProtocolVersion = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nHwMotorName = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nHwMotor_Index = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     
-                                    CDesignHeder.pSMotorInfo[i].nHwModelNum = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nHwMotor_Key = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nAddr_Max = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nAddr_Torq = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nAddr_Led = BitConverter.ToInt32(byteData, nPos); nPos += 4;
@@ -24529,9 +28971,9 @@ namespace OpenJigWare
                                     CDesignHeder.pSMotorInfo[i].nAddr_Pos_Size = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nSerialType = BitConverter.ToInt32(byteData, nPos); nPos += 4;
 
-                                    CDesignHeder.pSMotorInfo[i].nReserve_0 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nReserve_1 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].nReserve_2 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nMotorEnable_For_RPTask = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nMotor_Enable = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].nMotionEditor_Index = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_3 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_4 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_5 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
@@ -24540,8 +28982,8 @@ namespace OpenJigWare
                                     CDesignHeder.pSMotorInfo[i].nReserve_8 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].nReserve_9 = BitConverter.ToInt32(byteData, nPos); nPos += 4;
 
-                                    CDesignHeder.pSMotorInfo[i].fReserve_0 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
-                                    CDesignHeder.pSMotorInfo[i].fReserve_1 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
+                                    CDesignHeder.pSMotorInfo[i].fGearRatio = BitConverter.ToSingle(byteData, nPos); nPos += 4; // Gear Ratio
+                                    CDesignHeder.pSMotorInfo[i].fRobotisConvertingVar = BitConverter.ToSingle(byteData, nPos); nPos += 4; // Converting Variable for Robotis
                                     CDesignHeder.pSMotorInfo[i].fReserve_2 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_3 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_4 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
@@ -24551,10 +28993,10 @@ namespace OpenJigWare
                                     CDesignHeder.pSMotorInfo[i].fReserve_8 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
                                     CDesignHeder.pSMotorInfo[i].fReserve_9 = BitConverter.ToSingle(byteData, nPos); nPos += 4;
 
-                                    if (CDesignHeder.pSMotorInfo[i].nHwMotorName > 0)
+                                    if (CDesignHeder.pSMotorInfo[i].nHwMotor_Index > 0)
                                     {
                                         // 모델명이 지정되어 있다면 앞의것들 무시...
-                                        m_CRobotis.SetParam(i, CDesignHeder.pSMotorInfo[i].nHwMotorName);
+                                        m_CRobotis.SetParam(i, CDesignHeder.pSMotorInfo[i].nHwMotor_Index);
                                     }
                                 }
                                 #endregion 추가 - version 10400
@@ -24652,7 +29094,10 @@ namespace OpenJigWare
                             #region String - Actual design string
                             //CDesignHeder.strDrawModel = "";
                             CDesignHeder.strDrawModel = Encoding.Default.GetString(byteData, nPos, nSize_0);
-
+                            if (bCheckOldStl)
+                            {
+                                CDesignHeder.strDrawModel = Ojw.CConvert.ChangeString(CDesignHeder.strDrawModel.ToLower(), ".stl", ".stl*");
+                            }
                             nPos += nSize_0;
                             #endregion String - Actual design string
                             #endregion Actual design string
@@ -24677,7 +29122,18 @@ namespace OpenJigWare
                             if (strData != "FE") bFileOpened = false;
                             #endregion set the separation code [ FE - File End ( 2 Bytes ) ]
 
+                            if (nVersion >= 10500)
+                            {
+                                int nMotCnt = BitConverter.ToInt32(byteData, nPos); nPos += 4;
+                                m_lstMotorsEn.Clear();
+                                for (i = 0; i < nMotCnt; i++)
+                                {
+                                    m_lstMotorsEn.Add(BitConverter.ToInt32(byteData, nPos));
+                                    nPos += 4;
+                                }
+                            }
                             //Prop_Update_VirtualObject();
+                            #endregion OJW
                         }
                         else bFileOpened = false;
 #endif
@@ -24695,8 +29151,13 @@ namespace OpenJigWare
 
                         InitToolsMotorVar();
 
+
+                        m_strDesignFileName = strFileName;
+                        m_strDesignerFilePath = Ojw.CFile.GetPath(strFileName);
                         // Event Running
                         Event_FileOpen.RunEvent();
+                        //m_strDesignFileName
+                        
 
                         int nAxis = 0;
                         foreach (SMotorInfo_t SMotInfo in CHeader.pSMotorInfo)
@@ -24704,6 +29165,13 @@ namespace OpenJigWare
                             if (m_CGridMotionEditor != null) m_CGridMotionEditor.Clear_SetType(0); // Default
                             SetData(nAxis++, SMotInfo.fInitAngle);
                         }
+
+                        //m_CMonster.Set3DHeader(CHeader);
+
+
+
+
+
 
                         return true;
                     }
@@ -24729,7 +29197,7 @@ namespace OpenJigWare
             {
                 public int nVersion;
                 public String strVersion;
-
+                
                 public int nDefaultFunctionNumber = -1;
 
                 public int nModelNum = 0;                               // The name of the actual model with the at least 1(Kor: 1 이상의 값을 가지는 실제적인 모델의 이름)
@@ -24761,10 +29229,15 @@ namespace OpenJigWare
 
                 public SOjwCode_t[] pSOjwCode = new SOjwCode_t[512];
 
+                // 해당 수식이 적용 될 시작 위치의 Offset(이동 - 회전)
+                public SVector3D_t [] pSOffset_Trans = new SVector3D_t[512];
+                public SVector3D_t[] pSOffset_Rot = new SVector3D_t[512];
+
                 public string strDrawModel;                                 // String that contains the actual data model(Kor: 실제 모델 데이타가 들어있는 스트링)
                 // The number of motors in internal (However, be sure to order 0,1,2, ... must be created in order)
                 // Kor: 내부에 들어있는 모터의 갯수 ( 단, 반드시 순서대로 0,1,2,... 순으로 작성해야 한다. )
                 public int nMotorCnt;
+                public int[] anMotorIDs;
 
                 public string strComment;                               // comment(Kor: 부가설명)
 
@@ -24800,17 +29273,17 @@ namespace OpenJigWare
                         //pbyteInverseKinematics_encryption
 
                         pSMotorInfo[i].nMotorID = i;
-                        pSMotorInfo[i].fMechAngle = 330.0f;
-                        pSMotorInfo[i].nMechMove = 1024;
-                        pSMotorInfo[i].nCenter_Evd = 512;
+                        pSMotorInfo[i].fMechAngle = 360.0f;// 330.0f;
+                        pSMotorInfo[i].nMechMove = 4096;// 1024;
+                        pSMotorInfo[i].nCenter_Evd = 2048;// 512;
 
                         #region 추가기능
                         // 추가
                         pSMotorInfo[i].fRpm = 0.229f; // 기본 rpm 단위
                         pSMotorInfo[i].nLimitRpm_Raw = 415;
                         pSMotorInfo[i].nProtocolVersion = 2; // Version 2(0 해도 동일)
-                        pSMotorInfo[i].nHwMotorName = 2; // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12
-                        pSMotorInfo[i].nHwModelNum = 1060; // 0번지에 모델번호 XL430 : 1060, XM430_W210 : 1030, XM430_W350 : 1020
+                        pSMotorInfo[i].nHwMotor_Index = 2; // 0 : None, 1 : xl-320, 2 : xl_430(Default), 3 - ax-12
+                        pSMotorInfo[i].nHwMotor_Key = 1060; // 0번지에 모델번호 XL430 : 1060, XM430_W210 : 1030, XM430_W350 : 1020
                         pSMotorInfo[i].nAddr_Max = 146;
                         pSMotorInfo[i].nAddr_Torq = 64;
                         pSMotorInfo[i].nAddr_Led = 65;
@@ -24823,10 +29296,10 @@ namespace OpenJigWare
                         pSMotorInfo[i].nAddr_Pos_Size = 4;
 
                         pSMotorInfo[i].nSerialType = 0;// 0 : Default, 1 : Second ... (동시에 2개 이상의 시리얼에 연결된 경우 사용)
-                        
-                        pSMotorInfo[i].nReserve_0 = 0;
-                        pSMotorInfo[i].nReserve_1 = 0;
-                        pSMotorInfo[i].nReserve_2 = 0;
+
+                        pSMotorInfo[i].nMotorEnable_For_RPTask = 0; // -1 인 경우 복사 제외대상(R+Task3 에서...)
+                        pSMotorInfo[i].nMotor_Enable = 0;
+                        pSMotorInfo[i].nMotionEditor_Index = 0;
                         pSMotorInfo[i].nReserve_3 = 0;
                         pSMotorInfo[i].nReserve_4 = 0;
                         pSMotorInfo[i].nReserve_5 = 0;
@@ -24834,8 +29307,8 @@ namespace OpenJigWare
                         pSMotorInfo[i].nReserve_7 = 0;
                         pSMotorInfo[i].nReserve_8 = 0;
                         pSMotorInfo[i].nReserve_9 = 0;
-                        pSMotorInfo[i].fReserve_0 = 0;
-                        pSMotorInfo[i].fReserve_1 = 0;
+                        pSMotorInfo[i].fGearRatio = 1.0f; // 0 은 기어비 적용 안함
+                        pSMotorInfo[i].fRobotisConvertingVar = 1.0f; // 0 은 적용 안함
                         pSMotorInfo[i].fReserve_2 = 0;
                         pSMotorInfo[i].fReserve_3 = 0;
                         pSMotorInfo[i].fReserve_4 = 0;
@@ -24945,7 +29418,18 @@ namespace OpenJigWare
                 public float fDepth_Or_Cnt = 10.0f;    // Depth / line count
                 public float fThickness = 4.0f;       // thickness
                 public float fGap = 0.0f; // If you need to draw a [case] - do not need the another things.(Kor: case 를 그리거나 할 경우 필요 - 나머진 필요 없다.)
-
+#if false
+트랙 '?' ~ '/' 까지, ! 는 회전축
+<맨 마지막의 '/' 실행 부에서> 
+  [Gap] 의 숫자를 - 로 하면 가이드 원통이 나타난다.
+  Offset_Trans 로 트랙의 위치 조정
+  Offset_Trans 로 트랙의 조립 모양 조정
+// Track
+[3],-1,1,?track_.stl,1,-1,0,[-410,10,90,39.5,80],[14,1,45,0],[-0.8,-2,-22,0,180,0],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-238,10,0,0,0,0,0,0,0,0,0,0],[2,0,0,[255],[0.35,0.35],[0,0],]
+[3],-1,1,?track_.stl,1,-1,0,[-120,10,90,39.5,80],[14,1,45,0],[-0.8,-2,-22,0,180,0],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-238,10,0,0,0,0,0,0,0,0,0,0],[2,0,0,[255],[0.35,0.35],[0,0],]
+[0],-1,1,?!track_.stl,1,-1,0,[279.7,10,90,39.5,80],[11,0,0,0],[-0.8,-2,-22,0,180,0],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-238,10,0,0,0,0,0,0,0,0,0,0],[2,0,0,[255],[0.35,0.35],[0,0],]
+[3],-1,1,/track_.stl,1,-1,0,[-120,10,90,39.5,80],[14,1,0,0],[-0.8,-2,-22,90,0,0],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-238,10,0,0,0,0,0,0,0,0,0,0],[2,0,0,[255],[0.35,0.35],[0,0],]
+#endif
                 public string strCaption = ""; // comment
 
                 // Offset
@@ -24980,6 +29464,8 @@ namespace OpenJigWare
 
                 public List<SVector3D_t> Points = new List<SVector3D_t>();
 
+                public SOjwCode_t SCode;
+
                 public void InitData()
                 {
                     SVector3D_t[] pSVector = new SVector3D_t[5];
@@ -24994,6 +29480,9 @@ namespace OpenJigWare
                     SetData(-1, Color.White, 1.0f, "#7", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
                     pSVector = null;
                     pSAngle = null;
+
+                    Ojw.CKinematics.CInverse.Compile("", out SCode);
+
                     Points.Clear();
                 }
 
@@ -25007,10 +29496,10 @@ namespace OpenJigWare
                             OjwDispData.fScale_Serve0, OjwDispData.fScale_Serve1,
                             OjwDispData.nMotorType, OjwDispData.nMotorControl_MousePoint,
                             OjwDispData.strPickGroup_Comment,
-                            OjwDispData.Points
+                            OjwDispData.Points,
+                            OjwDispData.SCode
                             );
                 }
-
                 public void SetData(int nAxisName, Color cColorData, float fAlphaData, String strDrawObject, bool bFill, int nTextureData, bool bInitialize, float fW, float fH, float fD, float fT, float fGapData, string strMessage,
                                     int nAxisData, int nDirData, float fAngleData, float fAngle_OffsetData,
                                     SVector3D_t SOffset_Translation, SAngle3D_t SOffset_Rotation, SVector3D_t[] afTranslation, SAngle3D_t[] afRotation,
@@ -25019,6 +29508,29 @@ namespace OpenJigWare
                                     int nObjectMotorType, int nObjectMotorControl_MousePoint,
                                     String strObjectPickGroup_Comment,
                                     List<SVector3D_t> lstPoints
+                                    )
+                {
+                    SOjwCode_t SCodeData = new SOjwCode_t();
+                    SetData(nAxisName, cColorData, fAlphaData, strDrawObject, bFill, nTextureData, bInitialize, fW, fH, fD, fT, fGapData, strMessage,
+                                    nAxisData, nDirData, fAngleData, fAngle_OffsetData,
+                                    SOffset_Translation, SOffset_Rotation, afTranslation, afRotation,
+                                    nObjectPickGroup_A, nObjectPickGroup_B, nObjectPickGroup_C, nObjectPickGroup_InverseKinematics,
+                                    fObjectScale_Serve0, fObjectScale_Serve1,
+                                    nObjectMotorType, nObjectMotorControl_MousePoint,
+                                    strObjectPickGroup_Comment,
+                                    lstPoints,
+                                    SCodeData
+                                    );
+                }
+                public void SetData(int nAxisName, Color cColorData, float fAlphaData, String strDrawObject, bool bFill, int nTextureData, bool bInitialize, float fW, float fH, float fD, float fT, float fGapData, string strMessage,
+                                    int nAxisData, int nDirData, float fAngleData, float fAngle_OffsetData,
+                                    SVector3D_t SOffset_Translation, SAngle3D_t SOffset_Rotation, SVector3D_t[] afTranslation, SAngle3D_t[] afRotation,
+                                    int nObjectPickGroup_A, int nObjectPickGroup_B, int nObjectPickGroup_C, int nObjectPickGroup_InverseKinematics,
+                                    float fObjectScale_Serve0, float fObjectScale_Serve1,
+                                    int nObjectMotorType, int nObjectMotorControl_MousePoint,
+                                    String strObjectPickGroup_Comment,
+                                    List<SVector3D_t> lstPoints,
+                                    SOjwCode_t SCodeData
                                     )
                 {
                     cColor = cColorData;
@@ -25077,6 +29589,7 @@ namespace OpenJigWare
                     nMotorControl_MousePoint = nObjectMotorControl_MousePoint;
 
                     Points = lstPoints;
+                    SCode = SCodeData;
                 }
                 #region Set
                 // Determine the internal handle, if (value < 0) then "No ID" => In other words, when determining the name of the OpenGL picking
@@ -25206,6 +29719,8 @@ namespace OpenJigWare
                     obj.nMotorControl_MousePoint = this.nMotorControl_MousePoint;
 
                     obj.Points.Clear();
+                    obj.SCode.nCnt_Operation = 0;
+                    Ojw.CKinematics.CInverse.Compile("", out obj.SCode);
                     for (int i = 0; i < this.Points.Count; i++)
                     {
                         obj.Points.Add(this.Points[i]);
@@ -25367,8 +29882,8 @@ namespace OpenJigWare
                     m_nModelIndex = 0;
                     m_lstModelIndex = new List<int>();
 
-                    m_lstSVec3D = new List<SVector3D_t>();
-                    m_lstSSVec3D_Result = new List<SVector3D_t>();
+                    m_lstSVec4D = new List<SVector4D_t>();
+                    m_lstSSVec4D_Result = new List<SVector4D_t>();
                     m_lstSFace = new List<SPoint3D_t>();
                     m_nCnt = 0;
                     m_nCnt_Result = 0;
@@ -25380,8 +29895,8 @@ namespace OpenJigWare
                 public float[] afPos;
                 private int m_nModelIndex;
                 private List<int> m_lstModelIndex;
-                private List<SVector3D_t> m_lstSVec3D;
-                private List<SVector3D_t> m_lstSSVec3D_Result;
+                private List<SVector4D_t> m_lstSVec4D;
+                private List<SVector4D_t> m_lstSSVec4D_Result;
                 //private SVector3D_t[] SVec3D;
                 //private SVector3D_t[] SVec3D_Result;
                 //private SPoint3D_t[] SFace;
@@ -25416,8 +29931,8 @@ namespace OpenJigWare
                 {
                     m_nModelIndex = 0;
                     m_lstModelIndex.Clear();
-                    m_lstSVec3D.Clear();// SVec3D = null;
-                    m_lstSSVec3D_Result.Clear();// = null;
+                    m_lstSVec4D.Clear();// SVec3D = null;
+                    m_lstSSVec4D_Result.Clear();// = null;
                     m_lstSFace.Clear();
                     m_nCnt = 0;
                     m_nCnt_Result = 0;
@@ -25425,6 +29940,20 @@ namespace OpenJigWare
                 }
                 public int Data_GetCnt()
                 {
+                    return m_nCnt;
+                }
+                public int Data_Add(float fX, float fY, float fZ, float fW)
+                {
+                    try
+                    {
+                        m_lstModelIndex.Add(m_nModelIndex);
+                        m_lstSVec4D.Add(new SVector4D_t(fX, fY, fZ, fW));
+                        m_nCnt = m_lstSVec4D.Count;
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.ToString());
+                    }
                     return m_nCnt;
                 }
                 public int Data_Add(float fX, float fY, float fZ)
@@ -25440,9 +29969,23 @@ namespace OpenJigWare
                         SVec3D[m_nCnt - 1].z = fZ;
 #else
                         m_lstModelIndex.Add(m_nModelIndex);
-                        m_lstSVec3D.Add(new SVector3D_t(fX, fY, fZ));
-                        m_nCnt = m_lstSVec3D.Count;
+                        m_lstSVec4D.Add(new SVector4D_t(fX, fY, fZ, 0));
+                        m_nCnt = m_lstSVec4D.Count;
 #endif
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.ToString());
+                    }
+                    return m_nCnt;
+                }
+                public int Data_Add_First(float fX, float fY, float fZ, float fW)
+                {
+                    try
+                    {
+                        m_lstModelIndex.Add(++m_nModelIndex);
+                        m_lstSVec4D.Add(new SVector4D_t(fX, fY, fZ, fW));
+                        m_nCnt = m_lstSVec4D.Count;
                     }
                     catch (Exception e)
                     {
@@ -25463,8 +30006,8 @@ namespace OpenJigWare
                         SVec3D[m_nCnt - 1].z = fZ;
 #else
                         m_lstModelIndex.Add(++m_nModelIndex);
-                        m_lstSVec3D.Add(new SVector3D_t(fX, fY, fZ));
-                        m_nCnt = m_lstSVec3D.Count;
+                        m_lstSVec4D.Add(new SVector4D_t(fX, fY, fZ, 0));
+                        m_nCnt = m_lstSVec4D.Count;
 #endif
                     }
                     catch (Exception e)
@@ -25474,31 +30017,38 @@ namespace OpenJigWare
                     return m_nCnt;
                 }
                 public int Data_Get_ModelIndex(int nIndex) { return m_lstModelIndex[nIndex]; }
-                public SVector3D_t Data_Get(int nIndex)
+                public SVector4D_t Data_Get(int nIndex)
                 {
                     //if ((nIndex >= 0) && (nIndex < m_nCnt))
-                    return m_lstSVec3D[nIndex];
+                    return m_lstSVec4D[nIndex];
                     //return m_lstSVec3D[0];
                 }
-                public SVector3D_t[] Data_Get()
+                public SVector4D_t[] Data_Get()
                 {
-                    return m_lstSVec3D.ToArray();
+                    return m_lstSVec4D.ToArray();
                 }
                 //public SVector3D_t[] Data_Get()
                 //{
                 //    return m_lstSVec3D.ToArray();
                 //}
+                public void Data_Set(int nIndex, float fX, float fY, float fZ, float fW)
+                {
+                    if ((nIndex >= 0) && (nIndex < m_nCnt))
+                    {
+                        m_lstSVec4D[nIndex] = (new SVector4D_t(fX, fY, fZ, fW));
+                    }
+                }
                 public void Data_Set(int nIndex, float fX, float fY, float fZ)
                 {
                     if ((nIndex >= 0) && (nIndex < m_nCnt))
                     {
-                        m_lstSVec3D[nIndex] = (new SVector3D_t(fX, fY, fZ));
+                        m_lstSVec4D[nIndex] = (new SVector4D_t(fX, fY, fZ, 0));
                     }
                 }
 
                 public void DataResult_Clear()
                 {
-                    m_lstSSVec3D_Result.Clear();// = null;
+                    m_lstSSVec4D_Result.Clear();// = null;
                     m_nCnt_Result = 0;
                 }
                 public int DataResult_GetCnt()
@@ -25509,8 +30059,8 @@ namespace OpenJigWare
                 {
                     try
                     {
-                        m_lstSSVec3D_Result[m_nCnt_Result - 1] = (new SVector3D_t(fX, fY, fZ));
-                        m_nCnt_Result = m_lstSSVec3D_Result.Count;
+                        m_lstSSVec4D_Result[m_nCnt_Result - 1] = (new SVector4D_t(fX, fY, fZ, 0));
+                        m_nCnt_Result = m_lstSSVec4D_Result.Count;
                     }
                     catch (Exception e)
                     {
@@ -25518,20 +30068,41 @@ namespace OpenJigWare
                     }
                     return m_nCnt_Result;
                 }
-                public SVector3D_t[] DataResult_Get() { return m_lstSSVec3D_Result.ToArray(); }
-                public SVector3D_t DataResult_Get(int nIndex)
+                public int DataResult_Add(float fX, float fY, float fZ, float fW)
+                {
+                    try
+                    {
+                        m_lstSSVec4D_Result[m_nCnt_Result - 1] = (new SVector4D_t(fX, fY, fZ, fW));
+                        m_nCnt_Result = m_lstSSVec4D_Result.Count;
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.ToString());
+                    }
+                    return m_nCnt_Result;
+                }
+                public SVector4D_t[] DataResult_Get() { return m_lstSSVec4D_Result.ToArray(); }
+                public SVector4D_t DataResult_Get(int nIndex)
                 {
                     if ((nIndex >= 0) && (nIndex < m_nCnt_Result))
-                        return m_lstSSVec3D_Result[nIndex];
-                    return m_lstSSVec3D_Result[0];
+                        return m_lstSSVec4D_Result[nIndex];
+                    return m_lstSSVec4D_Result[0];
                 }
                 public void DataResult_Set(int nIndex, float fX, float fY, float fZ)
                 {
                     if ((nIndex >= 0) && (nIndex < m_nCnt_Result))
                     {
-                        m_lstSSVec3D_Result[nIndex] = (new SVector3D_t(fX, fY, fZ));
+                        m_lstSSVec4D_Result[nIndex] = (new SVector4D_t(fX, fY, fZ, 0));
                     }
                 }
+                public void DataResult_Set(int nIndex, float fX, float fY, float fZ, float fW)
+                {
+                    if ((nIndex >= 0) && (nIndex < m_nCnt_Result))
+                    {
+                        m_lstSSVec4D_Result[nIndex] = (new SVector4D_t(fX, fY, fZ, fW));
+                    }
+                }
+
 
                 public int Face_GetCnt()
                 {
