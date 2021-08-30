@@ -128,8 +128,22 @@ namespace OpenJigWare
             public CParam_t[] m_aCParam = new CParam_t[256];
 
             #region Open / Close / IsOpen
+            private Ojw.CSocket m_CSock_Client = new CSocket();
             private Ojw.CSerial m_CSerial = new CSerial();
-            public bool IsOpen() { return m_CSerial.IsConnect(); }
+            public bool IsOpen() { return (m_CSerial.IsConnect() || m_CSock_Client.IsConnect()) ? true : false; }
+            public bool Open(int nPort, string strAddress)
+            {
+                bool bConnected = m_CSock_Client.IsConnect();
+                if (bConnected == false)
+                {
+                    if (m_CSock_Client.Connect(strAddress, nPort) == true)
+                    {
+                        return true;
+                    }
+                }
+                Ojw.CMessage.Write_Error("Cannot Connect [Open_Socket({0}, {1})]", nPort, strAddress);
+                return false;
+            }
             public bool Open(int nPort, int nBaudRate)
             {
                 bool bConnected = m_CSerial.IsConnect();
@@ -143,7 +157,11 @@ namespace OpenJigWare
                 Ojw.CMessage.Write_Error("Cannot Connect [Open_Serial({0}, {1})]", nPort, nBaudRate);
                 return false;
             }
-            public void Close() { if (m_CSerial.IsConnect()) m_CSerial.DisConnect(); }
+            public void Close() 
+            {
+                if (m_CSerial.IsConnect()) m_CSerial.DisConnect();
+                if (m_CSock_Client.IsConnect()) m_CSock_Client.DisConnect();
+            }
             #endregion Open / Close / IsOpen
 
             #region Command
@@ -159,6 +177,9 @@ namespace OpenJigWare
             public void Command_Clear() { m_lstCmdIDs.Clear(); }
             public void Command_Set(int nID, float fValue) { m_lstCmdIDs.Add(new CCommand_t(nID, fValue)); }
             public void Command_Set_Rpm(int nID, float fRpm) { m_lstCmdIDs.Add(new CCommand_t(nID, CalcRpm2Raw(nID, fRpm))); }
+            public void Clear() { Command_Clear(); }
+            public void Set(int nID, float fValue) { Command_Set(nID, fValue); }
+            public void Set_Rpm(int nID, float fRpm) { Command_Set_Rpm(nID, fRpm); }
             //public void SetTorq(params CCommand_t [] aCCommands)
             //{
             //    Sync_Clear();
@@ -354,7 +375,7 @@ namespace OpenJigWare
 
             private bool m_bNext = false;
             public void PlayNext() { m_bNext = true; }
-            public void Play(string strFileName)
+            public void Play(string strFileName, bool bOneshot_Style = false)
             {
                 if (IsOpen() == false) return;
                 
@@ -401,16 +422,86 @@ namespace OpenJigWare
                             bContinue = true;
                         }
                     }
-                    Move(nTime, nDelay, bContinue);
+                    if (bOneshot_Style)
+                    {
+                        Move_NoWait(nTime, nDelay, bContinue);
+                        Wait();
+                    }
+                    else
+                    {
+                        Move(nTime, nDelay, bContinue);
+                    }
                 }
                 Ojw.Log("Done - {0}", strFileName);
                 //for (int i = 0; i < anIDs.Length; i++) { m_CCom.Command_Set(anIDs[i], m_C3d.GetData(anIDs[i])); }
                 //m_CCom.Move(m_CGrid.GetTime(nLine), m_CGrid.GetDelay(nLine), bContinue);
             }
+            // bypass 모드가 아닌 경우에 발동
+            public void Play_Stream(string str)
+            {
+                string[] pstr = str.Split(',');
+                if (pstr.Length >= 3)
+                {
+                    int nTime_ms = Ojw.CConvert.StrToInt(pstr[1]);
+                    int nDelay = Ojw.CConvert.StrToInt(pstr[2]);
+                    m_nWait_Time = (nTime_ms + nDelay);
+                }
+                byte[] pbuff = Ojw.CConvert.StrToBytes_UTF8(str);
+                byte[] pbyte = new byte[pbuff.Length + 2];
+                pbyte[0] = 0x02;
+                for (int i = 1; i < pbyte.Length - 1; i++)
+                {
+                    pbyte[i] = pbuff[i - 1];
+                }
+                pbyte[pbyte.Length - 1] = 0x03;
+                m_CSock_Client.Send(pbyte);
+            }
+            public void PlayFrameString(string buff, bool bNoWait = false)
+            {
+                if (IsOpen() == false) return;
 
+                if (buff.Length > 1)
+                {
+                    if ((buff[1] == '1') || (buff[1] == '2')) // Enable
+                    {
+                        bool bAngle = false;
+                        if (buff[1] == '2') bAngle = true;
+                        
+                        string[] pstr = buff.Split(',');
+
+                        int nEnable = Ojw.CConvert.StrToInt(pstr[0]);
+                        int nTime = Ojw.CConvert.StrToInt(pstr[1]);
+                        int nDelay = Ojw.CConvert.StrToInt(pstr[2]);
+
+                        Command_Clear();
+                        for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
+                        {
+                            string[] pstrDatas = pstr[nIndex].Split(':');
+                            if (pstrDatas.Length > 1)
+                            {
+                                int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
+
+                                if (bAngle)
+                                {
+                                    float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
+                                    Command_Set(nID, fEvd);
+                                }
+                                else
+                                {
+                                    int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
+                                    Command_Set(nID, (float)Math.Round(CalcEvd2Angle(nID, nEvd)));
+                                }
+                            }
+                        }
+                        if (bNoWait == false) Move(nTime, nDelay);
+                        else Move_NoWait(nTime, nDelay);
+                    }
+                }
+            }
             // 마지막 모션이 아니라면 bContinue = false
             public void Move(int nTime_ms, int nDelay, bool bContinue = false, params CCommand_t[] aCCommands)
             {
+                m_nWait_Time = 0;
                 if (IsOpen() == false) return;
                 if (m_bEms == true) return;
                 Ojw.CTimer CTmr = new CTimer();
@@ -463,6 +554,52 @@ namespace OpenJigWare
                         if (CTmr.Get() >= (nTime_ms + nDelay)) break;
                         Ojw.CTimer.DoEvent();
                     }
+                }
+            }
+
+            private int m_nWait_Time = 0;
+            public void Wait(int nTime = -1)
+            {
+                if (IsOpen() == false) return;
+                if (m_bEms == true) return;
+
+                Ojw.CTimer CTmr = new CTimer();
+                CTmr.Set();
+
+                int nWait = ((nTime < 0) ? m_nWait_Time : nTime);
+                m_nWait_Time = 0;
+                while (true) { if (CTmr.Get() >= nWait) break; Ojw.CTimer.DoEvent(); }
+            }
+            public void Move_NoWait(int nTime_ms, int nDelay, bool bContinue = false, params CCommand_t[] aCCommands)
+            {
+                if (IsOpen() == false) return;
+                if (m_bEms == true) return;
+
+                m_nWait_Time = (nTime_ms + nDelay);
+
+                CCommand_t[] CCmd = ((aCCommands.Length > 0) ? aCCommands : ((m_lstCmdIDs.Count > 0) ? m_lstCmdIDs.ToArray() : null));
+                Command_Clear();
+                if (CCmd.Length > 0)
+                {
+                    float[] afMot = new float[m_afMot.Length];
+                    float[] afRes = new float[m_afMot.Length];
+                    Array.Copy(m_afMot, afMot, m_afMot.Length);
+
+                    List<int> lstIDs = new List<int>();
+                    lstIDs.Clear();
+                    for (int i = 0; i < CCmd.Length; i++) 
+                    { 
+                        lstIDs.Add(CCmd[i].nID); 
+                        CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal);
+                    }
+                    SetPosition_Speed();
+
+                    Command_Clear();
+                    for (int i = 0; i < CCmd.Length; i++)
+                    {
+                        Command_Set(CCmd[i].nID, CCmd[i].fVal);
+                    }
+                    SetPosition();
                 }
             }
             //public void WaitMotion(int nTime, int [] anIDs = null)
@@ -860,11 +997,22 @@ namespace OpenJigWare
                 CTmr.Set();
                 while (true)
                 {
-                    if (m_CSerial.GetBuffer_Length() > 0)
+                    if (m_CSock_Client.IsConnect())
                     {
-                        //return m_CSerial.GetBytes();
-                        ReceivedPacket(m_CSerial.GetBytes());
-                        return true;
+                        if (m_CSock_Client.GetBuffer_Length() > 0)
+                        {
+                            ReceivedPacket(m_CSock_Client.GetBytes());
+                            return true;
+                        }
+                    }
+                    else if (m_CSerial.IsConnect())
+                    {
+                        if (m_CSerial.GetBuffer_Length() > 0)
+                        {
+                            //return m_CSerial.GetBytes();
+                            ReceivedPacket(m_CSerial.GetBytes());
+                            return true;
+                        }
                     }
                     if (CTmr.Get() >= _WAIT_TIME)
                     {
@@ -1256,7 +1404,11 @@ namespace OpenJigWare
                     Array.Resize<byte>(ref pBuff, pBuff2.Length + nCnt);
                     int nIndex = 0;
                     int nPos = 0;
-                    for (int i = 5; i < pBuff.Length; i++)
+                    int i = 5;
+                    // 내부의 패킷길이값 재 설정 
+                    pBuff[i++] = (byte)((pBuff.Length - 7) & 0xff);
+                    pBuff[i++] = (byte)(((pBuff.Length - 7) >> 8) & 0xff);
+                    for (i = 7; i < pBuff.Length; i++)
                     {
                         pBuff[i + nPos] = pBuff2[i];
                         if (i == pnIndex[nPos])
@@ -1269,7 +1421,11 @@ namespace OpenJigWare
                 }
                 pnIndex = null;
             }
-            public void SendPacket(byte[] buffer, int nLength) { if (m_CSerial.IsConnect() == true) m_CSerial.SendPacket(buffer, nLength); }
+            public void SendPacket(byte[] buffer, int nLength) 
+            { 
+                if (m_CSerial.IsConnect() == true) m_CSerial.SendPacket(buffer, nLength);
+                if (m_CSock_Client.IsConnect() == true) m_CSock_Client.SendPacket(buffer, nLength); 
+            }
             #endregion Protocol - basic(updateCRC, MakeStuff, SendPacket)
 
             #region Sync Write

@@ -2775,7 +2775,11 @@ namespace OpenJigWare
                     Array.Resize<byte>(ref pBuff, pBuff2.Length + nCnt);
                     int nIndex = 0;
                     int nPos = 0;
-                    for (int i = 5; i < pBuff.Length; i++)
+                    int i = 5;
+                    // 내부의 패킷길이값 재 설정 
+                    pBuff[i++] = (byte)((pBuff.Length - 7) & 0xff);
+                    pBuff[i++] = (byte)(((pBuff.Length - 7) >> 8) & 0xff);
+                    for (i = 7; i < pBuff.Length; i++)
                     {
                         pBuff[i + nPos] = pBuff2[i];
                         if (i == pnIndex[nPos])

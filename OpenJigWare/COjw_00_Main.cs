@@ -138,8 +138,14 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {
-        public const string strVersion = "02.01.00";
+        public const string strVersion = "02.01.02";
         public const string strHistory = (String)(
+                "[V02.01.02]\r\n" +
+                "  Raspberrypi Sock 기능 추가" + "\r\n" +
+                "========================================\r\n" + // Release  
+                "[V02.01.01]\r\n" +
+                "  코드 디버깅... MakeStuff 관련" + "\r\n" +
+                "========================================\r\n" + // Release  
                 "[V02.01.00]\r\n" +
                 "  protocol2 추가 외..." + "\r\n" +
                 "========================================\r\n" + // Release  
