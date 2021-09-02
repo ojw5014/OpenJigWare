@@ -21,6 +21,7 @@ namespace OpenJigWare
             }
             ~CProtocol2()
             {
+                if (IsOpen()) Close();
                 
             }
 
@@ -144,6 +145,262 @@ namespace OpenJigWare
                 Ojw.CMessage.Write_Error("Cannot Connect [Open_Socket({0}, {1})]", nPort, strAddress);
                 return false;
             }
+            private Ojw.CServer m_CServer = new CServer();
+            private Thread m_thServer;
+            private bool m_bWebSocket = false;
+            private int m_nSocket_Mode = 0; // 0 : Normal Mode, 1 : Bypass Mode;
+            public void Socket_BypassMode(bool bBypass) { m_nSocket_Mode = (bBypass) ? 1 : 0; }
+            public bool IsSocket_BypassMode() { return (m_nSocket_Mode == 1) ? true : false; }
+            //private List<Thread> m_lstThServer = new List<Thread>();
+            public bool Open_Socket(int nPort) { return Open_Socket(nPort, null, false); }
+            public bool Open_Socket(int nPort, bool bWebSocket) { return Open_Socket(nPort, null, bWebSocket); }
+            public bool Open_Socket(int nPort, string strIP) { return Open_Socket(nPort, strIP, false); }
+            public bool IsOpen_Socket() { return m_CServer.sock_started(); }
+            public bool Open_Socket(int nPort, string strIP, bool bWebSocket)
+            {
+                if (m_CServer.sock_started() == false)
+                {
+                    if (strIP == null) m_CServer.sock_start(nPort);
+                    else
+                    {
+                        if (strIP.Length < 7) m_CServer.sock_start(nPort);
+                        m_CServer.sock_start(strIP, nPort); // 지정한 포트로 동작
+                    }
+
+                    if (m_CServer.sock_started() == true) // 서버가 잘 시작했다면...
+                    {
+                        //클라이언트 생성시 스레드를 생성한다.
+                        m_bWebSocket = bWebSocket;
+                        m_thServer = new Thread(new ThreadStart(ThreadServer));
+                        m_thServer.Start();
+                        //return true;
+                    }
+                    else
+                    {
+                        Ojw.printf_Error("서버 동작 실패");
+                        Ojw.newline();
+                    }
+                }
+                else
+                {
+                    Ojw.printf_Error("서버가 이미 동작하고 있습니다.");
+                    Ojw.newline();
+                }
+
+
+
+                return IsOpen_Socket();//m_CServer.
+            }
+
+            
+            private const int _SIZE_QUE = 3;
+            private const int _SIZE_QUE_LENGTH = 100;
+            private int m_nQue_Index_Next = 0;
+            private int m_nQue_Index = 0;
+            private int m_nQue_Count = 0;
+            private byte [,] m_abyteQue = new byte[_SIZE_QUE, _SIZE_QUE_LENGTH];
+            //private struct SQueByte_t{
+            //    public byte[] buffer = new byte[_SIZE_QUE_LENGTH];
+            //}
+            //private List<SQueByte_t> m_alstQue = new List<SQueByte_t>();
+            private void ThreadServer()
+            {
+                try
+                {
+                    //m_alstQue.Clear();
+                    for(int i = 0; i < _SIZE_QUE; i++)
+                    {
+                        for (int j = 0; j < _SIZE_QUE_LENGTH; j++)
+                        {
+                            m_abyteQue[i,j] = 0;
+                        }
+                    }
+                    bool bShake = false;
+                    Ojw.printf("ThreadServer()\r\n");
+                    m_CServer.WaitClient(true);
+                    Ojw.printf("ThreadServer() - Started\r\n");
+                    while (m_CServer.sock_started() == true)
+                    {
+                        if (m_CServer.isClientConnected() == false)
+                        {
+                            Ojw.printf("소켓연결 끊어짐\r\n");
+                            bShake = false;
+                            m_CServer.WaitClient(true);
+                            //break;
+                        }
+                        int nBufferSize = m_CServer.GetBuffer_Length();
+                        if (nBufferSize > 0) // 무언가 데이타가 들어왔다면
+                        {
+                            //Ojw.Log("데이타 들어옴");
+                            byte[] pbyData = m_CServer.sock_get_bytes(nBufferSize);
+
+                            string str = String.Empty;
+                            str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
+                            // 받은 데이타를 클라이언트로 다시 한번 보내본다.(그냥... 클라이언트에서도 메세지 뜨라고...)
+                            #region Websocket
+                            if (m_bWebSocket == true)
+                            {
+                                if (bShake == false)
+                                {
+                                    bShake = true;
+                                    m_CServer.sock_send(HandShake(str));//pbyData);
+                                    continue;
+                                }
+                                else
+                                {
+                                    bool fin = (bool)((pbyData[0] & 0x80) != 0);
+                                    bool mask = (pbyData[1] & 0x80) != 0; // must be true, "All messages from the client to the server have this bit set"
+
+                                    int opcode = pbyData[0] & 0x0f, // expecting 1 - text message
+                                        msglen = pbyData[1] - 128, // & 0111 1111
+                                        offset = 2;
+
+                                    if (msglen == 126) { msglen = BitConverter.ToUInt16(new byte[] { pbyData[3], pbyData[2] }, 0); offset = 4; }
+                                    if (msglen == 0)
+                                    {
+                                        Ojw.printf("연결 끊음, msglen == 0\r\n");
+                                        bShake = false;
+                                        m_CServer.m_tcpServer_Client.Client.Disconnect(false);
+                                        //m_CServer.WaitClient(true);
+                                    }
+                                    else if (mask)
+                                    {
+                                        byte[] decoded = new byte[msglen];
+                                        byte[] masks = new byte[4] { pbyData[offset], pbyData[offset + 1], pbyData[offset + 2], pbyData[offset + 3] };
+                                        offset += 4;
+
+                                        for (int i = 0; i < msglen; ++i)
+                                            decoded[i] = (byte)(pbyData[offset + i] ^ masks[i % 4]);
+
+                                        str = Encoding.UTF8.GetString(decoded);
+                                        //Ojw.printf("{0}\r\n", str);
+                                    }
+                                }
+                            }
+                            #endregion Websocket
+
+                            if (IsSocket_BypassMode() == true)
+                            {
+                                SendPacket(pbyData, pbyData.Length);
+                            }
+                            else
+                            {
+                                bool bStart = false;
+                                bool bContinue = false;
+                                //int nSize = 0;
+                                int nSize2 = m_abyteQue[m_nQue_Index_Next,0] + m_abyteQue[m_nQue_Index_Next,1] * 256;
+                                if (nSize2 < 0) nSize2 = 0;
+                                else if (nSize2 > _SIZE_QUE_LENGTH) nSize2 = _SIZE_QUE_LENGTH;
+                                if (m_bWebSocket == true)
+                                {
+                                    //str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
+                                    for (int i = 0; i < str.Length; i++)
+                                    {
+                                        if (str[i] == '!')
+                                        {
+                                            bStart = true;
+                                            nSize2 = 0;
+                                            bContinue = false;
+                                        }
+                                        else if (str[i] == ';')
+                                        {
+                                            bStart = false;
+                                            bContinue = true;
+                                            m_abyteQue[m_nQue_Index_Next, 0] = (byte)(nSize2 & 0xff);
+                                            m_abyteQue[m_nQue_Index_Next, 1] = (byte)((nSize2 >> 8) & 0xff);
+                                            m_nQue_Index = m_nQue_Index_Next;
+                                            m_nQue_Index_Next++;
+                                            m_nQue_Count++;
+                                        }
+                                        else
+                                        {
+                                            m_abyteQue[m_nQue_Index_Next, 2 + nSize2++] = (byte)str[i];
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    for (int i = 0; i < nBufferSize; i++)
+                                    {
+                                        if (pbyData[i] == 0x02)
+                                        {
+                                            bStart = true;
+                                            nSize2 = 0;
+                                            bContinue = false;
+                                        }
+                                        else if (pbyData[i] == 0x03)
+                                        {
+                                            bStart = false;
+                                            bContinue = true;
+                                            m_abyteQue[m_nQue_Index_Next, 0] = (byte)(nSize2 & 0xff);
+                                            m_abyteQue[m_nQue_Index_Next, 1] = (byte)((nSize2 >> 8) & 0xff);
+                                            m_nQue_Index = m_nQue_Index_Next;
+                                            m_nQue_Index_Next++;
+                                            m_nQue_Count++;
+                                        }
+                                        else
+                                        {
+                                            m_abyteQue[m_nQue_Index_Next, 2 + nSize2++] = pbyData[i];
+                                        }
+                                    }
+                                }
+                                if (m_nQue_Index_Next >= _SIZE_QUE)
+                                {
+                                    m_nQue_Index_Next = 0;
+                                }
+                                if (m_nQue_Count > _SIZE_QUE)
+                                {
+                                    m_nQue_Count = _SIZE_QUE;
+                                }
+                            }
+                        }
+                        if (m_nQue_Count > 0)
+                        {
+                            int nLen = m_abyteQue[m_nQue_Index,0] + m_abyteQue[m_nQue_Index,1] * 256;
+                            string str = String.Empty;
+                            byte [] pbyData = new byte[nLen];
+                            //Array.Copy(m_abyteQue[m_nQue_Index], 2, pbyData, 0, nLen);
+                            for (int i = 0; i < nLen; i++)
+                            {
+                                pbyData[i] = (m_abyteQue[m_nQue_Index, 2 + i]);
+                            }
+                            str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
+                            //char str[nLen + 1];
+                            //memset(str, 0, sizeof(char) * (nLen + 1));
+                            //memcpy(str, &m_abyteQue[m_nQue_Index,2], sizeof(char) * nLen);
+                
+                            PlayFrameString(str, true);
+                            m_nQue_Count--;
+                        }
+                        Thread.Sleep(10);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Ojw.printf_Error(e.ToString());
+                }
+            }
+            private int m_nHandUp = 0;
+            private Byte[] HandShake(string data)
+            {
+                const string eol = "\r\n"; // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
+
+                Byte[] response = Encoding.UTF8.GetBytes("HTTP/1.1 101 Switching Protocols" + eol
+                    + "Connection: Upgrade" + eol
+                    + "Upgrade: websocket" + eol
+                    + "Sec-WebSocket-Accept: " + Convert.ToBase64String(
+                        System.Security.Cryptography.SHA1.Create().ComputeHash(
+                            Encoding.UTF8.GetBytes(
+                                new System.Text.RegularExpressions.Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups[1].Value.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+                            )
+                        )
+                    ) + eol
+                    + eol);
+                return response;
+            }
+
+
+
             public bool Open(int nPort, int nBaudRate)
             {
                 bool bConnected = m_CSerial.IsConnect();
@@ -587,10 +844,11 @@ namespace OpenJigWare
 
                     List<int> lstIDs = new List<int>();
                     lstIDs.Clear();
+                    Command_Clear();
                     for (int i = 0; i < CCmd.Length; i++) 
                     { 
                         lstIDs.Add(CCmd[i].nID); 
-                        CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal);
+                        Command_Set(CCmd[i].nID, CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal));
                     }
                     SetPosition_Speed();
 
