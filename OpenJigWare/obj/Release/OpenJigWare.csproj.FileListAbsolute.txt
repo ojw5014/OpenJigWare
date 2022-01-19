@@ -272,3 +272,4 @@ D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.cspr
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.dll
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.pdb
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Release\Microsoft.Speech.dll
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Release\OpenJigWare.csprojResolveAssemblyReference.cache

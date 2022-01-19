@@ -10090,7 +10090,7 @@ namespace OpenJigWare
                     m_ctxmenuMouse.Items.Add("File");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Open");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Save");
-                    //(m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Close");
+                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Close");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("-");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Export(3D Model에 포함된 stl file들을 지정한 위치로 복사)");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Import(3D Model에 필요한 stl file들을 지정한 폴더에서 골라 가져옴)");
