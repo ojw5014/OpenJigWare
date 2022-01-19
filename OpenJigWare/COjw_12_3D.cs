@@ -5838,7 +5838,7 @@ namespace OpenJigWare
                     for (int nCalc = 0; nCalc < nRepeat; nCalc++)
                     {
                         fRes = 1.0f;
-                        nPos = nCnt;
+                        nPos = nCnt - 1;
                         while (nPos - 1 >= 0)
                         {
                             nID = anMotorIDs[nPos - 1];
@@ -5884,7 +5884,11 @@ namespace OpenJigWare
                                 else if (fTmp < -180) fTmp += 360.0f;
                                 fAngle2 = CalcLimit(nID, fTmp);
                             }
-
+                            //if ((bNon1 == true) && (bNon2 == true))
+                            //{
+                            //    nPos--;
+                            //    continue;
+                            //}
                             
 #if true
 #if true
@@ -5937,7 +5941,7 @@ namespace OpenJigWare
                             //{
                                 //float fVal1 = Math.Abs(fAngle0 - fAngle1);
                                 //float fVal2 = Math.Abs(fAngle0 - fAngle2);
-                                fAngle = CalcLimit(nID, (fC < fP) ? fAngle1 : fAngle2);
+                                fAngle = CalcLimit(nID, (fP < fC) ? fAngle2 : fAngle1);
                                 //fAngle = CalcLimit(nID, (fVal1 < fVal2) ? fAngle1 : fAngle2);
                             //}
 
