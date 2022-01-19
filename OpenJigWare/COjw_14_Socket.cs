@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
 
 namespace OpenJigWare
 {
@@ -42,7 +43,13 @@ namespace OpenJigWare
                 if (m_tcpServer_Client == null) return false;
                 return isClientConnected();// m_tcpServer_Client.Client.Connected;
             }
-
+            public void sock_close_client()
+            {
+                if (isClientConnected())
+                {
+                    m_tcpServer_Client.Client.Disconnect(false);
+                }
+            }
             // 출처 : http://stackoverflow.com/posts/33209626/edit
             public bool isClientConnected()
             {
@@ -152,6 +159,8 @@ namespace OpenJigWare
                     addr = null;
 
                     bRet = true;
+                    
+                    _random = new Random((int)DateTime.Now.Ticks);
                 }
                 catch
                 {
@@ -182,6 +191,7 @@ namespace OpenJigWare
                 m_bAuth = false;
 
                 m_bThread_Server = true;
+                m_bWebSocket = false; // 일단은 웹소켓 판단을 '아님' 으로 한다.
                 //string strData = "";
             }
             //private void ThreadServer()
@@ -370,6 +380,229 @@ namespace OpenJigWare
             //        return 0;
             //    }
             //}
+
+            public byte [] request_bytes()
+            {
+                int nBufferSize = GetBuffer_Length();
+                byte[] pbyData;
+                if (nBufferSize > 0)
+                {
+                    pbyData = sock_get_bytes(nBufferSize);
+                    if (sock_check_websocket(pbyData) == 0) 
+                    {
+                        CMessage.Write("Handshake...\r\n");
+                        return null;
+                    }
+                    else if (sock_check_websocket(pbyData) == 1)
+                    {
+                        return websocket_read(pbyData);
+                    }
+                    else
+                    {
+                        return pbyData;
+                    }
+                }
+                return null;
+            }
+            public string request_string()
+            {   
+                byte [] buffer = request_bytes();
+                if (buffer != null) return Encoding.UTF8.GetString(buffer);
+                return null;
+            }
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            public enum WebSocketOpCode
+            {
+                ContinuationFrame = 0,
+                TextFrame = 1,
+                BinaryFrame = 2,
+                ConnectionClose = 8,
+                Ping = 9,
+                Pong = 10
+            }
+
+            private Random _random;
+            private bool _isClient = false;
+            private bool isLastFrame = true;
+            public const int MaskKeyLength = 4;
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            public void websocket_write(byte[] pbyData, bool bBinary=false)
+            {
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    byte finBitSetAsByte = isLastFrame ? (byte)0x80 : (byte)0x00;
+                    byte op = (bBinary) ? (byte)WebSocketOpCode.BinaryFrame : (byte)WebSocketOpCode.TextFrame;
+                    byte byte1 = (byte)(finBitSetAsByte | op);
+                    //byte op = (byte)WebSocketOpCode.BinaryFrame | (byte)WebSocketOpCode.TextFrame;
+                    //byte byte1 = (byte)(finBitSetAsByte | op);
+                    memoryStream.WriteByte(byte1);
+
+                    // NB, set the mask flag if we are constructing a client frame
+                    byte maskBitSetAsByte = _isClient ? (byte)0x80 : (byte)0x00;
+
+                    // depending on the size of the length we want to write it as a byte, ushort or ulong
+                    if (pbyData.Length < 126)
+                    {
+                        byte byte2 = (byte)(maskBitSetAsByte | (byte)pbyData.Length);
+                        memoryStream.WriteByte(byte2);
+                    }
+                    else if (pbyData.Length <= ushort.MaxValue)
+                    {
+                        byte byte2 = (byte)(maskBitSetAsByte | 126);
+                        memoryStream.WriteByte(byte2);
+                        WriteUShort((ushort)pbyData.Length, memoryStream, false);
+                    }
+                    else
+                    {
+                        byte byte2 = (byte)(maskBitSetAsByte | 127);
+                        memoryStream.WriteByte(byte2);
+                        WriteULong((ulong)pbyData.Length, memoryStream, false);
+                    }
+
+                    // if we are creating a client frame then we MUST mack the pbyData as per the spec
+                    if (_isClient)
+                    {
+                        byte[] maskKey = new byte[MaskKeyLength];
+                        _random.NextBytes(maskKey);
+                        memoryStream.Write(maskKey, 0, maskKey.Length);
+
+                        // mask the pbyData
+                        ToggleMask(maskKey, pbyData);
+                    }
+
+                    memoryStream.Write(pbyData, 0, pbyData.Length);
+                    byte[] buffer = memoryStream.ToArray();
+                    sock_send(buffer);
+                }
+            }
+
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            private static void WriteULong(ulong value, Stream stream, bool isLittleEndian)
+            {
+                byte[] buffer = BitConverter.GetBytes(value);
+                if (BitConverter.IsLittleEndian && !isLittleEndian)
+                {
+                    Array.Reverse(buffer);
+                }
+
+                stream.Write(buffer, 0, buffer.Length);
+            }
+
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            private static void WriteLong(long value, Stream stream, bool isLittleEndian)
+            {
+                byte[] buffer = BitConverter.GetBytes(value);
+                if (BitConverter.IsLittleEndian && !isLittleEndian)
+                {
+                    Array.Reverse(buffer);
+                }
+
+                stream.Write(buffer, 0, buffer.Length);
+            }
+
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            private static void WriteUShort(ushort value, Stream stream, bool isLittleEndian)
+            {
+                byte[] buffer = BitConverter.GetBytes(value);
+                if (BitConverter.IsLittleEndian && !isLittleEndian)
+                {
+                    Array.Reverse(buffer);
+                }
+
+                stream.Write(buffer, 0, buffer.Length);
+            }
+
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            public static void ToggleMask(byte[] maskKey, byte[] payload)
+            {
+                if (maskKey.Length != MaskKeyLength)
+                {
+                    //throw new Exception($"MaskKey key must be {MaskKeyLength} bytes");
+                }
+
+                // apply the mask key (this is a reversible process so no need to copy the payload)
+                for (int i = 0; i < payload.Length; i++)
+                {
+                    payload[i] = (Byte)(payload[i] ^ maskKey[i % MaskKeyLength]);
+                }
+            }
+            // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
+            public byte[] websocket_read(byte[] pbyData)
+            {
+                bool fin = (bool)((pbyData[0] & 0x80) != 0);
+                bool mask = (pbyData[1] & 0x80) != 0;
+
+                int opcode = pbyData[0] & 0x0f,
+                    msglen = pbyData[1] - 128,
+                    offset = 2;
+
+                if (msglen == 126)
+                {
+                    msglen = BitConverter.ToUInt16(new byte[] { pbyData[3], pbyData[2] }, 0);
+                    offset = 4;
+                }
+                //else if (msglen == 127)
+                //{
+                //    printf("TODO: msglen == 127, needs qword to store msglen");
+                //}
+
+                if (msglen == 0)
+                {
+                    // Ojw.printf("msglen == 0\r\n");
+                }
+                else if (mask)
+                {
+                    byte[] decoded = new byte[msglen];
+                    byte[] masks = new byte[4] { pbyData[offset], pbyData[offset + 1], pbyData[offset + 2], pbyData[offset + 3] };
+                    offset += 4;
+
+                    for (int i = 0; i < msglen; ++i)
+                        decoded[i] = (byte)(pbyData[offset + i] ^ masks[i % 4]);
+
+                    //str = Encoding.UTF8.GetString(decoded);
+                    //printf("{0}\r\n", str);
+                    return decoded;
+                }
+                //else
+                    //printf("mask bit not set\r\n");
+                return null;
+            }
+            public bool m_bWebSocket = false;
+            // -1 : No(Default)
+            // 0 : Handshake...
+            // 1 : Ok
+            public int sock_check_websocket(byte[] buffer)
+            {
+                if (m_bWebSocket == true) return 1; 
+                else
+                {
+                    string str = Ojw.CConvert.BytesToStr_UTF8(buffer);
+                    if (Regex.IsMatch(str, "^GET"))
+                    {
+                        sock_send(HandShake(str));
+                        m_bWebSocket = true;
+                        return 0;
+                    }
+                }
+                return -1;
+            }
+            private Byte[] HandShake(string data)
+            {
+                const string eol = "\r\n"; // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
+                Byte[] response = Encoding.UTF8.GetBytes("HTTP/1.1 101 Switching Protocols" + eol
+                    + "Connection: Upgrade" + eol
+                    + "Upgrade: websocket" + eol
+                    + "Sec-WebSocket-Accept: " + Convert.ToBase64String(
+                        System.Security.Cryptography.SHA1.Create().ComputeHash(
+                            Encoding.UTF8.GetBytes(
+                                new System.Text.RegularExpressions.Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups[1].Value.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+                            )
+                        )
+                    ) + eol
+                    + eol);
+                return response;
+            }
+            public void sleep(int nMilliSecond = 1) { Thread.Sleep(nMilliSecond); }
             public byte[] sock_get_bytes(int nSize)
             {
                 return m_bwServer_inData.ReadBytes(nSize);
@@ -398,6 +631,10 @@ namespace OpenJigWare
                 Reader = new Thread(new ThreadStart(FThread));
                 Reader.Start();
                 return true;
+            }
+            public bool SetThreadFunction(ThreadStart FThread)
+            {
+                return RunThread(FThread);
             }
             #endregion 공개
         }

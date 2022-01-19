@@ -4309,6 +4309,7 @@ namespace OpenJigWare
                 {
                     //OjwGrid_SetMotion();
                 }
+                m_bMouseMove = false;
             }
             private void CaptionControl(bool bInsert)
             {

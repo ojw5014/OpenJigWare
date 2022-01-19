@@ -82,6 +82,14 @@ namespace OpenJigWare
             {
                 Close();
             }
+            public CSerial GetSerial(int nIndex = 0)
+            {
+                if ((nIndex < 0) || (nIndex >= m_lstConnect.Count))
+                {
+                    return null;
+                }
+                return m_lstConnect[nIndex].CSerial;
+            }
             public int DicMotor_Key(int nIndex) { return lstHwKey[nIndex]; }
             public string DicMotor_Name(int nIndex) { return lstHwName[nIndex]; }
             //public int Dic_Find_Key(string strValue) { return dicMonster.FirstOrDefault(x => x.Value == strValue).Key; }
@@ -906,7 +914,41 @@ namespace OpenJigWare
                 public int nRequestData = 0;
             }
             private List<CConnection_t> m_lstConnect = new List<CConnection_t>();
-
+            
+            public bool Open(ref CProtocol2 CPrt, int nPort = -1, int nBaudRate = 1000000)
+            {
+                bool bConnected = CPrt.IsOpen();
+                bool bDuplicated = false;
+                // 시리얼 끼리 비교해서 중복 처리
+                foreach (CConnection_t CConnect in m_lstConnect) { if (CConnect.nType == 1) { if (CConnect.CSerial.GetPortNumber() == CPrt.m_CSerial.GetPortNumber()) { bDuplicated = true; break; } } }
+                
+                if (bDuplicated == false)
+                {
+                    if (bConnected == false)
+                    {
+                        if (CPrt.Open(nPort, nBaudRate) == false)
+                        {
+                            Ojw.CMessage.Write_Error("[Monster Class]Cannot Connect [Open_Serial(CProtocol2: {0}, {1})]", nPort, nBaudRate);
+                            return false;
+                        }
+                    }
+                    CConnection_t CConnect = new CConnection_t();
+                    CConnect.CSerial = CPrt.m_CSerial;
+                    if (CConnect.CSerial.IsConnect() == true)
+                    {
+                        CConnect.nType = 1;
+                        m_lstConnect.Add(CConnect);
+                        return true;
+                    }
+                    else
+                    {
+                        Ojw.CMessage.Write_Error("[Monster Class]Cannot Connect [Open_Serial({0}, {1})]", nPort, nBaudRate);
+                        return false;
+                    }
+                }
+                Ojw.CMessage.Write_Error("[Monster Class]Cannot Connect [Open_Serial({0}, {1})]", nPort, nBaudRate);
+                return false;
+            }
             public bool Open(int nPort, int nBaudRate) { return Open_Serial(nPort, nBaudRate); }
             public bool Open(int nPort, string strIpAddress) { return Open_Socket(nPort, strIpAddress); }
             private bool Open_Socket(int nPort, string strIpAddress)

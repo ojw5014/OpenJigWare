@@ -159,6 +159,7 @@ namespace OpenJigWare
         }
     }
 #endif
+   
     public partial class Ojw
     {
         private const int _WM_SETREDRAW = 11;

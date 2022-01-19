@@ -32,7 +32,10 @@ namespace OpenJigWare
 
 		        return isChineseTextPresent;
             }
-            public static bool IsValidAlpha(byte byData) { return (((char)(byData) < (char)(' ')) || (byData >= 127)) ?false : true; }
+            // RichTextBox / TextBox 의 현재 커서가 있는 위치의 라인의 위치를 읽어오기
+            public static int GetCurrentLine_From_RichTextBox(System.Windows.Forms.RichTextBox rtxt) { return rtxt.GetLineFromCharIndex(rtxt.GetFirstCharIndexOfCurrentLine()); }
+            public static int GetCurrentLine_From_TextBox(System.Windows.Forms.TextBox txt) { return txt.GetLineFromCharIndex(txt.GetFirstCharIndexOfCurrentLine()); }
+            public static bool IsValidAlpha(byte byData) { return (((char)(byData) < (char)(' ')) || (byData >= 127)) ? false : true; }
             // Check Numeric or ...
             public static bool IsDigit(char cValue) { if (!Char.IsNumber(cValue)) return false; else return true; }
             public static bool IsDigit(string strValue)

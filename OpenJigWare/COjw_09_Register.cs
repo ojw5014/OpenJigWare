@@ -78,7 +78,7 @@ namespace OpenJigWare
             }
 
             //public static bool GetSerialPort_In_Registry(out String[] pstrComport)
-            public static bool GetSerialPort(out String[] pstrComport, bool bSerial, bool bBluetooth)
+            public static bool GetSerialPort(out String[] pstrComport, bool bSerial, bool bBluetooth, bool bUsb=true)
             {
                 bool bRet = false;
 #if false
@@ -132,6 +132,7 @@ namespace OpenJigWare
                             {
                                 if (
                                     ((bSerial == true) && (pstrKeyNames[i].ToUpper().IndexOf("VCP") >= 0)) ||
+                                    ((bUsb == true) && (pstrKeyNames[i].ToUpper().IndexOf("USB") >= 0)) ||
                                     ((bSerial == true) && (pstrKeyNames[i].ToUpper().IndexOf("SERIAL") >= 0)) ||
                                     //((bBluetooth == true) && (pstrKeyNames[i].ToUpper().IndexOf("B") >= 0))
                                     ((bBluetooth == true) && (pstrKeyNames[i].ToUpper().IndexOf("BT") >= 0))

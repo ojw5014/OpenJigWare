@@ -1619,8 +1619,56 @@ namespace OpenJigWare
             }
 
             // return MotorCount, and ...
+            public int GetData_Inverse(int nNum, double dX, double dY, double dZ, double [] adV, out int[] anMotorID, out double[] adValue)
+            {
+                // 집어넣기 전에 내부 메모리를 클리어 한다.
+                Ojw.CKinematics.CInverse.SetValue_ClearAll(ref GetHeader_pSOjwCode()[nNum]);
+                Ojw.CKinematics.CInverse.SetValue_X(dX);
+                Ojw.CKinematics.CInverse.SetValue_Y(dY);
+                Ojw.CKinematics.CInverse.SetValue_Z(dZ);
+
+                if (adV != null)
+                {
+                    for (int i = 0; i < adV.Length; i++)
+                    {
+                        Ojw.CKinematics.CInverse.SetValue_V(i, adV[i]);
+                    }
+                }
+
+                // 현재의 모터각을 전부 집어 넣도록 한다.
+                for (int i = 0; i < m_CHeader.nMotorCnt; i++)
+                {
+                    // 모터값을 3D에 넣어주고
+                    //SetData(i, Ojw.CConvert.StrToFloat(m_txtAngle[i].Text));
+                    // 그 값을 꺼내 수식 계산에 넣어준다.
+                    Ojw.CKinematics.CInverse.SetValue_Motor(i, GetData(i));
+                }
+
+                // 실제 수식계산
+                Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]);
+
+
+                // 나온 결과값을 옮긴다.
+                int nMotCnt = GetHeader_pSOjwCode()[nNum].nMotor_Max;
+                if (nMotCnt <= 0)
+                {
+                    anMotorID = null;
+                    adValue = null;
+                    return 0;
+                }
+                anMotorID = new int[nMotCnt];
+                adValue = new double[nMotCnt];
+                for (int i = 0; i < nMotCnt; i++)
+                {
+                    anMotorID[i] = GetHeader_pSOjwCode()[nNum].pnMotor_Number[i];
+                    adValue[i] = Ojw.CKinematics.CInverse.GetValue_Motor(anMotorID[i]);
+                }
+                return nMotCnt;
+            }
             public int GetData_Inverse(int nNum, double dX, double dY, double dZ, out int [] anMotorID, out double [] adValue)
             {
+                return GetData_Inverse(nNum, dX, dY, dZ, null, out anMotorID, out adValue);
+#if false
                 // 집어넣기 전에 내부 메모리를 클리어 한다.
                 Ojw.CKinematics.CInverse.SetValue_ClearAll(ref GetHeader_pSOjwCode()[nNum]);
                 Ojw.CKinematics.CInverse.SetValue_X(dX);
@@ -1656,12 +1704,13 @@ namespace OpenJigWare
                     adValue[i] = Ojw.CKinematics.CInverse.GetValue_Motor(anMotorID[i]);
                 }
                 return nMotCnt;
+#endif
             }
-            public void SetMot_WIthInverseKinematics(int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds)
+            public void SetMot_WIthInverseKinematics(int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds, double[] adV = null)
             {
                 int [] anMotorID = new int[256];
                 double [] adValue = new double[256];
-                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, adV, out anMotorID, out adValue);
                 if (m_bDynamixel == true)
                 {
 #if !_MONSTER_LIB
@@ -1697,11 +1746,11 @@ namespace OpenJigWare
                     m_CMotor.SetMot(nTime_Milliseconds);
                 }
             }
-            public void SetMot_WIthInverseKinematics(CDynamixel CMotor, int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds)
+            public void SetMot_WIthInverseKinematics(CDynamixel CMotor, int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds, double[] adV = null)
             {
                 int[] anMotorID = new int[256];
                 double[] adValue = new double[256];
-                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, adV, out anMotorID, out adValue);
                 for (int i = 0; i < nCnt; i++)
                 {
                     SetData(anMotorID[i], (float)adValue[i]);
@@ -1709,11 +1758,11 @@ namespace OpenJigWare
                 }
                 CMotor.Send_Motor();
             }
-            public void SetMot_WIthInverseKinematics(CHerkulex2 CMotor, int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds)
+            public void SetMot_WIthInverseKinematics(CHerkulex2 CMotor, int nInverseFunctionNumber, double dX, double dY, double dZ, int nTime_Milliseconds, double [] adV = null)
             {
                 int[] anMotorID = new int[256];
                 double[] adValue = new double[256];
-                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, adV, out anMotorID, out adValue);
                 for (int i = 0; i < nCnt; i++)
                 {
                     SetData(anMotorID[i], (float)adValue[i]);
@@ -1721,21 +1770,21 @@ namespace OpenJigWare
                 }
                 CMotor.Send_Motor(nTime_Milliseconds);
             }
-            public void SetData_XYZ(int nInverseFunctionNumber, double dX, double dY, double dZ)
+            public void SetData_XYZ(int nInverseFunctionNumber, double dX, double dY, double dZ, double[] adV=null)
             {
                 int[] anMotorID = new int[256];
                 double[] adValue = new double[256];
-                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, adV, out anMotorID, out adValue);
                 for (int i = 0; i < nCnt; i++)
                 {
                     SetData(anMotorID[i], (float)adValue[i]);
                 }
             }
-            public void SetData_XYZ(CMonster CMon, int nInverseFunctionNumber, double dX, double dY, double dZ, int nMilliSeconds)
+            public void SetData_XYZ(CMonster CMon, int nInverseFunctionNumber, double dX, double dY, double dZ, int nMilliSeconds, double[] adV=null)
             {
                 int[] anMotorID = new int[256];
                 double[] adValue = new double[256];
-                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, out anMotorID, out adValue);
+                int nCnt = GetData_Inverse(nInverseFunctionNumber, dX, dY, dZ, adV, out anMotorID, out adValue);
                 for (int i = 0; i < nCnt; i++)
                 {
                     SetData(anMotorID[i], (float)adValue[i]);
@@ -1761,6 +1810,43 @@ namespace OpenJigWare
                                 0, 0, 0, ref txt
                                 );
             }
+            public void MakeAll(string strDesingPart_For_Calc, string strDesignFull_For_Drawing = "", string strInverse_AfterCalc = "")
+            {
+                MakeAll(0, strDesingPart_For_Calc, strDesignFull_For_Drawing, 10.0f, 1, strInverse_AfterCalc);
+            }
+            public void MakeAll(int nKinematicsIndex, string strDesingPart_For_Calc, string strDesignFull_For_Drawing = "", float fSize = 10.0f, int nInverseKinematics_AfterCalc = -1, string strInverse_AfterCalc = "") // 
+            {
+                m_CHeader.pstrKinematics[nKinematicsIndex] = strDesingPart_For_Calc;
+                if (nInverseKinematics_AfterCalc >= 0)
+                {
+                    m_CHeader.pstrInverseKinematics[nInverseKinematics_AfterCalc] = strInverse_AfterCalc;
+                }
+                CheckForward();
+                CheckInverse();
+
+                //float fSize = 10.0f;
+                m_CHeader.strDrawModel = MakeDHSkeleton(false, fSize, Color.Violet, ((strDesignFull_For_Drawing.Length > 0) ? strDesignFull_For_Drawing : strDesingPart_For_Calc));
+                CompileDesign();
+
+                //SetHand_Tilt(m_C3d.GetData(4));
+            }
+            public void MakeAll_Add(string strDesingPart_For_Calc, string strDesignFull_For_Drawing = "", string strInverse_AfterCalc = "")
+            {
+                MakeAll(0, strDesingPart_For_Calc, strDesignFull_For_Drawing, 10.0f, 1, strInverse_AfterCalc);
+            }
+            public void MakeAll_Add(int nKinematicsIndex, string strDesingPart_For_Calc, string strDesignFull_For_Drawing = "", float fSize = 10.0f, int nInverseKinematics_AfterCalc = -1, string strInverse_AfterCalc = "") // 
+            {
+                m_CHeader.pstrKinematics[nKinematicsIndex] += strDesingPart_For_Calc;
+                if (nInverseKinematics_AfterCalc >= 0)
+                {
+                    m_CHeader.pstrInverseKinematics[nInverseKinematics_AfterCalc] += strInverse_AfterCalc;
+                }
+                CheckForward();
+                CheckInverse();
+
+                m_CHeader.strDrawModel += MakeDHSkeleton(false, fSize, Color.Violet, ((strDesignFull_For_Drawing.Length > 0) ? strDesignFull_For_Drawing : strDesingPart_For_Calc));
+                CompileDesign();
+            }
             public String MakeDHSkeleton(float fSize, Color cColor, string strString, int nStartGroupNumber, float fOffset_X, float fOffset_Y, float fOffset_Z)
             {
                 //m_chkVisible.Checked = bVisible;
@@ -1775,7 +1861,15 @@ namespace OpenJigWare
             }
             public String MakeDHSkeleton(bool bVisible, float fSize, Color cColor, string strString, int nStartGroupNumber, float fOffset_X, float fOffset_Y, float fOffset_Z, float fOffset_Pan, float fOffset_Tilt, float fOffset_Swing, ref TextBox txt)
             {
-#if true
+                return MakeDHSkeleton(true, bVisible, fSize, cColor, strString, nStartGroupNumber, fOffset_X, fOffset_Y, fOffset_Z, fOffset_Pan, fOffset_Tilt, fOffset_Swing, ref txt);
+            }
+            public String MakeDHSkeleton(bool bInit, bool bVisible, float fSize, Color cColor, string strString, int nStartGroupNumber, float fOffset_X, float fOffset_Y, float fOffset_Z, float fOffset_Pan, float fOffset_Tilt, float fOffset_Swing, ref TextBox txt)
+            {
+                return MakeDHSkeleton(true, bInit, bVisible, fSize, cColor, strString, nStartGroupNumber, fOffset_X, fOffset_Y, fOffset_Z, fOffset_Pan, fOffset_Tilt, fOffset_Swing, ref txt);
+            
+            }
+            public String MakeDHSkeleton(bool bDrawing, bool bInit, bool bVisible, float fSize, Color cColor, string strString, int nStartGroupNumber, float fOffset_X, float fOffset_Y, float fOffset_Z, float fOffset_Pan, float fOffset_Tilt, float fOffset_Swing, ref TextBox txt)
+            {
                 // "@" 가 들어간 명령어는 순서데로 [StlFileName, Color, Alpha, GroupA, GroupB, Function, X, Y, Z, P, T, S]
                 String strModel_Bar = (bVisible == true) ? "#8" : "#19";
                 String strModel_Ball = (bVisible == true) ? "#9" : "#20";
@@ -1788,11 +1882,26 @@ namespace OpenJigWare
                 String strConvert1 = Ojw.CConvert.RemoveChar(strConvert0, '[');
                 String strConvert2 = Ojw.CConvert.RemoveChar(strConvert1, ']');
                 String strConvert3 = Ojw.CConvert.RemoveChar(strConvert2, '\r');
-                String[] pstrLines = strConvert3.Split('\n');
-
+                //String[] pstrLines = strConvert3.Split('\n');
+                List<String> lstLines = new List<string>();
+                lstLines.Clear();
+                String[] pstr = strConvert3.Split('\n');
+                foreach (String str in pstr)
+                {
+                    if (str.Length > 0)
+                    {
+                        lstLines.Add(str);
+                    }
+                }
+                String[] pstrLines = lstLines.ToArray();
+                
                 User_Clear();
 
-                User_Set_Init(true); // 초기점
+                //User_Set_Init(true); // 초기점
+                if (bInit)
+                {
+                    User_Set_Init(true); // 초기점
+                }
                 User_Set_Translation(0, fOffset_X, fOffset_Y, fOffset_Z);
                 User_Set_Rotation(0, fOffset_Pan, fOffset_Tilt, fOffset_Swing);
 
@@ -1802,6 +1911,7 @@ namespace OpenJigWare
                 {
                     if (nLine == pstrLines.Length - 1) bEnd = true;
                     else bEnd = false;
+                    //if (strLine.Length == 0) continue;
 
                     nLine++;
                     float fA = 0.0f;
@@ -1819,8 +1929,14 @@ namespace OpenJigWare
                     {
                         bModeling = true;
                     }
+                    bool bFunction = false;
+                    if (strLine.IndexOf('#') == 0)
+                    {
+                        bFunction = true;
+                    }
                     int i = 0;
-                    string strAdd_Model = "#8";
+                    int nFunctionNumber = -1;
+                    string strAdd_Model = strModel_Bar;// "#8";
                     Color cAdd_Color = Color.White;
                     float fAdd_Alpha = 1.0f;
                     int nAdd_Type = 0;
@@ -1864,6 +1980,23 @@ namespace OpenJigWare
                                     case 8: fRot[0] = 0.0f; break;
                                     case 9: fRot[1] = 0.0f; break;
                                     case 10: fRot[2] = 0.0f; break;
+                                }
+                            }
+                        }
+                        else if (bFunction == true)
+                        {
+                            try
+                            {
+                                switch (i)
+                                {
+                                    case 0: nFunctionNumber = Ojw.CConvert.StrToInt(strItem.Substring(1)); break;
+                                }
+                            }
+                            catch
+                            {
+                                switch (i)
+                                {
+                                    case 0: nFunctionNumber = -1; break;
                                 }
                             }
                         }
@@ -1943,6 +2076,10 @@ namespace OpenJigWare
                         {
                             User_Set_nInverseKinematicsNumber(nAdd_Num);
                         }
+                        else if (nAdd_Type == 3)
+                        {
+                            User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
+                        }
                         //User_Set_nPickGroup_A(nAdd_Num);
 
 
@@ -1981,6 +2118,10 @@ namespace OpenJigWare
                         {
                             User_Set_nInverseKinematicsNumber(nAdd_Num);
                         }
+                        else if (nAdd_Type == 3)
+                        {
+                            User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
+                        }
                         ////////////////////////////////
 
                         User_Add();
@@ -2011,6 +2152,10 @@ namespace OpenJigWare
                         else if (nAdd_Type == 2)
                         {
                             User_Set_nInverseKinematicsNumber(nAdd_Num);
+                        }
+                        else if (nAdd_Type == 3)
+                        {
+                            User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
                         }
                         ////////////////////////////////
 
@@ -2047,6 +2192,10 @@ namespace OpenJigWare
                         {
                             User_Set_nInverseKinematicsNumber(nAdd_Num);
                         }
+                        else if (nAdd_Type == 3)
+                        {
+                            User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
+                        }
                         ////////////////////////////////
 
                         User_Add();
@@ -2076,6 +2225,10 @@ namespace OpenJigWare
                             else if (nAdd_Type == 2)
                             {
                                 User_Set_nInverseKinematicsNumber(nAdd_Num);
+                            }
+                            else if (nAdd_Type == 3)
+                            {
+                                User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
                             }
                             ////////////////////////////////
 
@@ -2118,6 +2271,10 @@ namespace OpenJigWare
                         else if (nAdd_Type == 2)
                         {
                             User_Set_nInverseKinematicsNumber(nAdd_Num);
+                        }
+                        else if (nAdd_Type == 3)
+                        {
+                            User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
                         }
                         ////////////////////////////////
 
@@ -2163,6 +2320,10 @@ namespace OpenJigWare
                     {
                         User_Set_nInverseKinematicsNumber(nAdd_Num);
                     }
+                    else if (nAdd_Type == 3)
+                    {
+                        User_Set_nInverseKinematicsNumber_AfterCalc(nAdd_Num);
+                    }
                     ////////////////////////////////
                     
                     
@@ -2190,12 +2351,16 @@ namespace OpenJigWare
                 for (int i = 0; i < nCnt; i++) // Except 3 Directions
                 {
                     String strResult = String.Empty;
+
+                    #region
+                    Ojw.C3d.COjwDisp CDisp = User_Get(i);
 #if true
-                    if (User_Get_AxisName() >= 0)
+                    //if (User_Get_AxisName() >= 0)
+                    if (CDisp.nName > 0)
                     {
                         nGroupNum++;
 
-                        nMotorNum = User_Get_AxisName();
+                        nMotorNum = CDisp.nName;// User_Get_AxisName();
                         sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
                     }
 #else
@@ -2214,8 +2379,6 @@ namespace OpenJigWare
                     #endregion EndPosition
 #endif
 
-                    #region
-                    Ojw.C3d.COjwDisp CDisp = User_Get(i);
 
                     if (CDisp.strDispObject.IndexOf('#') == 0)
                     {
@@ -2250,7 +2413,6 @@ namespace OpenJigWare
                     //}
                     //User_Set(i, CDisp);
                     #endregion
-                    //Convert_CDisp_To_String(User_Get(i), ref strResult);
                     Convert_CDisp_To_String(CDisp, ref strResult);
                     sbResult.Append(strResult);
                 }
@@ -2263,440 +2425,49 @@ namespace OpenJigWare
                 #endregion Skeleton
 
                 //////////////// Direction
-                float fMulti = fSize / 10.0f * 2.0f;
-                float fLength = 30 * fMulti;
-
-                User_Set_Model(strModel_Ball);
-                User_Set_Color(Color.Red);
-                User_Set_Width_Or_Radius(fSize);
-                User_Set_Offset_Translation(fLength, 0, 0);
-                User_Add();
-
-                User_Set_Model(strModel_Ball);
-                User_Set_Color(Color.Green);
-                User_Set_Width_Or_Radius(fSize);
-                User_Set_Offset_Translation(0, fLength, 0);
-                User_Add();
-
-                User_Set_Model(strModel_Ball);
-                User_Set_Color(Color.Blue);
-                User_Set_Width_Or_Radius(fSize);
-                User_Set_Offset_Translation(0, 0, fLength);
-                User_Add();
+                if (bDrawing) MakeDhSkeleton_Direction(fSize);
+                else User_Clear();
                 //////////////////////////
 
                 return sbResult.ToString();
-#else
-                String strModel_Bar = (m_chkVisible.Checked == true) ? "#8" : "#19";
-                String strModel_Ball = (m_chkVisible.Checked == true) ? "#9" : "#20";
-                string strModel_End = (m_chkVisible.Checked == true) ? "#8" : "#19";
-                String strData = String.Empty;
-                String strDisp = String.Empty;
-                //SetHeader_strDrawModel(String.Empty);
-                String strConvert0 = CConvert.RemoveCaption(strString, true, true);
-                //String strConvert0 = CConvert.RemoveCaption("@", CConvert.RemoveCaption("//", strString, true, true), true, true);
-                String strConvert1 = CConvert.RemoveChar(strConvert0, '[');
-                String strConvert2 = CConvert.RemoveChar(strConvert1, ']');
-                String strConvert3 = CConvert.RemoveChar(strConvert2, '\r');
-                String[] pstrLines = strConvert3.Split('\n');
-
-                User_Clear();
-
-                User_Set_Init(true); // 초기점
-                User_Set_Translation(0, fOffset_X, fOffset_Y, fOffset_Z);
-
-                //
-                //m_C3d.User_Set_Width_Or_Radius(300.0f);
-                //m_C3d.User_Add();
-                //m_C3d.User_Set_Color(Color.Red);
-                //m_C3d.User_Set_Width_Or_Radius(300.0f);
-                //m_C3d.User_Set_Height_Or_Depth(400.0f);
-                //m_C3d.User_Set_Translation(0, 0, 100.0f, 0);
-                //m_C3d.User_Add();
-
-                //InitVirtualClass();
-                //Prop_Set_Init(true);
-                //int nCnt = 0;
-                int nLine = 0;
-                bool bEnd = false;
-                foreach (string strLine in pstrLines)
-                {
-                    if (nLine == pstrLines.Length - 1) bEnd = true;
-                    else bEnd = false;
-
-                    nLine++;
-                    float fA = 0.0f;
-                    float fD = 0.0f;
-                    float fTheta = 0.0f;
-                    float fAlpha = 0.0f;
-                    int nAxis = -1;
-                    int nDir = 0;
-                    int nInit = 0;
-
-                    #region Items
-                    String [] pstrItems = strLine.Split(',');
-                    int i = 0;
-                    foreach (string strItem in pstrItems)
-                    {
-                        try
-                        {
-                            switch (i)
-                            {
-                                case 0: fA = Ojw.CConvert.StrToFloat(strItem); break;
-                                case 1: fD = Ojw.CConvert.StrToFloat(strItem); break;
-                                case 2: fTheta = Ojw.CConvert.StrToFloat(strItem); break;
-                                case 3: fAlpha = Ojw.CConvert.StrToFloat(strItem); break;
-                                case 4: nAxis = Ojw.CConvert.StrToInt(strItem); break;
-                                case 5: nDir = Ojw.CConvert.StrToInt(strItem); break;
-                                case 6: nInit = CConvert.StrToInt(strItem); break;
-                            }
-                        }
-                        catch
-                        {
-                            switch (i)
-                            {
-                                case 0: fA = 0.0f; break;
-                                case 1: fD = 0.0f; break;
-                                case 2: fTheta = 0.0f; break;
-                                case 3: fAlpha = 0.0f; break;
-                                case 4: nAxis = 0; break;
-                                case 5: nDir = 0; break;
-                                case 6: nInit = 0; break;
-                            }
-                        }
-                        i++;
-                    }
-                    //if (i != 6) return null; // 해석 에러
-                    //if (i != 7) continue; // 해석 에러 => 굳이 초기화 없이도 해석 되게...
-                    #endregion Items
-
-                    //Prop_Set_DispObject(strModel_Ball);
-                    //Prop_Set_Width_Or_Radius(fSize);
-                    //AddVirtualClassToReal();
-                    if (nInit > 0)
-                    {
-                        User_Set_Init(true);
-                    }
-                    if (fD != 0)
-                    {
-                        User_Set_Model(strModel_Ball);
-                        User_Set_Color(cColor);
-                        User_Set_Width_Or_Radius(fSize);
-                        User_Add();
-
-
-                        User_Set_Model(strModel_Bar);
-                        User_Set_Color(cColor);
-                        User_Set_Width_Or_Radius(fSize);
-                        if (fD < 0)
-                        {
-                            User_Set_Offset_Rotation(180, 0, 0);
-                            User_Set_Height_Or_Depth(-fD);
-                        }
-                        else User_Set_Height_Or_Depth(fD);
-                        User_Add();
-                    }
-                    if (nAxis >= 0)
-                    {
-                        User_Set_Model(strModel_Ball);
-                        User_Set_Color(cColor);
-                        User_Set_Width_Or_Radius(fSize);
-                        User_Set_Offset_Translation(0, 0, fD);
-
-                        User_Set_AxisName(nAxis);
-
-                        // [0 ~ 2(Pan, Tilt, Swing), 3~5(x,y,z), 6(cw), 7(ccw)]
-                        if ((nDir == 0) || (nDir == 1)) User_Set_AxisMoveType(2);
-                        else if ((nDir == 2) || (nDir == 3)) User_Set_AxisMoveType(5);
-                        if ((nDir == 0) || (nDir == 2)) User_Set_Dir(0);
-                        else if ((nDir == 1) || (nDir == 3)) User_Set_Dir(1);
-
-                        User_Add();
-                        if ((nDir == 2) || (nDir == 3))
-                        {
-                            User_Set_Model(strModel_Bar);
-                            User_Set_Color(Color.FromArgb(cColor.R / 2, cColor.G / 2, cColor.B / 2));
-                            User_Set_Width_Or_Radius(fSize);
-
-                            if (nDir == 2) User_Set_Offset_Rotation(180, 0, 0);
-
-                            User_Set_Height_Or_Depth(GetData(nAxis));
-
-                            User_Add();
-                        }
-                    }
-
-                    if (fA != 0)
-                    {
-                        User_Set_Model(strModel_Bar);
-                        User_Set_Color(cColor);
-                        if (fA < 0)
-                        {
-                            User_Set_Offset_Translation(0, 0, fD);
-                            User_Set_Offset_Rotation(-90, fTheta, 0);
-                            User_Set_Width_Or_Radius(fSize);
-                            User_Set_Height_Or_Depth(-fA);
-                        }
-                        else
-                        {
-                            User_Set_Offset_Translation(0, 0, fD);
-                            User_Set_Offset_Rotation(90, -fTheta, 0);
-                            User_Set_Width_Or_Radius(fSize);
-                            User_Set_Height_Or_Depth(fA);
-                        }
-                        User_Add();
-                    }
-
-                    if (bEnd == true)
-                    {
-                        User_Set_Model(strModel_End);
-                    }
-                    else
-                    {
-                        User_Set_Model(strModel_Ball);
-                    }
-                    User_Set_Color(cColor);
-
-#if true
-                    //User_Set_Width_Or_Radius(fSize * ((bEnd == true) ? 1.0f : 1.0f));
-#else
-                    User_Set_Width_Or_Radius(fSize * ((bEnd == true) ? 2.0f : 1.0f));
-#endif
-
-                    int nIndex = 0;
-                    User_Set_Translation(nIndex, 0, 0, fD);
-                    User_Set_Rotation(nIndex, 0, 0, fTheta);
-                    nIndex++;
-                    User_Set_Translation(nIndex, fA, 0, 0);
-                    User_Set_Rotation(nIndex, 0, fAlpha, 0);
-
-                    User_Add();
-
-
-
-
-                    //strDisp = GetHeader_strDrawModel();
-
-                }
-                #region Skeleton
-                StringBuilder sbResult = new StringBuilder();
-#if _USING_DOTNET_3_5
-                sbResult.Remove(0, sbResult.Length);
-#elif _USING_DOTNET_2_0
-                sbResult.Remove(0, sbResult.Length);
-#else
-                sbResult.Clear(); // Dotnet 4.0 이상에서만 사용
-#endif
-                int nGroupNum = nStartGroupNumber;
-                int nMotorNum = -1;
-                int nCnt = User_GetCnt();
-                Color [] acColor = new Color[7] {Color.Orange, Color.Cyan, Color.Blue, Color.Lime, Color.Yellow, Color.LightGreen, Color.Magenta};
-                for (int i = 0; i < nCnt; i++) // Except 3 Directions
-                {
-                    String strResult = String.Empty;
-#if true
-                    if (User_Get_AxisName() >= 0)
-                    {
-                        nGroupNum++;
-                        nMotorNum = User_Get_AxisName();
-                        sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
-                    }
-#else
-                    if ((User_Get_AxisName() >= 0) || (nCnt - 1 == i))
-                    {
-                        nGroupNum++;
-
-                        if (i < (nCnt - 1))
-                        {
-                            nMotorNum = User_Get_AxisName();
-                            sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
-                        }
-                        else sbResult.Append(String.Format("// End Position\r\n"));
-                    }
-#endif
-                    #region
-                    COjwDisp CDisp = User_Get(i);
-                    
-                    if (User_Get_Init() == true)
-                    {
-                        CDisp.SetData_Color(acColor[0]);
-                        CDisp.SetData_nPickGroup_A(0);
-                        CDisp.SetData_nPickGroup_B(0);
-                    }
-                    else
-                    {
-                        CDisp.SetData_Color(acColor[nGroupNum % acColor.Length]);
-                        CDisp.SetData_nPickGroup_A(nGroupNum);
-                        CDisp.SetData_nPickGroup_B(nMotorNum);
-                    }
-                    //if (bEnd == true)
-                    //{
-                    //    CDisp.SetData_nInverseKinematicsNumber();
-                    //}
-                    //User_Set(i, CDisp);
-                    #endregion
-                    //Convert_CDisp_To_String(User_Get(i), ref strResult);
-                    Convert_CDisp_To_String(CDisp, ref strResult);
-                    //if (i >= nCnt - 3) continue;
-                    sbResult.Append(strResult);
-                }
-                m_txtKinematicsSkeleton.Text = sbResult.ToString();
-                //strResult = Ojw.CConvert.RemoveString(strResult, "\r\n");
-                //AddHeader_strDrawModel(strResult);
-                //CompileDesign();
-                #endregion Skeleton
-
+            }
+            private bool m_bDhSkeleton_Direction_Show = true;
+            public void MakeDhSkeleton_Direction_Show(bool bShow) // GroupC == 253, 254, 255
+            {
+                m_bDhSkeleton_Direction_Show = bShow;
+            }
+            public void MakeDhSkeleton_Direction(float fSize)
+            {
+                string strModel_Ball = "#20";
+                //String strModel_Ball = (bVisible == true) ? "#9" : "#20";
                 //////////////// Direction
                 float fMulti = fSize / 10.0f * 2.0f;
                 float fLength = 30 * fMulti;
 
+                User_Set_nPickGroup_A(255);
+                User_Set_nPickGroup_C(253);
                 User_Set_Model(strModel_Ball);
                 User_Set_Color(Color.Red);
                 User_Set_Width_Or_Radius(fSize);
                 User_Set_Offset_Translation(fLength, 0, 0);
                 User_Add();
 
+                User_Set_nPickGroup_A(255);
+                User_Set_nPickGroup_C(254);
                 User_Set_Model(strModel_Ball);
                 User_Set_Color(Color.Green);
                 User_Set_Width_Or_Radius(fSize);
                 User_Set_Offset_Translation(0, fLength, 0);
                 User_Add();
 
+                User_Set_nPickGroup_A(255);
+                User_Set_nPickGroup_C(255);
                 User_Set_Model(strModel_Ball);
                 User_Set_Color(Color.Blue);
                 User_Set_Width_Or_Radius(fSize);
                 User_Set_Offset_Translation(0, 0, fLength);
                 User_Add();
-                //////////////////////////
-
-                return sbResult.ToString(); // null;// strDisp;
-#if false
-                for (int i = 0; i < m_CGridView.GetLineCount(); i++)
-                {
-                    if (m_CGridView.GetEnable(i) == true)
-                    {
-                        float fA = 0.0f;
-                        float fD = 0.0f;
-                        float fTheta = 0.0f;
-                        float fAlpha = 0.0f;
-                        int nAxis = -1;
-                        int nDir = 0;
-                        //Prop_Set_Height_Or_Depth(
-                        for (int j = 0; j < m_CGridView.GetTableCount(); j++)
-                        {
-                            try
-                            {
-                                switch (j)
-                                {
-                                    case 0: fA = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
-                                    case 1: fD = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
-                                    case 2: fTheta = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
-                                    case 3: fAlpha = Ojw.CConvert.StrToFloat(m_CGridView.GetData(i, j).ToString()); break;
-                                    case 4: nAxis = Ojw.CConvert.StrToInt(m_CGridView.GetData(i, j).ToString()); break;
-                                    case 5: nDir = Ojw.CConvert.StrToInt(m_CGridView.GetData(i, j).ToString()); break;
-                                }
-                            }
-                            catch
-                            {
-                                switch (j)
-                                {
-                                    case 0: fA = 0.0f; break;
-                                    case 1: fD = 0.0f; break;
-                                    case 2: fTheta = 0.0f; break;
-                                    case 3: fAlpha = 0.0f; break;
-                                    case 4: nAxis = 0; break;
-                                    case 5: nDir = 0; break;
-                                }
-                            }
-                            strData += Convert.ToString(m_CGridView.GetData(i, j)) + ((j < m_CGridView.GetTableCount() - 1) ? "," : String.Empty);
-                        }
-                        if (i < m_CGridView.GetLineCount() - 1) strData += "\r\n";
-
-
-                        //Prop_Set_DispObject("#2");
-
-
-                        Prop_Set_DispObject("#9");
-                        Prop_Set_Width_Or_Radius(m_fStickSize);
-                        AddVirtualClassToReal();
-
-                        Prop_Set_DispObject("#8");
-                        if (fD < 0)
-                        {
-                            //Prop_Set_Offset_Trans(new Ojw.SVector3D_t(fA, 0, 0));
-                            Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(180, 0, 0));
-                            Prop_Set_Width_Or_Radius(m_fStickSize);
-                            Prop_Set_Height_Or_Depth(-fD);
-                        }
-                        else Prop_Set_Height_Or_Depth(fD);
-                        AddVirtualClassToReal();
-
-
-                        Prop_Set_DispObject("#9");
-                        Prop_Set_Width_Or_Radius(m_fStickSize);
-                        Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
-
-
-                        Prop_Set_Name(nAxis);
-                        if ((nDir == 0) || (nDir == 1)) Prop_Set_AxisMoveType(2);
-                        else if ((nDir == 2) || (nDir == 3)) Prop_Set_AxisMoveType(3);
-                        if ((nDir == 0) || (nDir == 2)) Prop_Set_Dir(0);
-                        else if ((nDir == 1) || (nDir == 3)) Prop_Set_Dir(1);
-
-                        AddVirtualClassToReal();
-
-                        Prop_Set_DispObject("#8");
-                        if (fA < 0)
-                        {
-                            Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
-                            Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(-90, fTheta, 0));
-                            Prop_Set_Width_Or_Radius(m_fStickSize);
-                            Prop_Set_Height_Or_Depth(-fA);
-                        }
-                        else
-                        {
-                            Prop_Set_Offset_Trans(new Ojw.SVector3D_t(0, 0, fD));
-                            Prop_Set_Offset_Rot(new Ojw.SAngle3D_t(90, -fTheta, 0));
-                            Prop_Set_Width_Or_Radius(m_fStickSize);
-                            Prop_Set_Height_Or_Depth(fA);
-                        }
-                        AddVirtualClassToReal();
-
-                        //float fAngle = ((nAxis >= 0) ? m_afAngle[i] : 0.0f) * (float)Math.Pow(-1, nDir);
-                        //float fDist = fAngle;
-                        //if (nDir < 2) fDist = 0.0f;
-                        //else fAngle = 0.0f;
-
-
-
-                        Prop_Set_DispObject("#9");
-                        //Prop_Set_Name(nAxis);
-                        //if ((nDir == 0) || (nDir == 1)) Prop_Set_AxisMoveType(1);
-                        //else if ((nDir == 2) || (nDir == 3)) Prop_Set_AxisMoveType(3);
-                        //if ((nDir == 0) || (nDir == 2)) Prop_Set_Dir(1); // 반대각으로 돈다. 실제와 다르게... -_-;;;
-                        //else if ((nDir == 1) || (nDir == 3)) Prop_Set_Dir(0);
-
-                        Prop_Set_Width_Or_Radius(m_fStickSize);
-                        //Prop_Set_Height_Or_Depth(fA);
-                        Prop_Set_Trans_1(new Ojw.SVector3D_t(0, 0, fD));
-                        Prop_Set_Rot_1(new Ojw.SAngle3D_t(0, 0, fTheta));
-                        Prop_Set_Trans_2(new Ojw.SVector3D_t(fA, 0, 0));
-                        Prop_Set_Rot_2(new Ojw.SAngle3D_t(0, fAlpha, 0));
-
-                        AddVirtualClassToReal();
-                        strDisp = GetHeader_strDrawModel();
-                    }
-                }
-                //SetHeader_strDrawModel(txtDraw.Text);
-
-                SetHeader_strDrawModel(strDisp);
-                CompileDesign();
-                return strData;
-#endif
-
-#endif
             }
-
             private void MoveToDhPosition(float fSize, float fAlpha, Color cColor)
             {
                 ///////////////////
@@ -3461,6 +3232,8 @@ namespace OpenJigWare
 
                     [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
                     public int nInverseKinematicsNumber { get { return CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+                    //[DisplayName(m_pstrProp_61), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
+                    //public int nInverseKinematicsNumber_AfterCalc { get { return CDisp.nInverseKinematicsNumber_AfterCalc; } set { CDisp.nInverseKinematicsNumber_AfterCalc = value; } }
 
                     [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                     public float fScale_Serve0 { get { return CDisp.fScale_Serve0; } set { CDisp.fScale_Serve0 = value; } }
@@ -3824,6 +3597,8 @@ namespace OpenJigWare
 
                 [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
                 public int nInverseKinematicsNumber { get { return (CDisp == null) ? 0 : CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+                //[DisplayName(m_pstrProp_61), Browsable(true), CategoryAttribute(strGroupComment), DescriptionAttribute("")]
+                //public int nInverseKinematicsNumber_AfterCalc { get { return (CDisp == null) ? 0 : CDisp.nInverseKinematicsNumber_AfterCalc; } set { CDisp.nInverseKinematicsNumber_AfterCalc = value; } }
                 
                 
                 [DisplayName(m_pstrProp_56), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
@@ -4122,6 +3897,7 @@ namespace OpenJigWare
             public void Prop_Set_PickGroup_Selected(SPoint3D_t value) { m_CPropAll_Selected.SPickGroup = value; OjwDispAll.GetData(m_nSelectedItem).nPickGroup_A = value.x; OjwDispAll.GetData(m_nSelectedItem).nPickGroup_B = value.y; OjwDispAll.GetData(m_nSelectedItem).nPickGroup_C = value.z; }
 
             public void Prop_Set_InverseKinematicsNumber_Selected(int value) { m_CPropAll_Selected.nInverseKinematicsNumber = OjwDispAll.GetData(m_nSelectedItem).nInverseKinematicsNumber = value; }
+            //public void Prop_Set_InverseKinematicsNumber_Selected_AfterCalc(int value) { m_CPropAll_Selected.nInverseKinematicsNumber_AfterCalc = OjwDispAll.GetData(m_nSelectedItem).nInverseKinematicsNumber_AfterCalc = value; }
             public void Prop_Set_Scale_Serve0_Selected(float value) { m_CPropAll_Selected.fScale_Serve0 = OjwDispAll.GetData(m_nSelectedItem).fScale_Serve0 = value; }
             public void Prop_Set_Scale_Serve1_Selected(float value) { m_CPropAll_Selected.fScale_Serve1 = OjwDispAll.GetData(m_nSelectedItem).fScale_Serve1 = value; }
             public void Prop_Set_MotorType_Selected(int value) { m_CPropAll_Selected.nMotorType = OjwDispAll.GetData(m_nSelectedItem).nMotorType = value; }
@@ -4170,6 +3946,7 @@ namespace OpenJigWare
             public SAngle3D_t Prop_Get_Rot_5_Selected() { return m_CPropAll_Selected.SRot_5; }
             public SPoint3D_t Prop_Get_PickGroup_A_Selected() { return m_CPropAll_Selected.SPickGroup; }
             public int Prop_Get_InverseKinematicsNumber_Selected() { return m_CPropAll_Selected.nInverseKinematicsNumber; }
+            //public int Prop_Get_InverseKinematicsNumber_Selected_AfterCalc() { return m_CPropAll_Selected.nInverseKinematicsNumber_AfterCalc; }
             public float Prop_Get_Scale_Serve0_Selected() { return m_CPropAll_Selected.fScale_Serve0; }
             public float Prop_Get_Scale_Serve1_Selected() { return m_CPropAll_Selected.fScale_Serve1; }
             public int Prop_Get_MotorType_Selected() { return m_CPropAll_Selected.nMotorType; }
@@ -4281,6 +4058,18 @@ namespace OpenJigWare
 #if _OLD_PROP
                     //case strProp_Main0:
                         //break;
+                    case m_strProp_Main0_0: // title
+                        Prop_Set_Main_Title((string)e.ChangedItem.Value);
+                        m_CHeader.strTitle = Prop_Get_Main_Title();
+                        break;
+                    case m_strProp_Main0_1: // model number
+                        Prop_Set_Main_ModelNum((int)e.ChangedItem.Value);
+                        m_CHeader.nModelNum = Prop_Get_Main_ModelNum();
+                        break;
+                    case m_strProp_Main0_2: // model name
+                        Prop_Set_Main_ModelName((string)e.ChangedItem.Value);
+                        m_CHeader.strModelName = Prop_Get_Main_ModelName();
+                        break;
                     case m_strProp_Main1:
                         Prop_Set_Main_MouseControlMode((int)e.ChangedItem.Value);
                         break;
@@ -4512,6 +4301,13 @@ namespace OpenJigWare
             // Main
             #region Main
 #if _OLD_PROP
+            public void Prop_Set_Main_Title(string value) { m_CPropAll.strMain_Title = value; }
+            public string Prop_Get_Main_Title() { return m_CPropAll.strMain_Title; }
+            public void Prop_Set_Main_ModelNum(int value) { m_CPropAll.nMain_ModelNum = value; }
+            public int Prop_Get_Main_ModelNum() { return m_CPropAll.nMain_ModelNum; }
+            public void Prop_Set_Main_ModelName(string value) { m_CPropAll.strMain_ModelName = value; }
+            public string Prop_Get_Main_ModelName() { return m_CPropAll.strMain_ModelName; }
+            
             public void Prop_Set_Main_MouseControlMode(int value) { m_CPropAll.nMain_MouseMode = m_nMouseControlMode = value; }
             public int Prop_Get_Main_MouseControlMode() { return m_CPropAll.nMain_MouseMode; }
 
@@ -4587,6 +4383,7 @@ namespace OpenJigWare
             public void Prop_Set_PickGroup(SPoint3D_t value) { m_CPropAll.SPickGroup = value; OjwVirtualDisp.nPickGroup_A = value.x; OjwVirtualDisp.nPickGroup_B = value.y; OjwVirtualDisp.nPickGroup_C = value.z; }
             
             public void Prop_Set_InverseKinematicsNumber(int value) { m_CPropAll.nInverseKinematicsNumber = OjwVirtualDisp.nInverseKinematicsNumber = value; }
+            //public void Prop_Set_InverseKinematicsNumber_AfterCalc(int value) { m_CPropAll.nInverseKinematicsNumber_AfterCalc = OjwVirtualDisp.nInverseKinematicsNumber_AfterCalc = value; }
             public void Prop_Set_Scale_Serve0(float value) { m_CPropAll.fScale_Serve0 = OjwVirtualDisp.fScale_Serve0 = value; }
             public void Prop_Set_Scale_Serve1(float value) { m_CPropAll.fScale_Serve1 = OjwVirtualDisp.fScale_Serve1 = value; }
             public void Prop_Set_MotorType(int value) { m_CPropAll.nMotorType = OjwVirtualDisp.nMotorType = value; }
@@ -4635,6 +4432,7 @@ namespace OpenJigWare
             public SAngle3D_t Prop_Get_Rot_5() { return m_CPropAll.SRot_5; }
             public SPoint3D_t Prop_Get_PickGroup_A() { return m_CPropAll.SPickGroup; }
             public int Prop_Get_InverseKinematicsNumber() { return m_CPropAll.nInverseKinematicsNumber; }
+            //public int Prop_Get_InverseKinematicsNumber_AfterCalc() { return m_CPropAll.nInverseKinematicsNumber_AfterCalc; }
             public float Prop_Get_Scale_Serve0() { return m_CPropAll.fScale_Serve0; }
             public float Prop_Get_Scale_Serve1() { return m_CPropAll.fScale_Serve1; }
             public int Prop_Get_MotorType() { return m_CPropAll.nMotorType; }
@@ -4685,6 +4483,7 @@ namespace OpenJigWare
             private const string m_pstrProp_58 = "nMotorType";
             private const string m_pstrProp_59 = "nMotorControl_MousePoint";
             private const string m_pstrProp_60 = "Comment";//"strPickGroup_Comment";
+            //private const string m_pstrProp_61 = "InverseKinematicsNumber(AfterCalc)";
             #endregion Item add : Step 1/4
             #endregion Prop Name
 
@@ -4754,6 +4553,8 @@ namespace OpenJigWare
 
                 [DisplayName(m_pstrProp_55), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
                 public int nInverseKinematicsNumber { get { return CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
+                //[DisplayName(m_pstrProp_61), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("")]
+                //public int nInverseKinematicsNumber { get { return CDisp.nInverseKinematicsNumber; } set { CDisp.nInverseKinematicsNumber = value; } }
                 
 
                 [DisplayName(m_pstrProp_1), 
@@ -5011,6 +4812,9 @@ namespace OpenJigWare
 
             private const String m_strProp_Main0 = "Version";
             private const string m_strProp_Main8 = "3D View";
+            private const String m_strProp_Main0_0 = "Title";
+            private const String m_strProp_Main0_1 = "ModelNum";
+            private const String m_strProp_Main0_2 = "ModelName";
             private const String m_strProp_Main1 = "Mouse Mode";
             private const String m_strProp_Main2 = "Empty";
             private const String m_strProp_Main3 = "Alpha(Main)";
@@ -5032,7 +4836,10 @@ namespace OpenJigWare
                 {
                 }
                 #region #### Var(Group0) ####
-                private string _strVersion = "1.0.0";
+                private string _strVersion = "1.1.0";
+                private string _strTitle = "";
+                private int _nModelNum = -1;
+                private string _strModelName = "";
                 private int _nMouseMode = 1; // m_nMouseControlMode 변수의 셋팅값을 따라갈 것
                 private int _n3DView = 0; // 0 - Default, 1 - Perpective
                 private int _nTerritoryView = 0; // 0 - Default, 1 - Show
@@ -5053,6 +4860,27 @@ namespace OpenJigWare
                 #region #### Group0 ####
                 [DisplayName(m_strProp_Main0), Browsable(true), CategoryAttribute(strGroup), ReadOnlyAttribute(true), DescriptionAttribute("Version(Open Jig Ware)")]
                 public string strMain_Version { get { return _strVersion; } set { _strVersion = value; } }
+
+#region 새로추가
+                #region Title("")
+                [DisplayName(m_strProp_Main0_0), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("Title")]
+                public string strMain_Title { get { return _strTitle; } set { _strTitle = value; } }
+                #endregion Title
+
+                #region ModelNum(-1)
+                [DisplayName(m_strProp_Main0_1), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("ModelNum")]
+                public int nMain_ModelNum { get { return _nModelNum; } set { _nModelNum = value; } }
+                #endregion ModelNum
+
+                #region ModelName("")
+                [DisplayName(m_strProp_Main0_2), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("ModelName")]
+                public string strMain_ModelName { get { return _strModelName; } set { _strModelName = value; } }
+                #endregion ModelName
+
+                //private string _strTitle = "";
+                //private int nModelNum = -1;
+                //private string _strModelName = "";
+#endregion 새로추가
                 #region MouseMode(false)
                 [DisplayName(m_strProp_Main1), Browsable(true), CategoryAttribute(strGroup), DescriptionAttribute("Mouse Mode")]
                 public int nMain_MouseMode { get { return _nMouseMode; } set { _nMouseMode = value; } }
@@ -5909,6 +5737,27 @@ namespace OpenJigWare
                 }
                 // 특정 모터, 혹은 FunctionNumber 까지를 a, d 를 다 0 으로 초기화 한 위치 + 초기위치 를 시작 위치로, 거기부터 마지막까지를 최종위치로 하는 함수
 
+                public List<int> m_lstCalcInv_Endpoint = new List<int>();
+                public void CalcInv_Endpoint_Clear()
+                {
+                    m_lstCalcInv_Endpoint.Clear();
+                }
+                public void CalcInv_Endpoint_Add(int nAxis) { m_lstCalcInv_Endpoint.Add(nAxis); }
+                public bool CalcInv_Endpoint_Check() { return (m_lstCalcInv_Endpoint.Count > 1) ? true : false; }
+                public float CalcInv_Endpoint_Result()
+                {
+                    float fRes = 0.0f;
+                    int nID = 0;
+                    if (CalcInv_Endpoint_Check() == true)
+                    {
+                        for (int i = 0; i < m_lstCalcInv_Endpoint.Count; i++)
+                        {
+                            nID = Math.Abs(m_lstCalcInv_Endpoint[i]);
+                            fRes += ((m_lstCalcInv_Endpoint[i] < 0) ? -1 : 1) * GetData(nID);
+                        }
+                    }
+                    return fRes;
+                }
 
                 public int m_nCalcInv_Mode = 0; // 0 : auto, 1 : Inverse, 2 : Inverse & Reverse, 3 : Inverse & Motor
                 public void CalcInv_SetMode(int nMode) { m_nCalcInv_Mode = nMode; }
@@ -5936,8 +5785,10 @@ namespace OpenJigWare
                 }
                 public float[] CalcInv(int nFunctionNumber, bool bLimitFunctionNumber, int[] anMotorIDs, float fX, float fY, float fZ, int nRepeat = 10000, float fCutline = 0.001f)
                 {
+
                     int nID;
                     int nCnt = anMotorIDs.Length;
+                                        
                     //float [] afRes_Angles = new float[nCnt];
                     int nPos = nCnt;
                     float fX0 = fX, fY0 = fY, fZ0 = fZ;
@@ -6165,28 +6016,35 @@ namespace OpenJigWare
                     {
                         lstAngles.Clear();
                         CalcF(nFunctionNumber, -1, true, out fX2, out fY2, out fZ2);
+
+                        double [] adV = (double [])Ojw.CKinematics.CInverse.GetValue_V().Clone();
                         //lstAngles.AddRange(CalcInv2(nFunctionNumber, bLimitFunctionNumber, anMotorIDs, fX0 - (fX2 - fX1), fY0 - (fY2 - fY1), fZ0 - (fZ2 - fZ1), nRepeat, fCutline));
-                        lstAngles.AddRange(CalcInv2(nFunctionNumber, bLimitFunctionNumber, anMotorIDs, fX0, fY0, fZ0, nRepeat, fCutline));
+                        lstAngles.AddRange(CalcInv2(nFunctionNumber, bLimitFunctionNumber, anMotorIDs, fX0, fY0, fZ0, adV, nRepeat, fCutline));
                     }
                     else
                     {
                     }
+
                     return lstAngles.ToArray();
                 }
 
 
                 public float[] CalcInv2(int nFunctionNumber, bool bLimitFunctionNumber, int[] anMotorIDs, float fX, float fY, float fZ, int nRepeat = 1000, float fCutline = 0.001f)
                 {
+                    return CalcInv2(nFunctionNumber, bLimitFunctionNumber, anMotorIDs, fX, fY, fZ, null, nRepeat, fCutline);
+                }
+                public float[] CalcInv2(int nFunctionNumber, bool bLimitFunctionNumber, int[] anMotorIDs, float fX, float fY, float fZ, double [] adV = null, int nRepeat = 1000, float fCutline = 0.001f)
+                {
                     int nID;
                     int nCnt = anMotorIDs.Length;
                     int nPos = nCnt;
                     float fX0 = fX, fY0 = fY, fZ0 = fZ;
-                    float fXc, fYc, fZc;
-                    float fXp, fYp, fZp;
+                    float fXc = 0, fYc = 0, fZc = 0;
+                    float fXp = 0, fYp = 0, fZp = 0;
                     float fX_Start, fY_Start, fZ_Start;
                     float fX_End, fY_End, fZ_End;
                     float fAngle0 = 0;
-                    float fP, fN, fC;
+                    float fP = 0, fN = 0, fC = 0;
                     float fAngle, fAngle1, fAngle2;
                     List<float> lstAngles = new List<float>();
                     for (int i = 0; i < nCnt; i++)
@@ -6235,6 +6093,9 @@ namespace OpenJigWare
                             bool bNon2 = false;
                             if (Single.IsNaN(fAngle1)) { fAngle1 = fAngle0; bNon1 = true; }
                             if (Single.IsNaN(fAngle2)) { fAngle2 = fAngle0; bNon2 = true; }
+
+                            fAngle1 = CalcLimit(nID, fAngle1);
+                            fAngle2 = CalcLimit(nID, fAngle2);
 
                             if (bNon1 == false)
                             {
@@ -6285,10 +6146,51 @@ namespace OpenJigWare
                             nPos--;
                         }
 
-                        if (fRes < fCutline) break;
+                        if (fRes < fCutline)
+                        {
+                            if (fC < fP)
+                            {
+                                fX_End = fXc;
+                                fY_End = fYc;
+                                fZ_End = fZc;
+                            }
+                            else
+                            {
+                                fX_End = fXp;
+                                fY_End = fYp;
+                                fZ_End = fZp;
+                            }
+                            break;
+                        }
                     }
                     //CalcF(nFunctionNumber, -1, false, out fX0, out fY0, out fZ0);
                     //lstAngles.AddRange(CalcInv_LastOf(true, nFunctionNumber, bLimitFunctionNumber, anMotorIDs, fX, fY, fZ, nRepeat, fCutline));
+
+
+
+                    // 2차 함수 계산 ////////////////////////////////////////
+                    int[] anMotorID = new int[256];
+                    double[] adValue = new double[256];
+                    int nGetCnt_Lines = m_CHeader.pDhParamAll[nFunctionNumber].GetCount();
+                    // int[] anFunctions = m_CHeader.pDhParamAll[nFunctionNumber].GetFunctions();// GetHeader_pDhParamAll()[nFunctionNumber].GetFunctions_AfterCalc(); // m_CHeader.pDhParamAll[nFunctionNumber].GetFunctions_AfterCalc();
+                    if (nGetCnt_Lines > 0) // CDhParam 데이터의 갯수가 있을 경우
+                    {
+                        //double[] adV = Ojw.CKinematics.CInverse.GetValue_V();
+                        for (int nT = nGetCnt_Lines - 1; nT >= 0; nT--) // 마지막 데이터만...
+                        {
+                            int nFunction_AfterCalc = m_CHeader.pDhParamAll[nFunctionNumber].GetData(nT).nFunctionNumber_AfterCalc;
+                            if ((nFunction_AfterCalc >= 0) && (nFunction_AfterCalc < 255))
+                            {
+                                int nCntT = GetData_Inverse(nFunction_AfterCalc, fX, fY, fZ, adV, out anMotorID, out adValue);
+                                for (int i = 0; i < nCntT; i++)
+                                {
+                                    SetData(anMotorID[i], (float)adValue[i]);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    // 2차 함수 계산 ////////////////////////////////////////
 
                     return lstAngles.ToArray();
                 }
@@ -10184,7 +10086,7 @@ namespace OpenJigWare
                     m_ctxmenuMouse.Items.Add("File");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Open");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Save");
-                    (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Close");
+                    //(m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Close");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("-");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Export(3D Model에 포함된 stl file들을 지정한 위치로 복사)");
                     (m_ctxmenuMouse.Items[_MENU_FILE] as ToolStripMenuItem).DropDownItems.Add("Import(3D Model에 필요한 stl file들을 지정한 폴더에서 골라 가져옴)");
@@ -10456,7 +10358,10 @@ namespace OpenJigWare
 #endif
                     m_bMouseClick = false;
                 }
-            
+
+                //private string m_strTitle = "";
+                //private int m_nModelNum = -1;
+                //private string m_strModelName = "";
                 private int m_nMouseControlMode = 1;// 0;
                 public void SetMouseMode_Move() { SetMouseMode(0); }
                 public void SetMouseMode_Control() { SetMouseMode(1); }
@@ -11580,7 +11485,7 @@ namespace OpenJigWare
 
                 private const int _CNT_TEXTURE = 10;
                 private uint[] m_puiTexture = new uint[_CNT_TEXTURE];
-                public bool LoadTextures(String[] strFileName)
+                public bool LoadTextures(params String[] strFileNames)
                 {
                     bool bRet = true;
                     // The Files To Load
@@ -11589,8 +11494,23 @@ namespace OpenJigWare
                     Rectangle rectangle;														// The Rectangle For Locking The Bitmap In Memory
                     BitmapData bitmapData = null;												// The Bitmap's Pixel Data
 
-                    int nCnt = strFileName.Length;
+                    int nCnt = strFileNames.Length;
                     m_puiTexture = new uint[nCnt];
+                    
+                    //Gl.glPushMatrix();
+                    
+                    
+                    
+                    //int uiType = Gl.GL_POLYGON;
+
+                    //Gl.glBegin(uiType);
+                    //Gl.glEnable(Gl.GL_BLEND); 
+                    //Gl.glEnable(Gl.GL_LIGHTING);     //조명 활성화
+                    //Gl.glEnable(Gl.GL_LIGHT0);
+                    //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA);
+
+                    
+
 
                     // Load The Bitmaps
                     try
@@ -11599,25 +11519,44 @@ namespace OpenJigWare
 
                         for (int i = 0; i < nCnt; i++)
                         {
-                            bitmap = new Bitmap(strFileName[i]);								// Load The File As A Bitmap
-                            bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);					// Flip The Bitmap Along The Y-Axis
-                            rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);		// Select The Whole Bitmap
+                            try
+                            {
+                                bitmap = new Bitmap(strFileNames[i]);								// Load The File As A Bitmap
+                                bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);					// Flip The Bitmap Along The Y-Axis
+                                rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);		// Select The Whole Bitmap
 
-                            // Get The Pixel Data From The Locked Bitmap
-                            bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                                // Get The Pixel Data From The Locked Bitmap
+                                bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 
-                            // Create Linear Filtered Texture
-                            Gl.glBindTexture(Gl.GL_TEXTURE_2D, m_puiTexture[i]);
-                            Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR);
-                            Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
-                            Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, (int)Gl.GL_RGB8, bitmap.Width, bitmap.Height, 0, Gl.GL_BGR_EXT, Gl.GL_UNSIGNED_BYTE, bitmapData.Scan0);
+                                // Create Linear Filtered Texture
+                                Gl.glBindTexture(Gl.GL_TEXTURE_2D, m_puiTexture[i]);
+                                Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR);
+                                Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
+                                //Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, (int)Gl.GL_RGB8, bitmap.Width, bitmap.Height, 0, Gl.GL_BGR_EXT, Gl.GL_UNSIGNED_BYTE, bitmap.GetH);
+                                Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, (int)Gl.GL_RGB8, bitmap.Width, bitmap.Height, 0, Gl.GL_BGR_EXT, Gl.GL_UNSIGNED_BYTE, bitmapData.Scan0);
+
+                                bitmap.UnlockBits(bitmapData);										// Unlock The Pixel Data From Memory
+                                bitmap.Dispose();													// Clean Up The Bitmap
+                                bitmapData = null;
+                                bitmap = null;
+                            }
+                            catch
+                            {
+                                if (bitmap != null)
+                                {
+                                    if (bitmapData != null) bitmap.UnlockBits(bitmapData);										// Unlock The Pixel Data From Memory
+                                    bitmap.Dispose();													// Clean Up The Bitmap													// Clean Up The Bitmap
+                                    bitmapData = null;
+                                    bitmap = null;
+                                }
+                            }
                         }
                     }
                     catch// (Exception e)
                     {
                         bRet = false;
                         // Handle Any Exceptions While Loading Textures, Exit App
-                        // 				string errorMsg = "An Error Occurred While Loading Texture:\n\t" + strFileName + "\n" + "\n\nStack Trace:\n\t" + e.StackTrace + "\n";
+                        // 				string errorMsg = "An Error Occurred While Loading Texture:\n\t" + strFileNames + "\n" + "\n\nStack Trace:\n\t" + e.StackTrace + "\n";
                         // 				MessageBox.Show(errorMsg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                         // 				App.Terminate();
                     }
@@ -11625,10 +11564,18 @@ namespace OpenJigWare
                     {
                         if (bitmap != null)
                         {
-                            bitmap.UnlockBits(bitmapData);										// Unlock The Pixel Data From Memory
+                            if (bitmapData != null) bitmap.UnlockBits(bitmapData);										// Unlock The Pixel Data From Memory
                             bitmap.Dispose();													// Clean Up The Bitmap
                         }
                     }
+
+                    
+                    ////
+                    //Gl.glEnable(Gl.GL_TEXTURE_2D);
+                    //Gl.glEnd();
+                    //SetLight();
+                    //Gl.glPopMatrix()
+
                     return bRet;
                 }
                 #endregion LoadTextures()
@@ -11688,7 +11635,7 @@ namespace OpenJigWare
                             Gl.glClearColor(m_fColor_Back[0], m_fColor_Back[1], m_fColor_Back[2], 1.0f);
                         
                         //Gl.glLoadIdentity();
-                    }                    
+                    }
                 }
                 #endregion glDraw_Ready()
                 #region Grid For Draw
@@ -18835,19 +18782,45 @@ namespace OpenJigWare
                     {
                         float fAlpha = m_fAlpha;
                         CDisp = OjwDispAll_User.GetData(i);
+                        //if (CDisp != null)
+                        //{
+                        //    if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                        //        CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
+
+                        //    // Limit Check(Kor: 각도의 Limit 체크) //
+                        //    if (CDisp.nName >= 0)
+                        //    {
+                        //        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                        //        if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                        //    }
+
+                        //    OjwDraw_Class(CDisp);
+                        //}
+                        //if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
                         if (CDisp != null)
                         {
-                            if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
-                                CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
-
-                            // Limit Check(Kor: 각도의 Limit 체크) //
-                            if (CDisp.nName >= 0)
+                            bool bShow = true;
+                            if ((CDisp.nPickGroup_C >= 253) && (CDisp.nPickGroup_C <= 255))
                             {
-                                if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
-                                if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                if (m_bDhSkeleton_Direction_Show == false)
+                                {
+                                    bShow = false;
+                                }
                             }
+                            if (bShow)
+                            {
+                                if ((CDisp.nName >= 0) && (afData.Length > CDisp.nName))
+                                    CDisp.fAngle = afData[CDisp.nName];// +GetData(CDisp.nName);
 
-                            OjwDraw_Class(CDisp);
+                                // Limit Check(Kor: 각도의 Limit 체크) //
+                                if (CDisp.nName >= 0)
+                                {
+                                    if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Down != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Down >= CDisp.fAngle)) bLimit = true;
+                                    if ((CHeader.pSMotorInfo[CDisp.nName].fLimit_Up != 0) && (CHeader.pSMotorInfo[CDisp.nName].fLimit_Up <= CDisp.fAngle)) bLimit = true;
+                                }
+
+                                OjwDraw_Class(CDisp);
+                            }
                         }
                         if (m_fAlpha != fAlpha) m_fAlpha = fAlpha;
                     }
@@ -19764,26 +19737,35 @@ namespace OpenJigWare
             GL_SHININESS {25.6f};
 
 #endif
+                const float _LIGHT_AMBIENT = 0.5f;
+                const float _LIGHT_DIFFUSE = 0.5f;
+                const float _LIGHT_SPECULAR = 0.8f;
 #if true
-                public float[] m_ambient = new float[4] { 0.5f, 0.5f, 0.5f, 1.0f };
+                public float[] m_ambient = new float[4] { _LIGHT_AMBIENT, _LIGHT_AMBIENT, _LIGHT_AMBIENT, 1.0f };
                 //private float[] m_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
-                public float[] m_diffuseLight = new float[4] { 0.5f, 0.5f, 0.5f, 1.0f };//{ 1.0f, 1.0f, 1.0f, 1.0f };
-                public float[] m_specular = new float[4] { 0.8f, 0.8f, 0.8f, 1.0f };
+                public float[] m_diffuseLight = new float[4] { _LIGHT_DIFFUSE, _LIGHT_DIFFUSE, _LIGHT_DIFFUSE, 1.0f };//{ 1.0f, 1.0f, 1.0f, 1.0f };
+                public float[] m_specular = new float[4] { _LIGHT_SPECULAR, _LIGHT_SPECULAR, _LIGHT_SPECULAR, 1.0f };
 #else
                 private float[] m_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };
                 private float[] m_diffuseLight = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
                 private float[] m_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };//{ 0.6f, 0.6f, 0.6f, 1.0f };
 #endif
-                public float[] m_ambient2 = new float[4] { 0.25f, 0.25f, 0.25f, 1.0f };//{ 0.25f, 0.25f, 0.25f, 1.0f };
-                public float[] m_diffuseLight2 = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };//{ 0.4f, 0.4f, 0.4f, 1.0f };
-                public float[] m_specular2 = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };//{ 0.8f, 0.8f, 0.8f, 1.0f };
+                const float _LIGHT_AMBIENT2 = 0.25f;
+                const float _LIGHT_DIFFUSE2 = 0.4f;
+                const float _LIGHT_SPECULAR2 = 0.774597f;
+                public float[] m_ambient2 = new float[4] { _LIGHT_AMBIENT2, _LIGHT_AMBIENT2, _LIGHT_AMBIENT2, 1.0f };//{ 0.25f, 0.25f, 0.25f, 1.0f };
+                public float[] m_diffuseLight2 = new float[4] { _LIGHT_DIFFUSE2, _LIGHT_DIFFUSE2, _LIGHT_DIFFUSE2, 1.0f };//{ 0.4f, 0.4f, 0.4f, 1.0f };
+                public float[] m_specular2 = new float[4] { _LIGHT_SPECULAR2, _LIGHT_SPECULAR2, _LIGHT_SPECULAR2, 1.0f };//{ 0.8f, 0.8f, 0.8f, 1.0f };
 
 #if true
+                const float _MAT_DIFFUSE = 0.8f;//0.8f;
+                const float _MAT_AMBIENT = 0.25f;
+                const float _MAT_SPECULAR = 0.774597f;
                 // chrome 
                 // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
-                public float[] m_mat_diffuse = new float[4] { 0.8f, 0.8f, 0.8f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
-                public float[] m_mat_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };
-                public float[] m_mat_ambient = new float[4] { 0.25f, 0.25f, 0.25f, 0.5f };
+                public float[] m_mat_diffuse = new float[4] { _MAT_DIFFUSE, _MAT_DIFFUSE, _MAT_DIFFUSE , 1.0f }; //{ 0.8f, 0.8f, 0.8f, 1.0f };//{ 0.9f, 0.9f, 0.9f, 1.0f };
+                public float[] m_mat_specular = new float[4] { _MAT_SPECULAR, _MAT_SPECULAR, _MAT_SPECULAR, 1.0f };
+                public float[] m_mat_ambient = new float[4] { _MAT_AMBIENT, _MAT_AMBIENT, _MAT_AMBIENT, 1.0f };//0.5f };
                 public float[] m_mat_shiness = new float[1] { 0.6f * 128.0f };
 #else
                 // gold //
@@ -19798,25 +19780,60 @@ namespace OpenJigWare
                 //private float[] m_mat_ambient = new float[4] { 0.5f, 0.5f, 0.5f, 0.5f };
                 //private float[] m_mat_shiness = new float[1] { 80.0f };
 
+
+                public float GetLight_Spot() { return m_fSpot; }
+                public float GetLight_Spot2() { return m_fSpot2; }
+                public void  SetLight_Spot(float fSpot) { m_fSpot = fSpot; }
+                public void  SetLight_Spot2(float fSpot) { m_fSpot2 = fSpot; }
+                public float GetLight_Exponent() { return m_fExponent; }
+                public float GetLight_Exponent2() { return m_fExponent2; }
+                public void  SetLight_Exponent(float fValue) { m_fExponent = fValue; }
+                public void  SetLight_Exponent2(float fValue) { m_fExponent2 = fValue; }
+
+                public float GetLight_Shiness(float fShiness) { return m_mat_shiness[0]; }
+                public void  SetLight_Shiness(float fShiness) { m_mat_shiness[0] = fShiness; }
+
                 //private int m_nShiness = 128;
                 public float m_fSpot = 85.0f;//95;//85.0f;
                 public float m_fExponent = 0.5f;//3.0f;//1.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
                 public float m_fSpot2 = 85.0f;//95;//85.0f;
                 public float m_fExponent2 = 0.5f;//3.0f;//5.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
+
+                public void GetLight_Position(out float fA, out float fB, out float fC, out float fD) { fA = m_light0_position[0]; fB = m_light0_position[1]; fC = m_light0_position[2]; fD = m_light0_position[3]; }
+                public void GetLight_Direction(out float fA, out float fB, out float fC) { fA = m_light0_direction[0]; fB = m_light0_direction[1]; fC = m_light0_direction[2]; }
+
+                public void GetLight_Position2(out float fA, out float fB, out float fC, out float fD) { fA = m_light1_position[0]; fB = m_light1_position[1]; fC = m_light1_position[2]; fD = m_light1_position[3]; }
+                public void GetLight_Direction2(out float fA, out float fB, out float fC) { fA = m_light1_direction[0]; fB = m_light1_direction[1]; fC = m_light1_direction[2]; }
+                
                 public void SetLight_Position(float fA, float fB, float fC, float fD) { m_light0_position[0] = fA; m_light0_position[1] = fB; m_light0_position[2] = fC; m_light0_position[3] = fD; }
+                public void SetLight_Direction(float fA, float fB, float fC) { m_light0_direction[0] = fA; m_light0_direction[1] = fB; m_light0_direction[2] = fC; }
+
+                public void SetLight_Position2(float fA, float fB, float fC, float fD) { m_light1_position[0] = fA; m_light1_position[1] = fB; m_light1_position[2] = fC; m_light1_position[3] = fD; }
+                public void SetLight_Direction2(float fA, float fB, float fC) { m_light1_direction[0] = fA; m_light1_direction[1] = fB; m_light1_direction[2] = fC; }
+
+                public void GetLight_Ambient(out float fA, out float fB, out float fC, out float fD) { fA = m_ambient[0]; fB = m_ambient[1]; fC = m_ambient[2]; fD = m_ambient[3]; }
+                public void GetLight_diffuseLight(out float fA, out float fB, out float fC, out float fD) { fA = m_diffuseLight[0]; fB = m_diffuseLight[1]; fC = m_diffuseLight[2]; fD = m_diffuseLight[3]; }
+                public void GetLight_Specular(out float fA, out float fB, out float fC, out float fD) { fA = m_specular[0]; fB = m_specular[1]; fC = m_specular[2]; fD = m_specular[3]; }
+
                 public void SetLight_Ambient(float fA, float fB, float fC, float fD) { m_ambient[0] = fA; m_ambient[1] = fB; m_ambient[2] = fC; m_ambient[3] = fD; }
                 public void SetLight_diffuseLight(float fA, float fB, float fC, float fD) { m_diffuseLight[0] = fA; m_diffuseLight[1] = fB; m_diffuseLight[2] = fC; m_diffuseLight[3] = fD; }
                 public void SetLight_Specular(float fA, float fB, float fC, float fD) { m_specular[0] = fA; m_specular[1] = fB; m_specular[2] = fC; m_specular[3] = fD; }
-                public void SetLight_Direction(float fA, float fB, float fC) { m_light0_direction[0] = fA; m_light0_direction[1] = fB; m_light0_direction[2] = fC; }
+
+                public void GetLight_Ambient2(out float fA, out float fB, out float fC, out float fD) { fA = m_ambient2[0]; fB = m_ambient2[1]; fC = m_ambient2[2]; fD = m_ambient2[3]; }
+                public void GetLight_diffuseLight2(out float fA, out float fB, out float fC, out float fD) { fA = m_diffuseLight2[0]; fB = m_diffuseLight2[1]; fC = m_diffuseLight2[2]; fD = m_diffuseLight2[3]; }
+                public void GetLight_Specular2(out float fA, out float fB, out float fC, out float fD) { fA = m_specular2[0]; fB = m_specular2[1]; fC = m_specular2[2]; fD = m_specular2[3]; }
+                public void SetLight_Ambient2(float fA, float fB, float fC, float fD) { m_ambient2[0] = fA; m_ambient2[1] = fB; m_ambient2[2] = fC; m_ambient2[3] = fD; }
+                public void SetLight_diffuseLight2(float fA, float fB, float fC, float fD) { m_diffuseLight2[0] = fA; m_diffuseLight2[1] = fB; m_diffuseLight2[2] = fC; m_diffuseLight2[3] = fD; }
+                public void SetLight_Specular2(float fA, float fB, float fC, float fD) { m_specular2[0] = fA; m_specular2[1] = fB; m_specular2[2] = fC; m_specular2[3] = fD; }
+
+                public void GetMaterial_Ambient(out float fA, out float fB, out float fC, out float fD) { fA = m_mat_ambient[0]; fB = m_mat_ambient[1]; fC = m_mat_ambient[2]; fD = m_mat_ambient[3]; }
+                public void GetMaterial_diffuse(out float fA, out float fB, out float fC, out float fD) { fA = m_mat_diffuse[0]; fB = m_mat_diffuse[1]; fC = m_mat_diffuse[2]; fD = m_mat_diffuse[3]; }
+                public void GetMaterial_Specular(out float fA, out float fB, out float fC, out float fD) { fA = m_mat_ambient[0]; fB = m_mat_ambient[1]; fC = m_mat_ambient[2]; fD = m_mat_ambient[3]; }
             
                 public void SetMaterial_Ambient(float fA, float fB, float fC, float fD) { m_mat_ambient[0] = fA; m_mat_ambient[1] = fB; m_mat_ambient[2] = fC; m_mat_ambient[3] = fD; }
                 public void SetMaterial_diffuse(float fA, float fB, float fC, float fD) { m_mat_diffuse[0] = fA; m_mat_diffuse[1] = fB; m_mat_diffuse[2] = fC; m_mat_diffuse[3] = fD; }
                 public void SetMaterial_Specular(float fA, float fB, float fC, float fD) { m_mat_ambient[0] = fA; m_mat_ambient[1] = fB; m_mat_ambient[2] = fC; m_mat_ambient[3] = fD; }
-
-                public void SetLight_Exponent(float fValue) { m_fExponent = fValue; }
-                public void SetLight_Shiness(float fShiness) { m_mat_shiness[0] = fShiness; }
-                public void SetLight_Spot(float fSpot) { m_fSpot = fSpot; }
-
+            
                 private void SetLight2()
                 {
                     Gl.glEnable(Gl.GL_LIGHTING);     // Enable lighting(Kor: 조명 활성화)
@@ -19952,7 +19969,7 @@ namespace OpenJigWare
                         if (IsPerspectiveMode() == true)
                         {
                             Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
-                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // 중요.. 이걸 해야 밝아진다.
+                            //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // 중요.. 이걸 해야 밝아진다.
                             Gl.glEnable(Gl.GL_COLOR_MATERIAL);   // Enable Material color tracking
 
                                 // Front material ambient and diffuse colors track glColor
@@ -19984,12 +20001,16 @@ namespace OpenJigWare
                         {
                             Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
                             //Gl.glColorMaterial(Gl.GL_FRONT, Gl.GL_AMBIENT);
-                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // 중요.. 이걸 해야 밝아진다.
+                            //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // 중요.. 이걸 해야 밝아진다.
                             // Enable color tracking(Kor: 색상 트래킹을 사용하게끔 설정)
                             Gl.glEnable(Gl.GL_COLOR_MATERIAL);
 
                             //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: 겹치는 뒷면을 그리지 않음)
                             Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: 깊이 버퍼 활성화 - 숨겨진 면 지우기)
+
+                            //Gl.glHint(Gl.GL_POINT_SMOOTH_HINT, Gl.GL_NICEST);
+                            //Gl.glHint(Gl.GL_LINE_SMOOTH_HINT, Gl.GL_NICEST);
+                            //Gl.glHint(Gl.GL_POLYGON_SMOOTH_HINT, Gl.GL_NICEST);
 
 
                             //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
@@ -20040,6 +20061,11 @@ namespace OpenJigWare
                             // Set Alpha Environment
                             Gl.glEnable(Gl.GL_BLEND);
                             Gl.glEnable(Gl.GL_ALPHA_TEST);
+
+
+                            //Gl.glClear(Gl.GL_COLOR_BUFFER_BIT);
+
+
                             //Gl.glAlphaFunc(Gl.GL_LESS, 1.0f);
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_SRC_COLOR); // 1
                             //Gl.glBlendFunc(Gl.GL_ONE, Gl.GL_ZERO);
@@ -20076,12 +20102,12 @@ namespace OpenJigWare
 
 #if true //20150116
 #if true
-                            Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
+                            /*Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_DIFFUSE, m_mat_diffuse);
                             Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SPECULAR, m_mat_specular);
                             //Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_AMBIENT, m_mat_ambient);
                             Gl.glMaterialfv(Gl.GL_FRONT_FACE, Gl.GL_SHININESS, m_mat_shiness);
                             //Gl.glMateriali(Gl.GL_FRONT, Gl.GL_SHININESS, m_nShiness);//128); // 1 - 128  
-                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);
+                            Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_mat_ambient);*/
 #else
                             //chrome // http://devernay.free.fr/cours/opengl/materials.html
                             // ambient - 0.25, 0.25, 0.25   diffuse - 0.4, 0.4, 0.4,   specular - 0.774597, 0.774597, 0.774597,   shininess - 0.6
@@ -20107,7 +20133,9 @@ namespace OpenJigWare
                             // Set Alpha Environment
                             Gl.glEnable(Gl.GL_BLEND);
                             Gl.glEnable(Gl.GL_ALPHA_TEST);
-                        
+
+                            //Gl.glClear(Gl.GL_COLOR_BUFFER_BIT);
+
                             Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA); // 1
                             //Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA); // -> 이걸하면 겉의 윤곽이 검어진다.
                             //Gl.glBlendFunc(Gl.GL_DST_ALPHA, Gl.GL_ONE_MINUS_DST_ALPHA);
@@ -20845,7 +20873,7 @@ namespace OpenJigWare
                                         }
                                     }
                                     #region =, +, -. *, /, %
-                                    else if ((nMode >= 1) && (nMode <= 19)) // =, +, -. *, /, %
+                                    else if ((nMode >= 1) && (nMode <= 29)) // =, +, -. *, /, %
                                     {
                                         float fMinus = 1;
                                         string strVal = astr[nOff];
@@ -20924,11 +20952,63 @@ namespace OpenJigWare
                                                 {
                                                     case 18: m_afAngle_Offset[(int)fTmp] = fGet; break; // set
                                                     case 19: fGet = m_afAngle_Offset[(int)fTmp]; break; // get
+                                                    case 20: // Function 계산, 다만 한시점 뒤에 계산될 수 있다.
+                                                    {
+                                                        int nInverseNum = (int)fTmp;
+                                                        #region Kinematics Control
+                                                        float fPos_X, fPos_Y, fPos_Z;
+                                                        CalcF(nInverseKinematics, false, out fPos_X, out fPos_Y, out fPos_Z);
+                                                        m_dPos_X = (double)fPos_X;
+                                                        m_dPos_Y = (double)fPos_Y;
+                                                        m_dPos_Z = (double)fPos_Z;
+
+                                                        int nMotCnt = m_CHeader.pSOjwCode[nInverseNum].nMotor_Max;
+                                                        if (nMotCnt > 0)
+                                                        {
+                                                            CKinematics.CInverse.SetValue_ClearAll(ref m_CHeader.pSOjwCode[nInverseNum]);
+                                                            CKinematics.CInverse.SetValue_X(m_dPos_X);
+                                                            CKinematics.CInverse.SetValue_Y(m_dPos_Y);
+                                                            CKinematics.CInverse.SetValue_Z(m_dPos_Z);
+
+                                                            double[] adMot = new double[m_afMot.Length];
+                                                            for (int i = 0; i < m_afMot.Length; i++) adMot[i] = (double)m_afMot[i];
+                                                            CKinematics.CInverse.SetValue_Motor(adMot);
+                                                            adMot = null;
+                                                            CKinematics.CInverse.CalcCode(ref m_CHeader.pSOjwCode[nInverseNum]);
+                                                            for (int i = 0; i < nMotCnt; i++)
+                                                            {
+                                                                int nMotNum = m_CHeader.pSOjwCode[nInverseNum].pnMotor_Number[i];
+                                                                SetData(nMotNum, (float)CKinematics.CInverse.GetValue_Motor(nMotNum));
+                                                            }
+                                                        }
+                                                        //else // 자동수식계산
+                                                        //{
+                                                        //    CalcInv(nInverseNum, (float)m_dPos_X, (float)m_dPos_Y, (float)m_dPos_Z, 10, 0.1f);
+                                                        //}
+                                                        /////////////////
+                                                        #endregion Kinematics Control
+                                                    }
+                                                    break;
+                                                    case 21: fGet = (float)Math.Abs(fTmp); break;
+                                                    case 22: fGet = (float)Math.Pow(fTmp, 2.0f); break;
+                                                    case 23: fGet = (float)Math.Sqrt(fTmp); break;
+                                                    case 24: fGet = (float)Math.Pow(fArg1, fTmp); break;
+                                                    case 25: fGet = ((fArg3 == fArg2) ? fArg1 : fTmp); break; // ==
+                                                    case 26: fGet = ((fArg3 >= fArg2) ? fArg1 : fTmp); break; // ==
+                                                    case 27: fGet = ((fArg3 <= fArg2) ? fArg1 : fTmp); break; // ==
+                                                    case 28: fGet = ((fArg3 > fArg2) ? fArg1 : fTmp); break; // ==
+                                                    case 29: fGet = ((fArg3 < fArg2) ? fArg1 : fTmp); break; // ==
                                                     case 1: fGet = fTmp; break;
                                                     case 2: fGet += fTmp; break;
                                                     case 3: fGet -= fTmp; break;
                                                     case 4: fGet *= fTmp; break;
-                                                    case 5: fGet /= fTmp; break;
+                                                    case 5:
+                                                        {
+                                                            fGet /= fTmp;
+                                                            if (float.IsNaN(fGet)) fGet = 0;
+                                                            else if (float.IsInfinity(fGet)) fGet = 0;
+                                                        }
+                                                        break;
                                                     case 6: fGet %= fTmp; break;
                                                     case 7: fGet = (float)CMath.Sin((double)fTmp); break;
                                                     case 8: fGet = (float)CMath.Cos((double)fTmp); break;
@@ -20942,10 +21022,12 @@ namespace OpenJigWare
                                                     case 14: // 3변의 길이가 주어질 때 각(arg : 변 Left, 변 Right, 변 가장 먼곳)
                                                         {
                                                             // T=acos((a2+b2-c2)/2ab), a, b, c(가장 멀리있는 변)
-                                                            float a = fArg2;
+                                                            float a = fArg2; // 가장 먼저 입력한 아규먼트
                                                             float b = fArg1;
                                                             float c = fTmp;
                                                             fGet = (float)(CMath.ACos((a * a + b * b - c * c) / (2 * a * b)));
+                                                            if (float.IsNaN(fGet)) fGet = 0;
+                                                            else if (float.IsInfinity(fGet)) fGet = 0;
                                                         }
                                                         break;
                                                     case 15: // 2변의 길이와 사잇각이 주어질 때 변의 길이(arg : 각도, 변1, 변2)
@@ -20953,8 +21035,10 @@ namespace OpenJigWare
                                                             // c2=a2+b2-2abCos(T), a, b, T
                                                             float T = fArg2; // 가장 먼저 입력한 아규먼트
                                                             float a = fArg1; 
-                                                            float b = fTmp; 
+                                                            float b = fTmp;
                                                             fGet = (float)Math.Sqrt(a * a + b * b - 2 * a * b * CMath.Cos(T));
+                                                            if (float.IsNaN(fGet)) fGet = 0;
+                                                            else if (float.IsInfinity(fGet)) fGet = 0;
                                                         }
                                                         break;
                                                     case 16: // 위의 피벗축의 각도가 변할때의 아래 축의 각도값 (index, angle, left, top, right, bottom)
@@ -21013,6 +21097,8 @@ namespace OpenJigWare
                                                                 float c = line;
                                                                 fGet = (float)(CMath.ACos((a * a + b * b - c * c) / (2 * a * b)));
                                                             }
+                                                            if (float.IsNaN(fGet)) fGet = 0;
+                                                            else if (float.IsInfinity(fGet)) fGet = 0;
                                                             //fGet = 
                                                         }
                                                         break;
@@ -21095,6 +21181,8 @@ namespace OpenJigWare
                                                                 float fVal1 = (float)(CMath.ACos((a * a + b * b - c * c) / (2 * a * b)));
                                                                 fGet = fVal1 - fVal0;
                                                             }
+                                                            if (float.IsNaN(fGet)) fGet = 0;
+                                                            else if (float.IsInfinity(fGet)) fGet = 0;
                                                             //fGet = 
                                                         }
                                                         break;
@@ -21129,6 +21217,16 @@ namespace OpenJigWare
                                 else if (astr[nOff] == "getpivot2") { nMode = 17; nArg = 6; } // (index, angle(내부적으로 90도가 더해진다.), left, top, right, bottom) // index 는 topleft(0), topright(1), bottomleft(2), bottomright(3) 으로...
                                 else if (astr[nOff] == "set") { nMode = 18; nArg = 1; } // result 의 값을 m_afAngle_Offset[] 의 값으로 전달
                                 else if (astr[nOff] == "get") { nMode = 19; nArg = 1; } // m_afAngle_Offset[] 의 값을 가져옴
+                                else if (astr[nOff] == "function") { nMode = 20; nArg = 1; } // Inverse Kinematics Function 의 넘버링을 한번 계산함
+                                else if (astr[nOff] == "abs") { nMode = 21; nArg = 1; } // 절대값 구하기
+                                else if (astr[nOff] == "pow") { nMode = 22; nArg = 1; } // 
+                                else if (astr[nOff] == "sqrt") { nMode = 23; nArg = 1; }
+                                else if (astr[nOff] == "pow2") { nMode = 24; nArg = 2; } // 
+                                else if (astr[nOff] == "==") { nMode = 25; nArg = 4; } // ==;a;b;c;d     a 와 b 가 같으면 결과에 c를 입력 아니면 d를 입력
+                                else if (astr[nOff] == ">=") { nMode = 26; nArg = 4; } // >=;a;b;c;d     a 가 b 보다 크거나 같으면 결과에 c를 입력 아니면 d를 입력
+                                else if (astr[nOff] == "<=") { nMode = 27; nArg = 4; } // <=;a;b;c;d     a 가 b 보다 작거나 같으면 결과에 c를 입력 아니면 d를 입력
+                                else if (astr[nOff] == ">") { nMode = 28; nArg = 4; } // >=;a;b;c;d      a 가 b 보다 크면   결과에 c를 입력 아니면 d를 입력
+                                else if (astr[nOff] == "<") { nMode = 29; nArg = 4; } // <=;a;b;c;d      a 가 b 보다 작으면 결과에 c를 입력 아니면 d를 입력
                             }
                             fAngle_Offset = lstVar[0];// result 의 최종 값을 입력
                             // test
@@ -21278,6 +21376,25 @@ namespace OpenJigWare
                         }
                     }
                     
+                    // test - ojw5014
+                    if (OjwDisp.nPickGroup_C == -3)
+                    {
+                        if (OjwDisp.nTextureStatus == 1)
+                        {
+                            // OjwDisp.cColor = Color.White;
+                            // test 용 이미지 출력
+                            LoadTextures("1.png"); //LoadTextures(OjwDisp.strTexture);
+                            OjwDisp.nTextureStatus = 0;
+                        }
+                        Gl.glEnable(Gl.GL_TEXTURE_2D);
+                        //OjwDisp.nPickGroup_C = 0;
+                    }
+                    else
+                    {
+                        //Gl.glDisable(Gl.GL_TEXTURE_2D);
+                    }
+
+
                     if (OjwDisp.nAxisMoveType < 3)
                     {
                         // val2 = val % 60000
@@ -21804,7 +21921,7 @@ namespace OpenJigWare
                     CDisp.nInverseKinematicsNumber = 0;
                     CDisp.fScale_Serve0 = 0.35f;
                     CDisp.fScale_Serve1 = 0.35f;
-                    CDisp.nInverseKinematicsNumber = 0;
+                    CDisp.nInverseKinematicsNumber_AfterCalc = 0;
                     CDisp.strPickGroup_Comment = "";
 
                     try
@@ -27737,7 +27854,8 @@ namespace OpenJigWare
                 public void User_Add() { m_nUserIndex = User_GetCnt(); OjwDispAll_User.AddData(m_CDisp.Clone()); m_CDisp.InitData(); }
                 public void User_Delete(int nIndex) { m_nUserIndex = 0; OjwDispAll_User.DeleteData(nIndex); m_CDisp.InitData(); }
                 public void User_Delete() { OjwDispAll_User.DeleteData(m_nUserIndex); m_nUserIndex = 0; m_CDisp.InitData(); }
-                public COjwDisp User_Get(int nIndex) { m_nUserIndex = nIndex; m_CDisp = OjwDispAll_User.GetData(nIndex % OjwDispAll_User.GetCount()); return m_CDisp; }
+                //public COjwDisp User_Get(int nIndex) { m_nUserIndex = nIndex; m_CDisp = OjwDispAll_User.GetData(nIndex % OjwDispAll_User.GetCount()); return m_CDisp; }
+                public COjwDisp User_Get(int nIndex) { m_nUserIndex = nIndex; return OjwDispAll_User.GetData(nIndex % OjwDispAll_User.GetCount()); }
                 public int User_Get_Index() { return m_nUserIndex; }
                 public bool User_Set(int nIndex, COjwDisp CDisp) { m_nUserIndex = nIndex; return OjwDispAll_User.SetData((nIndex % OjwDispAll_User.GetCount()), CDisp); }
                 public bool User_Set() { return User_Set(m_nUserIndex, m_CDisp); }
@@ -27776,6 +27894,7 @@ namespace OpenJigWare
                 public void User_Set_nPickGroup_B(int nValue) { m_CDisp.nPickGroup_B = nValue; }
                 public void User_Set_nPickGroup_C(int nValue) { m_CDisp.nPickGroup_C = nValue; }
                 public void User_Set_nInverseKinematicsNumber(int nValue) { m_CDisp.nInverseKinematicsNumber = nValue; }
+                public void User_Set_nInverseKinematicsNumber_AfterCalc(int nValue) { m_CDisp.nInverseKinematicsNumber_AfterCalc = nValue; }
                 public void User_Set_fScale_Serve0(float fValue) { m_CDisp.fScale_Serve0 = fValue; }
                 public void User_Set_fScale_Serve1(float fValue) { m_CDisp.fScale_Serve1 = fValue; }
                 public void User_Set_nMotorType(int nValue) { m_CDisp.nMotorType = nValue; }
@@ -27876,6 +27995,7 @@ namespace OpenJigWare
                     }
                     m_CHeader.strDrawModel = strDraw;
                 }
+                public void SetTitle_strTitle(String strValue) { m_CHeader.strTitle = strValue; }
                 public void SetHeader_strModelName(String strValue) { m_CHeader.strModelName = strValue; }
                 public void SetHeader_strVersion(String strValue) { m_CHeader.strVersion = strValue; }
                 #endregion Set
@@ -27910,6 +28030,7 @@ namespace OpenJigWare
                 public String GetHeader_strComment() { return m_CHeader.strComment; }
                 public String GetHeader_strDrawModel() { return m_CHeader.strDrawModel; }
                 public String GetHeader_strModelName() { return m_CHeader.strModelName; }
+                public String GetHeader_strTitle() { return m_CHeader.strTitle; }
                 public String GetHeader_strVersion() { return m_CHeader.strVersion; }
                 #endregion Get
                 #endregion Header
@@ -28501,7 +28622,7 @@ namespace OpenJigWare
             #region Json
             public bool Json_Export(string strFileName)
             {
-                string strTitle = m_CHeader.strModelName;
+                string strTitle = m_CHeader.strTitle;//m_CHeader.strModelName;
 
                 List<string> lstGuide = new List<string>();
                 lstGuide.Clear();
@@ -28609,9 +28730,14 @@ namespace OpenJigWare
 
                     string strVersion = _STR_EXT_VERSION;//"01.00.00";
                     byteBuffer = CConvert.StrToBytes_UTF8(String.Format("\t\"Design_Version\" : \"{0}\",\r\n", strVersion)); fs.Write(byteBuffer, 0, byteBuffer.Length);
-                    string strName = Ojw.CConvert.RemoveChar(((strTitle == "") ? m_CHeader.strModelName : strTitle), '\0');
+                    //string strName = Ojw.CConvert.RemoveChar(((strTitle == "") ? m_CHeader.strModelName : strTitle), '\0');
+                    string strName = Ojw.CConvert.RemoveChar(m_CHeader.strModelName, '\0');
                     byteBuffer = CConvert.StrToBytes_UTF8(String.Format("\t\"Robot\" : \"{0}\",\r\n", strName)); fs.Write(byteBuffer, 0, byteBuffer.Length);
 
+                    // 새롭게 추가(Title)
+                    string strTitle2 = Ojw.CConvert.RemoveChar(((strTitle == "") ? m_CHeader.strTitle : strTitle), '\0');
+                    byteBuffer = CConvert.StrToBytes_UTF8(String.Format("\t\"Title\" : \"{0}\",\r\n", strTitle2)); fs.Write(byteBuffer, 0, byteBuffer.Length);
+                    
                     // 새롭게 추가
                     int nScanningQr = m_CHeader.SJson.nQr;
                     byteBuffer = CConvert.StrToBytes_UTF8(String.Format("\t\"ScanningQr(1:Qr,0:Ble)\" : \"{0}\",\r\n", nScanningQr)); fs.Write(byteBuffer, 0, byteBuffer.Length);
@@ -28958,7 +29084,8 @@ namespace OpenJigWare
             #region Version - Version Designer History header file(Kor: 디자이너 헤더 파일의 버전 기록)
             public static String _STR_EXT = "ojw"; // OpenJigWare File
 
-            public static String _STR_EXT_VERSION = "01.07.00"; // Json 생성기능 추가
+            public static String _STR_EXT_VERSION = "01.08.00"; // Title 항목 헤더에 추가
+            //public static String _STR_EXT_VERSION = "01.07.00"; // Json 생성기능 추가
             //public static String _STR_EXT_VERSION = "01.06.00"; // stl 모델파일 초기점 기준이동기능 삭제, 기존 파일로드할때 파일로드 시 특이점 들어가게 수정
             //public static String _STR_EXT_VERSION = "01.05.00"; // m_lstMotorsEn 추가
             //public static String _STR_EXT_VERSION = "01.04.00"; // Dynamixel 모델 추가
@@ -29115,8 +29242,17 @@ namespace OpenJigWare
                             m_CMonster.Set3DHeader(m_CHeader);
 #endif
 
+                    
+
+
                     if (m_bProb_Virtual == true)
                     {
+                        // 새로 추가
+                        string strTitle = CConvert.RemoveChar(m_CHeader.strTitle, '\0');
+                        Prop_Set_Main_Title((strTitle.Length > 0) ? m_CHeader.strTitle : "");
+                        Prop_Set_Main_ModelNum(m_CHeader.nModelNum);
+                        Prop_Set_Main_ModelName(m_CHeader.strModelName);
+
                         Prop_Set_Main_BackColor(m_CHeader.cBackColor);
                         Prop_Update_VirtualObject();
                     }
@@ -29410,6 +29546,24 @@ namespace OpenJigWare
                     fs.Write(byteData, 0, 2);
                     byteData = null;
                     #endregion Model number ( 2 Bytes )
+
+
+                    //////////// 추가항목
+                    #region Json Title  ( 21 Bytes )
+                    if (nVersion >= 010800)
+                    {
+                        // Name
+                        byteData = Encoding.Default.GetBytes(CHeader.strTitle);
+                        for (i = 0; i < 20; i++)
+                        {
+                            if (i < byteData.Length) fs.WriteByte(byteData[i]);
+                            else fs.WriteByte(0);
+                        }
+                        // Additional terminating null character(Kor: 널 종료문자 추가)
+                        fs.WriteByte(0);
+                        byteData = null;
+                    }
+                    #endregion Json Title ( 21 Bytes )
 
                     #region Title  ( 21 Bytes )
                     // Name
@@ -30430,6 +30584,16 @@ namespace OpenJigWare
                             nPos += 2;
                             #endregion Model type ( 2 Bytes )
 
+                            //////////// 추가항목
+                            #region Json Title  ( 21 Bytes )
+                            if (nVersion >= 010800)
+                            {
+                                CDesignHeder.strTitle = Encoding.Default.GetString(byteData, nPos, 21);
+                                nPos += 21;
+                            }
+                            #endregion Json Title  ( 21 Bytes )
+                            //////////// 추가항목
+
                             #region Title ( 21 Bytes )
                             CDesignHeder.strModelName = Encoding.Default.GetString(byteData, nPos, 21);
                             nPos += 21;
@@ -31394,6 +31558,16 @@ namespace OpenJigWare
                             nPos += 2;
                             #endregion Model type ( 2 Bytes )
 
+                            //////////// 추가항목
+                            #region Json Title  ( 21 Bytes )
+                            if (nVersion >= 010800)
+                            {
+                                CDesignHeder.strTitle = Encoding.Default.GetString(byteData, nPos, 21);
+                                nPos += 21;
+                            }
+                            #endregion Json Title  ( 21 Bytes )
+                            //////////// 추가항목
+
                             #region Title ( 21 Bytes )
                             CDesignHeder.strModelName = Encoding.Default.GetString(byteData, nPos, 21);
                             nPos += 21;
@@ -31916,6 +32090,9 @@ namespace OpenJigWare
                 public String strModelNum = String.Empty;               // 
                 public string strModelName = "";
 
+                // Json 때문에 새로 추가
+                public string strTitle = "";
+
                 public SAngle3D_t SInitAngle = new SAngle3D_t();        // The default angle facing the screen(Kor: 화면을 바라보는 기본 각도)
                 public SVector3D_t SInitPos = new SVector3D_t();        // The default position of the object present in the screen(Kor: 화면내에 존재하는 오브젝트의 기본 위치)
 
@@ -32053,11 +32230,11 @@ namespace OpenJigWare
                         pSMotorInfo[i].nGuide_Event = 0;
                         pSMotorInfo[i].nGuide_AxisType = 0;
                         pSMotorInfo[i].nGuide_RingColorType = 0;
-                        pSMotorInfo[i].fGuide_RingSize = 0;
-                        pSMotorInfo[i].fGuide_RingThick = 0;
+                        pSMotorInfo[i].fGuide_RingSize = 60;
+                        pSMotorInfo[i].fGuide_RingThick = 25;
                         pSMotorInfo[i].nGuide_RingDir = 1;
-                        pSMotorInfo[i].fGuide_3D_Scale = 0;
-                        pSMotorInfo[i].fGuide_3D_Alpha = 0;
+                        pSMotorInfo[i].fGuide_3D_Scale = 1.1f;
+                        pSMotorInfo[i].fGuide_3D_Alpha = 0.2f;
 
                         if (pSMotorInfo[i].afGuide_Pos == null)
                         {
@@ -32089,20 +32266,41 @@ namespace OpenJigWare
 
                     SJson.nQr = 0; // 1: Qr, 0: Ble
                     SJson.afScene_Position = new float[6] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-                    SJson.afCamera_Position = new float[6] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-                    SJson.afRobot_Position = new float[6] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-                    SJson.fRobot_Scale = 0.0f;
-                    SJson.cBackColor = Color.Black;
-                    SJson.cBackColor_Edit = Color.Black;
-                    SJson.cPlaneColor = Color.Black;
+                    SJson.afCamera_Position = new float[6] { 0.0f, 80.0f, 420.0f, 0.0f, 0.0f, 0.0f };
+                    SJson.afRobot_Position = new float[6] { 0.0f, 100.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+                    SJson.fRobot_Scale = 1.0f;
+                    SJson.cBackColor = Color.FromArgb(0xf2faff);
+                    SJson.cBackColor_Edit = Color.FromArgb(0xe2eaef);// Color.Black;
+                    SJson.cPlaneColor = Color.FromArgb(0x505070);// Color.Black;
                     SJson.IsWireFrame = false;
-                    SJson.strBleName = "";
+                    SJson.strBleName = "RB-100";
                     SJson.nAddress_Motion = 0x12170000;
                     SJson.nAddress_Control = 66;
                 }
             }
             #endregion Designer header class(COjwDesignerHeader)
 
+            public void GetInfo_Kinematics_Count(out int nForward_Count, out int nInverse_Count) { GetCount_Kinematics(out nForward_Count, out nInverse_Count); }
+            public int [] GetInfo_Forward_Numbers() { return GetForward_Numbers(); }
+            public int[] GetInfo_Inverse_Numbers() { return GetInverse_Numbers(); }
+            public int GetInfo_Forward_Count_Motors(int nIndex) { return GetHeader_pDhParamAll()[nIndex].GetMotors().Length; }
+            public int[] GetInfo_Forward_Motors(int nIndex) { return GetHeader_pDhParamAll()[nIndex].GetMotors(); }
+            public int GetInfo_Inverse_Count_Motors(int nIndex) { return m_CHeader.pSOjwCode[nIndex].nMotor_Max; }
+            public int[] GetInfo_Inverse_Motors(int nIndex) { return m_CHeader.pSOjwCode[nIndex].pnMotor_Number; }
+            public string[] GetInfo_Forward_Text_All(int nIndex_Forward) { return m_CHeader.pstrKinematics; }
+            public string GetInfo_Forward_Text(int nIndex_Forward) { return m_CHeader.pstrKinematics[nIndex_Forward]; }
+            public string[] GetInfo_Inverse_Text_All(int nIndex_Forward) { return m_CHeader.pstrInverseKinematics; }
+            public string GetInfo_Inverse_Text(int nIndex_Inverse) { return m_CHeader.pstrInverseKinematics[nIndex_Inverse]; }
+            public void GetInfo_Forward_Results(int nIndex_Forward, out string strX, out string strY, out string strZ, out string strX_Dir, out string strY_Dir, out string strZ_Dir)
+            {
+                string[] pstrRes = Ojw.CKinematics.CForward.Make_XYZString_By_Forward(GetInfo_Forward_Text(nIndex_Forward));
+                strX = pstrRes[0];
+                strY = pstrRes[1];
+                strZ = pstrRes[2];
+                strX_Dir = pstrRes[3];
+                strY_Dir = pstrRes[4];
+                strZ_Dir = pstrRes[5];
+            }
             public class COjwDisp
             {
                 // 실제 초기화는 InitData() 함수에서 구현
@@ -32220,7 +32418,12 @@ namespace OpenJigWare
                 public int nPickGroup_A;
                 public int nPickGroup_B;
                 public int nPickGroup_C;
+
+                public int nTextureStatus; // 상황 변수, 이게 1일때 로드하고 로드 후 시스템에서 0으로 만듬
+                public string strTexture; // 
+
                 public int nInverseKinematicsNumber;
+                public int nInverseKinematicsNumber_AfterCalc;
 
                 public float fScale_Serve0;
                 public float fScale_Serve1;
@@ -32232,8 +32435,15 @@ namespace OpenJigWare
 
                 public SOjwCode_t SCode;
 
+                //public void InitData()
+                //{   
+                //    InitData(null);
+                //}
+                //COjwDispAll m_CTestCDispAll;
+                //public void InitData(COjwDispAll CDisps)
                 public void InitData()
                 {
+                    //m_CTestCDispAll = CDisps;
                     SVector3D_t[] pSVector = new SVector3D_t[5];
                     SAngle3D_t[] pSAngle = new SAngle3D_t[5];
                     pSVector.Initialize();
@@ -32243,12 +32453,13 @@ namespace OpenJigWare
                     //tmpPoints.Add(new SVector3D_t(0, 0, 0));
                     //tmpPoints.Add(new SVector3D_t(10, 0, 0));
                     //SetData(-1, Color.White, 1.0f, "#0", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, 0, pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
-                    SetData(-1, Color.White, 1.0f, "#7", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, "", pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, 0.35f, 0.35f, 0, 0, "", tmpPoints);
+                    SetData(-1, Color.White, 1.0f, "#7", true, -1, false, 10, 10, 20, 4, 0, "", -1, 0, 0, "", pSVector[0], pSAngle[0], pSVector, pSAngle, 0, 0, 0, 255, -1, 0.35f, 0.35f, 0, 0, "", tmpPoints);
                     pSVector = null;
                     pSAngle = null;
 
                     Ojw.CKinematics.CInverse.Compile("", out SCode);
-
+                    int nGetCnt = 0;
+                    //if (CDisps != null) nGetCnt = CDisps.GetCount();
                     Points.Clear();
                 }
 
@@ -32258,7 +32469,7 @@ namespace OpenJigWare
                             OjwDispData.fThickness, OjwDispData.fGap, OjwDispData.strCaption,
                             OjwDispData.nAxisMoveType, OjwDispData.nDir, OjwDispData.fAngle, OjwDispData.strAngle_Offset,
                             OjwDispData.SOffset_Trans, OjwDispData.SOffset_Rot, OjwDispData.afTrans, OjwDispData.afRot,
-                            OjwDispData.nPickGroup_A, OjwDispData.nPickGroup_B, OjwDispData.nPickGroup_C, OjwDispData.nInverseKinematicsNumber,
+                            OjwDispData.nPickGroup_A, OjwDispData.nPickGroup_B, OjwDispData.nPickGroup_C, OjwDispData.nInverseKinematicsNumber, OjwDispData.nInverseKinematicsNumber_AfterCalc,
                             OjwDispData.fScale_Serve0, OjwDispData.fScale_Serve1,
                             OjwDispData.nMotorType, OjwDispData.nMotorControl_MousePoint,
                             OjwDispData.strPickGroup_Comment,
@@ -32269,7 +32480,7 @@ namespace OpenJigWare
                 public void SetData(int nAxisName, Color cColorData, float fAlphaData, String strDrawObject, bool bFill, float fMultiData, bool bInitialize, float fW, float fH, float fD, float fT, float fGapData, string strMessage,
                                     int nAxisData, int nDirData, float fAngleData, string strAngle_OffsetData,
                                     SVector3D_t SOffset_Translation, SAngle3D_t SOffset_Rotation, SVector3D_t[] afTranslation, SAngle3D_t[] afRotation,
-                                    int nObjectPickGroup_A, int nObjectPickGroup_B, int nObjectPickGroup_C, int nObjectPickGroup_InverseKinematics,
+                                    int nObjectPickGroup_A, int nObjectPickGroup_B, int nObjectPickGroup_C, int nObjectPickGroup_InverseKinematics, int nObjectPickGroup_InverseKinematics_AfterCalc,
                                     float fObjectScale_Serve0, float fObjectScale_Serve1,
                                     int nObjectMotorType, int nObjectMotorControl_MousePoint,
                                     String strObjectPickGroup_Comment,
@@ -32280,7 +32491,7 @@ namespace OpenJigWare
                     SetData(nAxisName, cColorData, fAlphaData, strDrawObject, bFill, fMultiData, bInitialize, fW, fH, fD, fT, fGapData, strMessage,
                                     nAxisData, nDirData, fAngleData, strAngle_OffsetData,
                                     SOffset_Translation, SOffset_Rotation, afTranslation, afRotation,
-                                    nObjectPickGroup_A, nObjectPickGroup_B, nObjectPickGroup_C, nObjectPickGroup_InverseKinematics,
+                                    nObjectPickGroup_A, nObjectPickGroup_B, nObjectPickGroup_C, nObjectPickGroup_InverseKinematics, nObjectPickGroup_InverseKinematics_AfterCalc,
                                     fObjectScale_Serve0, fObjectScale_Serve1,
                                     nObjectMotorType, nObjectMotorControl_MousePoint,
                                     strObjectPickGroup_Comment,
@@ -32291,7 +32502,7 @@ namespace OpenJigWare
                 public void SetData(int nAxisName, Color cColorData, float fAlphaData, String strDrawObject, bool bFill, float fMultiData, bool bInitialize, float fW, float fH, float fD, float fT, float fGapData, string strMessage,
                                     int nAxisData, int nDirData, float fAngleData, string strAngle_OffsetData,
                                     SVector3D_t SOffset_Translation, SAngle3D_t SOffset_Rotation, SVector3D_t[] afTranslation, SAngle3D_t[] afRotation,
-                                    int nObjectPickGroup_A, int nObjectPickGroup_B, int nObjectPickGroup_C, int nObjectPickGroup_InverseKinematics,
+                                    int nObjectPickGroup_A, int nObjectPickGroup_B, int nObjectPickGroup_C, int nObjectPickGroup_InverseKinematics, int nObjectPickGroup_InverseKinematics_AfterCalc,
                                     float fObjectScale_Serve0, float fObjectScale_Serve1,
                                     int nObjectMotorType, int nObjectMotorControl_MousePoint,
                                     String strObjectPickGroup_Comment,
@@ -32347,6 +32558,7 @@ namespace OpenJigWare
                     nPickGroup_B = nObjectPickGroup_B;
                     nPickGroup_C = nObjectPickGroup_C;
                     nInverseKinematicsNumber = nObjectPickGroup_InverseKinematics;
+                    nInverseKinematicsNumber_AfterCalc = nObjectPickGroup_InverseKinematics_AfterCalc;
                     fScale_Serve0 = fObjectScale_Serve0;
                     fScale_Serve1 = fObjectScale_Serve1;
                     strPickGroup_Comment = strObjectPickGroup_Comment;
@@ -32385,6 +32597,7 @@ namespace OpenJigWare
                 public void SetData_nPickGroup_B(int nValue) { nPickGroup_B = nValue; }
                 public void SetData_nPickGroup_C(int nValue) { nPickGroup_C = nValue; }
                 public void SetData_nInverseKinematicsNumber(int nValue) { nInverseKinematicsNumber = nValue; }
+                public void SetData_nInverseKinematicsNumber_AfterCalc(int nValue) { nInverseKinematicsNumber_AfterCalc = nValue; }
                 public void SetData_fScale_Serve0(float fValue) { fScale_Serve0 = fValue; }
                 public void SetData_fScale_Serve1(float fValue) { fScale_Serve1 = fValue; }
                 public void SetData_nMotorType(int nValue) { nMotorType = nValue; }
@@ -32420,6 +32633,7 @@ namespace OpenJigWare
                 public int GetData_nPickGroup_B() { return nPickGroup_B; }
                 public int GetData_nPickGroup_C() { return nPickGroup_C; }
                 public int GetData_nInverseKinematicsNumber() { return nInverseKinematicsNumber; }
+                public int GetData_nInverseKinematicsNumber_AfterCalc() { return nInverseKinematicsNumber_AfterCalc; }
                 public float GetData_fScale_Serve0() { return fScale_Serve0; }
                 public float GetData_fScale_Serve1() { return fScale_Serve1; }
                 public int GetData_nMotorType() { return nMotorType; }
@@ -32477,6 +32691,7 @@ namespace OpenJigWare
                     obj.nPickGroup_B = this.nPickGroup_B;
                     obj.nPickGroup_C = this.nPickGroup_C;
                     obj.nInverseKinematicsNumber = this.nInverseKinematicsNumber;
+                    obj.nInverseKinematicsNumber_AfterCalc = this.nInverseKinematicsNumber_AfterCalc;
                     obj.fScale_Serve0 = this.fScale_Serve0;
                     obj.fScale_Serve1 = this.fScale_Serve1;
                     obj.strPickGroup_Comment = (this.strPickGroup_Comment == null) ? "" : (String)this.strPickGroup_Comment.Clone();

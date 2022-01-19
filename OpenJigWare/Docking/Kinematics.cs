@@ -23,7 +23,7 @@ namespace OpenJigWare.Docking
             txtDHColor.Text = Ojw.CConvert.IntToStr(Color.Red.ToArgb());
             cmbDh.Items.Clear();
             for (int j = 0; j < 512; j++)
-            {                
+            {
                 cmbDh.Items.Add(j.ToString());
             }
             cmbDH_Test_Index.Items.Clear();
@@ -40,16 +40,16 @@ namespace OpenJigWare.Docking
             Ojw.CMonster2 CMon = new Ojw.CMonster2();
             //m_lstMotor_Key_for_dic.Clear();
             //m_lstMotor_Value_for_dic.Clear();
-            
-            foreach(KeyValuePair<int, string> Item in CMon.dicMonster)
+
+            foreach (KeyValuePair<int, string> Item in CMon.dicMonster)
             {
                 cmbMotorName.Items.Add(Item.Value);
                 //Ojw.printf("{0}\r\n", (string)Ojw.CConvert.Dictionary_GetKey((Dictionary<object, object>)CMon.dicMonster, (object)Item.Value));
             }
-            
+
             //m_C3d.Event_FileOpen.UserEvent -= new EventHandler(FileOpen);
             m_C3d.Event_FileOpen.UserEvent += new EventHandler(FileOpen);
-            
+
             InitTestDrawing();
 
             this.Left = frmDesigner.m_frm3D.Right;// +5;//Screen.AllScreens[0].Bounds.Right - this.Width;
@@ -113,7 +113,7 @@ namespace OpenJigWare.Docking
         {
             //if ((cmbDh.Focused == true) && (cmbDh.SelectedIndex >= 0))
             //{
-                if (cmbDh.SelectedIndex >= 0) cmbDhRefresh(cmbDh.SelectedIndex);
+            if (cmbDh.SelectedIndex >= 0) cmbDhRefresh(cmbDh.SelectedIndex);
             //}
         }
         private Ojw.C3d m_C3d { get { return frmDesigner.m_C3d; } set { frmDesigner.m_C3d = value; } }
@@ -149,7 +149,7 @@ namespace OpenJigWare.Docking
                 // Roll(x), Pitch(y), Yaw(z) 의 개념은 x 축이 전방을 향할때이므로 Z 축이 전방을 바라보는 오픈지그웨어와는 맞지 않는다. 그렇게 하지 않고 여기서는 Pan(도리각(도리도리)), Tilt(끄덕각), Swing(갸웃각)으로 정의
                 txtDH_Offset_Rot_Pan.Text = Ojw.CConvert.FloatToStr(m_C3d.GetHeader().pSOffset_Rot[nNum].x);
                 txtDH_Offset_Rot_Tilt.Text = Ojw.CConvert.FloatToStr(m_C3d.GetHeader().pSOffset_Rot[nNum].y);
-                txtDH_Offset_Rot_Swing.Text = Ojw.CConvert.FloatToStr(m_C3d.GetHeader().pSOffset_Rot[nNum].z); 
+                txtDH_Offset_Rot_Swing.Text = Ojw.CConvert.FloatToStr(m_C3d.GetHeader().pSOffset_Rot[nNum].z);
             }
 #endif
         }
@@ -169,7 +169,7 @@ namespace OpenJigWare.Docking
             {
                 int nNum = cmbDh.SelectedIndex;
                 m_C3d.GetHeader_pstrGroupName()[nNum] = txtDH_Caption.Text;
-            }            
+            }
         }
 
         private void cmbDH_Encryption_SelectedIndexChanged(object sender, EventArgs e)
@@ -330,7 +330,7 @@ namespace OpenJigWare.Docking
                 int nDir = 0;
                 int nInit = 0;
 
-                #region Items
+        #region Items
                 String[] pstrItems = strLine.Split(',');
                 int i = 0;
                 foreach (string strItem in pstrItems)
@@ -466,7 +466,7 @@ namespace OpenJigWare.Docking
                 //strDisp = GetHeader_strDrawModel();
 
             }
-            #region Skeleton
+        #region Skeleton
             StringBuilder sbResult = new StringBuilder();
 #if _USING_DOTNET_3_5
                 sbResult.Remove(0, sbResult.Length);
@@ -488,7 +488,7 @@ namespace OpenJigWare.Docking
                     nMotorNum = m_C3d.User_Get_AxisName();
                     sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
                 }
-                #region
+        #region
                 Ojw.C3d.COjwDisp CDisp = m_C3d.User_Get(i);
                 CDisp.SetData_Color(acColor[nGroupNum % acColor.Length]);
                 CDisp.SetData_nPickGroup_A(nGroupNum);
@@ -546,7 +546,7 @@ namespace OpenJigWare.Docking
             // 테스트 값 입력
             m_C3d.SetSize_Test(Ojw.CConvert.StrToFloat(txtDH_Test_BallSize.Text));
             m_C3d.SetPos_Test(fX, fY, fZ);
-            
+
 
             m_C3d.SetTestCircle(chkDH_Test_Show.Checked);
         }
@@ -703,12 +703,12 @@ namespace OpenJigWare.Docking
 
         private void txtDHSize_TextChanged(object sender, EventArgs e)
         {
-            m_C3d.SetTestDh_Size(Ojw.CConvert.StrToFloat(txtDHSize.Text)); 
+            m_C3d.SetTestDh_Size(Ojw.CConvert.StrToFloat(txtDHSize.Text));
         }
 
         private void txtDHColor_TextChanged(object sender, EventArgs e)
         {
-            m_C3d.SetTestDh_Color(Color.FromArgb(Ojw.CConvert.StrToInt(txtDHColor.Text)));    
+            m_C3d.SetTestDh_Color(Color.FromArgb(Ojw.CConvert.StrToInt(txtDHColor.Text)));
         }
 
         private void txtDH_Test_BallSize_TextChanged(object sender, EventArgs e)
@@ -828,18 +828,24 @@ namespace OpenJigWare.Docking
                 #region Items
                 String[] pstrItems = strLine.Split(',');
                 bool bModeling = false;
+                bool bCalc_After = false;
                 if (strLine.IndexOf('@') == 0)
                 {
                     bModeling = true;
                 }
+                else if (strLine.IndexOf('$') == 0)
+                {
+                    bCalc_After = true;
+                }
                 int i = 0;
                 string strAdd_Model = "#8";
+                string strOffset = "";
                 Color cAdd_Color = Color.White;
                 float fAdd_Alpha = 1.0f;
                 int nAdd_Type = 0;
                 int nAdd_Num = 255;
                 float[] fTrans = new float[3];
-                float[] fRot= new float[3];
+                float[] fRot = new float[3];
                 foreach (string strItem in pstrItems)
                 {
                     if (bModeling == true)
@@ -849,35 +855,54 @@ namespace OpenJigWare.Docking
                         {
                             switch (i)
                             {
-                                case  0: strAdd_Model = strItem.Substring(1); break;
-                                case  1: cAdd_Color = Color.FromArgb(Ojw.CConvert.StrToInt(strItem)); break;
-                                case  2: fAdd_Alpha = Ojw.CConvert.StrToFloat(strItem); break;
-                                case  3: nAdd_Type = Ojw.CConvert.StrToInt(strItem); break;
-                                case  4: nAdd_Num = Ojw.CConvert.StrToInt(strItem); break;
-                                case  5: fTrans[0] = Ojw.CConvert.StrToFloat(strItem); break;
-                                case  6: fTrans[1] = Ojw.CConvert.StrToFloat(strItem); break;
-                                case  7: fTrans[2] = Ojw.CConvert.StrToFloat(strItem); break;
-                                case  8: fRot[0] = Ojw.CConvert.StrToFloat(strItem); break;
-                                case  9: fRot[1] = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 0: strAdd_Model = strItem.Substring(1); break;
+                                case 1: cAdd_Color = Color.FromArgb(Ojw.CConvert.StrToInt(strItem)); break;
+                                case 2: fAdd_Alpha = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 3: nAdd_Type = Ojw.CConvert.StrToInt(strItem); break;
+                                case 4: nAdd_Num = Ojw.CConvert.StrToInt(strItem); break;
+                                case 5: fTrans[0] = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 6: fTrans[1] = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 7: fTrans[2] = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 8: fRot[0] = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 9: fRot[1] = Ojw.CConvert.StrToFloat(strItem); break;
                                 case 10: fRot[2] = Ojw.CConvert.StrToFloat(strItem); break;
+                                case 11: strOffset = strItem; break;
                             }
                         }
                         catch
                         {
                             switch (i)
                             {
-                                case  0: strAdd_Model = "#8";  break;
-                                case  1: cAdd_Color = Color.White; break;
-                                case  2: fAdd_Alpha = 1.0f; break;
-                                case  3: nAdd_Type = 0; break;
-                                case  4: nAdd_Num = 255; break;
-                                case  5: fTrans[0] = 0.0f; break;
-                                case  6: fTrans[1] = 0.0f; break;
-                                case  7: fTrans[2] = 0.0f; break;
-                                case  8: fRot[0] = 0.0f; break;
-                                case  9: fRot[1] = 0.0f; break;
+                                case 0: strAdd_Model = "#8"; break;
+                                case 1: cAdd_Color = Color.White; break;
+                                case 2: fAdd_Alpha = 1.0f; break;
+                                case 3: nAdd_Type = 0; break;
+                                case 4: nAdd_Num = 255; break;
+                                case 5: fTrans[0] = 0.0f; break;
+                                case 6: fTrans[1] = 0.0f; break;
+                                case 7: fTrans[2] = 0.0f; break;
+                                case 8: fRot[0] = 0.0f; break;
+                                case 9: fRot[1] = 0.0f; break;
                                 case 10: fRot[2] = 0.0f; break;
                             }
+                        }
+                    }
+                    else if (bCalc_After == true)
+                    {
+                        // [model,color,alpha,type,Num,x,y,z,pan,tilt,swing]
+                        try
+                        {
+                            if (i == 0)
+                            {
+
+                            }
+                            else
+                            {
+                            }
+                        }
+                        catch
+                        {
+
                         }
                     }
                     else
@@ -936,7 +961,9 @@ namespace OpenJigWare.Docking
                     m_C3d.User_Set_Model(strAdd_Model);
                     m_C3d.User_Set_Color(cAdd_Color);
                     m_C3d.User_Set_Alpha(fAdd_Alpha);
-                    
+
+                    m_C3d.User_Set_Angle_Offset(strOffset);
+
                     //m_C3d.User_Set_nPickGroup_A(nStartGroupNumber);
                     if (nAdd_Type == 0)
                     {
@@ -954,7 +981,7 @@ namespace OpenJigWare.Docking
                     }
                     //m_C3d.User_Set_nPickGroup_A(nAdd_Num);
 
-                    
+
                     m_C3d.User_Set_Offset_Translation(fTrans[0], fTrans[1], fTrans[2]);
                     m_C3d.User_Set_Offset_Rotation(fRot[0], fRot[1], fRot[2]);
 
@@ -1045,7 +1072,7 @@ namespace OpenJigWare.Docking
                 //}
                 //else
                 //{
-                    m_C3d.User_Set_Model(strModel_Ball);
+                m_C3d.User_Set_Model(strModel_Ball);
                 //}
                 m_C3d.User_Set_Color(cColor);
 #if false // end position
@@ -1092,7 +1119,7 @@ namespace OpenJigWare.Docking
                     nGroupNum++;
 
                     nMotorNum = m_C3d.User_Get_AxisName();
-                    sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));                    
+                    sbResult.Append(String.Format("// Group = {0}, Motor = {1} //////////////////////////\r\n", nGroupNum, nMotorNum));
                 }
 #else
                 #region EndPosition                
@@ -1128,14 +1155,14 @@ namespace OpenJigWare.Docking
                         CDisp.SetData_nPickGroup_B(nMotorNum);
                     }
                 }
-                else                    
+                else
                 {
                     CDisp.SetData_nPickGroup_A(nGroupNum);
                     CDisp.SetData_nPickGroup_B(nMotorNum);
                     //CDisp.User_Set_nInverseKinematicsNumber(nAdd_Num);
                 }
                 //if (m_C3d.User_Get_Model()
-                
+
 
                 //if (bEnd == true)
                 //{
@@ -1371,17 +1398,17 @@ namespace OpenJigWare.Docking
         {
             if (txtAdd_StlFile.Text.IndexOf(".stl") > 0)
             {
-                if (txtDh.Lines.Length > 0) 
+                if (txtDh.Lines.Length > 0)
                 {
                     List<String> lstStrDh = new List<String>();
                     lstStrDh.Clear();
                     lstStrDh.AddRange(txtDh.Lines);
                     //[model,color,alpha,type,Num],[x,y,z],[pan,tilt,swing]
-                    lstStrDh.Add(string.Format("@[{0},{1},{2}],[{3},{4}],[{5},{6},{7}],[{8},{9},{10}]", 
-                        Ojw.CFile.GetName(txtAdd_StlFile.Text), txtAdd_Color.Text, txtAdd_Alpha.Text, 
+                    lstStrDh.Add(string.Format("@[{0},{1},{2}],[{3},{4}],[{5},{6},{7}],[{8},{9},{10}]",
+                        Ojw.CFile.GetName(txtAdd_StlFile.Text), txtAdd_Color.Text, txtAdd_Alpha.Text,
                         cmbAdd_Motor.SelectedIndex, txtAdd_Motor.Text,
                         txtAdd_X.Text, txtAdd_Y.Text, txtAdd_Z.Text,
-                        txtAdd_Pan.Text, txtAdd_Tilt.Text, txtAdd_Swing.Text ));
+                        txtAdd_Pan.Text, txtAdd_Tilt.Text, txtAdd_Swing.Text));
                     txtDh.Clear();
                     for (int i = 0; i < lstStrDh.Count; i++)
                     {
@@ -1407,7 +1434,7 @@ namespace OpenJigWare.Docking
         {
             OjwDrawItem(m_IsMotors, sender, e);
         }
-        private void OjwDrawItem(bool [] IsChecked, object sender, DrawItemEventArgs e)
+        private void OjwDrawItem(bool[] IsChecked, object sender, DrawItemEventArgs e)
         {
             if ((((ListBox)sender).Items.Count > 0) && (IsChecked.Length > 0))
             {
@@ -1432,7 +1459,7 @@ namespace OpenJigWare.Docking
 
                 // Determine the color of the brush to draw each item based 
                 // on the index of the item to draw.
-                
+
                 if (IsChecked[e.Index] == true) myBrush = Brushes.Red;
                 else myBrush = Brushes.DarkGray;
 
@@ -1464,18 +1491,18 @@ namespace OpenJigWare.Docking
 
             Array.Clear(m_IsMotors, 0, m_IsMotors.Length);
 
-            for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++)
+            /*for (int i = 0; i < m_C3d.m_CHeader.nMotorCnt; i++)
             {
                 int nAxis = m_C3d.m_CHeader.anMotorIDs[i];
                 if ((m_C3d.m_CHeader.pSMotorInfo[nAxis].nMotor_Enable < 0) || (m_C3d.m_CHeader.pSMotorInfo[nAxis].nMotor_Enable > 1)) continue;
                 int nID = m_C3d.m_CHeader.pSMotorInfo[nAxis].nMotionEditor_Index;
                 m_IsMotors[nID] = true;
                 DisplayIndex(nID);
-            }
+            }*/
 
             string strDraw = frmDesigner.m_C3d.GetHeader_strDrawModel();// m_frmDraw.rtxtDraw.Text;
             m_C3d.CompileDesign(strDraw, out nCount, out anMotors, out strError);
-            
+
             for (int i = 0; i < nCount; i++)
             {
                 int nID = anMotors[i];
@@ -1485,7 +1512,7 @@ namespace OpenJigWare.Docking
                     //m_C3d.m_lstMotors.Add(nID);
                     //m_C3d.m_CHeader.pSMotorInfo[nID].nMotor_Enable = 0; // 0: Dontcare, 1: Enable, -1: Disable => 이게 Disable 이면 모터 표시를 죽인다.
                     DisplayIndex(nID);
-                }                
+                }
             }
             lstboxMotorIndex.Refresh();
         }
@@ -1502,7 +1529,7 @@ namespace OpenJigWare.Docking
             bool bRet = ((m_IsMotors[nItemIndex] == false) ? true : false);
             if (nItemIndex >= 0) m_IsMotors[nItemIndex] = bRet;
 
-            
+
         }
 
         private void Axis_Select(int nIndex)
@@ -1539,14 +1566,14 @@ namespace OpenJigWare.Docking
                 nTmp = m_C3d.m_CHeader.pSMotorInfo[nIndex].nHwMotor_Index;
                 cmbMotorName.SelectedIndex = (nTmp < 0) ? 2 : nTmp;
                 m_C3d.m_CHeader.pSMotorInfo[nIndex].nHwMotor_Key = m_C3d.m_CMonster.DicMotor_Key(cmbMotorName.SelectedIndex);
-                
+
                 nTmp = m_C3d.m_CHeader.pSMotorInfo[nIndex].nProtocolVersion;
                 cmbAxis_ProtocolVersion.SelectedIndex = (nTmp < 0) ? 2 : nTmp;
 
                 txtAxis_Reserve_Int_2.Text = Ojw.CConvert.IntToStr(m_C3d.m_CHeader.pSMotorInfo[nIndex].nMotionEditor_Index);
 
                 cmbAxis_IsHighSpecMotor.SelectedIndex = m_C3d.m_CHeader.pSMotorInfo[nIndex].nMotor_HightSpec;
-                
+
                 txtAxis_Reserve_Int_4.Text = Ojw.CConvert.IntToStr(m_C3d.m_CHeader.pSMotorInfo[nIndex].nReserve_4);
                 txtAxis_Reserve_Int_5.Text = Ojw.CConvert.IntToStr(m_C3d.m_CHeader.pSMotorInfo[nIndex].nReserve_5);
                 txtAxis_Reserve_Int_6.Text = Ojw.CConvert.IntToStr(m_C3d.m_CHeader.pSMotorInfo[nIndex].nReserve_6);
@@ -1892,9 +1919,9 @@ namespace OpenJigWare.Docking
 
         private void lstboxMotorIndex_Click(object sender, EventArgs e)
         {
-           
+
         }
-        
+
         private void tabControl2_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (tabControl2.SelectedIndex == 1)
@@ -1944,14 +1971,14 @@ namespace OpenJigWare.Docking
             int nIndex = (lstboxMotorIndex.SelectedIndex < 0) ? 0 : lstboxMotorIndex.SelectedIndex;
             m_C3d.m_CHeader.pSMotorInfo[nIndex].nHwMotor_Index = nSelectedIndex;
             m_C3d.m_CHeader.pSMotorInfo[nIndex].nHwMotor_Key = m_C3d.m_CMonster.DicMotor_Key(nSelectedIndex);
-            
+
             DisplayIndex(nIndex);
-            
+
             Ojw.CMonster2 CMon = new Ojw.CMonster2();
             float fCenter, fMechMove, fMechAngle, fJointRpm;
             int nProtocolVer;
             CMon.GetParam_by_HwNum(m_C3d.m_CHeader.pSMotorInfo[nIndex].nHwMotor_Key, out fCenter, out fMechMove, out fMechAngle, out fJointRpm, out nProtocolVer);
-            
+
             txtAxis_Mech_Center.Text = Ojw.CConvert.FloatToStr(fCenter);
             txtAxis_Mech_Move.Text = Ojw.CConvert.FloatToStr(fMechMove);
             txtAxis_Mech_Angle.Text = Ojw.CConvert.FloatToStr(fMechAngle);
@@ -1999,7 +2026,7 @@ namespace OpenJigWare.Docking
             m_C3d.m_CHeader.pSMotorInfo[nIndex].fGuide_RingThick = Ojw.CConvert.StrToFloat(((TextBox)sender).Text);
             //DisplayIndex(nIndex);
         }
-        
+
         private void txtGuide_3D_Scale_TextChanged(object sender, EventArgs e)
         {
             int nIndex = (lstboxMotorIndex.SelectedIndex < 0) ? 0 : lstboxMotorIndex.SelectedIndex;
@@ -2075,7 +2102,7 @@ namespace OpenJigWare.Docking
             m_C3d.m_CHeader.strComment = txtModelNumber.Text;
         }
 
-        
+
         private void cmbGroup_SelectedIndexChanged(object sender, EventArgs e)
         {
             Show_Group(cmbGroup.SelectedIndex);
@@ -2096,28 +2123,28 @@ namespace OpenJigWare.Docking
             txtRobotName.Text = m_C3d.m_CHeader.strModelName;
             txtModelNumber.Text = m_C3d.m_CHeader.strModelNum = Ojw.CConvert.IntToStr(m_C3d.m_CHeader.nModelNum);
             txtJson_Qr.Text = String.Format("{0}", m_C3d.m_CHeader.SJson.nQr);
-            txtJson_Scene.Text = String.Format("{0},{1},{2},{3},{4},{5}", 
-                m_C3d.m_CHeader.SJson.afScene_Position[0], 
-                m_C3d.m_CHeader.SJson.afScene_Position[1], 
-                m_C3d.m_CHeader.SJson.afScene_Position[2], 
-                m_C3d.m_CHeader.SJson.afScene_Position[3], 
-                m_C3d.m_CHeader.SJson.afScene_Position[4], 
+            txtJson_Scene.Text = String.Format("{0},{1},{2},{3},{4},{5}",
+                m_C3d.m_CHeader.SJson.afScene_Position[0],
+                m_C3d.m_CHeader.SJson.afScene_Position[1],
+                m_C3d.m_CHeader.SJson.afScene_Position[2],
+                m_C3d.m_CHeader.SJson.afScene_Position[3],
+                m_C3d.m_CHeader.SJson.afScene_Position[4],
                 m_C3d.m_CHeader.SJson.afScene_Position[5]
                 );
-            txtJson_Camera.Text = String.Format("{0},{1},{2},{3},{4},{5}", 
-                m_C3d.m_CHeader.SJson.afCamera_Position[0], 
-                m_C3d.m_CHeader.SJson.afCamera_Position[1], 
-                m_C3d.m_CHeader.SJson.afCamera_Position[2], 
-                m_C3d.m_CHeader.SJson.afCamera_Position[3], 
-                m_C3d.m_CHeader.SJson.afCamera_Position[4], 
+            txtJson_Camera.Text = String.Format("{0},{1},{2},{3},{4},{5}",
+                m_C3d.m_CHeader.SJson.afCamera_Position[0],
+                m_C3d.m_CHeader.SJson.afCamera_Position[1],
+                m_C3d.m_CHeader.SJson.afCamera_Position[2],
+                m_C3d.m_CHeader.SJson.afCamera_Position[3],
+                m_C3d.m_CHeader.SJson.afCamera_Position[4],
                 m_C3d.m_CHeader.SJson.afCamera_Position[5]
                 );
-            txtJson_Robot.Text = String.Format("{0},{1},{2},{3},{4},{5}", 
-                m_C3d.m_CHeader.SJson.afRobot_Position[0], 
-                m_C3d.m_CHeader.SJson.afRobot_Position[1], 
-                m_C3d.m_CHeader.SJson.afRobot_Position[2], 
-                m_C3d.m_CHeader.SJson.afRobot_Position[3], 
-                m_C3d.m_CHeader.SJson.afRobot_Position[4], 
+            txtJson_Robot.Text = String.Format("{0},{1},{2},{3},{4},{5}",
+                m_C3d.m_CHeader.SJson.afRobot_Position[0],
+                m_C3d.m_CHeader.SJson.afRobot_Position[1],
+                m_C3d.m_CHeader.SJson.afRobot_Position[2],
+                m_C3d.m_CHeader.SJson.afRobot_Position[3],
+                m_C3d.m_CHeader.SJson.afRobot_Position[4],
                 m_C3d.m_CHeader.SJson.afRobot_Position[5]
                 );
             txtJson_Robot_Scale.Text = String.Format("{0}", m_C3d.m_CHeader.SJson.fRobot_Scale);
@@ -2332,6 +2359,11 @@ namespace OpenJigWare.Docking
             if (str.IndexOf("0x") >= 0) nVal = Ojw.CConvert.HexStrToInt(str);
             else nVal = Ojw.CConvert.StrToInt(str);
             m_C3d.m_CHeader.SJson.nAddress_Control = nVal;
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

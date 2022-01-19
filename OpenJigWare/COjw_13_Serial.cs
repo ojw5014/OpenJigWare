@@ -7,6 +7,7 @@ using System.Text;
 using System.Drawing;
 using System.IO.Ports;
 using System.Threading;
+using System.Management;
 
 namespace OpenJigWare
 {
@@ -14,6 +15,11 @@ namespace OpenJigWare
     {
         public class CSerial//:SerialPort
         {
+            public struct SPortInfo_t
+            {
+                public string strDescription;
+                public int nPort;
+            }
             public CSerial()
             {
             }
@@ -25,6 +31,48 @@ namespace OpenJigWare
                     DisConnect();
             }
             public static string [] GetPortNames() { return SerialPort.GetPortNames(); }
+
+            // https://social.msdn.microsoft.com/Forums/windows/en-US/c236cac4-a954-4a70-882d-bc20e2cc6e81/getting-more-information-about-a-serial-port-in-c?forum=winformsdesigner
+            public static SPortInfo_t[] GetPortNames_In_Detail(params string[] pstrFilter)
+            {
+                ManagementClass processClass = new ManagementClass("Win32_PnPEntity");
+                ManagementObjectCollection Ports = processClass.GetInstances();
+                string device = "No recognized";
+                List<SPortInfo_t> lstStrRes = new List<SPortInfo_t>();
+                foreach (ManagementObject property in Ports)
+                {
+                    if (property.GetPropertyValue("Name") != null)
+                    {
+                        if (property.GetPropertyValue("Name").ToString().Contains("COM"))
+                        {
+                            int nPass = 0;
+                            if (pstrFilter.Length <= 0) nPass = 1;
+                            else { for (int i = 0; i < pstrFilter.Length; i++) { if (property.GetPropertyValue("Name").ToString().Contains(pstrFilter[i])) nPass++; } } 
+
+                            if (nPass > 0)
+                            {
+                                SPortInfo_t SPort = new SPortInfo_t();
+                                string str = property.GetPropertyValue("Name").ToString().ToUpper();
+                                int nIndex = str.LastIndexOf("COM");
+                                str = str.Substring(nIndex + 3);
+                                str = str.Substring(0, str.Length - 1);
+                                SPort.strDescription = property.GetPropertyValue("Name").ToString();
+                                SPort.nPort = CConvert.StrToInt(str);
+                                lstStrRes.Add(SPort);
+                            }
+                        }
+                    }
+                }
+                if (lstStrRes.Count > 0) return lstStrRes.ToArray();
+                return null;
+            }
+
+
+
+
+
+
+
 
             SerialPort m_SerialPort = new SerialPort();
             private Thread Reader;             // reading thread

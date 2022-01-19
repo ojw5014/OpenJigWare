@@ -66,10 +66,19 @@ namespace OpenJigWare
 
                     string[] pstrResult = strResult.Split('\n');
                     string strRes = String.Empty;
+                    int nIndex;
+                    bool bRet = true;
                     for (int k = 0; k < 3; k++)
                     {
+                        nIndex = k + pstrResult.Length - 3 - 1 - 3;
+                        if ((nIndex < 0) || (nIndex >= pstrResult.Length))
+                        {
+                            strRes += "\r\n";
+                            bRet = false;
+                            continue;
+                        }
                         // 뒤의 3개는 설명이라 그것 마저 제하면 -7 이 된다.
-                        string strDatas = Ojw.CConvert.RemoveChar(pstrResult[k + pstrResult.Length - 3 - 1 - 3], '\r');
+                        string strDatas = Ojw.CConvert.RemoveChar(pstrResult[nIndex], '\r');
                         string[] pstrDatas = strDatas.Split(' ');
                         int nPass = 0;
                         foreach (string strItem in pstrDatas)
@@ -133,7 +142,8 @@ namespace OpenJigWare
                     {
                         if (pstrRes[i].Length > 0)
                         {
-                            lstRes.Add(pstrRes[i]);
+                            if (bRet == true) lstRes.Add(pstrRes[i]);
+                            else lstRes.Add("");
                         }
                     }
                     return lstRes.ToArray();
@@ -397,7 +407,6 @@ namespace OpenJigWare
                     return true;
 #endif
                 }
-
 
                 private static int m_nLimit_FunctionNumber = -1;
                 private static int m_nLimit_Axis = -1;
@@ -908,6 +917,15 @@ namespace OpenJigWare
                                             CDhParam.nFunctionNumber = nAdd_Number;
                                         }
                                         else CDhParam.nFunctionNumber = -1;
+                                    } 
+                                    else if (nAdd_Type == 3) // 0: None, 1: Click Motor, 2: Click Function, 3: Calc Function(After Calc)
+                                    {
+                                        nAdd_Number = CConvert.StrToInt(strItem);
+                                        if ((nAdd_Number >= 0) && (nAdd_Number != 255))
+                                        {
+                                            CDhParam.nFunctionNumber_AfterCalc = nAdd_Number;
+                                        }
+                                        else CDhParam.nFunctionNumber_AfterCalc = -1;
                                     }
                                 }
                                 nNum++;
@@ -1006,6 +1024,10 @@ namespace OpenJigWare
                                 pnDir = null;
                                 continue;
                             }
+
+                            if (strData.Length > 0)
+                                if (strData[0] == '!') 
+                                    break;// !인 경우부터는 계산식에 넣지 않는다.
 
                             // real interpreter(Kor: 실제 해석)
                             bRet2 = StringLine_To_Class_DHParam(strData, out pCDhParam[nPos]);

@@ -18,6 +18,80 @@ namespace OpenJigWare.Docking
 
         private void frmDrawText_Load(object sender, EventArgs e)
         {
+            btnGet_Click(sender, e);
+
+            txtP0_0.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP0_1.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP0_2.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP0_3.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP1_0.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP1_1.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP1_2.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtP1_3.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            
+            txtD0_0.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtD0_1.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtD0_2.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtD1_0.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtD1_1.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+            txtD1_2.MouseWheel +=new MouseEventHandler(txtP0_0_MouseWheel);
+
+            txtAmb0_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb0_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb0_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb0_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb1_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb1_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb1_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb1_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb2_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb2_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb2_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtAmb2_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+
+            txtDif0_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif0_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif0_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif0_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif1_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif1_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif1_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif1_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif2_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif2_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif2_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtDif2_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+
+            txtSpe0_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe0_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe0_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe0_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe1_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe1_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe1_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe1_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe2_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe2_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe2_2.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpe2_3.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+
+            txtSpot_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtSpot_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtExp_0.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtExp_1.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+            txtShin.MouseWheel += new MouseEventHandler(txtP0_0_MouseWheel);
+        }
+        private void txtP0_0_MouseWheel(object sender, MouseEventArgs e)
+        {
+            float fDelta = 0.1f;
+            float fData = (e.Delta > 0) ? -fDelta : fDelta;
+
+            if (m_nMouse > 0)
+            {
+                //((TextBox)sender).ReadOnly = true;
+                m_fVal += fData;
+                ((TextBox)sender).Text = Ojw.CConvert.FloatToStr(m_fVal, 1);
+            }
 
         }
         private Ojw.C3d m_C3d { get { return frmDesigner.m_C3d; } set { frmDesigner.m_C3d = value; } }
@@ -148,17 +222,21 @@ namespace OpenJigWare.Docking
 
         private void txtP0_0_TextChanged(object sender, EventArgs e)
         {
+            SetLight_Sync();
+        }
+        private void SetLight_Sync()
+        {
             if (m_nStatus > 0)
             {
-                m_C3d.m_light0_position[0] = Ojw.CConvert.StrToFloat(txtP0_0.Text);
-                m_C3d.m_light0_position[1] = Ojw.CConvert.StrToFloat(txtP0_1.Text);
-                m_C3d.m_light0_position[2] = Ojw.CConvert.StrToFloat(txtP0_2.Text);
-                m_C3d.m_light0_position[3] = Ojw.CConvert.StrToFloat(txtP0_3.Text);
+                //m_C3d.m_light0_position[0] = Ojw.CConvert.StrToFloat(txtP0_0.Text);
+                //m_C3d.m_light0_position[1] = Ojw.CConvert.StrToFloat(txtP0_1.Text);
+                //m_C3d.m_light0_position[2] = Ojw.CConvert.StrToFloat(txtP0_2.Text);
+                //m_C3d.m_light0_position[3] = Ojw.CConvert.StrToFloat(txtP0_3.Text);
 
-                m_C3d.m_light1_position[0] = Ojw.CConvert.StrToFloat(txtP1_0.Text);
-                m_C3d.m_light1_position[1] = Ojw.CConvert.StrToFloat(txtP1_1.Text);
-                m_C3d.m_light1_position[2] = Ojw.CConvert.StrToFloat(txtP1_2.Text);
-                m_C3d.m_light1_position[3] = Ojw.CConvert.StrToFloat(txtP1_3.Text);
+                //m_C3d.m_light1_position[0] = Ojw.CConvert.StrToFloat(txtP1_0.Text);
+                //m_C3d.m_light1_position[1] = Ojw.CConvert.StrToFloat(txtP1_1.Text);
+                //m_C3d.m_light1_position[2] = Ojw.CConvert.StrToFloat(txtP1_2.Text);
+                //m_C3d.m_light1_position[3] = Ojw.CConvert.StrToFloat(txtP1_3.Text);
 
 
 
@@ -219,36 +297,36 @@ namespace OpenJigWare.Docking
             m_C3d.m_light0_position[2] = Ojw.CConvert.StrToFloat(txtP0_2.Text);
             m_C3d.m_light0_position[3] = Ojw.CConvert.StrToFloat(txtP0_3.Text);
         }*/
+        private int m_nMouse = 0;
+        private int m_nMouse_X = 0;
+        private int m_nMouse_Y = 0;
+        private float m_fVal = 0.0f;
         private void txtP0_0_MouseDown(object sender, MouseEventArgs e)
         {
-
+            m_fVal = Ojw.CConvert.StrToFloat(((TextBox)sender).Text);
+            m_nMouse_X = e.X;
+            m_nMouse_Y = e.Y;
+            m_nMouse = 1;
         }
 
         private void txtP0_0_MouseMove(object sender, MouseEventArgs e)
         {
-
+            if (m_nMouse > 0)
+            {
+                //((TextBox)sender).ReadOnly = true;
+                //float fVal = Ojw.CConvert.StrToFloat(((TextBox)sender).Text);
+                //int nX = m_nMouse_X - e.X;
+                //int nY = m_nMouse_Y - e.Y;
+                //if (nX > 2) m_fVal -= 0.1f;
+                //else if (nX > -2) m_fVal += 0.1f;
+                //((TextBox)sender).Text = Ojw.CConvert.FloatToStr(m_fVal,1);
+            }
         }
 
         private void txtP0_0_MouseUp(object sender, MouseEventArgs e)
         {
-
-        }
-
-        private void txtD0_0_TextChanged(object sender, EventArgs e)
-        {
-            if (m_nStatus > 0)
-            {
-                
-
-
-
-
-
-
-
-
-
-            }
+            m_nMouse = 0;
+            //((TextBox)sender).ReadOnly = false;
         }
     }
 }

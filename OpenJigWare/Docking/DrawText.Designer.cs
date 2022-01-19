@@ -142,6 +142,8 @@
             this.txtP0_1.Size = new System.Drawing.Size(72, 25);
             this.txtP0_1.TabIndex = 2;
             this.txtP0_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP0_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP0_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtP0_2
             // 
@@ -150,6 +152,8 @@
             this.txtP0_2.Size = new System.Drawing.Size(72, 25);
             this.txtP0_2.TabIndex = 2;
             this.txtP0_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP0_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP0_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtP0_3
             // 
@@ -158,6 +162,8 @@
             this.txtP0_3.Size = new System.Drawing.Size(72, 25);
             this.txtP0_3.TabIndex = 2;
             this.txtP0_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP0_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP0_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // label2
             // 
@@ -175,6 +181,8 @@
             this.txtP1_0.Size = new System.Drawing.Size(72, 25);
             this.txtP1_0.TabIndex = 2;
             this.txtP1_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP1_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP1_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtP1_1
             // 
@@ -183,6 +191,8 @@
             this.txtP1_1.Size = new System.Drawing.Size(72, 25);
             this.txtP1_1.TabIndex = 2;
             this.txtP1_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP1_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP1_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtP1_2
             // 
@@ -191,6 +201,8 @@
             this.txtP1_2.Size = new System.Drawing.Size(72, 25);
             this.txtP1_2.TabIndex = 2;
             this.txtP1_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP1_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP1_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtP1_3
             // 
@@ -199,6 +211,8 @@
             this.txtP1_3.Size = new System.Drawing.Size(72, 25);
             this.txtP1_3.TabIndex = 2;
             this.txtP1_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtP1_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtP1_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // label3
             // 
@@ -216,6 +230,8 @@
             this.txtD0_0.Size = new System.Drawing.Size(72, 25);
             this.txtD0_0.TabIndex = 2;
             this.txtD0_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtD0_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtD0_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // label4
             // 
@@ -233,6 +249,8 @@
             this.txtD1_0.Size = new System.Drawing.Size(72, 25);
             this.txtD1_0.TabIndex = 2;
             this.txtD1_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtD1_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtD1_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtD0_1
             // 
@@ -241,6 +259,8 @@
             this.txtD0_1.Size = new System.Drawing.Size(72, 25);
             this.txtD0_1.TabIndex = 2;
             this.txtD0_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtD0_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtD0_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtD1_1
             // 
@@ -249,6 +269,8 @@
             this.txtD1_1.Size = new System.Drawing.Size(72, 25);
             this.txtD1_1.TabIndex = 2;
             this.txtD1_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtD1_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtD1_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtD0_2
             // 
@@ -257,6 +279,8 @@
             this.txtD0_2.Size = new System.Drawing.Size(72, 25);
             this.txtD0_2.TabIndex = 2;
             this.txtD0_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtD0_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtD0_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtD1_2
             // 
@@ -265,6 +289,8 @@
             this.txtD1_2.Size = new System.Drawing.Size(72, 25);
             this.txtD1_2.TabIndex = 2;
             this.txtD1_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtD1_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtD1_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // btnGet
             // 
@@ -279,7 +305,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(195, 624);
+            this.label5.Location = new System.Drawing.Point(272, 624);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(93, 15);
             this.label5.TabIndex = 5;
@@ -288,7 +314,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(33, 617);
+            this.label6.Location = new System.Drawing.Point(74, 617);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(61, 15);
             this.label6.TabIndex = 4;
@@ -297,7 +323,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(33, 661);
+            this.label7.Location = new System.Drawing.Point(66, 661);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(69, 15);
             this.label7.TabIndex = 4;
@@ -306,7 +332,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(187, 661);
+            this.label8.Location = new System.Drawing.Point(264, 661);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(101, 15);
             this.label8.TabIndex = 5;
@@ -324,7 +350,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(618, 510);
+            this.label10.Location = new System.Drawing.Point(611, 510);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(100, 15);
             this.label10.TabIndex = 5;
@@ -333,7 +359,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(624, 548);
+            this.label11.Location = new System.Drawing.Point(630, 548);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(81, 15);
             this.label11.TabIndex = 5;
@@ -351,7 +377,7 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(616, 626);
+            this.label13.Location = new System.Drawing.Point(603, 626);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(108, 15);
             this.label13.TabIndex = 5;
@@ -378,7 +404,7 @@
             // label16
             // 
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(593, 762);
+            this.label16.Location = new System.Drawing.Point(599, 762);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(112, 15);
             this.label16.TabIndex = 5;
@@ -396,7 +422,7 @@
             // label18
             // 
             this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(41, 732);
+            this.label18.Location = new System.Drawing.Point(27, 732);
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(108, 15);
             this.label18.TabIndex = 5;
@@ -404,27 +430,33 @@
             // 
             // txtSpot_0
             // 
-            this.txtSpot_0.Location = new System.Drawing.Point(100, 614);
+            this.txtSpot_0.Location = new System.Drawing.Point(162, 614);
             this.txtSpot_0.Name = "txtSpot_0";
             this.txtSpot_0.Size = new System.Drawing.Size(48, 25);
             this.txtSpot_0.TabIndex = 6;
             this.txtSpot_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpot_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpot_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtExp_0
             // 
-            this.txtExp_0.Location = new System.Drawing.Point(287, 617);
+            this.txtExp_0.Location = new System.Drawing.Point(396, 617);
             this.txtExp_0.Name = "txtExp_0";
             this.txtExp_0.Size = new System.Drawing.Size(48, 25);
             this.txtExp_0.TabIndex = 6;
             this.txtExp_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtExp_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtExp_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpot_1
             // 
-            this.txtSpot_1.Location = new System.Drawing.Point(108, 658);
+            this.txtSpot_1.Location = new System.Drawing.Point(162, 658);
             this.txtSpot_1.Name = "txtSpot_1";
             this.txtSpot_1.Size = new System.Drawing.Size(48, 25);
             this.txtSpot_1.TabIndex = 6;
             this.txtSpot_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpot_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpot_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb0_0
             // 
@@ -433,6 +465,8 @@
             this.txtAmb0_0.Size = new System.Drawing.Size(48, 25);
             this.txtAmb0_0.TabIndex = 6;
             this.txtAmb0_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb0_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb0_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb0_1
             // 
@@ -441,22 +475,28 @@
             this.txtAmb0_1.Size = new System.Drawing.Size(48, 25);
             this.txtAmb0_1.TabIndex = 6;
             this.txtAmb0_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb0_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb0_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb0_2
             // 
-            this.txtAmb0_2.Location = new System.Drawing.Point(825, 476);
+            this.txtAmb0_2.Location = new System.Drawing.Point(825, 479);
             this.txtAmb0_2.Name = "txtAmb0_2";
             this.txtAmb0_2.Size = new System.Drawing.Size(48, 25);
             this.txtAmb0_2.TabIndex = 6;
             this.txtAmb0_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb0_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb0_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb0_3
             // 
-            this.txtAmb0_3.Location = new System.Drawing.Point(879, 476);
+            this.txtAmb0_3.Location = new System.Drawing.Point(879, 479);
             this.txtAmb0_3.Name = "txtAmb0_3";
             this.txtAmb0_3.Size = new System.Drawing.Size(48, 25);
             this.txtAmb0_3.TabIndex = 6;
             this.txtAmb0_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb0_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb0_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif0_0
             // 
@@ -465,6 +505,8 @@
             this.txtDif0_0.Size = new System.Drawing.Size(48, 25);
             this.txtDif0_0.TabIndex = 6;
             this.txtDif0_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif0_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif0_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif0_1
             // 
@@ -473,22 +515,28 @@
             this.txtDif0_1.Size = new System.Drawing.Size(48, 25);
             this.txtDif0_1.TabIndex = 6;
             this.txtDif0_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif0_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif0_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif0_2
             // 
-            this.txtDif0_2.Location = new System.Drawing.Point(825, 507);
+            this.txtDif0_2.Location = new System.Drawing.Point(825, 510);
             this.txtDif0_2.Name = "txtDif0_2";
             this.txtDif0_2.Size = new System.Drawing.Size(48, 25);
             this.txtDif0_2.TabIndex = 6;
             this.txtDif0_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif0_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif0_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif0_3
             // 
-            this.txtDif0_3.Location = new System.Drawing.Point(879, 507);
+            this.txtDif0_3.Location = new System.Drawing.Point(879, 510);
             this.txtDif0_3.Name = "txtDif0_3";
             this.txtDif0_3.Size = new System.Drawing.Size(48, 25);
             this.txtDif0_3.TabIndex = 6;
             this.txtDif0_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif0_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif0_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe0_0
             // 
@@ -497,6 +545,8 @@
             this.txtSpe0_0.Size = new System.Drawing.Size(48, 25);
             this.txtSpe0_0.TabIndex = 6;
             this.txtSpe0_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe0_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe0_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe0_1
             // 
@@ -505,22 +555,28 @@
             this.txtSpe0_1.Size = new System.Drawing.Size(48, 25);
             this.txtSpe0_1.TabIndex = 6;
             this.txtSpe0_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe0_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe0_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe0_2
             // 
-            this.txtSpe0_2.Location = new System.Drawing.Point(825, 538);
+            this.txtSpe0_2.Location = new System.Drawing.Point(825, 541);
             this.txtSpe0_2.Name = "txtSpe0_2";
             this.txtSpe0_2.Size = new System.Drawing.Size(48, 25);
             this.txtSpe0_2.TabIndex = 6;
             this.txtSpe0_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe0_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe0_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe0_3
             // 
-            this.txtSpe0_3.Location = new System.Drawing.Point(879, 538);
+            this.txtSpe0_3.Location = new System.Drawing.Point(879, 541);
             this.txtSpe0_3.Name = "txtSpe0_3";
             this.txtSpe0_3.Size = new System.Drawing.Size(48, 25);
             this.txtSpe0_3.TabIndex = 6;
             this.txtSpe0_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe0_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe0_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb1_0
             // 
@@ -529,6 +585,8 @@
             this.txtAmb1_0.Size = new System.Drawing.Size(48, 25);
             this.txtAmb1_0.TabIndex = 6;
             this.txtAmb1_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb1_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb1_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif1_0
             // 
@@ -537,6 +595,8 @@
             this.txtDif1_0.Size = new System.Drawing.Size(48, 25);
             this.txtDif1_0.TabIndex = 6;
             this.txtDif1_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif1_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif1_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe1_0
             // 
@@ -545,6 +605,8 @@
             this.txtSpe1_0.Size = new System.Drawing.Size(48, 25);
             this.txtSpe1_0.TabIndex = 6;
             this.txtSpe1_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe1_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe1_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb1_1
             // 
@@ -553,6 +615,8 @@
             this.txtAmb1_1.Size = new System.Drawing.Size(48, 25);
             this.txtAmb1_1.TabIndex = 6;
             this.txtAmb1_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb1_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb1_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif1_1
             // 
@@ -561,6 +625,8 @@
             this.txtDif1_1.Size = new System.Drawing.Size(48, 25);
             this.txtDif1_1.TabIndex = 6;
             this.txtDif1_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif1_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif1_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe1_1
             // 
@@ -569,54 +635,68 @@
             this.txtSpe1_1.Size = new System.Drawing.Size(48, 25);
             this.txtSpe1_1.TabIndex = 6;
             this.txtSpe1_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe1_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe1_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb1_2
             // 
-            this.txtAmb1_2.Location = new System.Drawing.Point(825, 589);
+            this.txtAmb1_2.Location = new System.Drawing.Point(825, 592);
             this.txtAmb1_2.Name = "txtAmb1_2";
             this.txtAmb1_2.Size = new System.Drawing.Size(48, 25);
             this.txtAmb1_2.TabIndex = 6;
             this.txtAmb1_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb1_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb1_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif1_2
             // 
-            this.txtDif1_2.Location = new System.Drawing.Point(825, 620);
+            this.txtDif1_2.Location = new System.Drawing.Point(825, 623);
             this.txtDif1_2.Name = "txtDif1_2";
             this.txtDif1_2.Size = new System.Drawing.Size(48, 25);
             this.txtDif1_2.TabIndex = 6;
             this.txtDif1_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif1_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif1_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe1_2
             // 
-            this.txtSpe1_2.Location = new System.Drawing.Point(825, 651);
+            this.txtSpe1_2.Location = new System.Drawing.Point(825, 654);
             this.txtSpe1_2.Name = "txtSpe1_2";
             this.txtSpe1_2.Size = new System.Drawing.Size(48, 25);
             this.txtSpe1_2.TabIndex = 6;
             this.txtSpe1_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe1_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe1_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb1_3
             // 
-            this.txtAmb1_3.Location = new System.Drawing.Point(879, 589);
+            this.txtAmb1_3.Location = new System.Drawing.Point(879, 592);
             this.txtAmb1_3.Name = "txtAmb1_3";
             this.txtAmb1_3.Size = new System.Drawing.Size(48, 25);
             this.txtAmb1_3.TabIndex = 6;
             this.txtAmb1_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb1_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb1_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif1_3
             // 
-            this.txtDif1_3.Location = new System.Drawing.Point(879, 620);
+            this.txtDif1_3.Location = new System.Drawing.Point(879, 623);
             this.txtDif1_3.Name = "txtDif1_3";
             this.txtDif1_3.Size = new System.Drawing.Size(48, 25);
             this.txtDif1_3.TabIndex = 6;
             this.txtDif1_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif1_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif1_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe1_3
             // 
-            this.txtSpe1_3.Location = new System.Drawing.Point(879, 651);
+            this.txtSpe1_3.Location = new System.Drawing.Point(879, 654);
             this.txtSpe1_3.Name = "txtSpe1_3";
             this.txtSpe1_3.Size = new System.Drawing.Size(48, 25);
             this.txtSpe1_3.TabIndex = 6;
             this.txtSpe1_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe1_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe1_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif2_0
             // 
@@ -625,14 +705,18 @@
             this.txtDif2_0.Size = new System.Drawing.Size(48, 25);
             this.txtDif2_0.TabIndex = 6;
             this.txtDif2_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif2_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif2_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe2_0
             // 
-            this.txtSpe2_0.Location = new System.Drawing.Point(717, 761);
+            this.txtSpe2_0.Location = new System.Drawing.Point(717, 757);
             this.txtSpe2_0.Name = "txtSpe2_0";
             this.txtSpe2_0.Size = new System.Drawing.Size(48, 25);
             this.txtSpe2_0.TabIndex = 6;
             this.txtSpe2_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe2_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe2_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb2_0
             // 
@@ -641,6 +725,8 @@
             this.txtAmb2_0.Size = new System.Drawing.Size(48, 25);
             this.txtAmb2_0.TabIndex = 6;
             this.txtAmb2_0.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb2_0.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb2_0.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif2_1
             // 
@@ -649,14 +735,18 @@
             this.txtDif2_1.Size = new System.Drawing.Size(48, 25);
             this.txtDif2_1.TabIndex = 6;
             this.txtDif2_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif2_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif2_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe2_1
             // 
-            this.txtSpe2_1.Location = new System.Drawing.Point(771, 761);
+            this.txtSpe2_1.Location = new System.Drawing.Point(771, 757);
             this.txtSpe2_1.Name = "txtSpe2_1";
             this.txtSpe2_1.Size = new System.Drawing.Size(48, 25);
             this.txtSpe2_1.TabIndex = 6;
             this.txtSpe2_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe2_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe2_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb2_1
             // 
@@ -665,70 +755,88 @@
             this.txtAmb2_1.Size = new System.Drawing.Size(48, 25);
             this.txtAmb2_1.TabIndex = 6;
             this.txtAmb2_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb2_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb2_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif2_2
             // 
-            this.txtDif2_2.Location = new System.Drawing.Point(825, 725);
+            this.txtDif2_2.Location = new System.Drawing.Point(825, 728);
             this.txtDif2_2.Name = "txtDif2_2";
             this.txtDif2_2.Size = new System.Drawing.Size(48, 25);
             this.txtDif2_2.TabIndex = 6;
             this.txtDif2_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif2_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif2_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe2_2
             // 
-            this.txtSpe2_2.Location = new System.Drawing.Point(825, 758);
+            this.txtSpe2_2.Location = new System.Drawing.Point(825, 757);
             this.txtSpe2_2.Name = "txtSpe2_2";
             this.txtSpe2_2.Size = new System.Drawing.Size(48, 25);
             this.txtSpe2_2.TabIndex = 6;
             this.txtSpe2_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe2_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe2_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb2_2
             // 
-            this.txtAmb2_2.Location = new System.Drawing.Point(825, 697);
+            this.txtAmb2_2.Location = new System.Drawing.Point(825, 700);
             this.txtAmb2_2.Name = "txtAmb2_2";
             this.txtAmb2_2.Size = new System.Drawing.Size(48, 25);
             this.txtAmb2_2.TabIndex = 6;
             this.txtAmb2_2.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb2_2.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb2_2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtDif2_3
             // 
-            this.txtDif2_3.Location = new System.Drawing.Point(879, 725);
+            this.txtDif2_3.Location = new System.Drawing.Point(879, 728);
             this.txtDif2_3.Name = "txtDif2_3";
             this.txtDif2_3.Size = new System.Drawing.Size(48, 25);
             this.txtDif2_3.TabIndex = 6;
             this.txtDif2_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtDif2_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtDif2_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtSpe2_3
             // 
-            this.txtSpe2_3.Location = new System.Drawing.Point(879, 758);
+            this.txtSpe2_3.Location = new System.Drawing.Point(879, 757);
             this.txtSpe2_3.Name = "txtSpe2_3";
             this.txtSpe2_3.Size = new System.Drawing.Size(48, 25);
             this.txtSpe2_3.TabIndex = 6;
             this.txtSpe2_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtSpe2_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtSpe2_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtAmb2_3
             // 
-            this.txtAmb2_3.Location = new System.Drawing.Point(879, 697);
+            this.txtAmb2_3.Location = new System.Drawing.Point(879, 700);
             this.txtAmb2_3.Name = "txtAmb2_3";
             this.txtAmb2_3.Size = new System.Drawing.Size(48, 25);
             this.txtAmb2_3.TabIndex = 6;
             this.txtAmb2_3.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtAmb2_3.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtAmb2_3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtExp_1
             // 
-            this.txtExp_1.Location = new System.Drawing.Point(287, 658);
+            this.txtExp_1.Location = new System.Drawing.Point(396, 658);
             this.txtExp_1.Name = "txtExp_1";
             this.txtExp_1.Size = new System.Drawing.Size(48, 25);
             this.txtExp_1.TabIndex = 6;
             this.txtExp_1.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtExp_1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtExp_1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // txtShin
             // 
-            this.txtShin.Location = new System.Drawing.Point(152, 729);
+            this.txtShin.Location = new System.Drawing.Point(162, 729);
             this.txtShin.Name = "txtShin";
             this.txtShin.Size = new System.Drawing.Size(48, 25);
             this.txtShin.TabIndex = 6;
             this.txtShin.TextChanged += new System.EventHandler(this.txtP0_0_TextChanged);
+            this.txtShin.MouseDown += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseDown);
+            this.txtShin.MouseUp += new System.Windows.Forms.MouseEventHandler(this.txtP0_0_MouseUp);
             // 
             // frmDrawText
             // 

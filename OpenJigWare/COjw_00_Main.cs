@@ -140,6 +140,9 @@ namespace OpenJigWare
     {
         public const string strVersion = "02.01.02";
         public const string strHistory = (String)(
+                "[V02.01.03]\r\n" +
+                "  COjw_12_3D.cs -> MakeAll() 추가" + "\r\n" +
+                "========================================\r\n" + // Release  
                 "[V02.01.02]\r\n" +
                 "  Raspberrypi Sock 기능 추가" + "\r\n" +
                 "========================================\r\n" + // Release  
@@ -619,7 +622,10 @@ namespace OpenJigWare
             strCaption = "";
 
             nFunctionNumber = -1;
+            nFunctionNumber_AfterCalc = -1; // 모든 수식계산이 끝나고 이 수식이 0이 아니면 한번 더 수식 계산을 진행한다.
             nAxisNum2 = -1;
+
+            lstEndpoint.Clear();
         }
 
         //public int nFunction;
@@ -637,27 +643,29 @@ namespace OpenJigWare
         public double dOffset_Y;
         public double dOffset_Z;
 
-        public int nFunctionNumber; // -1 이 기본, 수식번호, 0보다 작거나 255면 사용 안함,
+        public List<int> lstEndpoint = new List<int>();
 
+        public int nFunctionNumber; // -1 이 기본, 수식번호, 0보다 작거나 255면 사용 안함,
+        public int nFunctionNumber_AfterCalc; // -1 이 기본, 수식번호, 0보다 작거나 255면 사용 안함,
         public string strCaption;
         public void InitData()
         {
             // SetData(-1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, "");
-            SetData(0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, "", -1);
+            SetData(0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, "", -1, -1);
         }
         public void SetData(CDhParam OjwDhParam)
         {
             //SetData(OjwDhParam.nFunction, OjwDhParam.nInit, OjwDhParam.dA, OjwDhParam.dD, OjwDhParam.dTheta, OjwDhParam.dAlpha, OjwDhParam.nAxisNum, OjwDhParam.nAxisDir, OjwDhParam.nStartGroup, OjwDhParam.dOffset_X, OjwDhParam.dOffset_Y, OjwDhParam.dOffset_Z, OjwDhParam.strCaption);
-            SetData(OjwDhParam.nInit, OjwDhParam.dA, OjwDhParam.dD, OjwDhParam.dTheta, OjwDhParam.dAlpha, OjwDhParam.nAxisNum, OjwDhParam.nAxisDir, OjwDhParam.nStartGroup, OjwDhParam.dOffset_X, OjwDhParam.dOffset_Y, OjwDhParam.dOffset_Z, OjwDhParam.strCaption, OjwDhParam.nFunctionNumber);
+            SetData(OjwDhParam.nInit, OjwDhParam.dA, OjwDhParam.dD, OjwDhParam.dTheta, OjwDhParam.dAlpha, OjwDhParam.nAxisNum, OjwDhParam.nAxisDir, OjwDhParam.nStartGroup, OjwDhParam.dOffset_X, OjwDhParam.dOffset_Y, OjwDhParam.dOffset_Z, OjwDhParam.strCaption, OjwDhParam.nFunctionNumber, OjwDhParam.nFunctionNumber_AfterCalc, OjwDhParam.lstEndpoint);
         }
         //public void SetData(int nDh_FunctionNumber, int nDh_Init, double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, int nDh_StartGroup, double dDh_Offset_X, double dDh_Offset_Y, double dDh_Offset_Z, string strDh_Caption)
 #if true        
         public void SetData(int nDh_Init, double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, int nDh_StartGroup, double dDh_Offset_X, double dDh_Offset_Y, double dDh_Offset_Z, string strDh_Caption)
         {
-            SetData(nDh_Init, dDh_a, dDh_d, dDh_theta, dDh_alpha, nDh_AxisNum, nDh_AxisDir, nDh_StartGroup, dDh_Offset_X, dDh_Offset_Y, dDh_Offset_Z, strDh_Caption, -1);
+            SetData(nDh_Init, dDh_a, dDh_d, dDh_theta, dDh_alpha, nDh_AxisNum, nDh_AxisDir, nDh_StartGroup, dDh_Offset_X, dDh_Offset_Y, dDh_Offset_Z, strDh_Caption, -1, -1);
         }
 #endif
-        public void SetData(int nDh_Init, double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, int nDh_StartGroup, double dDh_Offset_X, double dDh_Offset_Y, double dDh_Offset_Z, string strDh_Caption, int nDh_FunctionNumber)
+        public void SetData(int nDh_Init, double dDh_a, double dDh_d, double dDh_theta, double dDh_alpha, int nDh_AxisNum, int nDh_AxisDir, int nDh_StartGroup, double dDh_Offset_X, double dDh_Offset_Y, double dDh_Offset_Z, string strDh_Caption, int nDh_FunctionNumber = -1, int nDh_FunctionNumber_AfterCalc = -1, List<int> lstDh_Endpoint = null)
         {
             //nFunction = nDh_FunctionNumber;
             nInit = nDh_Init;
@@ -673,6 +681,8 @@ namespace OpenJigWare
             dOffset_Z = dDh_Offset_Z;
             strCaption = strDh_Caption;
             nFunctionNumber = nDh_FunctionNumber;
+            nFunctionNumber_AfterCalc = nDh_FunctionNumber_AfterCalc;
+            lstEndpoint = lstDh_Endpoint;
         }
     }
     public class CDhParamAll
@@ -684,6 +694,7 @@ namespace OpenJigWare
             m_pnDir[2] = 0;
             lstIDs.Clear();
             lstFunctions.Clear();
+            //lstFunctions_AfterCalc.Clear();
         }
         private CDhParam[] pSDhParam;
         public int GetCount() { return (pSDhParam == null) ? 0 : pSDhParam.Length; }
@@ -693,10 +704,13 @@ namespace OpenJigWare
 
         private List<int> lstIDs = new List<int>();
         private List<int> lstFunctions = new List<int>();
+        //private List<int> lstFunctions_AfterCalc = new List<int>();
         public int[] GetMotors() { return lstIDs.ToArray(); }
         public int GetMotors_Count() { return lstIDs.Count; }
         public int[] GetFunctions() { return lstFunctions.ToArray(); }
         public int GetFunctions_Count() { return lstFunctions.Count; }
+        //public int[] GetFunctions_AfterCalc() { return lstFunctions_AfterCalc.ToArray(); }
+        //public int GetFunctions_Count_AfterCalc() { return lstFunctions_AfterCalc.Count; }
 
         private int[] m_pnDir = new int[3];
         public void SetAxis_XYZ(int nX, int nX_Dir, int nY, int nY_Dir, int nZ, int nZ_Dir) // Define Motor Axis Number(Default 0, 1, 2)
@@ -734,6 +748,9 @@ namespace OpenJigWare
             int nNumNew = OjwDhParam.nFunctionNumber;
             if (nNumNew == 255) nNumNew = -1;
 
+            int nNumOld_AfterCalc = pSDhParam[nIndex].nFunctionNumber_AfterCalc;
+            int nNumNew_AfterCalc = OjwDhParam.nFunctionNumber_AfterCalc;
+
             if (nNumOld >= 0)
             {
                 if (nNumNew >= 0)
@@ -743,12 +760,14 @@ namespace OpenJigWare
                         if (lstFunctions.IndexOf(nNumNew) < 0)
                         {
                             lstFunctions.Add(nNumNew);
+                            //lstFunctions_AfterCalc.Add(nNumNew_AfterCalc);
                         }
                     }
                 }
                 else
                 {
                     lstFunctions.Remove(nNumOld);
+                    //lstFunctions_AfterCalc.Remove(nNumOld_AfterCalc);
                 }
             }
             else
@@ -758,6 +777,7 @@ namespace OpenJigWare
                     if (lstFunctions.IndexOf(nNumNew) < 0)
                     {
                         lstFunctions.Add(nNumNew);
+                        //lstFunctions_AfterCalc.Add(nNumNew_AfterCalc);
                     }
                 }
             }
@@ -808,11 +828,13 @@ namespace OpenJigWare
             }
 
             int nNum = pSDhParam[nCnt - 1].nFunctionNumber;
+            int nNum_AfterCalc = pSDhParam[nCnt - 1].nFunctionNumber_AfterCalc;
             if ((nNum >= 0) && (nNum != 255))
             {
                 if (lstFunctions.IndexOf(nNum) < 0)
                 {
                     lstFunctions.Add(nNum);
+                    //lstFunctions_AfterCalc.Add(nNum_AfterCalc);
                 }
             }
 
@@ -828,6 +850,7 @@ namespace OpenJigWare
                 Array.Resize(ref pSDhParam, 0);
                 lstIDs.Clear();
                 lstFunctions.Clear();
+                //lstFunctions_AfterCalc.Clear();
             }
         }
     }

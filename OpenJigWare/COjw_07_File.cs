@@ -765,6 +765,25 @@ namespace OpenJigWare
                     return false;
                 }
             }
+            public static string[] GetFileNames(string strExe = "", string strPath = "", bool bRemovePathString = true)
+            {
+                List<String> lst = new List<string>();
+                bool bExe = (strExe.Length > 0) ? true : false;
+                if (strPath.Length == 0) strPath = Application.StartupPath;
+                DirectoryInfo dir = new DirectoryInfo(strPath);
+                if (dir.Exists)
+                {                    
+                    FileInfo[] filesSrc = dir.GetFiles();
+                    foreach (FileInfo file in filesSrc)
+                    {
+                        if (bExe) { if (file.Extension.Substring(1) != strExe) continue; }
+
+                        if (bRemovePathString) lst.Add(GetName(file.FullName));
+                        else lst.Add(file.FullName);
+                    }
+                }
+                return lst.ToArray();
+            }
             public static bool CompareDirectory_List(string strSrc, string strDst, bool bSubDirs, bool bAddStatusString, ref List<string> lstSrc, ref List<string> lstDst)
             {
                 if ((lstSrc == null) || (lstDst == null)) return false;

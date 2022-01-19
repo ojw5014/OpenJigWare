@@ -24,7 +24,24 @@ namespace OpenJigWare
                 if (IsOpen()) Close();
                 
             }
-
+            //public void SetParam(Ojw.C3d COjw3d)
+            //{
+            //    m_C3d = COjw3d;
+            //    for (int i = 0; i < 256; i++)
+            //    {
+            //        SetParam(i, ((m_C3d.m_CHeader.pSMotorInfo[i].nMotorDir == 0) ? false : true)
+            //            //, m_C3d.m_CHeader.pSMotorInfo[i].fGearRatio
+            //            //, false
+            //            );
+            //    }
+            //}
+            public void SetParam(SMotorInfo_t [] aSParams)
+            {
+                for (int i = 0; i < aSParams.Length; i++)
+                {
+                    SetParam(aSParams[i].nMotorID, ((aSParams[i].nMotorDir == 0) ? false : true), ((aSParams[i].fGearRatio == 0) ? 1.0f : aSParams[i].fGearRatio), ((aSParams[i].nMotor_HightSpec == 0) ? false : true));
+                }
+            }
             public void SetParam(int nID, bool bDirReverse = false, float fMulti = 1.0f, bool bHigh = false)
             {
                 m_aCParam[nID].SetParam(bHigh);
@@ -39,6 +56,10 @@ namespace OpenJigWare
             public class CParam_t
             {
                 public bool m_bModel_High = false;
+                //public int m_nSet_Operation_Address = 11;
+                //public int m_nSet_Operation_Size = 1;
+                //public int m_nSet_GoalCurrent_Address = 11;
+                //public int m_nSet_Operation_Size = 1;
                 public int m_nSet_Torq_Address = 64;
                 public int m_nSet_Torq_Size = 1;
                 public int m_nSet_Led_Address = 65;
@@ -127,10 +148,10 @@ namespace OpenJigWare
                 }
             }
             public CParam_t[] m_aCParam = new CParam_t[256];
-
+            
             #region Open / Close / IsOpen
             private Ojw.CSocket m_CSock_Client = new CSocket();
-            private Ojw.CSerial m_CSerial = new CSerial();
+            public Ojw.CSerial m_CSerial = new CSerial();
             public bool IsOpen() { return (m_CSerial.IsConnect() || m_CSock_Client.IsConnect()) ? true : false; }
             public bool Open(int nPort, string strAddress)
             {
@@ -203,6 +224,148 @@ namespace OpenJigWare
             //    public byte[] buffer = new byte[_SIZE_QUE_LENGTH];
             //}
             //private List<SQueByte_t> m_alstQue = new List<SQueByte_t>();
+#if true
+            private void ThreadServer()
+            {
+                try
+                {
+                    for (int i = 0; i < _SIZE_QUE; i++)
+                    {
+                        for (int j = 0; j < _SIZE_QUE_LENGTH; j++)
+                        {
+                            m_abyteQue[i, j] = 0;
+                        }
+                    }
+                    bool bShake = false;
+                    Ojw.printf("ThreadServer()\r\n");
+                    m_CServer.WaitClient(true);
+                    Ojw.printf("ThreadServer() - Started\r\n");
+                    while (m_CServer.sock_started() == true)
+                    {
+                        if (m_CServer.isClientConnected() == false)
+                        {
+                            Ojw.printf("소켓연결 끊어짐\r\n");
+                            m_CServer.WaitClient(true);
+                        }
+                        byte[] buffer = m_CServer.request_bytes();
+                        if (buffer != null)
+                        {
+                            string str = Encoding.UTF8.GetString(buffer);
+                            printf("{0}\r\n", str);
+                        }
+                        //m_CServer.sleep(1);
+
+
+
+                        int nBufferSize = m_CServer.GetBuffer_Length();
+                        if (nBufferSize > 0) // 무언가 데이타가 들어왔다면
+                        {
+                            //Ojw.Log("데이타 들어옴");
+                            byte[] pbyData = m_CServer.sock_get_bytes(nBufferSize);
+
+                            if (IsSocket_BypassMode() == true)
+                            {
+                                SendPacket(pbyData, pbyData.Length);
+                            }
+                            else
+                            {
+                                bool bStart = false;
+                                bool bContinue = false;
+                                //int nSize = 0;
+                                int nSize2 = m_abyteQue[m_nQue_Index_Next, 0] + m_abyteQue[m_nQue_Index_Next, 1] * 256;
+                                if (nSize2 < 0) nSize2 = 0;
+                                else if (nSize2 > _SIZE_QUE_LENGTH) nSize2 = _SIZE_QUE_LENGTH;
+                                if (m_bWebSocket == true)
+                                {
+                                    string str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
+                                    for (int i = 0; i < str.Length; i++)
+                                    {
+                                        if (str[i] == '!')
+                                        {
+                                            bStart = true;
+                                            nSize2 = 0;
+                                            bContinue = false;
+                                        }
+                                        else if (str[i] == ';')
+                                        {
+                                            bStart = false;
+                                            bContinue = true;
+                                            m_abyteQue[m_nQue_Index_Next, 0] = (byte)(nSize2 & 0xff);
+                                            m_abyteQue[m_nQue_Index_Next, 1] = (byte)((nSize2 >> 8) & 0xff);
+                                            m_nQue_Index = m_nQue_Index_Next;
+                                            m_nQue_Index_Next++;
+                                            m_nQue_Count++;
+                                        }
+                                        else
+                                        {
+                                            m_abyteQue[m_nQue_Index_Next, 2 + nSize2++] = (byte)str[i];
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    for (int i = 0; i < nBufferSize; i++)
+                                    {
+                                        if (pbyData[i] == 0x02)
+                                        {
+                                            bStart = true;
+                                            nSize2 = 0;
+                                            bContinue = false;
+                                        }
+                                        else if (pbyData[i] == 0x03)
+                                        {
+                                            bStart = false;
+                                            bContinue = true;
+                                            m_abyteQue[m_nQue_Index_Next, 0] = (byte)(nSize2 & 0xff);
+                                            m_abyteQue[m_nQue_Index_Next, 1] = (byte)((nSize2 >> 8) & 0xff);
+                                            m_nQue_Index = m_nQue_Index_Next;
+                                            m_nQue_Index_Next++;
+                                            m_nQue_Count++;
+                                        }
+                                        else
+                                        {
+                                            m_abyteQue[m_nQue_Index_Next, 2 + nSize2++] = pbyData[i];
+                                        }
+                                    }
+                                }
+                                if (m_nQue_Index_Next >= _SIZE_QUE)
+                                {
+                                    m_nQue_Index_Next = 0;
+                                }
+                                if (m_nQue_Count > _SIZE_QUE)
+                                {
+                                    m_nQue_Count = _SIZE_QUE;
+                                }
+                            }
+                        }
+                        if (m_nQue_Count > 0)
+                        {
+                            int nLen = m_abyteQue[m_nQue_Index, 0] + m_abyteQue[m_nQue_Index, 1] * 256;
+                            string str = String.Empty;
+                            byte[] pbyData = new byte[nLen];
+                            //Array.Copy(m_abyteQue[m_nQue_Index], 2, pbyData, 0, nLen);
+                            for (int i = 0; i < nLen; i++)
+                            {
+                                pbyData[i] = (m_abyteQue[m_nQue_Index, 2 + i]);
+                            }
+                            str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
+                            //char str[nLen + 1];
+                            //memset(str, 0, sizeof(char) * (nLen + 1));
+                            //memcpy(str, &m_abyteQue[m_nQue_Index,2], sizeof(char) * nLen);
+
+                            PlayFrameString(str, true);
+                            m_nQue_Count--;
+                        }
+                        //Thread.Sleep(10);
+                        Thread.Sleep(1);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Ojw.printf_Error(e.ToString());
+                }
+            }
+#else
             private void ThreadServer()
             {
                 try
@@ -398,9 +561,23 @@ namespace OpenJigWare
                     + eol);
                 return response;
             }
+#endif
 
+            //Ojw.C3d m_C3d = new C3d();
+            
+            //public bool Open(Ojw.C3d COjw3d, int nIndex=0)
+            //{
+            //    m_C3d = COjw3d;
+            //    m_CSerial = m_C3d.m_CMonster.GetSerial(nIndex);
 
-
+            //    bool bConnected = m_CSerial.IsConnect();
+            //    if (bConnected == false)
+            //    {
+            //        return true;
+            //    }
+            //    Ojw.CMessage.Write_Error("Cannot Connect [Open_Serial(m_C3d.m_CMonster)]");
+            //    return false;
+            //}
             public bool Open(int nPort, int nBaudRate)
             {
                 bool bConnected = m_CSerial.IsConnect();
@@ -717,12 +894,20 @@ namespace OpenJigWare
             {
                 if (IsOpen() == false) return;
 
+                bool bWheel = false;
                 if (buff.Length > 1)
                 {
-                    if ((buff[1] == '1') || (buff[1] == '2')) // Enable
+                    if (
+                        ((buff[1] == '1') || (buff[1] == '2')) // Enable
+                        ||
+                        ((buff[1] == '3') || (buff[1] == '4')) // Enable
+                    )
                     {
                         bool bAngle = false;
+                        bool bWheel_Rpm = false;
+                        if ((buff[1] == '3') || (buff[1] == '4')) bWheel = true;
                         if (buff[1] == '2') bAngle = true;
+                        if (buff[1] == '4') bWheel_Rpm = true;
                         
                         string[] pstr = buff.Split(',');
 
@@ -737,21 +922,30 @@ namespace OpenJigWare
                             if (pstrDatas.Length > 1)
                             {
                                 int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
-
-                                if (bAngle)
+                                
+                                float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
+                                if ((bAngle) || (bWheel_Rpm))
                                 {
-                                    float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
-                                    Command_Set(nID, fEvd);
+                                    if (bWheel_Rpm) Command_Set_Rpm(nID, fEvd);
+                                    else Command_Set(nID, fEvd);
                                 }
                                 else
                                 {
                                     int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
-                                    Command_Set(nID, (float)Math.Round(CalcEvd2Angle(nID, nEvd)));
+                                    if (bWheel) Command_Set(nID, CalcRaw2Rpm(nID, nEvd));
+                                    else Command_Set(nID, (float)Math.Round(CalcEvd2Angle(nID, nEvd)));
                                 }
                             }
                         }
-                        if (bNoWait == false) Move(nTime, nDelay);
-                        else Move_NoWait(nTime, nDelay);
+                        if (bWheel)
+                        {
+                            SetSpeed();   
+                        }
+                        else
+                        {
+                            if (bNoWait == false) Move(nTime, nDelay);
+                            else Move_NoWait(nTime, nDelay);
+                        }
                     }
                 }
             }
@@ -925,11 +1119,12 @@ namespace OpenJigWare
                     {
                         for (int i = 0; i < CCmd.Length; i++)
                         {
+                            float fMul = m_aCParam[CCmd[i].nID].m_fMulti * ((m_aCParam[CCmd[i].nID].m_bDirReverse == false) ? 1 : -1);
                             if (m_aCParam[CCmd[0].nID].m_nSet_Speed_Address != m_aCParam[CCmd[i].nID].m_nSet_Speed_Address)
                             {
-                                lstSecond.Add(new CCommand_t(CCmd[i].nID, CCmd[i].fVal));
+                                lstSecond.Add(new CCommand_t(CCmd[i].nID, CCmd[i].fVal * fMul));
                             }
-                            else Sync_Push_Dword(CCmd[i].nID, (int)Math.Round(CCmd[i].fVal));
+                            else Sync_Push_Dword(CCmd[i].nID, (int)Math.Round(CCmd[i].fVal * fMul));
                         }
                         Sync_Flush(m_aCParam[CCmd[0].nID].m_nSet_Speed_Address);
                     }
