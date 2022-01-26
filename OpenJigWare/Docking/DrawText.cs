@@ -287,6 +287,55 @@ namespace OpenJigWare.Docking
                 m_C3d.m_fExponent2 = Ojw.CConvert.StrToFloat(txtExp_1.Text);
 
                 m_C3d.m_mat_shiness[0] = Ojw.CConvert.StrToFloat(txtShin.Text);
+
+
+
+
+                m_C3d.m_ambient[0] = Ojw.CConvert.StrToFloat(txtAmb0_0.Text);
+                m_C3d.m_ambient[1] = Ojw.CConvert.StrToFloat(txtAmb0_1.Text);
+                m_C3d.m_ambient[2] = Ojw.CConvert.StrToFloat(txtAmb0_2.Text);
+                m_C3d.m_ambient[3] = Ojw.CConvert.StrToFloat(txtAmb0_3.Text);
+
+                m_C3d.m_ambient2[0] = Ojw.CConvert.StrToFloat(txtAmb1_0.Text);
+                m_C3d.m_ambient2[1] = Ojw.CConvert.StrToFloat(txtAmb1_1.Text);
+                m_C3d.m_ambient2[2] = Ojw.CConvert.StrToFloat(txtAmb1_2.Text);
+                m_C3d.m_ambient2[3] = Ojw.CConvert.StrToFloat(txtAmb1_3.Text);
+
+                m_C3d.m_mat_ambient[0] = Ojw.CConvert.StrToFloat(txtAmb2_0.Text);
+                m_C3d.m_mat_ambient[1] = Ojw.CConvert.StrToFloat(txtAmb2_1.Text);
+                m_C3d.m_mat_ambient[2] = Ojw.CConvert.StrToFloat(txtAmb2_2.Text);
+                m_C3d.m_mat_ambient[3] = Ojw.CConvert.StrToFloat(txtAmb2_3.Text);
+
+                m_C3d.m_diffuseLight[0] = Ojw.CConvert.StrToFloat(txtDif0_0.Text);
+                m_C3d.m_diffuseLight[1] = Ojw.CConvert.StrToFloat(txtDif0_1.Text);
+                m_C3d.m_diffuseLight[2] = Ojw.CConvert.StrToFloat(txtDif0_2.Text);
+                m_C3d.m_diffuseLight[3] = Ojw.CConvert.StrToFloat(txtDif0_3.Text);
+
+                m_C3d.m_diffuseLight2[0] = Ojw.CConvert.StrToFloat(txtDif1_0.Text);
+                m_C3d.m_diffuseLight2[1] = Ojw.CConvert.StrToFloat(txtDif1_1.Text);
+                m_C3d.m_diffuseLight2[2] = Ojw.CConvert.StrToFloat(txtDif1_2.Text);
+                m_C3d.m_diffuseLight2[3] = Ojw.CConvert.StrToFloat(txtDif1_3.Text);
+
+                m_C3d.m_mat_diffuse[0] = Ojw.CConvert.StrToFloat(txtDif2_0.Text);
+                m_C3d.m_mat_diffuse[1] = Ojw.CConvert.StrToFloat(txtDif2_1.Text);
+                m_C3d.m_mat_diffuse[2] = Ojw.CConvert.StrToFloat(txtDif2_2.Text);
+                m_C3d.m_mat_diffuse[3] = Ojw.CConvert.StrToFloat(txtDif2_3.Text);
+
+
+                m_C3d.m_specular[0] = Ojw.CConvert.StrToFloat(txtSpe0_0.Text);
+                m_C3d.m_specular[1] = Ojw.CConvert.StrToFloat(txtSpe0_1.Text);
+                m_C3d.m_specular[2] = Ojw.CConvert.StrToFloat(txtSpe0_2.Text);
+                m_C3d.m_specular[3] = Ojw.CConvert.StrToFloat(txtSpe0_3.Text);
+
+                m_C3d.m_specular2[0] = Ojw.CConvert.StrToFloat(txtSpe1_0.Text);
+                m_C3d.m_specular2[1] = Ojw.CConvert.StrToFloat(txtSpe1_1.Text);
+                m_C3d.m_specular2[2] = Ojw.CConvert.StrToFloat(txtSpe1_2.Text);
+                m_C3d.m_specular2[3] = Ojw.CConvert.StrToFloat(txtSpe1_3.Text);
+
+                m_C3d.m_mat_specular[0] = Ojw.CConvert.StrToFloat(txtSpe2_0.Text);
+                m_C3d.m_mat_specular[1] = Ojw.CConvert.StrToFloat(txtSpe2_1.Text);
+                m_C3d.m_mat_specular[2] = Ojw.CConvert.StrToFloat(txtSpe2_2.Text);
+                m_C3d.m_mat_specular[3] = Ojw.CConvert.StrToFloat(txtSpe2_3.Text);
             }
         }
         /*

@@ -19725,12 +19725,12 @@ namespace OpenJigWare
                 private bool m_bEnable_Light = true;
                 public void Enable_Light(bool bEnable) { m_bEnable_Light = bEnable; }
 
-                public float[] m_light0_position = new float[4] { 0.0f, 0.0f, -10000.0f, 1.0f };
-                public float[] m_light1_position = new float[4] { -10.0f, -200.0f, -500.0f, 1.0f };
+                public float[] m_light0_position = new float[4] { 0.0f, 0.0f, -1000.0f, 1.0f };
+                public float[] m_light1_position = new float[4] { 100.0f, 100.0f, 100.0f, 1.0f };
                 //private float[] m_light0_position = new float[4] { 0.0f, 0.0f, -2000.0f, 1.0f };
                 //private float[] m_light1_position = new float[4] { 2000.0f, 1000.0f, 1.0f, 1.0f };
 
-                public float[] m_light0_direction = new float[3] { 0.5f, 0.2f, 0.7f };
+                public float[] m_light0_direction = new float[3] { 0.5f, 0.0f, 0.5f };
                 public float[] m_light1_direction = new float[3] { -0.5f, -0.5f, 1.0f };
 
 #if false
@@ -19741,8 +19741,8 @@ namespace OpenJigWare
             GL_SHININESS {25.6f};
 
 #endif
-                const float _LIGHT_AMBIENT = 0.5f;
-                const float _LIGHT_DIFFUSE = 0.5f;
+                const float _LIGHT_AMBIENT =0.4f;// 0.3f;//0.5f;
+                const float _LIGHT_DIFFUSE = 0.7f;//0.5f;
                 const float _LIGHT_SPECULAR = 0.8f;
 #if true
                 public float[] m_ambient = new float[4] { _LIGHT_AMBIENT, _LIGHT_AMBIENT, _LIGHT_AMBIENT, 1.0f };
@@ -19754,8 +19754,8 @@ namespace OpenJigWare
                 private float[] m_diffuseLight = new float[4] { 0.4f, 0.4f, 0.4f, 1.0f };
                 private float[] m_specular = new float[4] { 0.774597f, 0.774597f, 0.774597f, 1.0f };//{ 0.6f, 0.6f, 0.6f, 1.0f };
 #endif
-                const float _LIGHT_AMBIENT2 = 0.25f;
-                const float _LIGHT_DIFFUSE2 = 0.4f;
+                const float _LIGHT_AMBIENT2 = 0.2f;
+                const float _LIGHT_DIFFUSE2 = 0.8f;
                 const float _LIGHT_SPECULAR2 = 0.774597f;
                 public float[] m_ambient2 = new float[4] { _LIGHT_AMBIENT2, _LIGHT_AMBIENT2, _LIGHT_AMBIENT2, 1.0f };//{ 0.25f, 0.25f, 0.25f, 1.0f };
                 public float[] m_diffuseLight2 = new float[4] { _LIGHT_DIFFUSE2, _LIGHT_DIFFUSE2, _LIGHT_DIFFUSE2, 1.0f };//{ 0.4f, 0.4f, 0.4f, 1.0f };
@@ -19798,8 +19798,8 @@ namespace OpenJigWare
                 public void  SetLight_Shiness(float fShiness) { m_mat_shiness[0] = fShiness; }
 
                 //private int m_nShiness = 128;
-                public float m_fSpot = 85.0f;//95;//85.0f;
-                public float m_fExponent = 0.5f;//3.0f;//1.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
+                public float m_fSpot = 67.0f;//85.0f;//95;//85.0f;
+                public float m_fExponent = 1.0f;//0.5f;//3.0f;//1.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
                 public float m_fSpot2 = 85.0f;//95;//85.0f;
                 public float m_fExponent2 = 0.5f;//3.0f;//5.0f;//3.0f;//3.0f;//3.0f;//2.0f;//1.0f;
 
@@ -20004,10 +20004,15 @@ namespace OpenJigWare
                         else
                         {
                             Gl.glColorMaterial(Gl.GL_FRONT_FACE, Gl.GL_AMBIENT_AND_DIFFUSE);
+                            //Gl.glColorMaterial(Gl.GL_FRONT_AND_BACK, Gl.GL_AMBIENT_AND_DIFFUSE);
+
                             //Gl.glColorMaterial(Gl.GL_FRONT, Gl.GL_AMBIENT);
                             //Gl.glLightModelfv(Gl.GL_LIGHT_MODEL_AMBIENT, m_ambient);//m_diffuseLight); // 중요.. 이걸 해야 밝아진다.
                             // Enable color tracking(Kor: 색상 트래킹을 사용하게끔 설정)
                             Gl.glEnable(Gl.GL_COLOR_MATERIAL);
+
+                            Gl.glShadeModel(Gl.GL_SMOOTH);	//구로 셰이딩
+                            //Gl.glShadeModel(Gl.GL_FLAT);	//구로 셰이딩
 
                             //Gl.glEnable(Gl.GL_CULL_FACE);    // Not drawn to overlap the back(Kor: 겹치는 뒷면을 그리지 않음)
                             Gl.glEnable(Gl.GL_DEPTH_TEST);	// Depth buffer enable - Clear face hidden(Kor: 깊이 버퍼 활성화 - 숨겨진 면 지우기)
@@ -20016,9 +20021,9 @@ namespace OpenJigWare
                             //Gl.glHint(Gl.GL_LINE_SMOOTH_HINT, Gl.GL_NICEST);
                             //Gl.glHint(Gl.GL_POLYGON_SMOOTH_HINT, Gl.GL_NICEST);
 
-
-                            //Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
-                            //Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
+                            
+                            Gl.glClearDepth(8000.0f);									    // Depth Buffer Setup
+                            Gl.glDepthFunc(Gl.GL_LEQUAL);								// The Type Of Depth Testing To Do
                             Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);	// Really Nice Perspective Calculations
 
                             Gl.glLightModeli(Gl.GL_LIGHT_MODEL_TWO_SIDE, Gl.GL_TRUE);
@@ -20320,7 +20325,7 @@ namespace OpenJigWare
 
 #endif
 #endif
-                        SetLight2();
+                        //SetLight2();
                     }
                     else
                     {
@@ -25506,9 +25511,28 @@ namespace OpenJigWare
                     m_fColor[1] = ((float)cColor.G / 255.0f);  // G
                     m_fColor[2] = ((float)cColor.B / 255.0f);  // B
                     m_fColor[3] = fAlpha;// m_fAlpha;
+
+                    Gl.glPushMatrix();
 #if _STL_CW
                     Gl.glFrontFace((bStl == true) ? Gl.GL_CW : Gl.GL_CCW);
 #else
+
+
+
+                    OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                    OjwRotation(0, 0, fOffsetSwing);
+                    OjwRotation(0, fOffsetTilt, 0);
+                    OjwRotation(fOffsetPan, 0, 0);
+
+                    Gl.glPushMatrix(); // setlight2()
+                    SetLight();
+                    SetLight2();
+                    Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
+
+
+
+
+
                     //Gl.glFrontFace(Gl.GL_CCW); // 20150528 수정 - 이게 맞다.
                     Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
                     //Gl.glFrontFace((bStl == true) ? Gl.GL_CCW : Gl.GL_CCW);
@@ -25586,8 +25610,7 @@ namespace OpenJigWare
 
                     Gl.glColor4fv(m_fColor);
 
-                    Gl.glPushMatrix();
-
+                    
                     float fX1 = -fW / 2.0f;
                     float fX2 = fW / 2.0f;
                     float fY2 = -fH;
@@ -25608,11 +25631,8 @@ namespace OpenJigWare
                     //    nPos++;
                     //}
 #endif
-                    OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
-                    OjwRotation(0, 0, fOffsetSwing);
-                    OjwRotation(0, fOffsetTilt, 0);
-                    OjwRotation(fOffsetPan, 0, 0);
-
+                    //SetLight();
+                    //SetLight2();
                     Gl.glBegin(uiType);
                     //Gl.glEdgeFlag(Gl.GL_FALSE);  
                     // Draw        
@@ -25759,10 +25779,11 @@ namespace OpenJigWare
 #endif
                     //Gl.glEdgeFlag(Gl.GL_TRUE);  
                     Gl.glEnd();// end drawing the cube
-                    Gl.glPopMatrix();
 
                     //if (bStl == true) Gl.glFrontFace(Gl.GL_CW);
                     Gl.glFrontFace(m_nCWMode);//
+                    Gl.glPopMatrix(); // setlight2()
+                    Gl.glPopMatrix();
                 }
                 #endregion File(by Name)
                 #endregion OjwAse_Outside
