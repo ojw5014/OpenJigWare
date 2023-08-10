@@ -140,6 +140,9 @@ namespace OpenJigWare
     {
         public const string strVersion = "02.01.02";
         public const string strHistory = (String)(
+                "[V02.02.00]\r\n" +
+                "  Python 관련기능 추가" + "\r\n" +
+                "========================================\r\n" + // Release  
                 "[V02.01.03]\r\n" +
                 "  COjw_12_3D.cs -> MakeAll() 추가" + "\r\n" +
                 "========================================\r\n" + // Release  
