@@ -146,3 +146,22 @@ D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.xml
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmGridEditor.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\Interop.WMPLib.dll
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\AxInterop.WMPLib.dll
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.ResolveComReference.cache
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.AxisSetting.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmDesigner.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmDrawText.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmGridEditor.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmFolder.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.CKeyPad_t.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmKeyPad.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmKinematics.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmModel.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmMotionEditor.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmMsVoice.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmPlayer.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Properties.Resources.resources
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.GenerateResource.Cache
+D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll

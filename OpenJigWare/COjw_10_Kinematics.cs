@@ -262,6 +262,7 @@ namespace OpenJigWare
                         strResult += "\r\n";
                     }
                     strResult += "// -- First Calc //\r\n==============\r\n";
+                    bool bOverflow = false;
                     for (i = 1; i < nCnt; i++)
                     {
                         CMath.CalcMatrix_Str(4, SDhT_Result_Str.aStrT, aSDhT_Str[i].aStrT, out SDhT_Result_Str.aStrT);
@@ -271,8 +272,16 @@ namespace OpenJigWare
                             {
                                 strResult += SDhT_Result_Str.aStrT[ii, j] + "   ";
                             }
+                            if (strResult.Length > 10000000)
+                            {
+                                CMessage.Write("strResult.Length = " + strResult.Length + " , Memory Overflow");
+                                strResult += "\r\n...(huge memory string)\r\n";
+                                bOverflow = true;
+                            }
+                            if (bOverflow == true) break;
                             strResult += "\r\n";
                         }
+                        if (bOverflow == true) break;
                         strResult += "// " + CConvert.IntToStr(i) + " //\r\n==============\r\n";
                     }
 
@@ -918,7 +927,7 @@ namespace OpenJigWare
                                         }
                                         else CDhParam.nFunctionNumber = -1;
                                     } 
-                                    else if (nAdd_Type == 3) // 0: None, 1: Click Motor, 2: Click Function, 3: Calc Function(After Calc)
+                                    else if (nAdd_Type == 3) // 0: None, 1: Click Motor, 2: Click Function, 3: Calc Function(After Calc), 4. Set Angle(현재각도의 고정)
                                     {
                                         nAdd_Number = CConvert.StrToInt(strItem);
                                         if ((nAdd_Number >= 0) && (nAdd_Number != 255))
@@ -926,6 +935,10 @@ namespace OpenJigWare
                                             CDhParam.nFunctionNumber_AfterCalc = nAdd_Number;
                                         }
                                         else CDhParam.nFunctionNumber_AfterCalc = -1;
+                                    }
+                                    else if (nAdd_Type == 4)
+                                    {
+
                                     }
                                 }
                                 nNum++;
@@ -2685,6 +2698,7 @@ public static double hypot(double v, double w) {
                             bool bAcos2 = false;
                             bool bRound = false;
                             bool bCall = false;
+                            bool bIf = false;
                             //bool bAsin2 = false;
                             bool bPow = false;
                             //int nIndex = strTmp.IndexOf(",");
@@ -2714,8 +2728,13 @@ public static double hypot(double v, double w) {
                                                     nIndex = strTmp.IndexOf(",_UP6_");// Call
                                                     if (nIndex < 0)
                                                     {
-                                                        nIndex = strTmp.IndexOf(",_UP7_");// 
-                                                        //if (nIndex >= 0) bRound = true;
+                                                        nIndex = strTmp.IndexOf(",_UP7_");// If
+                                                        if (nIndex < 0)
+                                                        {
+                                                            nIndex = strTmp.IndexOf(",_UP8_");
+                                                            //if (nIndex >= 0) bRound = true;
+                                                        }
+                                                        else bIf = true;
                                                     }
                                                     else bCall = true;
                                                 }
@@ -2735,14 +2754,15 @@ public static double hypot(double v, double w) {
                             {
                                 strTmp = pstrData[i].Substring(0, nIndex);
                                 strEnd = pstrData[i].Substring(nIndex, pstrData[i].Length - nIndex);
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP0_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP1_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP2_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP3_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP4_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP5_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP6_");
-                                strEnd = CConvert.RemoveString(strEnd, ",_UP7_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP0_"); // pow
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP1_"); // sqrt
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP2_"); // atan2
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP3_"); // acos2
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP4_"); // asin2
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP5_"); // round
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP6_"); // call
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP7_"); // if
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP8_");
                             }
 
                             #region StringSeparate(strTmp, out pstrTmp); - Split the string data.(Kor: 스트링 데이터를 조각조각 쪼개 놓는다.)
@@ -2784,6 +2804,10 @@ public static double hypot(double v, double w) {
                                 {
                                     pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "call");
                                 }
+                                else if (pstrTmp[j].IndexOf("if") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "if");
+                                }
 
                                 if ((nData & _PLUS) != 0)
                                 {
@@ -2824,7 +2848,7 @@ public static double hypot(double v, double w) {
                             if (nIndex >= 0)
                             {
                                 //strResult += ((bSqrt == false) ? "POW," : "SQRT,") + strEnd + "\r\n";
-                                strResult += ((bPow == true) ? "POW," : ((bSqrt == true) ? "SQRT," : ((bAtan2 == true) ? "ATAN2," : ((bAcos2 == true) ? "ACOS2," : ((bRound == true) ? "ROUND," : ((bCall == true) ? "CALL," : "ASIN2,")))))) + strEnd + "\r\n";
+                                strResult += ((bPow == true) ? "POW," : ((bSqrt == true) ? "SQRT," : ((bAtan2 == true) ? "ATAN2," : ((bAcos2 == true) ? "ACOS2," : ((bRound == true) ? "ROUND," : ((bCall == true) ? "CALL," : ((bIf == true) ? "IF," : "ASIN2,"))))))) + strEnd + "\r\n";
                                 //strResult += "POW," + strEnd + "\r\n";
                             }
                             //strResult += "LD," + strTmp + pstrData[i].IndexOf(1, pstrData[i].Length - 1));
@@ -2926,6 +2950,7 @@ public static double hypot(double v, double w) {
                                     else if (strCode == "MOD") nData = 0x00000013;
                                     else if (strCode == "ROUND") nData = 0x00000014;
                                     else if (strCode == "CALL") nData = 0x00000015;
+                                    else if (strCode == "IF") nData = 0x00000016;
                                     else continue;
                                     pstrOperand[0] = CConvert.IntToHex(nData, nWidth);
                                 }
@@ -2949,6 +2974,7 @@ public static double hypot(double v, double w) {
                                     else if (strCode.IndexOf("mod") == 0) nData = 0x00000013;
                                     else if (strCode.IndexOf("round") == 0) nData = 0x00001400;
                                     else if (strCode.IndexOf("call") == 0) nData = 0x00001500;
+                                    else if (strCode.IndexOf("if") == 0) nData = 0x00001600;
 
                                     int nIndex = 0;
                                     if (nData > 0)
@@ -3370,6 +3396,7 @@ public static double hypot(double v, double w) {
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "abs", ",");
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "round", ",");
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "call", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "if", ",");
                                 string [] pstrTmp = strTmp.Split(',');
                                 // v 변수, mot 변수 체크
                                 int[] pnV = new int[1];
@@ -4111,7 +4138,26 @@ public static double hypot(double v, double w) {
                             //m_dX = SCode.adOperation_Memory[_ADDRESS_X];
                             //m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
                             //m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
+                            
                             // ojw5014
+                            // dValue = (double)
+
+                            
+                            //// 실제 수식계산
+                            //if (GetHeader_pSOjwCode()[nNum].nMotor_Max > 0)
+                            //{
+                            //    if (Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]) == false) MessageBox.Show(String.Format("Compile Error - {0}", Ojw.CKinematics.CInverse.GetErrorString_Error_Etc()));
+                            //}
+                            //else
+                            //{
+                            //    CalcInv(nNum, GetHeader_pDhParamAll()[nNum].GetMotors(), (float)fX, (float)fY, (float)fZ, 1000, 0.0001f);
+                            //}
+
+
+                        }
+                        else if (lCmd == 0x16) // if
+                        {
+                            // dValue = (double)CMath.ATan2(dValue, ((dData == 0) ? (double)CMath.Zero() : dData));
                         }
 #if false
                     // Test code - 없어도 상관없는 코드

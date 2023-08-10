@@ -177,6 +177,12 @@ namespace OpenJigWare
             public bool Open_Socket(int nPort, bool bWebSocket) { return Open_Socket(nPort, null, bWebSocket); }
             public bool Open_Socket(int nPort, string strIP) { return Open_Socket(nPort, strIP, false); }
             public bool IsOpen_Socket() { return m_CServer.sock_started(); }
+            public void Close_Socket()
+            {
+                m_bThreadStart = false;
+                //Thread.Sleep(100);
+                m_CServer.sock_stop();
+            }
             public bool Open_Socket(int nPort, string strIP, bool bWebSocket)
             {
                 if (m_CServer.sock_started() == false)
@@ -225,10 +231,12 @@ namespace OpenJigWare
             //}
             //private List<SQueByte_t> m_alstQue = new List<SQueByte_t>();
 #if true
+            private bool m_bThreadStart = false;
             private void ThreadServer()
             {
                 try
                 {
+                    m_bThreadStart = true;
                     for (int i = 0; i < _SIZE_QUE; i++)
                     {
                         for (int j = 0; j < _SIZE_QUE_LENGTH; j++)
@@ -240,19 +248,19 @@ namespace OpenJigWare
                     Ojw.printf("ThreadServer()\r\n");
                     m_CServer.WaitClient(true);
                     Ojw.printf("ThreadServer() - Started\r\n");
-                    while (m_CServer.sock_started() == true)
+                    while ((m_CServer.sock_started() == true) && (m_bThreadStart))
                     {
                         if (m_CServer.isClientConnected() == false)
                         {
                             Ojw.printf("소켓연결 끊어짐\r\n");
                             m_CServer.WaitClient(true);
                         }
-                        byte[] buffer = m_CServer.request_bytes();
+                        /*byte[] buffer = m_CServer.request_bytes();
                         if (buffer != null)
                         {
                             string str = Encoding.UTF8.GetString(buffer);
-                            printf("{0}\r\n", str);
-                        }
+                            printf("->{0}\r\n", str);
+                        }*/
                         //m_CServer.sleep(1);
 
 
@@ -277,6 +285,7 @@ namespace OpenJigWare
                                 else if (nSize2 > _SIZE_QUE_LENGTH) nSize2 = _SIZE_QUE_LENGTH;
                                 if (m_bWebSocket == true)
                                 {
+                                    //Ojw.Log("Type 1");
                                     string str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
                                     for (int i = 0; i < str.Length; i++)
                                     {
@@ -304,6 +313,7 @@ namespace OpenJigWare
                                 }
                                 else
                                 {
+                                    //Ojw.Log("Type2");
                                     for (int i = 0; i < nBufferSize; i++)
                                     {
                                         if (pbyData[i] == 0x02)
@@ -563,7 +573,7 @@ namespace OpenJigWare
             }
 #endif
 
-            //Ojw.C3d m_C3d = new C3d();
+            Ojw.C3d m_C3d = null;// = new C3d();
             
             //public bool Open(Ojw.C3d COjw3d, int nIndex=0)
             //{
@@ -578,6 +588,13 @@ namespace OpenJigWare
             //    Ojw.CMessage.Write_Error("Cannot Connect [Open_Serial(m_C3d.m_CMonster)]");
             //    return false;
             //}
+            private bool m_bSyncRendering = false;
+            public void SyncRendering(Ojw.C3d OjwC3d)
+            {
+                if (OjwC3d != null) m_bSyncRendering = true;
+                else m_bSyncRendering = false;
+                m_C3d = OjwC3d;
+            }
             public bool Open(int nPort, int nBaudRate)
             {
                 bool bConnected = m_CSerial.IsConnect();
@@ -614,6 +631,7 @@ namespace OpenJigWare
             public void Clear() { Command_Clear(); }
             public void Set(int nID, float fValue) { Command_Set(nID, fValue); }
             public void Set_Rpm(int nID, float fRpm) { Command_Set_Rpm(nID, fRpm); }
+            public float GetAngle(int nID) { return m_afMot[nID]; }
             //public void SetTorq(params CCommand_t [] aCCommands)
             //{
             //    Sync_Clear();
@@ -637,6 +655,10 @@ namespace OpenJigWare
             //    }
             //    Command_Clear();
             //}
+            public void SetTorq(bool bOn)
+            {
+                Send(254, 0x03, 64, (byte)((bOn == true) ? 1 : 0));  
+            }
             public void SetTorq(params CCommand_t[] aCCommands)
             {
                 List<CCommand_t> lstSecond = new List<CCommand_t>();
@@ -830,41 +852,46 @@ namespace OpenJigWare
                 for (int i = 0; i <= nMax; i++)
                 {
                     string str = CFile.Get(i);
-                    string[] pstr = str.Split(',');
+                    if (str.Length > 0)
+                    {
+                        if (str[0] != 's') str = 's' + str;
+                        PlayFrameString(str);
+                    }
+                    //string[] pstr = str.Split(',');
 
-                    int nEnable = Ojw.CConvert.StrToInt(pstr[0]);
-                    int nTime = Ojw.CConvert.StrToInt(pstr[1]);
-                    int nDelay = Ojw.CConvert.StrToInt(pstr[2]);
+                    //int nEnable = Ojw.CConvert.StrToInt(pstr[0]);
+                    //int nTime = Ojw.CConvert.StrToInt(pstr[1]);
+                    //int nDelay = Ojw.CConvert.StrToInt(pstr[2]);
 
-                    Command_Clear();
-                    for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
-                    {
-                        string[] pstrDatas = pstr[nIndex].Split(':');
-                        if (pstrDatas.Length > 1)
-                        {
-                            int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
-                            int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
-                            Command_Set(nID, (float)Math.Round(CalcEvd2Angle(nID, nEvd)));
-                        }
-                    }
-                    bool bContinue = (i < nMax) ? true : false;
-                    if (bContinue == true)
-                    {
-                        if (m_bNext == true)
-                        {
-                            m_bNext = false;
-                            bContinue = true;
-                        }
-                    }
-                    if (bOneshot_Style)
-                    {
-                        Move_NoWait(nTime, nDelay, bContinue);
-                        Wait();
-                    }
-                    else
-                    {
-                        Move(nTime, nDelay, bContinue);
-                    }
+                    //Command_Clear();
+                    //for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
+                    //{
+                    //    string[] pstrDatas = pstr[nIndex].Split(':');
+                    //    if (pstrDatas.Length > 1)
+                    //    {
+                    //        int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
+                    //        int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
+                    //        Command_Set(nID, (float)Math.Round(CalcEvd2Angle(nID, nEvd)));
+                    //    }
+                    //}
+                    //bool bContinue = (i < nMax) ? true : false;
+                    //if (bContinue == true)
+                    //{
+                    //    if (m_bNext == true)
+                    //    {
+                    //        m_bNext = false;
+                    //        bContinue = true;
+                    //    }
+                    //}
+                    //if (bOneshot_Style)
+                    //{
+                    //    Move_NoWait(nTime, nDelay, bContinue);
+                    //    Wait();
+                    //}
+                    //else
+                    //{
+                    //    Move(nTime, nDelay, bContinue);
+                    //}
                 }
                 Ojw.Log("Done - {0}", strFileName);
                 //for (int i = 0; i < anIDs.Length; i++) { m_CCom.Command_Set(anIDs[i], m_C3d.GetData(anIDs[i])); }
@@ -892,7 +919,10 @@ namespace OpenJigWare
             }
             public void PlayFrameString(string buff, bool bNoWait = false)
             {
-                if (IsOpen() == false) return;
+                //if (IsOpen() == false) return;
+                //Ojw.printf("TEST===>\r\n");
+                Ojw.printf("PlayFrameString({0})\r\n", buff);
+                Ojw.newline();
 
                 bool bWheel = false;
                 if (buff.Length > 1)
@@ -926,14 +956,26 @@ namespace OpenJigWare
                                 float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
                                 if ((bAngle) || (bWheel_Rpm))
                                 {
+                                    //Ojw.printf("=====1->\r\n");
                                     if (bWheel_Rpm) Command_Set_Rpm(nID, fEvd);
-                                    else Command_Set(nID, fEvd);
+                                    else
+                                    {
+                                        //Ojw.printf("=====123->\r\n");
+                                        Command_Set(nID, fEvd);
+
+                                        //3D
+                                        if (m_bSyncRendering) m_C3d.SetData(nID, fEvd);
+                                    }
                                 }
                                 else
                                 {
+                                    //Ojw.printf("=====2->\r\n");
                                     int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
+                                    float fAngle = (float)Math.Round(CalcEvd2Angle(nID, nEvd),3);
                                     if (bWheel) Command_Set(nID, CalcRaw2Rpm(nID, nEvd));
-                                    else Command_Set(nID, (float)Math.Round(CalcEvd2Angle(nID, nEvd)));
+                                    else Command_Set(nID, fAngle);
+                                    //3D
+                                    if (m_bSyncRendering) m_C3d.SetData(nID, fAngle);
                                 }
                             }
                         }
@@ -946,6 +988,9 @@ namespace OpenJigWare
                             if (bNoWait == false) Move(nTime, nDelay);
                             else Move_NoWait(nTime, nDelay);
                         }
+
+                        //if (m_bSyncRendering)
+                        //    m_C3d.OjwDraw();
                     }
                 }
             }
@@ -993,7 +1038,7 @@ namespace OpenJigWare
 
                         for (int i = 0; i < CCmd.Length; i++) { afRes[CCmd[i].nID] = afMot[CCmd[i].nID] + (CCmd[i].fVal - afMot[CCmd[i].nID]) * fTmr; Command_Set(CCmd[i].nID, afRes[CCmd[i].nID]); }
                         SetPosition();
-
+                        
                         if (fTmr >= 1f) break;
                         Ojw.CTimer.DoEvent();
                     }
@@ -1236,6 +1281,8 @@ namespace OpenJigWare
                                 m_afMot[CCmd[i].nID] = CCmd[i].fVal;
                                 m_afMot_Pose[CCmd[i].nID] = CCmd[i].fVal;
                                 Sync_Push_Dword(CCmd[i].nID, CalcAngle2Evd(CCmd[i].nID, CCmd[i].fVal));
+                                //3D
+                                if (m_bSyncRendering) m_C3d.SetData(CCmd[i].nID, CCmd[i].fVal);
                             }
                         }
                         Sync_Flush(m_aCParam[CCmd[0].nID].m_nSet_Position_Address);
@@ -1476,6 +1523,55 @@ namespace OpenJigWare
                 }
                 return false;
             }
+            public bool WaitReceive_Ext_Sock(Ojw.CSocket CSock, int nWaitTime = 0)
+            {
+                Ojw.CTimer CTmr = new CTimer();
+                CTmr.Set();
+                if (nWaitTime <= 0) nWaitTime = _WAIT_TIME;
+                while (true)
+                {
+                    if (CSock.IsConnect())
+                    {
+                        if (CSock.GetBuffer_Length() > 0)
+                        {
+                            ReceivedPacket(CSock.GetBytes());
+                            return true;
+                        }
+                    }
+                    if (CTmr.Get() >= nWaitTime)
+                    {
+                        Ojw.LogErr("대기시간 초과");
+                        break;
+                    }
+                    Ojw.CTimer.DoEvent();
+                }
+                return false;
+            }
+
+            public bool WaitReceive_Ext_Serial(Ojw.CSerial CSerial, int nWaitTime = 0)
+            {
+                Ojw.CTimer CTmr = new CTimer();
+                CTmr.Set();
+                if (nWaitTime <= 0) nWaitTime = _WAIT_TIME;
+                while (true)
+                {
+                    if (CSerial.IsConnect())
+                    {
+                        if (CSerial.GetBuffer_Length() > 0)
+                        {
+                            ReceivedPacket(CSerial.GetBytes());
+                            return true;
+                        }
+                    }
+                    if (CTmr.Get() >= nWaitTime)
+                    {
+                        Ojw.LogErr("대기시간 초과");
+                        break;
+                    }
+                    Ojw.CTimer.DoEvent();
+                }
+                return false;
+            }
 
             class CReceive_t{
                 public int nID = 0;
@@ -1491,7 +1587,9 @@ namespace OpenJigWare
             int m_nReceive_Cmd = 0;
             int m_nReceive_Length_Check = 0;
             int m_nReceive_Error = 0;
-            List<int> m_anReceive_Datas = new List<int>();
+            public List<int> m_anReceive_Datas = new List<int>();
+            public int[] GetBuffers_Int() { return m_anReceive_Datas.ToArray(); }
+            public byte[] GetBuffers() { return Array.ConvertAll(m_anReceive_Datas.ToArray(), element => (byte)element); }
             public void ReceivedPacket(byte [] buffer)
             {
                 bool bShow_StrLetter = false;
@@ -1788,6 +1886,37 @@ namespace OpenJigWare
             #endregion Read
 
             #region Protocol - basic(updateCRC, MakeStuff, SendPacket)
+            public byte[] MakePacket(int nMotorRealID, int nCommand, int nAddress, params byte[] pbyDatas)
+            {
+                
+                int i;
+                i = 0;
+
+                int nLength = 3 + ((pbyDatas != null) ? pbyDatas.Length + 2 : 0);
+                int nDefaultSize = 7;
+                byte[] pbyteBuffer = new byte[nDefaultSize + nLength];
+                pbyteBuffer[i++] = 0xff;
+                pbyteBuffer[i++] = 0xff;
+                #region Packet 2.0
+                pbyteBuffer[i++] = 0xfd;
+                pbyteBuffer[i++] = 0x00;
+                #endregion Packet 2.0
+                pbyteBuffer[i++] = (byte)(nMotorRealID & 0xff);
+                pbyteBuffer[i++] = (byte)(nLength & 0xff);
+                pbyteBuffer[i++] = (byte)((nLength >> 8) & 0xff);
+                pbyteBuffer[i++] = (byte)(nCommand & 0xff);
+                if (pbyDatas != null)
+                {
+                    pbyteBuffer[i++] = (byte)(nAddress & 0xff);
+                    pbyteBuffer[i++] = (byte)((nAddress >> 8) & 0xff);
+                    foreach (byte byData in pbyDatas) pbyteBuffer[i++] = byData;
+                }
+                MakeStuff(ref pbyteBuffer);
+                int nCrc = updateCRC(pbyteBuffer, pbyteBuffer.Length - 2);
+                pbyteBuffer[pbyteBuffer.Length - 2] = (byte)(nCrc & 0xff);
+                pbyteBuffer[pbyteBuffer.Length - 1] = (byte)((nCrc >> 8) & 0xff);
+                return pbyteBuffer;
+            }
             private void Send(int nMotorRealID, int nCommand, int nAddress, params byte[] pbyDatas)
             {
                 int i;
@@ -1965,6 +2094,122 @@ namespace OpenJigWare
             }
             #endregion Sync Write
 
+
+            #region Delta
+            public List<CDelta> m_lstCDelta = new List<CDelta>();
+            public int Delta_Add(float fRot_Cw, int nID_Front, int nID_Left, int nID_Right, float fTop_Rad, float fTop_Length, float fBottom_Length, float fBottom_Rad)
+            {
+                m_lstCDelta.Add(new CDelta(fRot_Cw, nID_Front, nID_Left, nID_Right, fTop_Rad, fTop_Length, fBottom_Length, fBottom_Rad));
+                return m_lstCDelta.Count;
+            }
+            public void Delta_Clear() { m_lstCDelta.Clear(); }
+            public class CDelta
+            {
+                public CDelta(float fRot_Cw, int nID_Front, int nID_Left, int nID_Right, float fTop_Rad, float fTop_Length, float fBottom_Length, float fBottom_Rad)
+                {
+                    Init(fRot_Cw, nID_Front, nID_Left, nID_Right, fTop_Rad, fTop_Length, fBottom_Length, fBottom_Rad);
+                }
+                public bool IsValid = false;
+
+                private float fRot = 0.0f;
+                public int nId_Front = 0;
+                public int nId_Left = 1;
+                public int nId_Right = 2;
+
+                private float fInit_Top_Radius = 0;
+                private float fInit_Top_Length = 0;
+                private float fInit_Bottom_Length = 0;
+                private float fInit_Bottom_Radius = 0;
+
+                public void Init(float fRot_Cw, int nID_Front, int nID_Left, int nID_Right, float fTop_Rad, float fTop_Length, float fBottom_Length, float fBottom_Rad)
+                {
+                    fRot = fRot_Cw;
+                    nId_Front = nID_Front;
+                    nId_Left = nID_Left;
+                    nId_Right = nID_Right;
+                    fInit_Top_Radius = fTop_Rad;
+                    fInit_Top_Length = fTop_Length;
+                    fInit_Bottom_Length = fBottom_Length;
+                    fInit_Bottom_Radius = fBottom_Rad;
+                    IsValid = true;
+                }
+                public bool CalcXyzToAngle(float fPos_X, float fPos_Y, float fPos_Height, out float fAngle_Front, out float fAngle_Left, out float fAngle_Right)
+                {
+                    if (IsValid == false)
+                    {
+                        fAngle_Front = fAngle_Left = fAngle_Right = 0;
+                        return false;
+                    }
+                    // 
+                    if (fRot != 0)
+                    {
+                        if (Ojw.CMath.CalcRot(0.0f, 0.0f, fRot, ref fPos_X, ref fPos_Y, ref fPos_Height) == false)
+                        {
+                            fAngle_Front = fAngle_Left = fAngle_Right = 0;
+                            return false;
+                        }
+                    }
+                    double[] adVal = new double[3];
+                    Ojw.CMath.Delta_Parallel_Init(fInit_Top_Radius, fInit_Top_Length, fInit_Bottom_Length, fInit_Bottom_Radius);
+                    Ojw.CMath.Delta_Parallel_InverseKinematics(fPos_X, fPos_Y, fPos_Height, out adVal[0], out adVal[1], out adVal[2]);
+                    fAngle_Front = (float)adVal[0];
+                    fAngle_Left = (float)adVal[1];
+                    fAngle_Right = (float)adVal[2];
+                    return true;
+                }
+                public bool CalcAngleToXyz(float fAngle_Front, float fAngle_Left, float fAngle_Right, out float fX, out float fY, out float fHeight)
+                {
+                    if (IsValid == false)
+                    {
+                        fX = fY = fHeight = 0;
+                        return false;
+                    }
+                    double[] adVal = new double[3];
+                    Ojw.CMath.Delta_Parallel_Init(fInit_Top_Radius, fInit_Top_Length, fInit_Bottom_Length, fInit_Bottom_Radius);
+                    bool bRet = Ojw.CMath.Delta_Parallel_ForwardKinematics(fAngle_Front, fAngle_Left, fAngle_Right, out adVal[0], out adVal[1], out adVal[2]);
+                    fX = (float)adVal[0];
+                    fY = (float)adVal[1];
+                    fHeight = (float)adVal[2];
+                    if (fRot != 0)
+                    {
+                        if (Ojw.CMath.CalcRot(0.0f, 0.0f, fRot, ref fX, ref fY, ref fHeight) == false)
+                        {
+                            fX = fY = fHeight = 0;
+                            return false;
+                        }
+                    }
+                    return bRet;
+                }
+            }
+            public int GetDelta_Count() { return m_lstCDelta.Count; }
+            public void SetDelta(int nIndex, float fX, float fY, float fHeight)
+            {
+                float[] afAngle = new float[3];
+                if ((nIndex >= 0) && (nIndex < m_lstCDelta.Count)) m_lstCDelta[nIndex].CalcXyzToAngle(fX, fY, fHeight, out afAngle[0], out afAngle[1], out afAngle[2]);
+                Set(m_lstCDelta[nIndex].nId_Front, afAngle[0]);
+                Set(m_lstCDelta[nIndex].nId_Left, afAngle[1]);
+                Set(m_lstCDelta[nIndex].nId_Right, afAngle[2]);
+            }
+            public bool GetDelta(int nIndex, out float fX, out float fY, out float fHeight)
+            {
+                if ((nIndex >= 0) && (nIndex < m_lstCDelta.Count))
+                {
+                    return m_lstCDelta[nIndex].CalcAngleToXyz(GetAngle(m_lstCDelta[nIndex].nId_Front), GetAngle(m_lstCDelta[nIndex].nId_Left), GetAngle(m_lstCDelta[nIndex].nId_Right), out fX, out fY, out fHeight);
+                }
+                fX = fY = fHeight = 0.0f;
+                return false;
+            }
+            public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime, int nDelay)
+            {
+                SetDelta(nIndex, fX, fY, fHeight);
+                Move(nTime, nDelay);
+                //Wait(nTime + nDelay);
+            }
+            public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime)
+            {
+                Move_Delta(nIndex, fX, fY, fHeight, nTime, 0);
+            }
+            #endregion Delta
 
 
         }

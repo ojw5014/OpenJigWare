@@ -26,6 +26,13 @@ namespace OpenJigWare
             public static int _ID_4 = 4;
             public static int _ID_5 = 5;
 
+            public const int JOYERR_BASE = 160;
+            public const int JOYERR_PARMS = (JOYERR_BASE + 5); 
+            public const int JOYERR_UNPLUGGED = (JOYERR_BASE + 7);
+            public const int MMSYSERR_BASE = 0;
+            public const int MMSYSERR_BADDEVICEID = (MMSYSERR_BASE + 2); 
+            public const int MMSYSERR_INVALPARAM = (MMSYSERR_BASE + 11); 
+
             public CXBox_t CXBox = new CXBox_t();
             public class CXBox_t
             {
@@ -115,15 +122,42 @@ namespace OpenJigWare
 
                 this.nID = id;
                 //this.IsValid = Update();
-                Update();
+                Update(true);
 
                 if (id != -1)
                     joyGetDevCaps(id, ref caps, Marshal.SizeOf(typeof(JOYCAPS)));
+                
+                this._PID = (int)caps.wPid;
+                this._VID = (int)caps.wMid;
             }
             ~CJoystick()
             {
             }
             
+            private void read_dev()
+            {
+                int nID = this.nID;
+                caps = new JOYCAPS();
+                caps.wXmax = 65535;
+                caps.wYmax = 65535;
+                caps.wZmax = 65535;
+                caps.wRmax = 65535;
+                caps.wUmax = 65535;
+                caps.wVmax = 65535;
+
+                info = new JOYINFOEX
+                {
+                    dwSize = (uint)Marshal.SizeOf(typeof(JOYINFOEX)),
+                    dwFlags = ReturnType.All,
+                };
+
+                if (nID != -1)
+                    joyGetDevCaps(nID, ref caps, Marshal.SizeOf(typeof(JOYCAPS)));
+
+                this._PID = (int)caps.wPid;
+                this._VID = (int)caps.wMid;
+            }
+
             #region Define
             [SuppressUnmanagedCodeSecurity, DllImport("winmm")]
             static extern int joyGetNumDevs();
@@ -131,6 +165,8 @@ namespace OpenJigWare
             static extern int joyGetPosEx(int uJoyID, ref JOYINFOEX pji);
             [SuppressUnmanagedCodeSecurity, DllImport("winmm")]
             static extern int joyGetDevCaps(int uJoyID, ref JOYCAPS pjc, int cbjc);
+            [SuppressUnmanagedCodeSecurity, DllImport("winmm")]
+            static extern int joyReleaseCapture(int uJoyID);            
 
             [StructLayout(LayoutKind.Sequential)]
             private struct JOYINFOEX
@@ -308,6 +344,7 @@ namespace OpenJigWare
 
             JOYINFOEX info;
             JOYCAPS caps;
+            public string get_caps() { return caps.szPname; }
             readonly Dictionary<PadKey, bool> isDown = new Dictionary<PadKey, bool>();
             private int[] m_anClickEvent_Up = new int[100];//(int)(PadKey.SpinRight) + 1];
             private int[] m_anClickEvent_Down = new int[100];//(int)(PadKey.SpinRight) + 1];
@@ -327,6 +364,9 @@ namespace OpenJigWare
             public double dX0 { get { return (double)(info.dwXpos - caps.wXmin) / (caps.wXmax - caps.wXmin); } }
             public double dY0 { get { return (double)(info.dwYpos - caps.wYmin) / (caps.wYmax - caps.wYmin); } }
             public int nID { get; private set; }
+
+            public int _PID { get; private set; }
+            public int _VID { get; private set; }
 
             // Pad
             public double dX1 { get { return (double)(info.dwUpos - caps.wUmin) / (caps.wUmax - caps.wUmin); } }
@@ -360,6 +400,7 @@ namespace OpenJigWare
 
 
             private bool m_bValid = false;
+            private bool m_bValid_Back = false;
             public bool IsValid //{ get; private set; }
             {
                 get
@@ -395,12 +436,13 @@ namespace OpenJigWare
             public double Slide { get { return (double)(info.dwZpos - caps.wZmin) / (caps.wZmax - caps.wZmin); } }
             public bool IsValid { get; private set; }
 #endif
-            public bool Update() 
-            {                
+            public bool Update(bool bInit = false) 
+            {
                 bool bRet = false;
                 if (this.nID >= 0)
                 {
-                    if (joyGetPosEx(this.nID, ref info) == 0)
+                    int nVal = joyGetPosEx(this.nID, ref info);
+                    if (nVal == 0)
                     {
                         foreach (PadKey i in Enum.GetValues(typeof(PadKey)))
                         {
@@ -409,12 +451,45 @@ namespace OpenJigWare
                             // Down Event
                             if ((isDown[i] == true) && (m_anClickEvent_Down[nIndex] == 0)) m_anClickEvent_Down[nIndex] = 1;
                             else if ((isDown[i] == false) && (m_anClickEvent_Down[nIndex] != 0)) m_anClickEvent_Down[nIndex] = 0;
-                            
+
                             // Up Event
                             if ((isDown[i] == true) && (m_anClickEvent_Up[nIndex] == 0)) m_anClickEvent_Up[nIndex] = 1;
                             else if ((isDown[i] == false) && (m_anClickEvent_Up[nIndex] == 1)) m_anClickEvent_Up[nIndex] = 2;
                         }
                         bRet = true;
+
+                        if (!bInit)
+                        {
+                            if (IsValid == false)
+                            {
+                                read_dev();
+                            }
+                        }
+                        //if (IsValid == false)
+                        //{
+                        //    try
+                        //    {
+                        //        read_dev();
+                        //    }
+                        //    catch (Exception ex)
+                        //    {
+                        //        CMessage.Write_Error(ex.ToString());
+                        //    }
+                        //}
+                    }
+                    else
+                    {
+
+                        if (nVal == JOYERR_UNPLUGGED)
+                        {
+                            joyReleaseCapture(this.nID);
+                            //this.nID = -1;
+                        }
+                        //for (int ii = 0; ii < 16; ii++)
+                        //{
+                        //    nVal = joyGetPosEx(ii, ref info);
+                        //    if (nVal == 0) { this.nID = ii; read_dev(); break; }
+                        //}
                     }
                 }
 
@@ -556,6 +631,39 @@ namespace OpenJigWare
                     return isDown[key];
                 return false;
             }
+            public int GetPov()
+            {
+                if (isDown.Count > 0)
+                {
+                    int nVal = 0;
+                    int nRet = -1;
+                    //if (isDown[PadKey.POVUp]) { nVal |= 0x01; nRet = 0; }
+                    //if (isDown[PadKey.POVRight]) { nVal |= 0x02; nRet = 2; }
+                    //if (isDown[PadKey.POVLeft]) { nVal |= 0x04; nRet = 4; }
+                    //if (isDown[PadKey.POVDown]) { nVal |= 0x08; nRet = 6; }
+                    //if (nRet % 2 != 0) nRet++;
+                    //return nRet * 45;
+                    if (isDown[PadKey.POVUp] == true) nVal |= 0x01;
+                    if (isDown[PadKey.POVRight] == true) nVal |= 0x02;
+                    if (isDown[PadKey.POVDown] == true) nVal |= 0x04;
+                    if (isDown[PadKey.POVLeft] == true) nVal |= 0x08;
+                    switch (nVal)
+                    {
+                        case 0x01: nRet = 0; break;
+                        case 0x02: nRet = 2; break;
+                        case 0x04: nRet = 4; break;
+                        case 0x08: nRet = 6; break;
+                        case 0x03: nRet = 1; break;
+                        case 0x06: nRet = 3; break;
+                        case 0x0C: nRet = 5; break;
+                        case 0x09: nRet = 7; break;
+                    }
+                    if (nRet < 0) return -1;
+                    return nRet * 45;
+
+                }
+                return 0;
+            }
             public bool IsDown(int key)
             {
                 if (isDown.Count > 0)
@@ -640,17 +748,18 @@ namespace OpenJigWare
                 }
                 return false;
             }
-            //public static IEnumerable<CJoystick> GetAvailableGamePads()
-            //{
-            //    var max = joyGetNumDevs();
+            public static int GetCount() { return joyGetNumDevs(); }
+            public static IEnumerable<CJoystick> GetAvailableGamePads()
+            {
+                var max = joyGetNumDevs();
 
-            //    for (int i = 0; i < max; i++)
-            //    {
-            //        var rt = new CJoystick(i);
-            //        if (rt.IsValid())
-            //            yield return rt;
-            //    }
-            //}
+                for (int i = 0; i < max; i++)
+                {
+                    var rt = new CJoystick(i);
+                    if (rt.IsValid)
+                        yield return rt;
+                }
+            }
         }
     }
 }

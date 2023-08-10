@@ -30,7 +30,8 @@ namespace OpenJigWare
                 if (IsConnect())
                     DisConnect();
             }
-            public static string [] GetPortNames() { return SerialPort.GetPortNames(); }
+            public static string[] GetPortNames() { return SerialPort.GetPortNames(); }
+            public static int[] GetPorts() { return Array.ConvertAll(GetPortNames(), element => CConvert.StrToInt(CConvert.RemoveAlpha(element))); }
 
             // https://social.msdn.microsoft.com/Forums/windows/en-US/c236cac4-a954-4a70-882d-bc20e2cc6e81/getting-more-information-about-a-serial-port-in-c?forum=winformsdesigner
             public static SPortInfo_t[] GetPortNames_In_Detail(params string[] pstrFilter)
@@ -47,7 +48,7 @@ namespace OpenJigWare
                         {
                             int nPass = 0;
                             if (pstrFilter.Length <= 0) nPass = 1;
-                            else { for (int i = 0; i < pstrFilter.Length; i++) { if (property.GetPropertyValue("Name").ToString().Contains(pstrFilter[i])) nPass++; } } 
+                            else { for (int i = 0; i < pstrFilter.Length; i++) { if (property.GetPropertyValue("Name").ToString().Contains(pstrFilter[i])) nPass++; }}
 
                             if (nPass > 0)
                             {
@@ -66,7 +67,75 @@ namespace OpenJigWare
                 if (lstStrRes.Count > 0) return lstStrRes.ToArray();
                 return null;
             }
+            public static SPortInfo_t[] GetPortNames_In_Detail_With_Vendor(params string[] pstrFilter)
+            {
+                ManagementClass processClass = new ManagementClass("Win32_PnPEntity");
+                ManagementObjectCollection Ports = processClass.GetInstances();
+                string device = "No recognized";
+                List<SPortInfo_t> lstStrRes = new List<SPortInfo_t>();
+                foreach (ManagementObject property in Ports)
+                {
+                    if (property.GetPropertyValue("Name") != null)
+                    {
+                        if (property.GetPropertyValue("Name").ToString().Contains("COM"))
+                        {
+                            //string strTmp = "";
+                            int nPass = 0;
+                            if (pstrFilter.Length <= 0) nPass = 1;
+                            else
+                            {
+                                for (int i = 0; i < pstrFilter.Length; i++)
+                                {
+                                    string str = property.GetPropertyValue("PnpDeviceID").ToString().ToUpper();
+                                    if (str.Contains(pstrFilter[i].ToUpper())) nPass++;
+                                    //if (property.GetPropertyValue("PnpDeviceID").ToString().Contains(pstrFilter[i])) nPass++;
+                                }
+                            }
+                            
+                            if (nPass > 0)
+                            {
+                                SPortInfo_t SPort = new SPortInfo_t();
+                                string str = property.GetPropertyValue("Name").ToString().ToUpper();
+                                int nIndex = str.LastIndexOf("COM");
+                                str = str.Substring(nIndex + 3);
+                                str = str.Substring(0, str.Length - 1);
+                                SPort.strDescription = property.GetPropertyValue("Name").ToString();
+                                SPort.nPort = CConvert.StrToInt(str);
+                                lstStrRes.Add(SPort);
+                            }
+                        }
+                    }
+                }
+                if (lstStrRes.Count > 0) return lstStrRes.ToArray();
+                return null;
 
+#if false // 참조자료
+                // https://stackoverflow.com/questions/2837985/getting-serial-port-information
+                foreach (ManagementObject obj in processClass.GetInstances())
+                {
+                    Object objGuid = obj.GetPropertyValue("ClassGuid");
+                    if (objGuid == null || objGuid.ToString().ToUpper() != "{4D36E978-E325-11CE-BFC1-08002BE10318}")
+                        continue; // Skip all devices except device class "PORTS"
+
+                    String strCaption  = obj.GetPropertyValue("Caption")     .ToString();
+                    String strManufact = obj.GetPropertyValue("Manufacturer").ToString();
+                    String strDeviceID = obj.GetPropertyValue("PnpDeviceID").ToString();
+                    String strRegPath = "HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Enum\\" + strDeviceID + "\\Device Parameters";
+                    String strPortName = Microsoft.Win32.Registry.GetValue(strRegPath, "PortName", "").ToString();
+
+                    int s32_Pos = strCaption.IndexOf(" (COM");
+                    if (s32_Pos > 0) // remove COM port from description
+                        strCaption = strCaption.Substring(0, s32_Pos);
+
+                    CMessage.Write("Port Name:    " + strPortName);
+                    CMessage.Write("Description:  " + strCaption);
+                    CMessage.Write("Manufacturer: " + strManufact);
+                    CMessage.Write("Device ID:    " + strDeviceID);
+                    CMessage.Write("-----------------------------------");
+                }
+#endif 
+                 
+            }
 
 
 

@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 
 using OpenJigWare;
+using System.Threading;
 
 namespace OpenJigWare.Docking
 {
@@ -411,7 +412,7 @@ namespace OpenJigWare.Docking
             m_C3d.m_CGridMotionEditor.m_nGridMode = 0;
         }
         private void PlayFrame(int nLine) { PlayFrame(nLine, false, false); }
-        private void PlayFrame(int nLine, bool bIgnoreEnable, bool bTorqOn)
+        private void PlayFrame(int nLine, bool bIgnoreEnable, bool bTorqOn, bool bNoWait = false)
         {
             int nTime, nDelay;
             nTime = GetData_Time(nLine);
@@ -429,7 +430,7 @@ namespace OpenJigWare.Docking
                     m_C3d.m_CMonster.Set(nID, GetData_With_ID(nLine, nID)); 
                 }
                 m_C3d.m_CMonster.Send_Motor(nTime);
-                m_C3d.m_CMonster.Wait(nTime + nDelay);
+                if (bNoWait == false) m_C3d.m_CMonster.Wait(nTime + nDelay);
             }
         }
         private void SelectMotor(int nLine, int nCol)
@@ -477,22 +478,33 @@ namespace OpenJigWare.Docking
         private void    SetData_Delay(int nLine, int nDelay) { SetData_Raw(nLine, m_C3d.m_lstIDs_Motion.Count + 2, nDelay); }
         #endregion GetData / SetData
 
+        Thread m_thDoubleClick;
         private void dgGrid_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
         {
             if (dgGrid.Focused == true)
             {
                 if (m_C3d.IsNoLoadedModelingFile() == false)
                 {
-                    int nLine = dgGrid.CurrentCell.RowIndex;
-                    int nCol = dgGrid.CurrentCell.ColumnIndex;
-                    if ((nCol > 0) && (dgGrid.ColumnCount > 20) && (nCol - 1 < m_C3d.m_lstIDs_Motion.Count))//dgGrid.ColumnCount - 20))
-                    {
-                        PlayFrame(nLine, true, true);
-                    }
+                    m_thDoubleClick = new Thread(new ThreadStart(thDoubleClick));
+                    m_thDoubleClick.Start();
+                    //int nLine = dgGrid.CurrentCell.RowIndex;
+                    //int nCol = dgGrid.CurrentCell.ColumnIndex;
+                    //if ((nCol > 0) && (dgGrid.ColumnCount > 20) && (nCol - 1 < m_C3d.m_lstIDs_Motion.Count))//dgGrid.ColumnCount - 20))
+                    //{
+                    //    PlayFrame(nLine, true, true, false);
+                    //}
                 }
             }
         }
-
+        private void thDoubleClick()
+        {
+            int nLine = dgGrid.CurrentCell.RowIndex;
+            int nCol = dgGrid.CurrentCell.ColumnIndex;
+            if ((nCol > 0) && (dgGrid.ColumnCount > 20) && (nCol - 1 < m_C3d.m_lstIDs_Motion.Count))//dgGrid.ColumnCount - 20))
+            {
+                PlayFrame(nLine, true, true, false);
+            }
+        }
         private int m_nRunMode = 0;
         private void btnRun_Click(object sender, EventArgs e)
         {            
@@ -1127,5 +1139,14 @@ namespace OpenJigWare.Docking
             //m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             //m_CTmr_Save.Set(); 
         }
+
+        private void txtPort_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            String str = "Port -> "; 
+            String [] pstr = Ojw.CSerial.GetPortNames();
+            foreach (string strItem in pstr) str += String.Format("{0} ", strItem);
+            MessageBox.Show(str);
+        }
+
     }
 }

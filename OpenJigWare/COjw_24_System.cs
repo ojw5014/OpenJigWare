@@ -16,6 +16,7 @@ using System.Threading;
 using Microsoft.Win32;
 using System.Net;
 using SKYPE4COMLib;
+using System.Management;
 
 namespace OpenJigWare
 {
@@ -834,6 +835,49 @@ namespace OpenJigWare
                 return Screen.AllScreens[nIndex].Bounds.Location;
             }
             #endregion Monitor
+
+            // Camera, Audio
+            public static string[] GetDevices(int n_0_camera_1_audio_2_mic = 0)
+            {
+                List<String> lst = new List<string>();
+                String[] pstrDev;
+                string str;
+                string strDev = ((n_0_camera_1_audio_2_mic == 0) ? "Camera" : ((n_0_camera_1_audio_2_mic == 1) ? "MEDIA" : "AudioEndpoint' AND Description LIKE '%Microphone%'"));
+                
+                // Create a query to find all video devices
+                var query = new SelectQuery("SELECT * FROM Win32_PnPEntity WHERE PNPClass='" + strDev + "'");
+                // Create a searcher with the query
+                var searcher = new ManagementObjectSearcher(query);
+                // Get the results
+                var devices = searcher.Get();
+                // Output the number of webcams
+                Ojw.printf("Number of " + ((n_0_camera_1_audio_2_mic == 0) ? "Camera" : ((n_0_camera_1_audio_2_mic == 1) ? "Audio" : "microphone")) + " devices: " + devices.Count + "\r\n");
+                //int i = 0;
+                foreach (var dev in devices)
+                {
+                    //Ojw.printf(camera.ToString() + "\r\n");
+                    str = dev.ToString();
+                    str = str.Substring(str.IndexOf("DeviceID"));
+                    str = str.Substring(str.IndexOf("\"") + 1);
+                    str = Ojw.CConvert.RemoveChar(str, '\"');
+                    pstrDev = str.Split('\\');
+                    String strTmp = dev["Name"].ToString();
+
+                    //Ojw.printf("{0}) {1} : ", ++i, camera["Name"]);
+                    for (int j = 0; j < pstrDev.Length; j++)
+                    {
+                        if (pstrDev[j].Length > 1)
+                        {
+                            strTmp += String.Format(";{0}", pstrDev[j]);
+                            //Ojw.printf(pstrDev[j] + "  ");
+                        }
+                    }
+                    lst.Add(strTmp);
+                    //Ojw.newline();
+
+                }
+                return lst.ToArray();
+            }
 
             //public static Process RunProgram(IntPtr hWnd_Dest, string strProgram)
             //{

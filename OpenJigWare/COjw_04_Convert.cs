@@ -210,6 +210,8 @@ namespace OpenJigWare
                     bool bAtan2 = false;
                     bool bAcos2 = false;
                     bool bAsin2 = false;
+                    bool bCall = false;
+                    bool bIf = false;
 
                     for (int i = 0; i < strSrc.Length; i++)
                     {
@@ -309,6 +311,8 @@ namespace OpenJigWare
                                 if (strCurr.ToLower() == "atan2") bAtan2 = true;
                                 if (strCurr.ToLower() == "acos2") bAcos2 = true;
                                 if (strCurr.ToLower() == "asin2") bAsin2 = true;
+                                if (strCurr.ToLower() == "call") bCall = true;
+                                if (strCurr.ToLower() == "if") bIf = true;
                                 if (strCurr == ",")
                                 {
                                     if (bSqrt == true) strCurr = ",_UP1_";
@@ -317,12 +321,16 @@ namespace OpenJigWare
                                     else if (bAcos2 == true) strCurr = ",_UP3_";
                                     else if (bAsin2 == true) strCurr = ",_UP4_";
                                     else if (bRound == true) strCurr = ",_UP5_";
+                                    else if (bCall == true) strCurr = ",_UP6_";
+                                    else if (bIf == true) strCurr = ",_UP7_";
                                     bSqrt = false;
                                     bPow = false;
                                     bAtan2 = false;
                                     bAcos2 = false;
                                     bAsin2 = false;
                                     bRound = false;
+                                    bCall = false;
+                                    bIf = false;
                                 }
                                 pstrData2[nNum++] = strCurr;
                                 strPrev = strCurr;
@@ -600,7 +608,10 @@ namespace OpenJigWare
                 double dRet = ((dData > dLimitValue_Up) ? dLimitValue_Up : dData);
                 return ((dRet < dLimitValue_Dn) ? dLimitValue_Dn : dRet);
             }
-
+            public static String RemoveAlpha(String strData)
+            {
+                return string.Concat(strData.Where(char.IsDigit));
+            }
             // Remove all from "//"
             // Kor: 라인주석 "//" 이후를 없애는 명령어
             public static String RemoveCaption(String strData, bool bRemoveSpace, bool bRemoveNullLine)
@@ -1585,6 +1596,7 @@ namespace OpenJigWare
             //    }
             //    return lst;
             //}
+
             public static double[] FloatsToDoubles(float[] afFloats) { return Array.ConvertAll(afFloats, element => (double)element); }
             public static float[] DoublesToFloats(float[] adDoubles) { return Array.ConvertAll(adDoubles, element => (float)element); }
             public static bool Sort_ListArray(int nStandardPosition, ref List<int[]> lst)

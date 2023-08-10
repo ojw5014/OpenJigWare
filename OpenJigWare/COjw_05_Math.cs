@@ -159,6 +159,68 @@ namespace OpenJigWare
 #endif
             #endregion get distance with 2 lines
 
+            public static bool CalcMatrix_Inverse(int nLine, double[,] adS, out double[,] adRes)
+            {
+                // int nLine = adS.GetLength(0);
+                adRes = new double[nLine, nLine];
+                if (adS.Length < nLine * nLine) return false;
+                for (int i = 0; i < nLine; i++) { for (int j = 0; j < nLine; j++) { adRes[i, j] = ((i == j) ? 1 : 0); } }
+                for (int i = 0; i < nLine; i++)
+                {
+                    // Check if the pivot element is zero
+                    if (adS[i, i] == 0)
+                    {
+                        // Find a row with a non-zero element in the same column
+                        int rowToSwap = i + 1;
+                        while (rowToSwap < nLine && adS[rowToSwap, i] == 0)
+                        {
+                            rowToSwap++;
+                        }
+
+                        // If no such row exists, the adS is singular and has no inverse
+                        if (rowToSwap == nLine)
+                        {
+                            return false;// throw new Exception("The adS is singular and has no inverse");
+                        }
+
+                        // Swap the rows
+                        for (int j = 0; j < nLine; j++)
+                        {
+                            double temp = adS[i, j];
+                            adS[i, j] = adS[rowToSwap, j];
+                            adS[rowToSwap, j] = temp;
+
+                            double tempIdentity = adRes[i, j];
+                            adRes[i, j] = adRes[rowToSwap, j];
+                            adRes[rowToSwap, j] = tempIdentity;
+                        }
+                    }
+
+                    // Divide the pivot row by the pivot element
+                    double pivot = adS[i, i];
+                    for (int j = 0; j < nLine; j++)
+                    {
+                        adS[i, j] /= pivot;
+                        adRes[i, j] /= pivot;
+                    }
+
+                    // Eliminate the elements in the other rows
+                    for (int j = 0; j < nLine; j++)
+                    {
+                        if (j != i)
+                        {
+                            double factor = adS[j, i];
+                            for (int k = 0; k < nLine; k++)
+                            {
+                                adS[j, k] -= factor * adS[i, k];
+                                adRes[j, k] -= factor * adRes[i, k];
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+
             #region Math - matrix function, making a DH-T matrix function
             // return false when it has error - Diagonal matrix
             public static bool CalcMatrix(int nLine, double[,] adS0, double[,] adS1, out double[,] adRes)

@@ -254,6 +254,7 @@
     <Compile Include="COjw_28_Keyboard.cs" />
     <Compile Include="COjw_29_Param.cs" />
     <Compile Include="COjw_30_Voice.cs" />
+    <Compile Include="COjw_38_Python.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Docking\AxisSetting.resx">

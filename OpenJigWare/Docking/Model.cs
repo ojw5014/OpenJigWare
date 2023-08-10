@@ -1425,5 +1425,14 @@ namespace OpenJigWare.Docking
             }
             #endregion Json File
         }
+
+        private void btnSelectFunction_Click(object sender, EventArgs e)
+        {
+            m_C3d.SetSkeletonView(true);
+            //m_C3d.SetMouseMode(1); // control mode
+
+            //m_C3d.SelectMotor(11);
+            m_C3d.SelectInverseKinematics(Ojw.CConvert.StrToInt(txtSelectFunction.Text));
+        }
     }
 }

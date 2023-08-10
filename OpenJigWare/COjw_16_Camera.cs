@@ -12,6 +12,7 @@ using AForge.Video.DirectShow;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Management;
 #endif
 
 namespace OpenJigWare
@@ -29,6 +30,46 @@ namespace OpenJigWare
 
             }
 
+            public static string[] GetDevices()
+            {
+                List<String> lst = new List<string>();
+                String[] pstrDev;
+                string str;
+                // Create a query to find all video devices
+                var query = new SelectQuery("SELECT * FROM Win32_PnPEntity WHERE PNPClass='Camera'");
+                // Create a searcher with the query
+                var searcher = new ManagementObjectSearcher(query);
+                // Get the results
+                var cameras = searcher.Get();
+                // Output the number of webcams
+                Ojw.printf("Number of webcams connected: " + cameras.Count + "\r\n");
+                int i = 0;
+                foreach (var camera in cameras)
+                {
+                    //Ojw.printf(camera.ToString() + "\r\n");
+                    str = camera.ToString();
+                    str = str.Substring(str.IndexOf("DeviceID"));
+                    str = str.Substring(str.IndexOf("\"") + 1);
+                    str = Ojw.CConvert.RemoveChar(str, '\"');
+                    pstrDev = str.Split('\\');
+                    String strTmp = camera["Name"].ToString();
+
+                    //Ojw.printf("{0}) {1} : ", ++i, camera["Name"]);
+                    for (int j = 0; j < pstrDev.Length; j++)
+                    {
+                        if (pstrDev[j].Length > 1)
+                        {
+                            strTmp += String.Format(";{0}", pstrDev[j]);
+                            //Ojw.printf(pstrDev[j] + "  ");
+                        }
+                    }
+                    lst.Add(strTmp);
+                    //Ojw.newline();
+
+                }
+                return lst.ToArray();
+            }
+
             #region AForge
             private Control m_ctrlDisp;
             private VideoSourcePlayer m_vsPlayer = new VideoSourcePlayer();
@@ -36,6 +77,25 @@ namespace OpenJigWare
             {
                 if (ctrlDisp == null) ctrlDisp = new Control();
                 Init(ctrlDisp, nCameraIndex, ctrlDisp.Width, ctrlDisp.Height);
+            }
+            public void Init(Control ctrlDisp, string strFileName)
+            {
+                if (ctrlDisp == null) ctrlDisp = new Control();
+                Init(ctrlDisp, strFileName, ctrlDisp.Width, ctrlDisp.Height);
+            }
+            public void Init(Control ctrlDisp, string strFilePath, int nWidth, int nHeight)
+            {
+                if (ctrlDisp == null) ctrlDisp = new Control();
+                m_nGrabErrorCount = 0;
+
+                m_ctrlDisp = ctrlDisp;
+
+                //m_vsPlayer.Size = (m_ctrlDisp != null) ? m_ctrlDisp.Size : new Size(320, 240);
+                m_vsPlayer.Size = (m_ctrlDisp != null) ? new Size(nWidth, nHeight) : new Size(320, 240);
+                m_vsPlayer.Location = new Point(0, 0);
+                if (m_ctrlDisp != null) m_ctrlDisp.Controls.Add(m_vsPlayer);
+
+                m_vsPlayer.VideoSource = new FileVideoSource(strFilePath);
             }
             public void Init(Control ctrlDisp, int nCameraIndex, int nWidth, int nHeight)
             {

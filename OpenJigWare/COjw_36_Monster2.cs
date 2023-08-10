@@ -3024,14 +3024,14 @@ namespace OpenJigWare
                 return nMotCnt;
             }
 
+            #region Delta
+            public List<CDelta> m_lstCDelta = new List<CDelta>();
             public int Delta_Add(float fRot_Cw, int nID_Front, int nID_Left, int nID_Right, float fTop_Rad, float fTop_Length, float fBottom_Length, float fBottom_Rad)
             {
                 m_lstCDelta.Add(new CDelta(fRot_Cw, nID_Front, nID_Left, nID_Right, fTop_Rad, fTop_Length, fBottom_Length, fBottom_Rad));
                 return m_lstCDelta.Count;
-            }            
+            }
             public void Delta_Clear() { m_lstCDelta.Clear(); }
-            #region Delta
-            public List<CDelta> m_lstCDelta = new List<CDelta>();
             public class CDelta
             {
                 public CDelta(float fRot_Cw, int nID_Front, int nID_Left, int nID_Right, float fTop_Rad, float fTop_Length, float fBottom_Length, float fBottom_Rad)
@@ -3110,7 +3110,6 @@ namespace OpenJigWare
                     return bRet;
                 }
             }
-            #endregion Delta
             public int GetDelta_Count() { return m_lstCDelta.Count; }
             public void SetDelta(int nIndex, float fX, float fY, float fHeight)
             {
@@ -3139,6 +3138,7 @@ namespace OpenJigWare
             {
                 Move_Delta(nIndex, fX, fY, fHeight, nTime, 0);
             }
+            #endregion Delta
         }
 
     }

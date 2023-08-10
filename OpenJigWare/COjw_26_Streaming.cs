@@ -652,7 +652,7 @@ namespace rtaNetworking.Streaming
 
             Socket socket = (Socket)client;
 
-            System.Diagnostics.Debug.WriteLine(string.Format("New client from {0}", socket.RemoteEndPoint.ToString()));
+            //System.Diagnostics.Debug.WriteLine(string.Format("New client from {0}", socket.RemoteEndPoint.ToString()));
 
             lock (_Clients)
                 _Clients.Add(socket);

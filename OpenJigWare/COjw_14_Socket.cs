@@ -56,24 +56,32 @@ namespace OpenJigWare
                 if (m_tcpServer_Client == null) return false;
                 if (m_tcpServer_Client.Client == null) return false;
 
-                IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-                TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections();
-                foreach (TcpConnectionInformation c in tcpConnections)
+                try
                 {
-                    TcpState stateOfConnection = c.State;
-                    if (c.LocalEndPoint.Equals(m_tcpServer_Client.Client.LocalEndPoint) && c.RemoteEndPoint.Equals(m_tcpServer_Client.Client.RemoteEndPoint))
+                    IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+                    TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections();
+                    foreach (TcpConnectionInformation c in tcpConnections)
                     {
-                        if (stateOfConnection == TcpState.Established)
+                        TcpState stateOfConnection = c.State;
+                        if (c.LocalEndPoint.Equals(m_tcpServer_Client.Client.LocalEndPoint) && c.RemoteEndPoint.Equals(m_tcpServer_Client.Client.RemoteEndPoint))
                         {
-                            return true;
-                        }
-                        else
-                        {
-                            return false;
+                            if (stateOfConnection == TcpState.Established)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
                     }
+                    return false;
                 }
-                return false;
+                catch (Exception ex)
+                {
+                    CMessage.Write_Error(ex.ToString());
+                    return false;
+                }
             }
 
             //서버 구동이 시작 되었는지 여부
@@ -176,23 +184,30 @@ namespace OpenJigWare
             #region 비공개 - thread ...
             public void WaitClient(bool bBlockingMode)
             {
-                // 클라이언트가 붙으면 담당 소켓을 생성한다.
-                m_tcpServer_Client = m_tcpServer.AcceptTcpClient();
-                m_tcpServer_Client.Client.Blocking = bBlockingMode;
-                m_tcpServer_Client.NoDelay = false;
-                m_bwServer_outData = new BinaryWriter(new BufferedStream(m_tcpServer_Client.GetStream()));
-                m_bwServer_inData = new BinaryReader(new BufferedStream(m_tcpServer_Client.GetStream()));
+                try
+                {
+                    // 클라이언트가 붙으면 담당 소켓을 생성한다.
+                    m_tcpServer_Client = m_tcpServer.AcceptTcpClient();
+                    m_tcpServer_Client.Client.Blocking = bBlockingMode;
+                    m_tcpServer_Client.NoDelay = false;
+                    m_bwServer_outData = new BinaryWriter(new BufferedStream(m_tcpServer_Client.GetStream()));
+                    m_bwServer_inData = new BinaryReader(new BufferedStream(m_tcpServer_Client.GetStream()));
 
-                CMessage.Write("준비완료");
+                    CMessage.Write("준비완료");
 
-                m_nServer_Seq = 0;
+                    m_nServer_Seq = 0;
 
-                m_nCntAuth = 0;
-                m_bAuth = false;
+                    m_nCntAuth = 0;
+                    m_bAuth = false;
 
-                m_bThread_Server = true;
-                m_bWebSocket = false; // 일단은 웹소켓 판단을 '아님' 으로 한다.
-                //string strData = "";
+                    m_bThread_Server = true;
+                    m_bWebSocket = false; // 일단은 웹소켓 판단을 '아님' 으로 한다.
+                    //string strData = "";
+                }
+                catch (Exception ex)
+                {
+                    CMessage.Write_Error(ex.ToString());
+                }
             }
             //private void ThreadServer()
             //{
@@ -475,7 +490,7 @@ namespace OpenJigWare
                     sock_send(buffer);
                 }
             }
-
+            public void websocket_write(string strData) { websocket_write(CConvert.StrToBytes_UTF8(strData), false); }
             // 출처: https://www.codeproject.com/Articles/1063910/WebSocket-Server-in-Csharp
             private static void WriteULong(ulong value, Stream stream, bool isLittleEndian)
             {
@@ -688,6 +703,7 @@ namespace OpenJigWare
             private int _CHKSUM_SUM = 4;
 
             public NetworkStream stream;            // 네트워크 스트림
+            public string m_strAddress = "";
             public int m_nPort = 0;                        // 포트번호
 
             public bool m_bConnect = false;          // 서버 접속 플래그
@@ -695,6 +711,8 @@ namespace OpenJigWare
             BinaryWriter outData;
             BinaryReader inData;
             public bool IsConnect() { return (m_tcpClient == null) ? false : m_tcpClient.Connected; }
+            public string GetIpAddress() { if (IsConnect()) return m_strAddress; return ""; }
+            public int GetPort() { return m_nPort; }
             public bool Connect(String strIP, int nPort)
             {
                 m_tcpClient = new TcpClient();       // TCP 클라이언트 생성
@@ -706,6 +724,8 @@ namespace OpenJigWare
                     //m_tcpClient.Connect(strIP, nPort); // - 이건 랙을 유발시킨다.
                     //m_tcpClient.Connect(IPAddress.Parse(strIP), nPort);
 
+                    m_strAddress = strIP;
+                    m_nPort = nPort;
                     IResult = m_tcpClient.BeginConnect(IPAddress.Parse(strIP), nPort, null, null);
                     //if (IResult.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1)) == false)
                     //{

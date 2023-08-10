@@ -2365,5 +2365,258 @@ namespace OpenJigWare.Docking
         {
 
         }
+
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Direction(out fA, out fB, out fC);
+            txtDh_Light_Direction_X.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Direction_Y.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Direction_Z.Text = Ojw.CConvert.FloatToStr(fC);
+
+            m_C3d.GetLight_Direction2(out fA, out fB, out fC);
+            txtDh_Light_Direction2_X.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Direction2_Y.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Direction2_Z.Text = Ojw.CConvert.FloatToStr(fC);
+
+
+            m_C3d.GetLight_Position(out fA, out fB, out fC, out fD);
+            txtDh_Light_Position_A.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Position_B.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Position_C.Text = Ojw.CConvert.FloatToStr(fC);
+            txtDh_Light_Position_D.Text = Ojw.CConvert.FloatToStr(fD);
+
+            m_C3d.GetLight_Position2(out fA, out fB, out fC, out fD);
+            txtDh_Light_Position2_A.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Position2_B.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Position2_C.Text = Ojw.CConvert.FloatToStr(fC);
+            txtDh_Light_Position2_D.Text = Ojw.CConvert.FloatToStr(fD);
+
+            m_C3d.GetLight_Ambient(out fA, out fB, out fC, out fD);
+            txtDh_Light_Ambient_A.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Ambient_B.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Ambient_C.Text = Ojw.CConvert.FloatToStr(fC);
+            txtDh_Light_Ambient_D.Text = Ojw.CConvert.FloatToStr(fD);
+
+            m_C3d.GetLight_diffuseLight(out fA, out fB, out fC, out fD);
+            txtDh_Light_Diffuse_A.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Diffuse_B.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Diffuse_C.Text = Ojw.CConvert.FloatToStr(fC);
+            txtDh_Light_Diffuse_D.Text = Ojw.CConvert.FloatToStr(fD);
+
+            m_C3d.GetLight_Specular(out fA, out fB, out fC, out fD);
+            txtDh_Light_Specular_A.Text = Ojw.CConvert.FloatToStr(fA);
+            txtDh_Light_Specular_B.Text = Ojw.CConvert.FloatToStr(fB);
+            txtDh_Light_Specular_C.Text = Ojw.CConvert.FloatToStr(fC);
+            txtDh_Light_Specular_D.Text = Ojw.CConvert.FloatToStr(fD);
+        }
+
+        private void txtDh_Light_Direction_X_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC;
+            m_C3d.GetLight_Direction(out fA, out fB, out fC);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Direction_X.Text);
+            m_C3d.SetLight_Direction(fA, fB, fC);
+        }
+
+        private void txtDh_Light_Direction_Y_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC;
+            m_C3d.GetLight_Direction(out fA, out fB, out fC);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Direction_Y.Text);
+            m_C3d.SetLight_Direction(fA, fB, fC);
+        }
+
+        private void txtDh_Light_Direction_Z_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC;
+            m_C3d.GetLight_Direction(out fA, out fB, out fC);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Direction_Z.Text);
+            m_C3d.SetLight_Direction(fA, fB, fC);
+        }
+
+        private void txtDh_Light_Direction2_X_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC;
+            m_C3d.GetLight_Direction2(out fA, out fB, out fC);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Direction2_X.Text);
+            m_C3d.SetLight_Direction2(fA, fB, fC);
+        }
+
+        private void txtDh_Light_Direction2_Y_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC;
+            m_C3d.GetLight_Direction2(out fA, out fB, out fC);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Direction2_Y.Text);
+            m_C3d.SetLight_Direction2(fA, fB, fC);
+        }
+
+        private void txtDh_Light_Direction2_Z_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC;
+            m_C3d.GetLight_Direction2(out fA, out fB, out fC);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Direction2_Z.Text);
+            m_C3d.SetLight_Direction2(fA, fB, fC);
+        }
+
+        private void txtDh_Light_Position_A_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position(out fA, out fB, out fC, out fD);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Position_A.Text);
+            m_C3d.SetLight_Position(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position_B_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position(out fA, out fB, out fC, out fD);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Position_B.Text);
+            m_C3d.SetLight_Position(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position_C_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position(out fA, out fB, out fC, out fD);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Position_C.Text);
+            m_C3d.SetLight_Position(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position_D_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position(out fA, out fB, out fC, out fD);
+            fD = Ojw.CConvert.StrToFloat(txtDh_Light_Position_D.Text);
+            m_C3d.SetLight_Position(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position2_A_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position2(out fA, out fB, out fC, out fD);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Position2_A.Text);
+            m_C3d.SetLight_Position2(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position2_B_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position2(out fA, out fB, out fC, out fD);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Position2_B.Text);
+            m_C3d.SetLight_Position2(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position2_C_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position2(out fA, out fB, out fC, out fD);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Position2_C.Text);
+            m_C3d.SetLight_Position2(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Position2_D_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Position2(out fA, out fB, out fC, out fD);
+            fD = Ojw.CConvert.StrToFloat(txtDh_Light_Position2_D.Text);
+            m_C3d.SetLight_Position2(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Ambient_A_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Ambient(out fA, out fB, out fC, out fD);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Ambient_A.Text);
+            m_C3d.SetLight_Ambient(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Ambient_B_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Ambient(out fA, out fB, out fC, out fD);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Ambient_B.Text);
+            m_C3d.SetLight_Ambient(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Ambient_C_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Ambient(out fA, out fB, out fC, out fD);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Ambient_C.Text);
+            m_C3d.SetLight_Ambient(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Ambient_D_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Ambient(out fA, out fB, out fC, out fD);
+            fD = Ojw.CConvert.StrToFloat(txtDh_Light_Ambient_D.Text);
+            m_C3d.SetLight_Ambient(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Diffuse_A_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_diffuseLight(out fA, out fB, out fC, out fD);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Diffuse_A.Text);
+            m_C3d.SetLight_diffuseLight(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Diffuse_B_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_diffuseLight(out fA, out fB, out fC, out fD);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Diffuse_B.Text);
+            m_C3d.SetLight_diffuseLight(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Diffuse_C_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_diffuseLight(out fA, out fB, out fC, out fD);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Diffuse_C.Text);
+            m_C3d.SetLight_diffuseLight(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Diffuse_D_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_diffuseLight(out fA, out fB, out fC, out fD);
+            fD = Ojw.CConvert.StrToFloat(txtDh_Light_Diffuse_D.Text);
+            m_C3d.SetLight_diffuseLight(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Specular_A_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Specular(out fA, out fB, out fC, out fD);
+            fA = Ojw.CConvert.StrToFloat(txtDh_Light_Specular_A.Text);
+            m_C3d.SetLight_Specular(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Specular_B_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Specular(out fA, out fB, out fC, out fD);
+            fB = Ojw.CConvert.StrToFloat(txtDh_Light_Specular_B.Text);
+            m_C3d.SetLight_Specular(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Specular_C_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Specular(out fA, out fB, out fC, out fD);
+            fC = Ojw.CConvert.StrToFloat(txtDh_Light_Specular_C.Text);
+            m_C3d.SetLight_Specular(fA, fB, fC, fD);
+        }
+
+        private void txtDh_Light_Specular_D_TextChanged(object sender, EventArgs e)
+        {
+            float fA, fB, fC, fD;
+            m_C3d.GetLight_Specular(out fA, out fB, out fC, out fD);
+            fD = Ojw.CConvert.StrToFloat(txtDh_Light_Specular_D.Text);
+            m_C3d.SetLight_Specular(fA, fB, fC, fD);
+        }
     }
 }

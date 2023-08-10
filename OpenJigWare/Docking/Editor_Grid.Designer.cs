@@ -829,6 +829,7 @@
             this.txtPort.Size = new System.Drawing.Size(93, 25);
             this.txtPort.TabIndex = 699;
             this.txtPort.Text = "1";
+            this.txtPort.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.txtPort_MouseDoubleClick);
             // 
             // btnDisplay_RememberPos
             // 
