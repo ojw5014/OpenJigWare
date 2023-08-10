@@ -138,7 +138,7 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {
-        public const string strVersion = "02.01.02";
+        public const string strVersion = "02.02.00";
         public const string strHistory = (String)(
                 "[V02.02.00]\r\n" +
                 "  Python 관련기능 추가" + "\r\n" +
