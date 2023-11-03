@@ -12,6 +12,7 @@ namespace OpenJigWare
     //using UserEventHandler = EventHandler;
     partial class Ojw
     {
+        public const string __version__ = SVersion_T.strVersion;
         #region Structure
         public struct SEncryption_t
         {

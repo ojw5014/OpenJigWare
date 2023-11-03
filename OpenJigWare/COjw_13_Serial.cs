@@ -318,6 +318,18 @@ namespace OpenJigWare
                     }
                 }
             }
+            public void Send(String strPacket)
+            {
+                SendPacket(CConvert.StrToBytes(strPacket));
+            }
+            public void Send_UTF8(String strPacket)
+            {
+                SendPacket(CConvert.StrToBytes_UTF8(strPacket));
+            }
+            public void Send_Unicode(String strPacket)
+            {
+                SendPacket(CConvert.StrToBytes_Unicode(strPacket));
+            }
             public void SendPacket(CPacket CPack)
             {
                 byte[] buffer = CPack.lstBuffer.ToArray();

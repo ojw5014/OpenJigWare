@@ -666,6 +666,21 @@ namespace OpenJigWare
                 //if (IsConnect())
                 //    DisConnect();
             }
+
+            // 네트워크의 주소가 유효한지를 검사
+            public static bool IsValid_Ip(string strIpAddress)
+            {
+                Ping pingSender = new Ping();
+                PingReply reply = pingSender.Send(strIpAddress);
+
+                if (reply.Status == IPStatus.Success)
+                {
+                    // Ojw.Log("IP 주소에 접속 가능합니다.");
+                    return true;
+                }
+                return false;
+            }
+
             public static int GetIpAddress_Cnt()
             {
                 IPAddress[] ipAddressAll = Dns.GetHostAddresses(Dns.GetHostName());
@@ -710,7 +725,7 @@ namespace OpenJigWare
             TcpClient m_tcpClient;                       // TCP 클라이언트
             BinaryWriter outData;
             BinaryReader inData;
-            public bool IsConnect() { return (m_tcpClient == null) ? false : m_tcpClient.Connected; }
+            public bool IsConnect() { return (m_tcpClient == null) ? false : m_bConnect; }// m_tcpClient.Connected; }
             public string GetIpAddress() { if (IsConnect()) return m_strAddress; return ""; }
             public int GetPort() { return m_nPort; }
             public bool Connect(String strIP, int nPort)
@@ -888,6 +903,7 @@ namespace OpenJigWare
                 }
                 catch
                 {
+                    DisConnect();
                     return false;
                 }
             }
@@ -1042,6 +1058,7 @@ namespace OpenJigWare
                 }
                 catch
                 {
+                    DisConnect();
                     return false;
                 }
             }
@@ -1059,14 +1076,23 @@ namespace OpenJigWare
                 }
                 catch
                 {
+                    DisConnect();
                     return false;
                 }
             }
 
             public byte GetByte()
             {
-                if (m_bConnect) return inData.ReadByte();
-                else return 0;
+                try
+                {
+                    if (m_bConnect) return inData.ReadByte();
+                    else return 0;
+                }
+                catch
+                {
+                    DisConnect();
+                    return 0;
+                }
             }
 
             // 2 Byte 의 정수값을 반환
@@ -1108,30 +1134,47 @@ namespace OpenJigWare
                 }
                 catch
                 {
+                    DisConnect();
                     return -1;
                 }
             }
             
             // Size 만큼을 읽어감
             public byte[] GetBytes(int nSize)
-            {                
-                if (m_bConnect) return inData.ReadBytes(nSize);
-                else return null;
+            {
+                try
+                {
+                    if (m_bConnect) return inData.ReadBytes(nSize);
+                    else return null;
+                }
+                catch
+                {
+                    DisConnect();
+                    return null;
+                }
             }
             private int m_nLength = 0;
             public byte[] GetBytes()
             {
-                byte[] buffer = new byte[GetBuffer_Length()];
-
-                if (m_bConnect)
+                try
                 {
-                    int nLength = inData.Read(buffer, 0, buffer.Length);//inData.Read(;//m_tcpClient.Client.Receive(buffer);
+                    byte[] buffer = new byte[GetBuffer_Length()];
 
-                    //m_nLength = nLength;
-                    return buffer;
-                    //return inData.ReadBytes(nSize);
+                    if (m_bConnect)
+                    {
+                        int nLength = inData.Read(buffer, 0, buffer.Length);//inData.Read(;//m_tcpClient.Client.Receive(buffer);
+
+                        //m_nLength = nLength;
+                        return buffer;
+                        //return inData.ReadBytes(nSize);
+                    }
+                    else return null;
                 }
-                else return null;
+                catch
+                {
+                    DisConnect();
+                    return null;
+                }
             }
             public bool SetThreadFunction(ThreadStart FThread)
             {

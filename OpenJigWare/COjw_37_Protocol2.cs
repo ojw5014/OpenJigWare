@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
 using System.Threading;
+using Leap;
 
 namespace OpenJigWare
 {
@@ -22,7 +23,7 @@ namespace OpenJigWare
             ~CProtocol2()
             {
                 if (IsOpen()) Close();
-                
+
             }
             //public void SetParam(Ojw.C3d COjw3d)
             //{
@@ -35,7 +36,7 @@ namespace OpenJigWare
             //            );
             //    }
             //}
-            public void SetParam(SMotorInfo_t [] aSParams)
+            public void SetParam(SMotorInfo_t[] aSParams)
             {
                 for (int i = 0; i < aSParams.Length; i++)
                 {
@@ -81,18 +82,18 @@ namespace OpenJigWare
                 public int m_nGet_Position_Address = 132;
                 public int m_nGet_Position_Size = 4;
 
-                public void SetParam_Address_Torq(int nVal = 64)                { m_nSet_Torq_Address = nVal; }
-                public void SetParam_Address_Size_Torq(int nVal = 1)            { m_nSet_Torq_Size = nVal; }
-                public void SetParam_Address_Led(int nVal = 66)                 { m_nSet_Led_Address = nVal; }
-                public void SetParam_Address_Size_Led(int nVal = 1)             { m_nSet_Led_Size = nVal; }
-                public void SetParam_Address_PositionSpeed(int nVal = 112)      { m_nSet_Position_Speed_Address = nVal; }
-                public void SetParam_Address_Size_PositionSpeed(int nVal = 4)   { m_nSet_Position_Speed_Size = nVal; }
-                public void SetParam_Address_Position(int nVal = 116)           { m_nSet_Position_Address = nVal; }
-                public void SetParam_Address_Size_Position(int nVal = 4)        { m_nSet_Position_Size = nVal; }
-                public void SetParam_Address_GetPosition(int nVal = 132)        { m_nGet_Position_Address = nVal; }
-                public void SetParam_Address_Size_GetPosition(int nVal = 4)     { m_nGet_Position_Size = nVal; }
-                public void SetParam_Address_Speed(int nVal = 104)              { m_nSet_Position_Speed_Address = nVal; }
-                public void SetParam_Address_Size_Speed(int nVal = 4)           { m_nSet_Position_Speed_Size = nVal; }
+                public void SetParam_Address_Torq(int nVal = 64) { m_nSet_Torq_Address = nVal; }
+                public void SetParam_Address_Size_Torq(int nVal = 1) { m_nSet_Torq_Size = nVal; }
+                public void SetParam_Address_Led(int nVal = 66) { m_nSet_Led_Address = nVal; }
+                public void SetParam_Address_Size_Led(int nVal = 1) { m_nSet_Led_Size = nVal; }
+                public void SetParam_Address_PositionSpeed(int nVal = 112) { m_nSet_Position_Speed_Address = nVal; }
+                public void SetParam_Address_Size_PositionSpeed(int nVal = 4) { m_nSet_Position_Speed_Size = nVal; }
+                public void SetParam_Address_Position(int nVal = 116) { m_nSet_Position_Address = nVal; }
+                public void SetParam_Address_Size_Position(int nVal = 4) { m_nSet_Position_Size = nVal; }
+                public void SetParam_Address_GetPosition(int nVal = 132) { m_nGet_Position_Address = nVal; }
+                public void SetParam_Address_Size_GetPosition(int nVal = 4) { m_nGet_Position_Size = nVal; }
+                public void SetParam_Address_Speed(int nVal = 104) { m_nSet_Position_Speed_Address = nVal; }
+                public void SetParam_Address_Size_Speed(int nVal = 4) { m_nSet_Position_Speed_Size = nVal; }
 
                 public void SetParam_Dir(bool bReverse = false) { m_bDirReverse = bReverse; }
                 public void SetParam_Multi(float fMulti = 1.0f) { m_fMulti = fMulti; if (fMulti == 0) m_fMulti = 1.0f; }
@@ -148,7 +149,7 @@ namespace OpenJigWare
                 }
             }
             public CParam_t[] m_aCParam = new CParam_t[256];
-            
+
             #region Open / Close / IsOpen
             private Ojw.CSocket m_CSock_Client = new CSocket();
             public Ojw.CSerial m_CSerial = new CSerial();
@@ -219,13 +220,13 @@ namespace OpenJigWare
                 return IsOpen_Socket();//m_CServer.
             }
 
-            
+
             private const int _SIZE_QUE = 3;
             private const int _SIZE_QUE_LENGTH = 100;
             private int m_nQue_Index_Next = 0;
             private int m_nQue_Index = 0;
             private int m_nQue_Count = 0;
-            private byte [,] m_abyteQue = new byte[_SIZE_QUE, _SIZE_QUE_LENGTH];
+            private byte[,] m_abyteQue = new byte[_SIZE_QUE, _SIZE_QUE_LENGTH];
             //private struct SQueByte_t{
             //    public byte[] buffer = new byte[_SIZE_QUE_LENGTH];
             //}
@@ -410,7 +411,7 @@ namespace OpenJigWare
                             string str = String.Empty;
                             str = Ojw.CConvert.BytesToStr_UTF8(pbyData);
                             // 받은 데이타를 클라이언트로 다시 한번 보내본다.(그냥... 클라이언트에서도 메세지 뜨라고...)
-                            #region Websocket
+            #region Websocket
                             if (m_bWebSocket == true)
                             {
                                 if (bShake == false)
@@ -574,7 +575,7 @@ namespace OpenJigWare
 #endif
 
             Ojw.C3d m_C3d = null;// = new C3d();
-            
+
             //public bool Open(Ojw.C3d COjw3d, int nIndex=0)
             //{
             //    m_C3d = COjw3d;
@@ -608,7 +609,7 @@ namespace OpenJigWare
                 Ojw.CMessage.Write_Error("Cannot Connect [Open_Serial({0}, {1})]", nPort, nBaudRate);
                 return false;
             }
-            public void Close() 
+            public void Close()
             {
                 if (m_CSerial.IsConnect()) m_CSerial.DisConnect();
                 if (m_CSock_Client.IsConnect()) m_CSock_Client.DisConnect();
@@ -616,10 +617,12 @@ namespace OpenJigWare
             #endregion Open / Close / IsOpen
 
             #region Command
-            public class CCommand_t{
+            public class CCommand_t
+            {
                 public int nID = 0;
                 public float fVal = 0;
-                public CCommand_t(int id, float val){
+                public CCommand_t(int id, float val)
+                {
                     nID = id;
                     fVal = val;
                 }
@@ -657,7 +660,7 @@ namespace OpenJigWare
             //}
             public void SetTorq(bool bOn)
             {
-                Send(254, 0x03, 64, (byte)((bOn == true) ? 1 : 0));  
+                Send(254, 0x03, 64, (byte)((bOn == true) ? 1 : 0));
             }
             public void SetTorq(params CCommand_t[] aCCommands)
             {
@@ -696,7 +699,7 @@ namespace OpenJigWare
             //{
             //    Ojw.CTimer CTmr = new CTimer();
             //    CTmr.Set();
-                
+
             //    CCommand_t[] CCmd = ((aCCommands.Length > 0) ? aCCommands : ((m_lstCmdIDs.Count > 0) ? m_lstCmdIDs.ToArray() : null));
             //    Command_Clear();
             //    if (CCmd.Length > 0)
@@ -763,7 +766,7 @@ namespace OpenJigWare
 
                     int nTime_ms = m_nRun_Time;
                     int nDelay = m_nRun_Delay;
-                    CCommand_t [] aCCommands = m_aCRun_Commands;
+                    CCommand_t[] aCCommands = m_aCRun_Commands;
 
                     CCommand_t[] CCmd = ((aCCommands.Length > 0) ? aCCommands : ((m_lstCmdIDs.Count > 0) ? m_lstCmdIDs.ToArray() : null));
                     Command_Clear();
@@ -834,7 +837,7 @@ namespace OpenJigWare
             public void Play(string strFileName, bool bOneshot_Style = false)
             {
                 if (IsOpen() == false) return;
-                
+
                 Ojw.Log("Play - {0}", strFileName);
 
                 Ojw.CFile CFile = new Ojw.CFile();
@@ -842,12 +845,12 @@ namespace OpenJigWare
 
                 int nCnt = CFile.Get_Count();
                 int nMax = 0;
-                for (int i = 0; i < nCnt; i++) 
+                for (int i = 0; i < nCnt; i++)
                 {
                     string str = CFile.Get(i);
                     string[] pstr = str.Split(',');
-                    int nEnable = Ojw.CConvert.StrToInt(pstr[0]); 
-                    if (nEnable > 0) nMax = i; 
+                    int nEnable = Ojw.CConvert.StrToInt(pstr[0]);
+                    if (nEnable > 0) nMax = i;
                 }
                 for (int i = 0; i <= nMax; i++)
                 {
@@ -931,62 +934,92 @@ namespace OpenJigWare
                         ((buff[1] == '1') || (buff[1] == '2')) // Enable
                         ||
                         ((buff[1] == '3') || (buff[1] == '4')) // Enable
+                        || ((buff[1] == '5')) // Write
                     )
                     {
                         bool bAngle = false;
                         bool bWheel_Rpm = false;
+                        bool bWrite = false;
                         if ((buff[1] == '3') || (buff[1] == '4')) bWheel = true;
                         if (buff[1] == '2') bAngle = true;
                         if (buff[1] == '4') bWheel_Rpm = true;
-                        
+                        if (buff[1] == '5') bWrite = true;
+
                         string[] pstr = buff.Split(',');
 
                         int nEnable = Ojw.CConvert.StrToInt(pstr[0]);
                         int nTime = Ojw.CConvert.StrToInt(pstr[1]);
                         int nDelay = Ojw.CConvert.StrToInt(pstr[2]);
 
-                        Command_Clear();
-                        for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
+                        if (bWrite) // 해당 주소에 직접 지령
                         {
-                            string[] pstrDatas = pstr[nIndex].Split(':');
-                            if (pstrDatas.Length > 1)
+                            //int nAddress = nTime;
+                            //int nSize = nDelay;
+                            // ID : Address : Bytes...
+                            for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
                             {
-                                int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
-                                
-                                float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
-                                if ((bAngle) || (bWheel_Rpm))
+                                //Ojw.CMessage.Write("kkkkkkkkkkk");
+                                string[] pstrDatas = pstr[nIndex].Split(':');
+                                if (pstrDatas.Length > 1) // id : value : size = 1
                                 {
-                                    //Ojw.printf("=====1->\r\n");
-                                    if (bWheel_Rpm) Command_Set_Rpm(nID, fEvd);
-                                    else
+                                    int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
+                                    int nAddress = Ojw.CConvert.StrToInt(pstrDatas[1]);
+                                    List<byte> lstBytes = new List<byte>();
+                                    lstBytes.Clear();
+                                    for (int i = 2; i < pstrDatas.Length; i++)
                                     {
-                                        //Ojw.printf("=====123->\r\n");
-                                        Command_Set(nID, fEvd);
-
-                                        //3D
-                                        if (m_bSyncRendering) m_C3d.SetData(nID, fEvd);
+                                        lstBytes.Add((byte)(Ojw.CConvert.StrToInt(pstrDatas[i]) & 0xff));
                                     }
-                                }
-                                else
-                                {
-                                    //Ojw.printf("=====2->\r\n");
-                                    int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
-                                    float fAngle = (float)Math.Round(CalcEvd2Angle(nID, nEvd),3);
-                                    if (bWheel) Command_Set(nID, CalcRaw2Rpm(nID, nEvd));
-                                    else Command_Set(nID, fAngle);
-                                    //3D
-                                    if (m_bSyncRendering) m_C3d.SetData(nID, fAngle);
+                                    Send(nID, 0x03, nAddress, lstBytes.ToArray());
+                                    //CMessage.Write("test - > ID={0}, Address-{1}, Val={2}", nID, nAddress, lstBytes[0]);
                                 }
                             }
                         }
-                        if (bWheel)
-                        {
-                            SetSpeed();   
-                        }
                         else
                         {
-                            if (bNoWait == false) Move(nTime, nDelay);
-                            else Move_NoWait(nTime, nDelay);
+                            Command_Clear();
+                            for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
+                            {
+                                string[] pstrDatas = pstr[nIndex].Split(':');
+                                if (pstrDatas.Length > 1)
+                                {
+                                    int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
+
+                                    float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
+                                    if ((bAngle) || (bWheel_Rpm))
+                                    {
+                                        //Ojw.printf("=====1->\r\n");
+                                        if (bWheel_Rpm) Command_Set_Rpm(nID, fEvd);
+                                        else
+                                        {
+                                            //Ojw.printf("=====123->\r\n");
+                                            Command_Set(nID, fEvd);
+
+                                            //3D
+                                            if (m_bSyncRendering) m_C3d.SetData(nID, fEvd);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //Ojw.printf("=====2->\r\n");
+                                        int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
+                                        float fAngle = (float)Math.Round(CalcEvd2Angle(nID, nEvd), 3);
+                                        if (bWheel) Command_Set(nID, CalcRaw2Rpm(nID, nEvd));
+                                        else Command_Set(nID, fAngle);
+                                        //3D
+                                        if (m_bSyncRendering) m_C3d.SetData(nID, fAngle);
+                                    }
+                                }
+                            }
+                            if (bWheel)
+                            {
+                                SetSpeed();
+                            }
+                            else
+                            {
+                                if (bNoWait == false) Move(nTime, nDelay);
+                                else Move_NoWait(nTime, nDelay);
+                            }
                         }
 
                         //if (m_bSyncRendering)
@@ -1028,7 +1061,7 @@ namespace OpenJigWare
                         float fGet = CTmr.Get();
                         float fTmr = (fGet / (float)nTime_ms);
                         if (fTmr > 1f) fTmr = 1f;
-                        
+
                         // -Delay 탈출
                         if (bContinue == true)
                         {
@@ -1038,7 +1071,7 @@ namespace OpenJigWare
 
                         for (int i = 0; i < CCmd.Length; i++) { afRes[CCmd[i].nID] = afMot[CCmd[i].nID] + (CCmd[i].fVal - afMot[CCmd[i].nID]) * fTmr; Command_Set(CCmd[i].nID, afRes[CCmd[i].nID]); }
                         SetPosition();
-                        
+
                         if (fTmr >= 1f) break;
                         Ojw.CTimer.DoEvent();
                     }
@@ -1084,9 +1117,9 @@ namespace OpenJigWare
                     List<int> lstIDs = new List<int>();
                     lstIDs.Clear();
                     Command_Clear();
-                    for (int i = 0; i < CCmd.Length; i++) 
-                    { 
-                        lstIDs.Add(CCmd[i].nID); 
+                    for (int i = 0; i < CCmd.Length; i++)
+                    {
+                        lstIDs.Add(CCmd[i].nID);
                         Command_Set(CCmd[i].nID, CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal));
                     }
                     SetPosition_Speed();
@@ -1130,7 +1163,7 @@ namespace OpenJigWare
             {
                 if (IsOpen() == false) return;
                 if (m_bEms == true) return;
-                
+
                 CCommand_t[] CCmd = ((aCCommands.Length > 0) ? aCCommands : ((m_lstCmdIDs.Count > 0) ? m_lstCmdIDs.ToArray() : null));
                 Command_Clear();
                 if (CCmd.Length > 0)
@@ -1318,7 +1351,7 @@ namespace OpenJigWare
             {
                 //float fPer = 1f;
                 //if (nDelay < 0) fPer = ((float)(nTime + nDelay) / (float)nTime); 
-                    
+
                 float fRpm = (float)Math.Abs(CalcTime2Rpm(Math.Abs(fAngle - m_afMot_Pose[nAxis]), (float)nTime));
                 //float fRpm = (float)Math.Abs(CalcTime2Rpm(Math.Abs(fAngle - m_afMot[nAxis]) * fPer, (float)nTime));
                 return CalcRpm2Raw(nAxis, fRpm);
@@ -1355,9 +1388,51 @@ namespace OpenJigWare
                 Request_Flush(nAddress, nSize);
                 WaitReceive();
             }
-
-            public void SyncRead(params int[] anIDs)
+            //public void Read(int nWaitTime, params int[] anIDs)
+            //{
+            //    Ojw.CTimer CTmr = new CTimer();
+            //    CTmr.Set();
+            //    SyncRead_NoWait(anIDs);
+            //    int nTmr = 0;
+            //    int nInterval = 100;
+            //    while (nTmr <= nWaitTime)
+            //    {
+            //        if (CTmr.Get() >= nInterval)
+            //        {
+            //            nTmr += (int)CTmr.Get();
+            //            CTmr.Set();
+            //            SyncRead_NoWait(anIDs);
+            //        }
+            //        Ojw.CTimer.Wait(1);
+            //    }
+            //}
+            //public void SyncRead_NoWait(params int[] anIDs)
+            //{
+            //    List<int> lstSecond = new List<int>();
+            //    int[] anIDsCurr;
+            //    while (true)
+            //    {
+            //        Request_Clear();
+            //        anIDsCurr = ((lstSecond.Count > 0) ? lstSecond.ToArray() : anIDs);
+            //        lstSecond.Clear();
+            //        if (anIDsCurr.Length > 0)
+            //        {
+            //            for (int i = 0; i < anIDsCurr.Length; i++)
+            //            {
+            //                if (m_aCParam[anIDsCurr[0]].m_nGet_Position_Address != m_aCParam[anIDsCurr[i]].m_nGet_Position_Address) lstSecond.Add(anIDsCurr[i]);
+            //                else Request_Push(anIDsCurr[i]);
+            //            }
+            //            Request_Flush(m_aCParam[anIDsCurr[0]].m_nGet_Position_Address, m_aCParam[anIDsCurr[0]].m_nGet_Position_Size);
+            //        }
+            //        else break;
+            //        if (lstSecond.Count == 0) break;
+            //    }
+            //    Command_Clear();
+            //}
+            private List<int> lstRequestIDs = new List<int>();
+            public bool SyncRead(params int[] anIDs)
             {
+                bool bRet = false;
                 List<int> lstSecond = new List<int>();
                 while (true)
                 {
@@ -1365,7 +1440,7 @@ namespace OpenJigWare
                     int[] anIDsCurr = ((lstSecond.Count > 0) ? lstSecond.ToArray() : anIDs);
                     lstSecond.Clear();
                     if (anIDsCurr.Length > 0)
-                    {
+                    {　　
                         for (int i = 0; i < anIDsCurr.Length; i++)
                         {
                             //Request_Push(anIDsCurr[i]);
@@ -1376,14 +1451,15 @@ namespace OpenJigWare
                             else Request_Push(anIDsCurr[i]);
                         }
                         Request_Flush(m_aCParam[anIDsCurr[0]].m_nGet_Position_Address, m_aCParam[anIDsCurr[0]].m_nGet_Position_Size);
-                        WaitReceive();
+                        bRet = WaitReceive(anIDs);
                     }
                     else break;
                     if (lstSecond.Count == 0) break;
                 }
                 Command_Clear();
+                return bRet;
             }
-            private void Request(int nMotor, int nCommand, byte [] pbyDatas) { Request_with_RealID(nMotor, nCommand, pbyDatas); }
+            private void Request(int nMotor, int nCommand, byte[] pbyDatas) { Request_with_RealID(nMotor, nCommand, pbyDatas); }
 
             private List<int> m_lstRequestMotors = new List<int>();// = new int[];
             public void Request_Push(int nMotor) { m_lstRequestMotors.Add(nMotor); }
@@ -1409,7 +1485,7 @@ namespace OpenJigWare
                 Request(254, 0x82, pbyDatas);
                 Request_Clear();
             }
-            private void Request_with_RealID(int nMotorRealID, int nCommand, byte [] pbyDatas)
+            private void Request_with_RealID(int nMotorRealID, int nCommand, byte[] pbyDatas)
             {
                 int i = 0;
                 int nDataLength = 0;
@@ -1421,7 +1497,7 @@ namespace OpenJigWare
                 byte[] pbyteBuffer;
 
                 //bool bSend = false;
-                
+
                 int nLength = 3;
                 nLength += ((nDataLength > 0) ? nDataLength + 0 : 0);
                 int nDefaultSize = 7;
@@ -1440,7 +1516,7 @@ namespace OpenJigWare
                 {
                     // pbyteBuffer[i++] = (nAddress & 0xff);
                     // pbyteBuffer[i++] = ((nAddress >> 8) & 0xff);
-                
+
                     for (int j = 0; j < nDataLength; j++)
                         pbyteBuffer[i++] = pbyDatas[j];
                 }
@@ -1449,7 +1525,7 @@ namespace OpenJigWare
                 pbyteBuffer[pbyteBuffer.Length - 2] = (byte)(nCrc & 0xff);
                 pbyteBuffer[pbyteBuffer.Length - 1] = (byte)((nCrc >> 8) & 0xff);
                 //bSend = true;
-                
+
                 SendPacket(pbyteBuffer, pbyteBuffer.Length);
             }
             #endregion Read Command
@@ -1487,14 +1563,19 @@ namespace OpenJigWare
             #endregion Reboot / Reset
 
             #region Read
-            const int _WAIT_TIME = 1000; // ms
+            const int _WAIT_TIME = 5000; // ms
             private int m_nShowReturnPacket = 0;//1;//0; // 테스트... 나중에 0 으로 기본값 줄 것
             public void ShowPacketReturn(int nPacket_0_Disable_1_Enable) { m_nShowReturnPacket = nPacket_0_Disable_1_Enable; }
 
-            public bool WaitReceive()
+            public bool WaitReceive(int [] anIDs = null)
             {
                 Ojw.CTimer CTmr = new CTimer();
                 CTmr.Set();
+                if (anIDs != null)
+                {
+                    lstRequestIDs.Clear();
+                    lstRequestIDs.AddRange(anIDs);
+                }
                 while (true)
                 {
                     if (m_CSock_Client.IsConnect())
@@ -1502,7 +1583,10 @@ namespace OpenJigWare
                         if (m_CSock_Client.GetBuffer_Length() > 0)
                         {
                             ReceivedPacket(m_CSock_Client.GetBytes());
-                            return true;
+                            if (m_CSock_Client.GetBuffer_Length() == 0)
+                            {
+                                if (lstRequestIDs.Count == 0) return true;
+                            }
                         }
                     }
                     else if (m_CSerial.IsConnect())
@@ -1511,7 +1595,10 @@ namespace OpenJigWare
                         {
                             //return m_CSerial.GetBytes();
                             ReceivedPacket(m_CSerial.GetBytes());
-                            return true;
+                            if (m_CSerial.GetBuffer_Length() == 0)
+                            {
+                                if (lstRequestIDs.Count == 0) return true;
+                            }
                         }
                     }
                     if (CTmr.Get() >= _WAIT_TIME)
@@ -1573,7 +1660,8 @@ namespace OpenJigWare
                 return false;
             }
 
-            class CReceive_t{
+            class CReceive_t
+            {
                 public int nID = 0;
                 public int nCmd = 0;
                 public int nLength_Data = 0;
@@ -1590,17 +1678,18 @@ namespace OpenJigWare
             public List<int> m_anReceive_Datas = new List<int>();
             public int[] GetBuffers_Int() { return m_anReceive_Datas.ToArray(); }
             public byte[] GetBuffers() { return Array.ConvertAll(m_anReceive_Datas.ToArray(), element => (byte)element); }
-            public void ReceivedPacket(byte [] buffer)
+            public void ReceivedPacket(byte[] buffer)
             {
                 bool bShow_StrLetter = false;
                 bool bShow_Str = (m_nShowReturnPacket == 0) ? false : true;
-                byte [] value = buffer;
+                byte[] value = buffer;
                 int nPaketLength = value.Length;
                 string str = "";
                 string strLetter = "";
                 int nHeader = 0;
                 byte val;
-                for (int i = 0; i < nPaketLength; i++) {
+                for (int i = 0; i < nPaketLength; i++)
+                {
                     val = value[i];//.toString(16);
                     if (bShow_StrLetter)
                     {
@@ -1608,7 +1697,8 @@ namespace OpenJigWare
                         {
                             strLetter += (char)(val);
                         }
-                        else{
+                        else
+                        {
                             strLetter += "(0x" + ("0" + Ojw.CConvert.IntToHex(16, 2)) + ")";
                         }
                     }
@@ -1616,7 +1706,7 @@ namespace OpenJigWare
                         str += " 0x" + ("0" + Ojw.CConvert.IntToHex(16, 2)) + ",";
                     byte byData = val;
                     int nTmp = m_nReceive_Header % 100;
-                    if (byData == 0xff) 
+                    if (byData == 0xff)
                     {
                         m_nReceive_Header++;
                         if ((nTmp > 2) && (nTmp < 10))
@@ -1627,7 +1717,7 @@ namespace OpenJigWare
                     }
                     else if (nTmp == 2)
                     {
-                        if (byData == 0xfd) 
+                        if (byData == 0xfd)
                         {
                             if (m_nReceive_Header >= 100) m_nReceive_Header = 110;
                             else m_nReceive_Header = 10;
@@ -1635,7 +1725,7 @@ namespace OpenJigWare
                     }
                     else if (nTmp == 10)
                     {
-                        if (byData == 0x00) 
+                        if (byData == 0x00)
                         {
                             m_nReceive_Header = 100;
                             m_nReceive_Index = 1;
@@ -1651,19 +1741,19 @@ namespace OpenJigWare
                     {
                         if (m_nReceive_Header >= 100) m_nReceive_Header = 100;
                         else m_nReceive_Header = 0;
-                    } 
+                    }
 
                     if (m_nReceive_Header >= 100)
                     {
-                        switch(m_nReceive_Index)
-                        {     
+                        switch (m_nReceive_Index)
+                        {
                             case 1:
                                 m_nReceive_Index++;
                                 break;
                             case 2:
                                 m_nReceive_ID = byData;
                                 m_nReceive_Index++;
-                                break;       
+                                break;
                             case 3:
                                 m_nReceive_Length = byData;
                                 m_nReceive_Index++;
@@ -1683,7 +1773,7 @@ namespace OpenJigWare
                                 if (m_nReceive_Length > 3)
                                 {
                                     m_nReceive_Error = byData;
-                                    if (m_nReceive_Error != 0) 
+                                    if (m_nReceive_Error != 0)
                                     {
                                         Ojw.Log("[ID:" + m_nReceive_ID + "]Received: ++++++Error 발생[Code:" + GetError(m_nReceive_Error) + "]+++++++");
                                         Ojw.Log(GetError(m_nReceive_Error));
@@ -1703,84 +1793,92 @@ namespace OpenJigWare
                                 else
                                 {
                                     CReceive_t CReceive = new CReceive_t();
-                            
+
                                     CReceive.nID = m_nReceive_ID;
                                     CReceive.nCmd = m_nReceive_Cmd;
                                     CReceive.nLength_Data = m_anReceive_Datas.Count;
 
                                     //if (m_nReceived_Policy == 1) // m_anMot 변수에 모터의 각도값을 즉각 반영
                                     //{
-                                        if (m_nRequestMotors > 0)
+                                    if (m_nRequestMotors > 0)
+                                    {
+                                        if ((m_nReceive_ID >= 0) && (m_nReceive_ID < 253))
+                                        {
+                                            if (lstRequestIDs.Count > 0)
+                                            {
+                                                int nRequest = lstRequestIDs.IndexOf(m_nReceive_ID);
+                                                if (nRequest >= 0)
+                                                {
+                                                    lstRequestIDs.RemoveAt(nRequest);
+                                                }
+                                            }
+                                            byte[] pbyData = new byte[m_anReceive_Datas.Count];
+                                            for (int nBuffer = 0; nBuffer < m_anReceive_Datas.Count; nBuffer++) { pbyData[nBuffer] = (byte)(m_anReceive_Datas[nBuffer] & 0xff); }
+
+                                            int nVal = 0;
+                                            switch (CReceive.nLength_Data)
+                                            {
+                                                case 1: nVal = (byte)(pbyData[0]); break;
+                                                case 2: nVal = Ojw.CConvert.BytesToShort(pbyData, 0); break;
+                                                case 4: nVal = Ojw.CConvert.BytesToInt(pbyData, 0); break;
+                                            }
+
+                                            if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Position_Address)
+                                            {
+                                                m_anMot[m_nReceive_ID] = nVal;
+                                                m_afMot[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
+                                                //Ojw.Log("[Receive]Set:{0}번 -> {1}({2}도)", m_nReceive_ID, nVal, m_afMot[m_nReceive_ID]);
+                                            }
+                                            else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nGet_Position_Address)
+                                            {
+                                                m_anMot_Pose[m_nReceive_ID] = nVal;
+                                                m_afMot_Pose[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
+
+                                                m_anMot[m_nReceive_ID] = m_anMot_Pose[m_nReceive_ID];
+                                                m_afMot[m_nReceive_ID] = m_afMot_Pose[m_nReceive_ID];
+                                                //Ojw.Log("[Receive]Get:{0}번 -> {1}({2}도)", m_nReceive_ID, nVal, m_afMot[m_nReceive_ID]);
+                                            }
+                                            else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Torq_Address)
+                                            {
+                                                m_abMot[m_nReceive_ID] = ((nVal == 0) ? false : true);
+                                            }
+                                        }
+
+                                        /*
+                                        //if (CReceive.nLength_Data == 4)
                                         {
                                             if ((m_nReceive_ID >= 0) && (m_nReceive_ID < 253))
                                             {
-                                                byte[] pbyData = new byte[m_anReceive_Datas.Count];
-                                                for (int nBuffer = 0; nBuffer < m_anReceive_Datas.Count; nBuffer++) { pbyData[nBuffer] = (byte)(m_anReceive_Datas[nBuffer] & 0xff); }
+                                                byte [] pbyData = new byte[m_anReceive_Datas.Count];
+                                                for(int nBuffer = 0; nBuffer < m_anReceive_Datas.Count; nBuffer++) { pbyData[nBuffer] = (byte)(m_anReceive_Datas[nBuffer] & 0xff); }
 
-                                                int nVal = 0;
-                                                switch (CReceive.nLength_Data)
-                                                {
-                                                    case 1: nVal = (byte)(pbyData[0]); break;
-                                                    case 2: nVal = Ojw.CConvert.BytesToShort(pbyData, 0); break;
-                                                    case 4: nVal = Ojw.CConvert.BytesToInt(pbyData, 0); break;
-                                                }
-
-                                                if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Position_Address)
-                                                {
-                                                    m_anMot[m_nReceive_ID] = nVal;
-                                                    m_afMot[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
-                                                    //Ojw.Log("[Receive]Set:{0}번 -> {1}({2}도)", m_nReceive_ID, nVal, m_afMot[m_nReceive_ID]);
-                                                }
-                                                else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nGet_Position_Address)
-                                                {
-                                                    m_anMot_Pose[m_nReceive_ID] = nVal;
-                                                    m_afMot_Pose[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
-
-                                                    m_anMot[m_nReceive_ID] = m_anMot_Pose[m_nReceive_ID];
-                                                    m_afMot[m_nReceive_ID] = m_afMot_Pose[m_nReceive_ID];
-                                                    //Ojw.Log("[Receive]Get:{0}번 -> {1}({2}도)", m_nReceive_ID, nVal, m_afMot[m_nReceive_ID]);
-                                                }
-                                                else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Torq_Address)
-                                                {
-                                                    m_abMot[m_nReceive_ID] = ((nVal == 0) ? false:true);
-                                                }
-                                            }
-
-                                            /*
-                                            //if (CReceive.nLength_Data == 4)
-                                            {
-                                                if ((m_nReceive_ID >= 0) && (m_nReceive_ID < 253))
-                                                {
-                                                    byte [] pbyData = new byte[m_anReceive_Datas.Count];
-                                                    for(int nBuffer = 0; nBuffer < m_anReceive_Datas.Count; nBuffer++) { pbyData[nBuffer] = (byte)(m_anReceive_Datas[nBuffer] & 0xff); }
-
-                                                    int nVal = Ojw.CConvert.BytesToInt(pbyData, 0);
-                                                    m_anMot[CReceive.nID] = nVal;
-                                                    m_afMot[CReceive.nID] = CalcEvd2Angle(CReceive.nID, nVal);
-                                                    //int nVal = m_anReceive_Datas[3] * 256 * 256 * 256 + m_anReceive_Datas[2] * 256 * 256 + m_anReceive_Datas[1] * 256 + m_anReceive_Datas[0];
-                                                    //if (
-                                                    //    (nVal >= 0) && 
-                                                    //    (nVal <= 4096)//g_CRobot.aCDxl[m_nReceive_ID].fMech_Move) // 360 도 이상은 돌지 않는다고 가정
-                                                    //)
-                                                    //{
-                                                    //    m_anMot[CReceive.nID] = nVal;
-                                                    //}
-                                                }
-                                            }
-                                            */
-                                            m_nRequestMotors--;
-                                            if (m_nRequestMotors <= 0)
-                                            {
-                                                //Ojw.Log("m_nRequestMotors == {0}", m_nRequestMotors);
-                                                //m_nSeq_Motors++;
-                                                //m_nReceived_Policy = 0;
+                                                int nVal = Ojw.CConvert.BytesToInt(pbyData, 0);
+                                                m_anMot[CReceive.nID] = nVal;
+                                                m_afMot[CReceive.nID] = CalcEvd2Angle(CReceive.nID, nVal);
+                                                //int nVal = m_anReceive_Datas[3] * 256 * 256 * 256 + m_anReceive_Datas[2] * 256 * 256 + m_anReceive_Datas[1] * 256 + m_anReceive_Datas[0];
+                                                //if (
+                                                //    (nVal >= 0) && 
+                                                //    (nVal <= 4096)//g_CRobot.aCDxl[m_nReceive_ID].fMech_Move) // 360 도 이상은 돌지 않는다고 가정
+                                                //)
+                                                //{
+                                                //    m_anMot[CReceive.nID] = nVal;
+                                                //}
                                             }
                                         }
-                                        else
+                                        */
+                                        m_nRequestMotors--;
+                                        if (m_nRequestMotors <= 0)
                                         {
+                                            //Ojw.Log("m_nRequestMotors == {0}", m_nRequestMotors);
                                             //m_nSeq_Motors++;
                                             //m_nReceived_Policy = 0;
                                         }
+                                    }
+                                    else
+                                    {
+                                        //m_nSeq_Motors++;
+                                        //m_nReceived_Policy = 0;
+                                    }
                                     //}
                                     //else
                                     //{
@@ -1813,18 +1911,18 @@ namespace OpenJigWare
                                     //CReceive.lstDatas = m_anReceive_Datas.slice();
                                     CReceive.lstDatas.AddRange(m_anReceive_Datas.ToArray());
 
-                                   /* m_aCReceive.Add(CReceive);
-                                    //if (bShow_Str) log2("Seq:" + m_nSeq_Receive + ", length:" + CReceive.nLength_Data);
-                                    if (m_aCReceive.length > 10) m_aCReceive.shift(); // 가장 먼저 왔던 맨 앞의 데이터를 날린다.
+                                    /* m_aCReceive.Add(CReceive);
+                                     //if (bShow_Str) log2("Seq:" + m_nSeq_Receive + ", length:" + CReceive.nLength_Data);
+                                     if (m_aCReceive.length > 10) m_aCReceive.shift(); // 가장 먼저 왔던 맨 앞의 데이터를 날린다.
 
-                                    //m_nSeq_Receive++; // Que 에서 처리할 Seq
-                                    m_nSeq++; // User 가 처리할 Seq
-                                    */
+                                     //m_nSeq_Receive++; // Que 에서 처리할 Seq
+                                     m_nSeq++; // User 가 처리할 Seq
+                                     */
                                     // to the next...
                                     m_nReceive_Index++;
                                 }
                                 break;
-                            case 8:               
+                            case 8:
                                 m_nReceive_Length_Check++;
                                 if (m_nReceive_Length_Check >= m_nReceive_Length)
                                 {
@@ -1840,33 +1938,33 @@ namespace OpenJigWare
                     Ojw.Log("[˘︹˘ ][Letter] :" + strLetter);
                 if (bShow_Str)
                     Ojw.Log("[˘︹˘ ] :" + str);
-                    // log2("[˘︹˘ ] :" + strLetter + "\r\n============\r\n" + str);
+                // log2("[˘︹˘ ] :" + strLetter + "\r\n============\r\n" + str);
             }
 
             public string GetError(int nErrorNumber)
             {
                 string strRes = "ErrNum[" + nErrorNumber + "]";
-                switch(nErrorNumber)
+                switch (nErrorNumber)
                 {
-                    case 0x00:  break;
-                    case 0x01:  strRes += "[Result Fail] 전송된 Instruction Packet 을 처리하는데 실패한 경우"; 
-                                break;
-                    case 0x02:  strRes += "[Instruction Error]  정의되지 않은 Instruction 을 사용한 경우\r\n";
-                                strRes += "Reg Write 없이 Action 을 사용한 경우"; 
-                                break;
-                    case 0x03:  strRes += "[CRC Error]          전송된 Packet 의 CRC 값이 맞지 않는 경우"; 
-                                break;
-                    case 0x04:  strRes += "[Data Range Error]   해당 Address 에 쓰려는 Data 가 최소/최대값의 범위를 벗어난 경우"; 
-                                break;
-                    case 0x05:  strRes += "[Data Length Error]  해당 Address 의 데이터 길이보다 짧은 데이터를 적으려고 한 경우\r\n";
-                                strRes += "(예: 4 byte로 정의된 항목의 2 byte 만 쓰려고 하는 경우)"; 
-                                break;
-                    case 0x06:  strRes += "[Data Limit Error]   해당 Address 에 쓰려는 Data 가 Limit 값을 벗어난 경우"; 
-                                break;
-                    case 0x07:  strRes += "[Access Errer]       Read Only 혹은 정의되지 않은 Address 에 값을 쓰려고 한 경우\r\n"; 
-                                strRes += "Write Only 혹은 정의되지 않은 Address 에 값을 읽으려고 한 경우\r\n"; 
-                                strRes += "Torque Enable(ROM Lock) 상태에서 ROM 영역에 값을 쓰려고 한 경우"; 
-                                break;   
+                    case 0x00: break;
+                    case 0x01: strRes += "[Result Fail] 전송된 Instruction Packet 을 처리하는데 실패한 경우";
+                        break;
+                    case 0x02: strRes += "[Instruction Error]  정의되지 않은 Instruction 을 사용한 경우\r\n";
+                        strRes += "Reg Write 없이 Action 을 사용한 경우";
+                        break;
+                    case 0x03: strRes += "[CRC Error]          전송된 Packet 의 CRC 값이 맞지 않는 경우";
+                        break;
+                    case 0x04: strRes += "[Data Range Error]   해당 Address 에 쓰려는 Data 가 최소/최대값의 범위를 벗어난 경우";
+                        break;
+                    case 0x05: strRes += "[Data Length Error]  해당 Address 의 데이터 길이보다 짧은 데이터를 적으려고 한 경우\r\n";
+                        strRes += "(예: 4 byte로 정의된 항목의 2 byte 만 쓰려고 하는 경우)";
+                        break;
+                    case 0x06: strRes += "[Data Limit Error]   해당 Address 에 쓰려는 Data 가 Limit 값을 벗어난 경우";
+                        break;
+                    case 0x07: strRes += "[Access Errer]       Read Only 혹은 정의되지 않은 Address 에 값을 쓰려고 한 경우\r\n";
+                        strRes += "Write Only 혹은 정의되지 않은 Address 에 값을 읽으려고 한 경우\r\n";
+                        strRes += "Torque Enable(ROM Lock) 상태에서 ROM 영역에 값을 쓰려고 한 경우";
+                        break;
                 }
                 return strRes;
             }
@@ -1886,13 +1984,19 @@ namespace OpenJigWare
             #endregion Read
 
             #region Protocol - basic(updateCRC, MakeStuff, SendPacket)
-            public byte[] MakePacket(int nMotorRealID, int nCommand, int nAddress, params byte[] pbyDatas)
+            public byte[] MakePacket(int nMotorRealID, int nCommand, int nAddress = 0, params byte[] pbyDatas)
             {
-                
                 int i;
                 i = 0;
+                //int nLength = 3 + ((pbyDatas != null) ? pbyDatas.Length + 2 : 0);
+                int nLength = 3;
+                bool bDatas = false;
+                if (pbyDatas.Length > 0)
+                {
+                    nLength = nLength + pbyDatas.Length + 2; // Address의 2바이트 주소 추가
+                    bDatas = true;
+                }
 
-                int nLength = 3 + ((pbyDatas != null) ? pbyDatas.Length + 2 : 0);
                 int nDefaultSize = 7;
                 byte[] pbyteBuffer = new byte[nDefaultSize + nLength];
                 pbyteBuffer[i++] = 0xff;
@@ -1905,10 +2009,47 @@ namespace OpenJigWare
                 pbyteBuffer[i++] = (byte)(nLength & 0xff);
                 pbyteBuffer[i++] = (byte)((nLength >> 8) & 0xff);
                 pbyteBuffer[i++] = (byte)(nCommand & 0xff);
-                if (pbyDatas != null)
+                if (bDatas == true)
                 {
                     pbyteBuffer[i++] = (byte)(nAddress & 0xff);
                     pbyteBuffer[i++] = (byte)((nAddress >> 8) & 0xff);
+                    foreach (byte byData in pbyDatas) pbyteBuffer[i++] = byData;
+                }
+                MakeStuff(ref pbyteBuffer);
+                int nCrc = updateCRC(pbyteBuffer, pbyteBuffer.Length - 2);
+                pbyteBuffer[pbyteBuffer.Length - 2] = (byte)(nCrc & 0xff);
+                pbyteBuffer[pbyteBuffer.Length - 1] = (byte)((nCrc >> 8) & 0xff);
+                return pbyteBuffer;
+            }
+            public byte[] MakePacket_Without_Address(int nMotorRealID, int nCommand, params byte[] pbyDatas)
+            {
+                int i;
+                i = 0;
+                //int nLength = 3 + ((pbyDatas != null) ? pbyDatas.Length + 2 : 0);
+                int nLength = 3;
+                bool bDatas = false;
+                if (pbyDatas.Length > 0)
+                {
+                    nLength = nLength + pbyDatas.Length;
+                    bDatas = true;
+                }
+
+                int nDefaultSize = 7;
+                byte[] pbyteBuffer = new byte[nDefaultSize + nLength];
+                pbyteBuffer[i++] = 0xff;
+                pbyteBuffer[i++] = 0xff;
+                #region Packet 2.0
+                pbyteBuffer[i++] = 0xfd;
+                pbyteBuffer[i++] = 0x00;
+                #endregion Packet 2.0
+                pbyteBuffer[i++] = (byte)(nMotorRealID & 0xff);
+                pbyteBuffer[i++] = (byte)(nLength & 0xff);
+                pbyteBuffer[i++] = (byte)((nLength >> 8) & 0xff);
+                pbyteBuffer[i++] = (byte)(nCommand & 0xff);
+                if (bDatas == true)
+                {
+                    //pbyteBuffer[i++] = (byte)(nAddress & 0xff);
+                    //pbyteBuffer[i++] = (byte)((nAddress >> 8) & 0xff);
                     foreach (byte byData in pbyDatas) pbyteBuffer[i++] = byData;
                 }
                 MakeStuff(ref pbyteBuffer);
@@ -2003,10 +2144,10 @@ namespace OpenJigWare
                 }
                 pnIndex = null;
             }
-            public void SendPacket(byte[] buffer, int nLength) 
-            { 
+            public void SendPacket(byte[] buffer, int nLength)
+            {
                 if (m_CSerial.IsConnect() == true) m_CSerial.SendPacket(buffer, nLength);
-                if (m_CSock_Client.IsConnect() == true) m_CSock_Client.SendPacket(buffer, nLength); 
+                if (m_CSock_Client.IsConnect() == true) m_CSock_Client.SendPacket(buffer, nLength);
             }
             #endregion Protocol - basic(updateCRC, MakeStuff, SendPacket)
 
@@ -2025,20 +2166,20 @@ namespace OpenJigWare
             }
             public void Sync_Push_Byte(int nID, int nData)
             {
-                byte [] abyDatas = new byte[1];
+                byte[] abyDatas = new byte[1];
                 abyDatas[0] = (byte)(nData & 0xff);
                 Sync_Push(nID, abyDatas);
             }
             public void Sync_Push_Word(int nID, int nData)
             {
-                byte [] abyDatas = new byte[2];
+                byte[] abyDatas = new byte[2];
                 abyDatas[0] = (byte)(nData & 0xff);
                 abyDatas[1] = (byte)((nData >> 8) & 0xff);
                 Sync_Push(nID, abyDatas);
             }
             public void Sync_Push_Dword(int nID, int nData)
             {
-                byte [] abyDatas = new byte[4];
+                byte[] abyDatas = new byte[4];
                 abyDatas[0] = (byte)(nData & 0xff);
                 abyDatas[1] = (byte)((nData >> 8) & 0xff);
                 abyDatas[2] = (byte)((nData >> 16) & 0xff);
@@ -2058,9 +2199,9 @@ namespace OpenJigWare
             public void Sync_Push(int nID, byte[] pbyDatas)
             {
                 int nDataLength = pbyDatas.Length;
-                
+
                 if (nDataLength > 0)
-                {     
+                {
                     if (m_nSync_Length == 0)
                     {
                         m_nSync_Length = nDataLength;
@@ -2087,7 +2228,7 @@ namespace OpenJigWare
                 {
                     if (m_lstSync.Count > 0)
                     {
-                        Send(254, 0x83, nAddress, m_lstSync.ToArray());         
+                        Send(254, 0x83, nAddress, m_lstSync.ToArray());
                     }
                 }
                 Sync_Clear();
@@ -2199,10 +2340,11 @@ namespace OpenJigWare
                 fX = fY = fHeight = 0.0f;
                 return false;
             }
-            public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime, int nDelay)
+            public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime, int nDelay, bool bNoWait = false)
             {
                 SetDelta(nIndex, fX, fY, fHeight);
-                Move(nTime, nDelay);
+                if (bNoWait == false) Move(nTime, nDelay);
+                else Move_NoWait(nTime, nDelay);
                 //Wait(nTime + nDelay);
             }
             public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime)
