@@ -60,6 +60,7 @@
             this.txtForwardKinematics_Message = new System.Windows.Forms.TextBox();
             this.btnCompile = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.chkAutoRefresh = new System.Windows.Forms.CheckBox();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.label8 = new System.Windows.Forms.Label();
@@ -105,13 +106,30 @@
             this.label35 = new System.Windows.Forms.Label();
             this.label33 = new System.Windows.Forms.Label();
             this.tabPage10 = new System.Windows.Forms.TabPage();
+            this.label108 = new System.Windows.Forms.Label();
+            this.label109 = new System.Windows.Forms.Label();
+            this.label107 = new System.Windows.Forms.Label();
+            this.label106 = new System.Windows.Forms.Label();
+            this.label105 = new System.Windows.Forms.Label();
+            this.txtDh_Light_Specular_D = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Diffuse_D = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Ambient_D = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Specular_C = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Diffuse_C = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Ambient_C = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Position2_D = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Position_D = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Specular_B = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Diffuse_B = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Ambient_B = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Position2_C = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Position_C = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Specular_A = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Diffuse_A = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Ambient_A = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Position2_B = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Position_B = new System.Windows.Forms.TextBox();
+            this.txtDh_Light_Position2_A = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Position_A = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Direction2_Z = new System.Windows.Forms.TextBox();
             this.txtDh_Light_Direction_Z = new System.Windows.Forms.TextBox();
@@ -303,23 +321,6 @@
             this.label89 = new System.Windows.Forms.Label();
             this.txtRobotName = new System.Windows.Forms.TextBox();
             this.label88 = new System.Windows.Forms.Label();
-            this.label105 = new System.Windows.Forms.Label();
-            this.label106 = new System.Windows.Forms.Label();
-            this.label107 = new System.Windows.Forms.Label();
-            this.label108 = new System.Windows.Forms.Label();
-            this.txtDh_Light_Position2_A = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Position2_B = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Position2_C = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Position2_D = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Diffuse_A = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Diffuse_B = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Diffuse_C = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Diffuse_D = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Specular_A = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Specular_B = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Specular_C = new System.Windows.Forms.TextBox();
-            this.txtDh_Light_Specular_D = new System.Windows.Forms.TextBox();
-            this.label109 = new System.Windows.Forms.Label();
             this.tabControl2.SuspendLayout();
             this.tabPage7.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -347,7 +348,7 @@
             this.tabControl2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabControl2.Name = "tabControl2";
             this.tabControl2.SelectedIndex = 0;
-            this.tabControl2.Size = new System.Drawing.Size(1313, 671);
+            this.tabControl2.Size = new System.Drawing.Size(1313, 851);
             this.tabControl2.TabIndex = 453;
             this.tabControl2.SelectedIndexChanged += new System.EventHandler(this.tabControl2_SelectedIndexChanged);
             // 
@@ -392,7 +393,7 @@
             this.tabPage7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabPage7.Name = "tabPage7";
             this.tabPage7.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tabPage7.Size = new System.Drawing.Size(1305, 642);
+            this.tabPage7.Size = new System.Drawing.Size(1305, 822);
             this.tabPage7.TabIndex = 0;
             this.tabPage7.Text = "Kinematics Drawing";
             this.tabPage7.UseVisualStyleBackColor = true;
@@ -415,7 +416,7 @@
             this.panel1.Controls.Add(this.txtDH_Test_X);
             this.panel1.Controls.Add(this.txtDH_Test_Y);
             this.panel1.Controls.Add(this.txtDH_Test_Z);
-            this.panel1.Location = new System.Drawing.Point(882, 506);
+            this.panel1.Location = new System.Drawing.Point(880, 692);
             this.panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(418, 126);
@@ -572,7 +573,7 @@
             // label26
             // 
             this.label26.AutoSize = true;
-            this.label26.Location = new System.Drawing.Point(986, 606);
+            this.label26.Location = new System.Drawing.Point(984, 792);
             this.label26.Name = "label26";
             this.label26.Size = new System.Drawing.Size(100, 15);
             this.label26.TabIndex = 479;
@@ -582,7 +583,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(969, 582);
+            this.label27.Location = new System.Drawing.Point(967, 768);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(67, 15);
             this.label27.TabIndex = 480;
@@ -592,7 +593,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(1043, 582);
+            this.label25.Location = new System.Drawing.Point(1041, 768);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(43, 15);
             this.label25.TabIndex = 478;
@@ -601,7 +602,7 @@
             // 
             // txtDH_Param_Offset_Rot_Swing
             // 
-            this.txtDH_Param_Offset_Rot_Swing.Location = new System.Drawing.Point(1192, 601);
+            this.txtDH_Param_Offset_Rot_Swing.Location = new System.Drawing.Point(1190, 787);
             this.txtDH_Param_Offset_Rot_Swing.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Param_Offset_Rot_Swing.Name = "txtDH_Param_Offset_Rot_Swing";
             this.txtDH_Param_Offset_Rot_Swing.Size = new System.Drawing.Size(52, 25);
@@ -611,7 +612,7 @@
             // 
             // txtDH_Param_Offset_Rot_Tilt
             // 
-            this.txtDH_Param_Offset_Rot_Tilt.Location = new System.Drawing.Point(1141, 601);
+            this.txtDH_Param_Offset_Rot_Tilt.Location = new System.Drawing.Point(1139, 787);
             this.txtDH_Param_Offset_Rot_Tilt.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Param_Offset_Rot_Tilt.Name = "txtDH_Param_Offset_Rot_Tilt";
             this.txtDH_Param_Offset_Rot_Tilt.Size = new System.Drawing.Size(52, 25);
@@ -621,7 +622,7 @@
             // 
             // txtDH_Param_Offset_Rot_Pan
             // 
-            this.txtDH_Param_Offset_Rot_Pan.Location = new System.Drawing.Point(1090, 601);
+            this.txtDH_Param_Offset_Rot_Pan.Location = new System.Drawing.Point(1088, 787);
             this.txtDH_Param_Offset_Rot_Pan.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Param_Offset_Rot_Pan.Name = "txtDH_Param_Offset_Rot_Pan";
             this.txtDH_Param_Offset_Rot_Pan.Size = new System.Drawing.Size(52, 25);
@@ -631,7 +632,7 @@
             // 
             // txtDH_Param_Offset_Trans_Z
             // 
-            this.txtDH_Param_Offset_Trans_Z.Location = new System.Drawing.Point(1192, 578);
+            this.txtDH_Param_Offset_Trans_Z.Location = new System.Drawing.Point(1190, 764);
             this.txtDH_Param_Offset_Trans_Z.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Param_Offset_Trans_Z.Name = "txtDH_Param_Offset_Trans_Z";
             this.txtDH_Param_Offset_Trans_Z.Size = new System.Drawing.Size(52, 25);
@@ -641,7 +642,7 @@
             // 
             // txtDH_Param_Offset_Trans_Y
             // 
-            this.txtDH_Param_Offset_Trans_Y.Location = new System.Drawing.Point(1141, 578);
+            this.txtDH_Param_Offset_Trans_Y.Location = new System.Drawing.Point(1139, 764);
             this.txtDH_Param_Offset_Trans_Y.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Param_Offset_Trans_Y.Name = "txtDH_Param_Offset_Trans_Y";
             this.txtDH_Param_Offset_Trans_Y.Size = new System.Drawing.Size(52, 25);
@@ -651,7 +652,7 @@
             // 
             // txtDH_Param_Offset_Trans_X
             // 
-            this.txtDH_Param_Offset_Trans_X.Location = new System.Drawing.Point(1090, 578);
+            this.txtDH_Param_Offset_Trans_X.Location = new System.Drawing.Point(1088, 764);
             this.txtDH_Param_Offset_Trans_X.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Param_Offset_Trans_X.Name = "txtDH_Param_Offset_Trans_X";
             this.txtDH_Param_Offset_Trans_X.Size = new System.Drawing.Size(52, 25);
@@ -666,7 +667,7 @@
             this.txtInverseKinematics_Message.Multiline = true;
             this.txtInverseKinematics_Message.Name = "txtInverseKinematics_Message";
             this.txtInverseKinematics_Message.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtInverseKinematics_Message.Size = new System.Drawing.Size(206, 492);
+            this.txtInverseKinematics_Message.Size = new System.Drawing.Size(206, 680);
             this.txtInverseKinematics_Message.TabIndex = 477;
             this.txtInverseKinematics_Message.WordWrap = false;
             // 
@@ -686,7 +687,7 @@
             this.txtForwardKinematics_Message.Multiline = true;
             this.txtForwardKinematics_Message.Name = "txtForwardKinematics_Message";
             this.txtForwardKinematics_Message.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtForwardKinematics_Message.Size = new System.Drawing.Size(206, 492);
+            this.txtForwardKinematics_Message.Size = new System.Drawing.Size(206, 680);
             this.txtForwardKinematics_Message.TabIndex = 472;
             this.txtForwardKinematics_Message.WordWrap = false;
             // 
@@ -703,6 +704,7 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.chkAutoRefresh);
             this.groupBox1.Controls.Add(this.tabControl1);
             this.groupBox1.Controls.Add(this.txtDh);
             this.groupBox1.Controls.Add(this.btnDH_MoveToPoint_Visible);
@@ -723,10 +725,21 @@
             this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox1.Size = new System.Drawing.Size(432, 624);
+            this.groupBox1.Size = new System.Drawing.Size(432, 810);
             this.groupBox1.TabIndex = 474;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Kinematics Test";
+            // 
+            // chkAutoRefresh
+            // 
+            this.chkAutoRefresh.AutoSize = true;
+            this.chkAutoRefresh.Location = new System.Drawing.Point(7, 288);
+            this.chkAutoRefresh.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.chkAutoRefresh.Name = "chkAutoRefresh";
+            this.chkAutoRefresh.Size = new System.Drawing.Size(179, 19);
+            this.chkAutoRefresh.TabIndex = 488;
+            this.chkAutoRefresh.Text = "AutoRefresh(Dh Make)";
+            this.chkAutoRefresh.UseVisualStyleBackColor = true;
             // 
             // tabControl1
             // 
@@ -1233,6 +1246,67 @@
             this.tabPage10.Text = "Set Light";
             this.tabPage10.UseVisualStyleBackColor = true;
             // 
+            // label108
+            // 
+            this.label108.AutoSize = true;
+            this.label108.Location = new System.Drawing.Point(6, 64);
+            this.label108.Name = "label108";
+            this.label108.Size = new System.Drawing.Size(58, 15);
+            this.label108.TabIndex = 4;
+            this.label108.Text = "Ambient";
+            // 
+            // label109
+            // 
+            this.label109.AutoSize = true;
+            this.label109.Location = new System.Drawing.Point(9, 115);
+            this.label109.Name = "label109";
+            this.label109.Size = new System.Drawing.Size(64, 15);
+            this.label109.TabIndex = 4;
+            this.label109.Text = "Specular";
+            // 
+            // label107
+            // 
+            this.label107.AutoSize = true;
+            this.label107.Location = new System.Drawing.Point(6, 92);
+            this.label107.Name = "label107";
+            this.label107.Size = new System.Drawing.Size(52, 15);
+            this.label107.TabIndex = 4;
+            this.label107.Text = "Diffuse";
+            // 
+            // label106
+            // 
+            this.label106.AutoSize = true;
+            this.label106.Location = new System.Drawing.Point(3, 37);
+            this.label106.Name = "label106";
+            this.label106.Size = new System.Drawing.Size(61, 15);
+            this.label106.TabIndex = 4;
+            this.label106.Text = "Position";
+            // 
+            // label105
+            // 
+            this.label105.AutoSize = true;
+            this.label105.Location = new System.Drawing.Point(3, 14);
+            this.label105.Name = "label105";
+            this.label105.Size = new System.Drawing.Size(64, 15);
+            this.label105.TabIndex = 4;
+            this.label105.Text = "Direction";
+            // 
+            // txtDh_Light_Specular_D
+            // 
+            this.txtDh_Light_Specular_D.Location = new System.Drawing.Point(201, 112);
+            this.txtDh_Light_Specular_D.Name = "txtDh_Light_Specular_D";
+            this.txtDh_Light_Specular_D.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Specular_D.TabIndex = 3;
+            this.txtDh_Light_Specular_D.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_D_TextChanged);
+            // 
+            // txtDh_Light_Diffuse_D
+            // 
+            this.txtDh_Light_Diffuse_D.Location = new System.Drawing.Point(201, 85);
+            this.txtDh_Light_Diffuse_D.Name = "txtDh_Light_Diffuse_D";
+            this.txtDh_Light_Diffuse_D.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Diffuse_D.TabIndex = 3;
+            this.txtDh_Light_Diffuse_D.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_D_TextChanged);
+            // 
             // txtDh_Light_Ambient_D
             // 
             this.txtDh_Light_Ambient_D.Location = new System.Drawing.Point(201, 58);
@@ -1240,6 +1314,22 @@
             this.txtDh_Light_Ambient_D.Size = new System.Drawing.Size(43, 25);
             this.txtDh_Light_Ambient_D.TabIndex = 3;
             this.txtDh_Light_Ambient_D.TextChanged += new System.EventHandler(this.txtDh_Light_Ambient_D_TextChanged);
+            // 
+            // txtDh_Light_Specular_C
+            // 
+            this.txtDh_Light_Specular_C.Location = new System.Drawing.Point(159, 112);
+            this.txtDh_Light_Specular_C.Name = "txtDh_Light_Specular_C";
+            this.txtDh_Light_Specular_C.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Specular_C.TabIndex = 3;
+            this.txtDh_Light_Specular_C.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_C_TextChanged);
+            // 
+            // txtDh_Light_Diffuse_C
+            // 
+            this.txtDh_Light_Diffuse_C.Location = new System.Drawing.Point(159, 85);
+            this.txtDh_Light_Diffuse_C.Name = "txtDh_Light_Diffuse_C";
+            this.txtDh_Light_Diffuse_C.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Diffuse_C.TabIndex = 3;
+            this.txtDh_Light_Diffuse_C.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_C_TextChanged);
             // 
             // txtDh_Light_Ambient_C
             // 
@@ -1249,6 +1339,14 @@
             this.txtDh_Light_Ambient_C.TabIndex = 3;
             this.txtDh_Light_Ambient_C.TextChanged += new System.EventHandler(this.txtDh_Light_Ambient_C_TextChanged);
             // 
+            // txtDh_Light_Position2_D
+            // 
+            this.txtDh_Light_Position2_D.Location = new System.Drawing.Point(377, 31);
+            this.txtDh_Light_Position2_D.Name = "txtDh_Light_Position2_D";
+            this.txtDh_Light_Position2_D.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Position2_D.TabIndex = 3;
+            this.txtDh_Light_Position2_D.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_D_TextChanged);
+            // 
             // txtDh_Light_Position_D
             // 
             this.txtDh_Light_Position_D.Location = new System.Drawing.Point(201, 31);
@@ -1256,6 +1354,22 @@
             this.txtDh_Light_Position_D.Size = new System.Drawing.Size(43, 25);
             this.txtDh_Light_Position_D.TabIndex = 3;
             this.txtDh_Light_Position_D.TextChanged += new System.EventHandler(this.txtDh_Light_Position_D_TextChanged);
+            // 
+            // txtDh_Light_Specular_B
+            // 
+            this.txtDh_Light_Specular_B.Location = new System.Drawing.Point(118, 112);
+            this.txtDh_Light_Specular_B.Name = "txtDh_Light_Specular_B";
+            this.txtDh_Light_Specular_B.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Specular_B.TabIndex = 2;
+            this.txtDh_Light_Specular_B.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_B_TextChanged);
+            // 
+            // txtDh_Light_Diffuse_B
+            // 
+            this.txtDh_Light_Diffuse_B.Location = new System.Drawing.Point(118, 85);
+            this.txtDh_Light_Diffuse_B.Name = "txtDh_Light_Diffuse_B";
+            this.txtDh_Light_Diffuse_B.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Diffuse_B.TabIndex = 2;
+            this.txtDh_Light_Diffuse_B.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_B_TextChanged);
             // 
             // txtDh_Light_Ambient_B
             // 
@@ -1265,6 +1379,14 @@
             this.txtDh_Light_Ambient_B.TabIndex = 2;
             this.txtDh_Light_Ambient_B.TextChanged += new System.EventHandler(this.txtDh_Light_Ambient_B_TextChanged);
             // 
+            // txtDh_Light_Position2_C
+            // 
+            this.txtDh_Light_Position2_C.Location = new System.Drawing.Point(335, 31);
+            this.txtDh_Light_Position2_C.Name = "txtDh_Light_Position2_C";
+            this.txtDh_Light_Position2_C.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Position2_C.TabIndex = 3;
+            this.txtDh_Light_Position2_C.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_C_TextChanged);
+            // 
             // txtDh_Light_Position_C
             // 
             this.txtDh_Light_Position_C.Location = new System.Drawing.Point(159, 31);
@@ -1272,6 +1394,22 @@
             this.txtDh_Light_Position_C.Size = new System.Drawing.Size(43, 25);
             this.txtDh_Light_Position_C.TabIndex = 3;
             this.txtDh_Light_Position_C.TextChanged += new System.EventHandler(this.txtDh_Light_Position_C_TextChanged);
+            // 
+            // txtDh_Light_Specular_A
+            // 
+            this.txtDh_Light_Specular_A.Location = new System.Drawing.Point(76, 112);
+            this.txtDh_Light_Specular_A.Name = "txtDh_Light_Specular_A";
+            this.txtDh_Light_Specular_A.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Specular_A.TabIndex = 1;
+            this.txtDh_Light_Specular_A.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_A_TextChanged);
+            // 
+            // txtDh_Light_Diffuse_A
+            // 
+            this.txtDh_Light_Diffuse_A.Location = new System.Drawing.Point(76, 85);
+            this.txtDh_Light_Diffuse_A.Name = "txtDh_Light_Diffuse_A";
+            this.txtDh_Light_Diffuse_A.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Diffuse_A.TabIndex = 1;
+            this.txtDh_Light_Diffuse_A.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_A_TextChanged);
             // 
             // txtDh_Light_Ambient_A
             // 
@@ -1281,6 +1419,14 @@
             this.txtDh_Light_Ambient_A.TabIndex = 1;
             this.txtDh_Light_Ambient_A.TextChanged += new System.EventHandler(this.txtDh_Light_Ambient_A_TextChanged);
             // 
+            // txtDh_Light_Position2_B
+            // 
+            this.txtDh_Light_Position2_B.Location = new System.Drawing.Point(294, 31);
+            this.txtDh_Light_Position2_B.Name = "txtDh_Light_Position2_B";
+            this.txtDh_Light_Position2_B.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Position2_B.TabIndex = 2;
+            this.txtDh_Light_Position2_B.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_B_TextChanged);
+            // 
             // txtDh_Light_Position_B
             // 
             this.txtDh_Light_Position_B.Location = new System.Drawing.Point(118, 31);
@@ -1288,6 +1434,14 @@
             this.txtDh_Light_Position_B.Size = new System.Drawing.Size(43, 25);
             this.txtDh_Light_Position_B.TabIndex = 2;
             this.txtDh_Light_Position_B.TextChanged += new System.EventHandler(this.txtDh_Light_Position_B_TextChanged);
+            // 
+            // txtDh_Light_Position2_A
+            // 
+            this.txtDh_Light_Position2_A.Location = new System.Drawing.Point(252, 31);
+            this.txtDh_Light_Position2_A.Name = "txtDh_Light_Position2_A";
+            this.txtDh_Light_Position2_A.Size = new System.Drawing.Size(43, 25);
+            this.txtDh_Light_Position2_A.TabIndex = 1;
+            this.txtDh_Light_Position2_A.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_A_TextChanged);
             // 
             // txtDh_Light_Position_A
             // 
@@ -1347,17 +1501,19 @@
             // 
             // txtDh
             // 
-            this.txtDh.Location = new System.Drawing.Point(10, 288);
+            this.txtDh.Location = new System.Drawing.Point(6, 311);
             this.txtDh.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDh.Multiline = true;
             this.txtDh.Name = "txtDh";
-            this.txtDh.Size = new System.Drawing.Size(422, 302);
+            this.txtDh.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtDh.Size = new System.Drawing.Size(422, 460);
             this.txtDh.TabIndex = 11;
             this.txtDh.WordWrap = false;
+            this.txtDh.TextChanged += new System.EventHandler(this.txtDh_TextChanged);
             // 
             // btnDH_MoveToPoint_Visible
             // 
-            this.btnDH_MoveToPoint_Visible.Location = new System.Drawing.Point(6, 592);
+            this.btnDH_MoveToPoint_Visible.Location = new System.Drawing.Point(3, 774);
             this.btnDH_MoveToPoint_Visible.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnDH_MoveToPoint_Visible.Name = "btnDH_MoveToPoint_Visible";
             this.btnDH_MoveToPoint_Visible.Size = new System.Drawing.Size(209, 32);
@@ -1368,7 +1524,7 @@
             // 
             // btnDH_MoveToPoint_InVisible
             // 
-            this.btnDH_MoveToPoint_InVisible.Location = new System.Drawing.Point(223, 592);
+            this.btnDH_MoveToPoint_InVisible.Location = new System.Drawing.Point(220, 774);
             this.btnDH_MoveToPoint_InVisible.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnDH_MoveToPoint_InVisible.Name = "btnDH_MoveToPoint_InVisible";
             this.btnDH_MoveToPoint_InVisible.Size = new System.Drawing.Size(209, 32);
@@ -1515,7 +1671,7 @@
             this.tabDH.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabDH.Name = "tabDH";
             this.tabDH.SelectedIndex = 0;
-            this.tabDH.Size = new System.Drawing.Size(442, 439);
+            this.tabDH.Size = new System.Drawing.Size(442, 620);
             this.tabDH.TabIndex = 473;
             // 
             // tabPage1
@@ -1525,7 +1681,7 @@
             this.tabPage1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tabPage1.Size = new System.Drawing.Size(434, 410);
+            this.tabPage1.Size = new System.Drawing.Size(434, 591);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Forward";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -1537,7 +1693,7 @@
             this.txtDH_Tab_Forward.Multiline = true;
             this.txtDH_Tab_Forward.Name = "txtDH_Tab_Forward";
             this.txtDH_Tab_Forward.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtDH_Tab_Forward.Size = new System.Drawing.Size(422, 398);
+            this.txtDH_Tab_Forward.Size = new System.Drawing.Size(422, 581);
             this.txtDH_Tab_Forward.TabIndex = 11;
             this.txtDH_Tab_Forward.WordWrap = false;
             this.txtDH_Tab_Forward.TextChanged += new System.EventHandler(this.txtDH_Tab_Forward_TextChanged);
@@ -1932,7 +2088,7 @@
             // label75
             // 
             this.label75.BackColor = System.Drawing.Color.DimGray;
-            this.label75.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label75.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label75.ForeColor = System.Drawing.Color.Gold;
             this.label75.Location = new System.Drawing.Point(601, 140);
             this.label75.Name = "label75";
@@ -2300,7 +2456,7 @@
             // label72
             // 
             this.label72.BackColor = System.Drawing.Color.DimGray;
-            this.label72.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label72.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label72.ForeColor = System.Drawing.Color.Gold;
             this.label72.Location = new System.Drawing.Point(952, 140);
             this.label72.Name = "label72";
@@ -2312,7 +2468,7 @@
             // label59
             // 
             this.label59.BackColor = System.Drawing.Color.DimGray;
-            this.label59.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label59.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label59.ForeColor = System.Drawing.Color.Gold;
             this.label59.Location = new System.Drawing.Point(601, 206);
             this.label59.Name = "label59";
@@ -2324,7 +2480,7 @@
             // label73
             // 
             this.label73.BackColor = System.Drawing.Color.DimGray;
-            this.label73.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label73.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label73.ForeColor = System.Drawing.Color.Gold;
             this.label73.Location = new System.Drawing.Point(952, 305);
             this.label73.Name = "label73";
@@ -2336,7 +2492,7 @@
             // label71
             // 
             this.label71.BackColor = System.Drawing.Color.DimGray;
-            this.label71.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label71.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label71.ForeColor = System.Drawing.Color.Gold;
             this.label71.Location = new System.Drawing.Point(952, 272);
             this.label71.Name = "label71";
@@ -2348,7 +2504,7 @@
             // label53
             // 
             this.label53.BackColor = System.Drawing.Color.DimGray;
-            this.label53.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label53.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label53.ForeColor = System.Drawing.Color.Gold;
             this.label53.Location = new System.Drawing.Point(249, 332);
             this.label53.Name = "label53";
@@ -2360,7 +2516,7 @@
             // label63
             // 
             this.label63.BackColor = System.Drawing.Color.DimGray;
-            this.label63.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label63.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label63.ForeColor = System.Drawing.Color.Gold;
             this.label63.Location = new System.Drawing.Point(601, 338);
             this.label63.Name = "label63";
@@ -2372,7 +2528,7 @@
             // label70
             // 
             this.label70.BackColor = System.Drawing.Color.DimGray;
-            this.label70.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label70.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label70.ForeColor = System.Drawing.Color.Gold;
             this.label70.Location = new System.Drawing.Point(952, 108);
             this.label70.Name = "label70";
@@ -2384,7 +2540,7 @@
             // label58
             // 
             this.label58.BackColor = System.Drawing.Color.DimGray;
-            this.label58.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label58.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label58.ForeColor = System.Drawing.Color.Gold;
             this.label58.Location = new System.Drawing.Point(601, 172);
             this.label58.Name = "label58";
@@ -2396,7 +2552,7 @@
             // label69
             // 
             this.label69.BackColor = System.Drawing.Color.DimGray;
-            this.label69.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label69.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label69.ForeColor = System.Drawing.Color.Gold;
             this.label69.Location = new System.Drawing.Point(952, 239);
             this.label69.Name = "label69";
@@ -2408,7 +2564,7 @@
             // label62
             // 
             this.label62.BackColor = System.Drawing.Color.DimGray;
-            this.label62.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label62.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label62.ForeColor = System.Drawing.Color.Gold;
             this.label62.Location = new System.Drawing.Point(601, 305);
             this.label62.Name = "label62";
@@ -2420,7 +2576,7 @@
             // label68
             // 
             this.label68.BackColor = System.Drawing.Color.DimGray;
-            this.label68.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label68.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label68.ForeColor = System.Drawing.Color.Gold;
             this.label68.Location = new System.Drawing.Point(952, 74);
             this.label68.Name = "label68";
@@ -2432,7 +2588,7 @@
             // label57
             // 
             this.label57.BackColor = System.Drawing.Color.DimGray;
-            this.label57.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label57.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label57.ForeColor = System.Drawing.Color.Gold;
             this.label57.Location = new System.Drawing.Point(601, 74);
             this.label57.Name = "label57";
@@ -2444,7 +2600,7 @@
             // label67
             // 
             this.label67.BackColor = System.Drawing.Color.DimGray;
-            this.label67.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label67.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label67.ForeColor = System.Drawing.Color.Gold;
             this.label67.Location = new System.Drawing.Point(952, 206);
             this.label67.Name = "label67";
@@ -2456,7 +2612,7 @@
             // label61
             // 
             this.label61.BackColor = System.Drawing.Color.DimGray;
-            this.label61.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label61.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label61.ForeColor = System.Drawing.Color.Gold;
             this.label61.Location = new System.Drawing.Point(601, 272);
             this.label61.Name = "label61";
@@ -2468,7 +2624,7 @@
             // label66
             // 
             this.label66.BackColor = System.Drawing.Color.DimGray;
-            this.label66.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label66.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label66.ForeColor = System.Drawing.Color.Gold;
             this.label66.Location = new System.Drawing.Point(951, 41);
             this.label66.Name = "label66";
@@ -2480,7 +2636,7 @@
             // label56
             // 
             this.label56.BackColor = System.Drawing.Color.DimGray;
-            this.label56.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label56.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label56.ForeColor = System.Drawing.Color.Gold;
             this.label56.Location = new System.Drawing.Point(249, 392);
             this.label56.Name = "label56";
@@ -2492,7 +2648,7 @@
             // label65
             // 
             this.label65.BackColor = System.Drawing.Color.DimGray;
-            this.label65.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label65.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label65.ForeColor = System.Drawing.Color.Gold;
             this.label65.Location = new System.Drawing.Point(952, 172);
             this.label65.Name = "label65";
@@ -2504,7 +2660,7 @@
             // label60
             // 
             this.label60.BackColor = System.Drawing.Color.DimGray;
-            this.label60.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label60.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label60.ForeColor = System.Drawing.Color.Gold;
             this.label60.Location = new System.Drawing.Point(601, 239);
             this.label60.Name = "label60";
@@ -2516,7 +2672,7 @@
             // label64
             // 
             this.label64.BackColor = System.Drawing.Color.DimGray;
-            this.label64.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label64.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label64.ForeColor = System.Drawing.Color.Gold;
             this.label64.Location = new System.Drawing.Point(952, 8);
             this.label64.Name = "label64";
@@ -2528,7 +2684,7 @@
             // label55
             // 
             this.label55.BackColor = System.Drawing.Color.DimGray;
-            this.label55.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label55.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label55.ForeColor = System.Drawing.Color.Gold;
             this.label55.Location = new System.Drawing.Point(600, 41);
             this.label55.Name = "label55";
@@ -2612,7 +2768,7 @@
             // label86
             // 
             this.label86.BackColor = System.Drawing.Color.DimGray;
-            this.label86.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label86.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label86.ForeColor = System.Drawing.Color.Gold;
             this.label86.Location = new System.Drawing.Point(952, 552);
             this.label86.Name = "label86";
@@ -2624,7 +2780,7 @@
             // label85
             // 
             this.label85.BackColor = System.Drawing.Color.DimGray;
-            this.label85.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label85.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label85.ForeColor = System.Drawing.Color.Gold;
             this.label85.Location = new System.Drawing.Point(952, 526);
             this.label85.Name = "label85";
@@ -2636,7 +2792,7 @@
             // label83
             // 
             this.label83.BackColor = System.Drawing.Color.DimGray;
-            this.label83.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label83.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label83.ForeColor = System.Drawing.Color.Gold;
             this.label83.Location = new System.Drawing.Point(601, 580);
             this.label83.Name = "label83";
@@ -2648,7 +2804,7 @@
             // label84
             // 
             this.label84.BackColor = System.Drawing.Color.DimGray;
-            this.label84.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label84.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label84.ForeColor = System.Drawing.Color.Gold;
             this.label84.Location = new System.Drawing.Point(950, 499);
             this.label84.Name = "label84";
@@ -2660,7 +2816,7 @@
             // label82
             // 
             this.label82.BackColor = System.Drawing.Color.DimGray;
-            this.label82.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label82.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label82.ForeColor = System.Drawing.Color.Gold;
             this.label82.Location = new System.Drawing.Point(601, 552);
             this.label82.Name = "label82";
@@ -2672,7 +2828,7 @@
             // label81
             // 
             this.label81.BackColor = System.Drawing.Color.DimGray;
-            this.label81.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label81.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label81.ForeColor = System.Drawing.Color.Gold;
             this.label81.Location = new System.Drawing.Point(599, 526);
             this.label81.Name = "label81";
@@ -2684,7 +2840,7 @@
             // label80
             // 
             this.label80.BackColor = System.Drawing.Color.DimGray;
-            this.label80.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label80.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label80.ForeColor = System.Drawing.Color.Gold;
             this.label80.Location = new System.Drawing.Point(599, 499);
             this.label80.Name = "label80";
@@ -2696,7 +2852,7 @@
             // label54
             // 
             this.label54.BackColor = System.Drawing.Color.DimGray;
-            this.label54.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label54.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label54.ForeColor = System.Drawing.Color.Gold;
             this.label54.Location = new System.Drawing.Point(601, 8);
             this.label54.Name = "label54";
@@ -2708,7 +2864,7 @@
             // label79
             // 
             this.label79.BackColor = System.Drawing.Color.DimGray;
-            this.label79.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label79.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label79.ForeColor = System.Drawing.Color.Gold;
             this.label79.Location = new System.Drawing.Point(248, 552);
             this.label79.Name = "label79";
@@ -2720,7 +2876,7 @@
             // label78
             // 
             this.label78.BackColor = System.Drawing.Color.DimGray;
-            this.label78.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label78.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label78.ForeColor = System.Drawing.Color.Gold;
             this.label78.Location = new System.Drawing.Point(248, 526);
             this.label78.Name = "label78";
@@ -2732,7 +2888,7 @@
             // label77
             // 
             this.label77.BackColor = System.Drawing.Color.DimGray;
-            this.label77.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label77.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label77.ForeColor = System.Drawing.Color.Gold;
             this.label77.Location = new System.Drawing.Point(249, 499);
             this.label77.Name = "label77";
@@ -2744,7 +2900,7 @@
             // label76
             // 
             this.label76.BackColor = System.Drawing.Color.DimGray;
-            this.label76.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label76.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label76.ForeColor = System.Drawing.Color.Gold;
             this.label76.Location = new System.Drawing.Point(249, 472);
             this.label76.Name = "label76";
@@ -2765,7 +2921,7 @@
             // label52
             // 
             this.label52.BackColor = System.Drawing.Color.DimGray;
-            this.label52.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label52.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label52.ForeColor = System.Drawing.Color.Gold;
             this.label52.Location = new System.Drawing.Point(249, 422);
             this.label52.Name = "label52";
@@ -2777,7 +2933,7 @@
             // label51
             // 
             this.label51.BackColor = System.Drawing.Color.DimGray;
-            this.label51.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label51.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label51.ForeColor = System.Drawing.Color.Gold;
             this.label51.Location = new System.Drawing.Point(249, 362);
             this.label51.Name = "label51";
@@ -2798,7 +2954,7 @@
             // label50
             // 
             this.label50.BackColor = System.Drawing.Color.DimGray;
-            this.label50.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label50.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label50.ForeColor = System.Drawing.Color.Gold;
             this.label50.Location = new System.Drawing.Point(249, 305);
             this.label50.Name = "label50";
@@ -2819,7 +2975,7 @@
             // label49
             // 
             this.label49.BackColor = System.Drawing.Color.DimGray;
-            this.label49.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label49.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label49.ForeColor = System.Drawing.Color.Gold;
             this.label49.Location = new System.Drawing.Point(249, 278);
             this.label49.Name = "label49";
@@ -2840,7 +2996,7 @@
             // label48
             // 
             this.label48.BackColor = System.Drawing.Color.DimGray;
-            this.label48.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label48.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label48.ForeColor = System.Drawing.Color.Gold;
             this.label48.Location = new System.Drawing.Point(249, 248);
             this.label48.Name = "label48";
@@ -2861,7 +3017,7 @@
             // label47
             // 
             this.label47.BackColor = System.Drawing.Color.DimGray;
-            this.label47.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label47.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label47.ForeColor = System.Drawing.Color.Gold;
             this.label47.Location = new System.Drawing.Point(249, 218);
             this.label47.Name = "label47";
@@ -2882,7 +3038,7 @@
             // label46
             // 
             this.label46.BackColor = System.Drawing.Color.DimGray;
-            this.label46.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label46.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label46.ForeColor = System.Drawing.Color.Gold;
             this.label46.Location = new System.Drawing.Point(249, 188);
             this.label46.Name = "label46";
@@ -2903,7 +3059,7 @@
             // label45
             // 
             this.label45.BackColor = System.Drawing.Color.DimGray;
-            this.label45.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label45.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label45.ForeColor = System.Drawing.Color.Gold;
             this.label45.Location = new System.Drawing.Point(249, 158);
             this.label45.Name = "label45";
@@ -2915,7 +3071,7 @@
             // label44
             // 
             this.label44.BackColor = System.Drawing.Color.DimGray;
-            this.label44.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label44.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label44.ForeColor = System.Drawing.Color.Gold;
             this.label44.Location = new System.Drawing.Point(249, 98);
             this.label44.Name = "label44";
@@ -2927,7 +3083,7 @@
             // label43
             // 
             this.label43.BackColor = System.Drawing.Color.DimGray;
-            this.label43.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label43.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label43.ForeColor = System.Drawing.Color.Gold;
             this.label43.Location = new System.Drawing.Point(249, 128);
             this.label43.Name = "label43";
@@ -2948,7 +3104,7 @@
             // label42
             // 
             this.label42.BackColor = System.Drawing.Color.DimGray;
-            this.label42.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label42.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label42.ForeColor = System.Drawing.Color.Gold;
             this.label42.Location = new System.Drawing.Point(249, 68);
             this.label42.Name = "label42";
@@ -2969,7 +3125,7 @@
             // label41
             // 
             this.label41.BackColor = System.Drawing.Color.DimGray;
-            this.label41.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label41.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label41.ForeColor = System.Drawing.Color.Gold;
             this.label41.Location = new System.Drawing.Point(249, 38);
             this.label41.Name = "label41";
@@ -2990,7 +3146,7 @@
             // label74
             // 
             this.label74.BackColor = System.Drawing.Color.DimGray;
-            this.label74.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label74.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label74.ForeColor = System.Drawing.Color.Gold;
             this.label74.Location = new System.Drawing.Point(11, 36);
             this.label74.Name = "label74";
@@ -3002,7 +3158,7 @@
             // label40
             // 
             this.label40.BackColor = System.Drawing.Color.DimGray;
-            this.label40.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label40.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label40.ForeColor = System.Drawing.Color.Gold;
             this.label40.Location = new System.Drawing.Point(249, 8);
             this.label40.Name = "label40";
@@ -3133,7 +3289,7 @@
             // label92
             // 
             this.label92.BackColor = System.Drawing.Color.DimGray;
-            this.label92.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label92.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label92.ForeColor = System.Drawing.Color.Gold;
             this.label92.Location = new System.Drawing.Point(563, 62);
             this.label92.Name = "label92";
@@ -3145,7 +3301,7 @@
             // label91
             // 
             this.label91.BackColor = System.Drawing.Color.DimGray;
-            this.label91.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label91.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label91.ForeColor = System.Drawing.Color.Gold;
             this.label91.Location = new System.Drawing.Point(19, 62);
             this.label91.Name = "label91";
@@ -3187,7 +3343,7 @@
             // label90
             // 
             this.label90.BackColor = System.Drawing.Color.DimGray;
-            this.label90.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label90.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label90.ForeColor = System.Drawing.Color.Gold;
             this.label90.Location = new System.Drawing.Point(6, 71);
             this.label90.Name = "label90";
@@ -3289,7 +3445,7 @@
             // label104
             // 
             this.label104.BackColor = System.Drawing.Color.DimGray;
-            this.label104.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label104.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label104.ForeColor = System.Drawing.Color.Gold;
             this.label104.Location = new System.Drawing.Point(6, 574);
             this.label104.Name = "label104";
@@ -3301,7 +3457,7 @@
             // label103
             // 
             this.label103.BackColor = System.Drawing.Color.DimGray;
-            this.label103.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label103.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label103.ForeColor = System.Drawing.Color.Gold;
             this.label103.Location = new System.Drawing.Point(6, 538);
             this.label103.Name = "label103";
@@ -3313,7 +3469,7 @@
             // label102
             // 
             this.label102.BackColor = System.Drawing.Color.DimGray;
-            this.label102.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label102.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label102.ForeColor = System.Drawing.Color.Gold;
             this.label102.Location = new System.Drawing.Point(6, 504);
             this.label102.Name = "label102";
@@ -3325,7 +3481,7 @@
             // label101
             // 
             this.label101.BackColor = System.Drawing.Color.DimGray;
-            this.label101.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label101.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label101.ForeColor = System.Drawing.Color.Gold;
             this.label101.Location = new System.Drawing.Point(6, 470);
             this.label101.Name = "label101";
@@ -3337,7 +3493,7 @@
             // label100
             // 
             this.label100.BackColor = System.Drawing.Color.DimGray;
-            this.label100.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label100.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label100.ForeColor = System.Drawing.Color.Gold;
             this.label100.Location = new System.Drawing.Point(6, 438);
             this.label100.Name = "label100";
@@ -3358,7 +3514,7 @@
             // label99
             // 
             this.label99.BackColor = System.Drawing.Color.DimGray;
-            this.label99.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label99.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label99.ForeColor = System.Drawing.Color.Gold;
             this.label99.Location = new System.Drawing.Point(6, 408);
             this.label99.Name = "label99";
@@ -3379,7 +3535,7 @@
             // label98
             // 
             this.label98.BackColor = System.Drawing.Color.DimGray;
-            this.label98.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label98.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label98.ForeColor = System.Drawing.Color.Gold;
             this.label98.Location = new System.Drawing.Point(6, 376);
             this.label98.Name = "label98";
@@ -3391,7 +3547,7 @@
             // label97
             // 
             this.label97.BackColor = System.Drawing.Color.DimGray;
-            this.label97.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label97.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label97.ForeColor = System.Drawing.Color.Gold;
             this.label97.Location = new System.Drawing.Point(6, 342);
             this.label97.Name = "label97";
@@ -3403,7 +3559,7 @@
             // label96
             // 
             this.label96.BackColor = System.Drawing.Color.DimGray;
-            this.label96.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label96.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label96.ForeColor = System.Drawing.Color.Gold;
             this.label96.Location = new System.Drawing.Point(6, 309);
             this.label96.Name = "label96";
@@ -3415,7 +3571,7 @@
             // label95
             // 
             this.label95.BackColor = System.Drawing.Color.DimGray;
-            this.label95.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label95.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label95.ForeColor = System.Drawing.Color.Gold;
             this.label95.Location = new System.Drawing.Point(6, 276);
             this.label95.Name = "label95";
@@ -3427,7 +3583,7 @@
             // label94
             // 
             this.label94.BackColor = System.Drawing.Color.DimGray;
-            this.label94.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label94.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label94.ForeColor = System.Drawing.Color.Gold;
             this.label94.Location = new System.Drawing.Point(6, 242);
             this.label94.Name = "label94";
@@ -3439,7 +3595,7 @@
             // label93
             // 
             this.label93.BackColor = System.Drawing.Color.DimGray;
-            this.label93.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label93.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label93.ForeColor = System.Drawing.Color.Gold;
             this.label93.Location = new System.Drawing.Point(6, 211);
             this.label93.Name = "label93";
@@ -3460,7 +3616,7 @@
             // label89
             // 
             this.label89.BackColor = System.Drawing.Color.DimGray;
-            this.label89.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label89.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label89.ForeColor = System.Drawing.Color.Gold;
             this.label89.Location = new System.Drawing.Point(6, 40);
             this.label89.Name = "label89";
@@ -3481,7 +3637,7 @@
             // label88
             // 
             this.label88.BackColor = System.Drawing.Color.DimGray;
-            this.label88.Font = new System.Drawing.Font("굴림", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.label88.Font = new System.Drawing.Font("Gulim", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.label88.ForeColor = System.Drawing.Color.Gold;
             this.label88.Location = new System.Drawing.Point(6, 9);
             this.label88.Name = "label88";
@@ -3490,152 +3646,11 @@
             this.label88.Text = "Robot Name";
             this.label88.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // label105
-            // 
-            this.label105.AutoSize = true;
-            this.label105.Location = new System.Drawing.Point(3, 14);
-            this.label105.Name = "label105";
-            this.label105.Size = new System.Drawing.Size(64, 15);
-            this.label105.TabIndex = 4;
-            this.label105.Text = "Direction";
-            // 
-            // label106
-            // 
-            this.label106.AutoSize = true;
-            this.label106.Location = new System.Drawing.Point(3, 37);
-            this.label106.Name = "label106";
-            this.label106.Size = new System.Drawing.Size(61, 15);
-            this.label106.TabIndex = 4;
-            this.label106.Text = "Position";
-            // 
-            // label107
-            // 
-            this.label107.AutoSize = true;
-            this.label107.Location = new System.Drawing.Point(6, 92);
-            this.label107.Name = "label107";
-            this.label107.Size = new System.Drawing.Size(52, 15);
-            this.label107.TabIndex = 4;
-            this.label107.Text = "Diffuse";
-            // 
-            // label108
-            // 
-            this.label108.AutoSize = true;
-            this.label108.Location = new System.Drawing.Point(6, 64);
-            this.label108.Name = "label108";
-            this.label108.Size = new System.Drawing.Size(58, 15);
-            this.label108.TabIndex = 4;
-            this.label108.Text = "Ambient";
-            // 
-            // txtDh_Light_Position2_A
-            // 
-            this.txtDh_Light_Position2_A.Location = new System.Drawing.Point(252, 31);
-            this.txtDh_Light_Position2_A.Name = "txtDh_Light_Position2_A";
-            this.txtDh_Light_Position2_A.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Position2_A.TabIndex = 1;
-            this.txtDh_Light_Position2_A.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_A_TextChanged);
-            // 
-            // txtDh_Light_Position2_B
-            // 
-            this.txtDh_Light_Position2_B.Location = new System.Drawing.Point(294, 31);
-            this.txtDh_Light_Position2_B.Name = "txtDh_Light_Position2_B";
-            this.txtDh_Light_Position2_B.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Position2_B.TabIndex = 2;
-            this.txtDh_Light_Position2_B.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_B_TextChanged);
-            // 
-            // txtDh_Light_Position2_C
-            // 
-            this.txtDh_Light_Position2_C.Location = new System.Drawing.Point(335, 31);
-            this.txtDh_Light_Position2_C.Name = "txtDh_Light_Position2_C";
-            this.txtDh_Light_Position2_C.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Position2_C.TabIndex = 3;
-            this.txtDh_Light_Position2_C.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_C_TextChanged);
-            // 
-            // txtDh_Light_Position2_D
-            // 
-            this.txtDh_Light_Position2_D.Location = new System.Drawing.Point(377, 31);
-            this.txtDh_Light_Position2_D.Name = "txtDh_Light_Position2_D";
-            this.txtDh_Light_Position2_D.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Position2_D.TabIndex = 3;
-            this.txtDh_Light_Position2_D.TextChanged += new System.EventHandler(this.txtDh_Light_Position2_D_TextChanged);
-            // 
-            // txtDh_Light_Diffuse_A
-            // 
-            this.txtDh_Light_Diffuse_A.Location = new System.Drawing.Point(76, 85);
-            this.txtDh_Light_Diffuse_A.Name = "txtDh_Light_Diffuse_A";
-            this.txtDh_Light_Diffuse_A.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Diffuse_A.TabIndex = 1;
-            this.txtDh_Light_Diffuse_A.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_A_TextChanged);
-            // 
-            // txtDh_Light_Diffuse_B
-            // 
-            this.txtDh_Light_Diffuse_B.Location = new System.Drawing.Point(118, 85);
-            this.txtDh_Light_Diffuse_B.Name = "txtDh_Light_Diffuse_B";
-            this.txtDh_Light_Diffuse_B.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Diffuse_B.TabIndex = 2;
-            this.txtDh_Light_Diffuse_B.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_B_TextChanged);
-            // 
-            // txtDh_Light_Diffuse_C
-            // 
-            this.txtDh_Light_Diffuse_C.Location = new System.Drawing.Point(159, 85);
-            this.txtDh_Light_Diffuse_C.Name = "txtDh_Light_Diffuse_C";
-            this.txtDh_Light_Diffuse_C.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Diffuse_C.TabIndex = 3;
-            this.txtDh_Light_Diffuse_C.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_C_TextChanged);
-            // 
-            // txtDh_Light_Diffuse_D
-            // 
-            this.txtDh_Light_Diffuse_D.Location = new System.Drawing.Point(201, 85);
-            this.txtDh_Light_Diffuse_D.Name = "txtDh_Light_Diffuse_D";
-            this.txtDh_Light_Diffuse_D.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Diffuse_D.TabIndex = 3;
-            this.txtDh_Light_Diffuse_D.TextChanged += new System.EventHandler(this.txtDh_Light_Diffuse_D_TextChanged);
-            // 
-            // txtDh_Light_Specular_A
-            // 
-            this.txtDh_Light_Specular_A.Location = new System.Drawing.Point(76, 112);
-            this.txtDh_Light_Specular_A.Name = "txtDh_Light_Specular_A";
-            this.txtDh_Light_Specular_A.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Specular_A.TabIndex = 1;
-            this.txtDh_Light_Specular_A.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_A_TextChanged);
-            // 
-            // txtDh_Light_Specular_B
-            // 
-            this.txtDh_Light_Specular_B.Location = new System.Drawing.Point(118, 112);
-            this.txtDh_Light_Specular_B.Name = "txtDh_Light_Specular_B";
-            this.txtDh_Light_Specular_B.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Specular_B.TabIndex = 2;
-            this.txtDh_Light_Specular_B.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_B_TextChanged);
-            // 
-            // txtDh_Light_Specular_C
-            // 
-            this.txtDh_Light_Specular_C.Location = new System.Drawing.Point(159, 112);
-            this.txtDh_Light_Specular_C.Name = "txtDh_Light_Specular_C";
-            this.txtDh_Light_Specular_C.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Specular_C.TabIndex = 3;
-            this.txtDh_Light_Specular_C.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_C_TextChanged);
-            // 
-            // txtDh_Light_Specular_D
-            // 
-            this.txtDh_Light_Specular_D.Location = new System.Drawing.Point(201, 112);
-            this.txtDh_Light_Specular_D.Name = "txtDh_Light_Specular_D";
-            this.txtDh_Light_Specular_D.Size = new System.Drawing.Size(43, 25);
-            this.txtDh_Light_Specular_D.TabIndex = 3;
-            this.txtDh_Light_Specular_D.TextChanged += new System.EventHandler(this.txtDh_Light_Specular_D_TextChanged);
-            // 
-            // label109
-            // 
-            this.label109.AutoSize = true;
-            this.label109.Location = new System.Drawing.Point(9, 115);
-            this.label109.Name = "label109";
-            this.label109.Size = new System.Drawing.Size(64, 15);
-            this.label109.TabIndex = 4;
-            this.label109.Text = "Specular";
-            // 
             // frmKinematics
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1320, 678);
+            this.ClientSize = new System.Drawing.Size(1320, 868);
             this.Controls.Add(this.tabControl2);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "frmKinematics";
@@ -3969,6 +3984,7 @@
         private System.Windows.Forms.TextBox txtDh_Light_Diffuse_A;
         private System.Windows.Forms.TextBox txtDh_Light_Position2_B;
         private System.Windows.Forms.TextBox txtDh_Light_Position2_A;
+        private System.Windows.Forms.CheckBox chkAutoRefresh;
 
 
     }

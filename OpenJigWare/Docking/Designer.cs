@@ -107,15 +107,122 @@ namespace OpenJigWare.Docking
         }
         void m_rd3d_Display_Click(object sender, EventArgs e)
         {
-            m_C3d.Prop_Set_Main_MouseControlMode(0);
-            m_C3d.Prop_Update_VirtualObject();
+            if (m_C3d.IsValid_Property() == false)
+            {
+                m_C3d.SetMouseMode(0);
+            }
+            else
+            {
+                m_C3d.Prop_Set_Main_MouseControlMode(0);
+                m_C3d.Prop_Update_VirtualObject();
+            }
         }
         void m_rd3d_Control_Click(object sender, EventArgs e)
         {
-            m_C3d.Prop_Set_Main_MouseControlMode(1);
-            m_C3d.Prop_Update_VirtualObject();
+            if (m_C3d.IsValid_Property() == false)
+            {
+                m_C3d.SetMouseMode(1);
+            }
+            else
+            {
+                m_C3d.Prop_Set_Main_MouseControlMode(1);
+                m_C3d.Prop_Update_VirtualObject();
+            }
         }
         #endregion 3D Buttons
+
+        public void Show_3D()
+        {
+            const int _CNT = 256;
+            m_albAngle = new Label[_CNT];
+            m_atxtAngle = new TextBox[_CNT];
+            for (int i = 0; i < 255; i++)
+            {
+                m_albAngle[i] = new Label();
+                m_atxtAngle[i] = new TextBox();
+            }
+            m_C3d = new Ojw.C3d();
+            // 
+            m_frm3D = new Form();
+            //m_frm3D.Left = 0;
+            //m_frm3D.Top = 0;
+
+
+            m_frm3D.Width = 600;
+            m_frm3D.Height = 600;
+            //m_frm3D.FormClosing += new FormClosingEventHandler(m_frm3D_FormClosing);
+            m_frm3D.FormClosing += new FormClosingEventHandler(m_frm3D_FormClosing);
+
+            m_btn3d_Open_Init(m_frm3D);
+            //m_frm3D.Controls.Add(m_btn3d_Open);
+            m_frm3D.Show();
+            //m_frm3D.TopMost = true;
+
+            m_frm3D.DragDrop += new DragEventHandler(m_frm3D_DragDrop);
+
+            m_frm3D.DragEnter += new DragEventHandler(m_frm3D_DragEnter);
+
+            m_frm3D.AllowDrop = true;
+
+            int nMonitor = 0;
+
+            m_frm3D.Left = Screen.AllScreens[nMonitor].Bounds.Left;
+            m_frm3D.Top = Screen.AllScreens[nMonitor].Bounds.Top;
+
+            //m_
+
+
+
+            this.Left = m_frm3D.Left + m_frm3D.Width;
+            this.Top = m_frm3D.Top;// + m_frm3D.Height;
+
+
+            this.Left = Screen.AllScreens[nMonitor].Bounds.Left + Screen.AllScreens[nMonitor].Bounds.Width - this.Width;
+            this.Top = Screen.AllScreens[nMonitor].Bounds.Top + Screen.AllScreens[nMonitor].Bounds.Bottom - this.Height;
+
+            //Ojw.CMessage.Init(txtMessage);
+            //MakeBox(pnMotors, 256);
+
+            m_C3d.Init(m_frm3D);//pnDisp);
+            //m_C3d.CreateProb_VirtualObject(pnProp);
+            //m_C3d.CreateProp_Selected(pnProp_Selected, null);
+
+            m_C3d.SetAseFile_Path("ase");
+
+            // 기준축 보이기
+            m_C3d.SetStandardAxis(true);
+            // 빛 사용
+            m_C3d.Enable_Light(true);
+
+            // 클릭한 부분 색 / 투명도 지정
+            //m_C3d.SetAlpha_Display_Enalbe(true);
+            m_C3d.SetPick_ColorMode(true);
+            m_C3d.SetPick_ColorValue(Color.Green); // 클릭된 부분을 녹색으로 설정
+            m_C3d.SetPick_AlphaMode(true); // 투명 모드 활성화
+            m_C3d.SetPick_AlphaValue(0.5f); // 클릭된 부분을 반투명으로 한다.
+
+
+            m_C3d.SetVirtualClass_Enable(true);
+
+            // 모터클릭시 컨트롤 모드(true), 화면이동모드(false)로...
+            SetMouse(false);
+
+
+
+
+            //m_C3d.SetTextboxes_ForAngle(m_atxtAngle);
+
+            // Add User Function
+            m_C3d.AddMouseEvent_Down(OjwMouseDown);
+            m_C3d.AddMouseEvent_Move(OjwMouseMove);
+            m_C3d.AddMouseEvent_Up(OjwMouseUp);
+            
+            m_C3d.Event_FileOpen.UserEvent += new EventHandler(FileOpen);
+
+            m_C3d.SelectMotor_Sync_With_Mouse(true);
+
+            m_C3d.Run();
+        }
 
         private void Init3D()
         {
@@ -136,6 +243,11 @@ namespace OpenJigWare.Docking
             m_frm3D.Show();
             //m_frm3D.TopMost = true;
 
+            m_frm3D.DragDrop += new DragEventHandler(m_frm3D_DragDrop);
+
+            m_frm3D.DragEnter += new DragEventHandler(m_frm3D_DragEnter);
+
+            m_frm3D.AllowDrop = true;
 #if false
             int nMonitor = (Screen.AllScreens.Length >= m_nMonitor) ? Screen.AllScreens.Length - 1 : m_nMonitor;
             if (nMonitor < 0) nMonitor = 0;
@@ -209,13 +321,94 @@ namespace OpenJigWare.Docking
 #endif
             #endregion PropertyGrid
         }
+        private void m_frm3D_DragEnter(object sender, DragEventArgs e) { if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy; }
+            
+        void m_frm3D_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] file_name_array = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+            int nCnt_Ojw = 0;
+            int nCnt_Virtual = 0;
+            foreach (string strItem in file_name_array)
+            {
+                #region Design File
+                if (nCnt_Ojw == 0)
+                {
+                    if (
+                        (strItem.ToLower().IndexOf(".ojw") > 0) ||
+                        (strItem.ToLower().IndexOf(".dhf") > 0)
+                        )
+                    {
+                        if (m_C3d.FileOpen(strItem) == true) // 모델링 파일이 잘 로드 되었다면 
+                        {
+                            Ojw.CMessage.Write("3d Modeling File Opened");
+
+                            float[] afData = new float[3];
+                            m_C3d.GetPos_Display(out afData[0], out afData[1], out afData[2]);
+                            m_C3d.GetAngle_Display(out afData[0], out afData[1], out afData[2]);
+
+                            m_C3d.m_strDesignerFilePath = Ojw.CFile.GetPath(strItem);
+                            if (m_C3d.m_strDesignerFilePath == null) m_C3d.m_strDesignerFilePath = Application.StartupPath;
+
+                            // File Restore
+                            //m_C3d.FileRestore();
+
+
+                            nCnt_Ojw++;
+                        }
+                    }
+                }
+                #endregion Design File
+                #region 3d file
+                if (nCnt_Virtual == 0)
+                {
+                    string strFileName = Ojw.CFile.GetName(strItem).ToLower();
+                    if (
+                        (strFileName.IndexOf(".stl") > 0) ||
+                        (strFileName.IndexOf(".sstl") > 0) ||
+                        (strFileName.IndexOf(".ase") > 0) ||
+                        (strFileName.IndexOf(".dat") > 0) ||
+                        (strFileName.IndexOf(".obj") > 0))
+                    {
+                        String strFilePath = Application.StartupPath.Trim('\\') + m_C3d.GetAseFile_Path() + strFileName;
+                        bool bFile = Ojw.CFile.IsFile(strFilePath);//bool bLoaded = (m_C3d.OjwAse_GetIndex(strFileName) >= 0) ? true : false;
+                        if (bFile == true)
+                        {
+                            DialogResult dlgRet = MessageBox.Show("Do you want to overwrite the 3d file?.\r\n\r\nIs it Ok?", "File Overwrite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                            if (dlgRet != DialogResult.OK)
+                            {
+                                //bFile = false;
+                            }
+                            else
+                            {
+                                File.Copy(strItem, strFilePath, bFile);
+                            }
+                        }
+                        else
+                        {
+                            File.Copy(strItem, strFilePath);
+                        }
+                        m_C3d.Prop_Set_DispObject(strFileName);
+                        m_C3d.Prop_Update_VirtualObject();
+                        nCnt_Virtual++;
+                    }
+                }
+                #endregion Design File
+            }
+        }
         private void FileOpen(object sender, EventArgs e)
         {
             // FileOpen 후에 생기는 이벤트 처리
             tstxtAlpha.Text = "1.0";
             float fData = Ojw.CConvert.StrToFloat(tstxtAlpha.Text);
-            m_C3d.Prop_Set_Main_Alpha(fData);
-            m_C3d.Prop_Update_VirtualObject();
+            if (m_C3d.IsValid_Property())
+            {
+                m_C3d.Prop_Set_Main_Alpha(fData);
+                m_C3d.Prop_Update_VirtualObject();
+            }
+            else
+            {
+                m_C3d.SetAlpha(fData);
+            }
         }
         bool m_bMouseDown = false;
         void OjwMouseDown(object sender, MouseEventArgs e)
@@ -747,10 +940,17 @@ namespace OpenJigWare.Docking
             m_C3d.Prop_Update_VirtualObject();
         }
         private void SetMouse(bool bControl)
-        {            
+        {
             tsbtnMouseMode.Checked = bControl;
-            m_C3d.Prop_Set_Main_MouseControlMode((bControl == true) ? 1 : 0);
-            m_C3d.Prop_Update_VirtualObject();
+            if (m_C3d.IsValid_Property() == false)
+            {
+                m_C3d.SetMouseMode((bControl == true) ? 1 : 0);
+            }
+            else
+            {
+                m_C3d.Prop_Set_Main_MouseControlMode((bControl == true) ? 1 : 0);
+                m_C3d.Prop_Update_VirtualObject();
+            }
         }
         private void tsbtnMouseMode_Click(object sender, EventArgs e)
         {
@@ -821,9 +1021,9 @@ namespace OpenJigWare.Docking
         }
         private void btnPos_Front_Click(object sender, EventArgs e)
         {
-            txtBack_X.Text = "0";
-            txtBack_Y.Text = "0";
-            txtBack_Z.Text = "0";
+            //txtBack_X.Text = "0";
+            //txtBack_Y.Text = "0";
+            //txtBack_Z.Text = "0";
             txtBack_Pan.Text = "0";
             txtBack_Tilt.Text = "0";
             txtBack_Swing.Text = "0";
@@ -833,9 +1033,9 @@ namespace OpenJigWare.Docking
 
         private void btnPos_Right_Click(object sender, EventArgs e)
         {
-            txtBack_X.Text = "0";
-            txtBack_Y.Text = "0";
-            txtBack_Z.Text = "0";
+            //txtBack_X.Text = "0";
+            //txtBack_Y.Text = "0";
+            //txtBack_Z.Text = "0";
             txtBack_Pan.Text = "90";
             txtBack_Tilt.Text = "0";
             txtBack_Swing.Text = "0";
@@ -844,9 +1044,9 @@ namespace OpenJigWare.Docking
 
         private void btnPos_Bottom_Click(object sender, EventArgs e)
         {
-            txtBack_X.Text = "0";
-            txtBack_Y.Text = "0";
-            txtBack_Z.Text = "0";
+            //txtBack_X.Text = "0";
+            //txtBack_Y.Text = "0";
+            //txtBack_Z.Text = "0";
             txtBack_Pan.Text = "0";
             txtBack_Tilt.Text = "-90";
             txtBack_Swing.Text = "0";
@@ -855,9 +1055,9 @@ namespace OpenJigWare.Docking
 
         private void btnPos_Left_Click(object sender, EventArgs e)
         {
-            txtBack_X.Text = "0";
-            txtBack_Y.Text = "0";
-            txtBack_Z.Text = "0";
+            //txtBack_X.Text = "0";
+            //txtBack_Y.Text = "0";
+            //txtBack_Z.Text = "0";
             txtBack_Pan.Text = "-90";
             txtBack_Tilt.Text = "0";
             txtBack_Swing.Text = "0";
@@ -910,7 +1110,7 @@ namespace OpenJigWare.Docking
 
         private void mn3D_Click(object sender, EventArgs e)
         {
-
+            Show3D();
         }
         private void Show3D()
         {

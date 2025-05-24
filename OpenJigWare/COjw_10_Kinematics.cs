@@ -21,6 +21,7 @@ using Microsoft.Scripting.Hosting;
 
 using Microsoft.Scripting.Math;
 using Microsoft.Scripting.Runtime;
+using System.Text.RegularExpressions;
 //using IronPython.Runtime;
 //using IronPython.Runtime.Operations;
 //using IronPython.Runtime.Types;

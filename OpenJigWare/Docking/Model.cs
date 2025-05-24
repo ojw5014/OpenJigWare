@@ -995,7 +995,8 @@ namespace OpenJigWare.Docking
             string str = "noname.json";
             if (Ojw.CInputBox.Show("Json Export", "File Name(*.json) 을 정해 주세요", ref str) == System.Windows.Forms.DialogResult.OK)
             {
-                m_C3d.Json_Export("rtong_8dof.json");
+                string strRes = "";
+                m_C3d.Json_Export("rtong_8dof.json", out strRes);
             }
         }
         private bool File_MakeJson(string strTitle, string strFileName)

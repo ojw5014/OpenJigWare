@@ -301,8 +301,8 @@ namespace OpenJigWare
                 {
                     m_COjwGrid.Grid_Set(0, j, m_pstrParams[j]);
                     if (j < m_pstrParams_Value_Start.Length) m_COjwGrid.Grid_Set(1, j, m_pstrParams_Value_Start[j]);
-                    if (j < m_pstrParams_Value_Ing.Length)   m_COjwGrid.Grid_Set(2, j, m_pstrParams_Value_Ing[j]);
-                    if (j < m_pstrParams_Value_End.Length)   m_COjwGrid.Grid_Set(3, j, m_pstrParams_Value_End[j]);                    
+                    if (j < m_pstrParams_Value_Ing.Length) m_COjwGrid.Grid_Set(2, j, m_pstrParams_Value_Ing[j]);
+                    if (j < m_pstrParams_Value_End.Length) m_COjwGrid.Grid_Set(3, j, m_pstrParams_Value_End[j]);
                 }
             }
             private void InitValue()
@@ -415,14 +415,14 @@ namespace OpenJigWare
                 InitValue();
                 //for (int i = 0; i < m_aStrParam.GetLength(0); i++)
                 //{
-                    
-                        //m_pstrParams_Value_Start
-                    //for (int j = 0; j < m_aStrParam.GetLength(1); j++)
-                    //{
-                        //m_afParam                        
-                        
-                        //m_aStrParam[i, j] = Ojw.CConvert.FloatToStr(m_afParam[i, j]);// String.Empty;
-                    //}
+
+                //m_pstrParams_Value_Start
+                //for (int j = 0; j < m_aStrParam.GetLength(1); j++)
+                //{
+                //m_afParam                        
+
+                //m_aStrParam[i, j] = Ojw.CConvert.FloatToStr(m_afParam[i, j]);// String.Empty;
+                //}
                 //}
             }
             ~COjwWalking()
@@ -526,6 +526,11 @@ namespace OpenJigWare
             {
                 m_lstMotion.Clear();
 
+                lstTilt.Clear(); // 고관절 계산값
+                lstTilt_Start.Clear();
+                lstTilt_Repeat.Clear();
+                lstTilt_End.Clear();
+
                 m_lstMotion.AddRange(MakeWalkingMotion(0));
                 //if (GetWalkingCount() > 0) 
                 if (nWalkingCount > 0)
@@ -533,6 +538,11 @@ namespace OpenJigWare
                 m_lstMotion.AddRange(MakeWalkingMotion(2));
 
                 return m_lstMotion;
+            }
+            public float GetTilt(int nStep) { return lstTilt[nStep]; }
+            public float GetTilt(int nStart_0_Repeat_1_End_2, int nStep) 
+            {
+                return ((nStart_0_Repeat_1_End_2 == 0) ? lstTilt_Start[nStep] : ((nStart_0_Repeat_1_End_2 == 1) ? lstTilt_Repeat[nStep] : lstTilt_End[nStep]));
             }
 
             private int m_nStep = 0;
@@ -550,7 +560,7 @@ namespace OpenJigWare
                 int nGap = (m_nStart_0_Repeat_1_End_2 == 1) ? 0 : nSize / 2;
                 m_nStep++;
                 strResult = MakeWalkingMotion(m_nStart_0_Repeat_1_End_2, (m_nStart_0_Repeat_1_End_2 == 2) ? nGap + m_nStep : m_nStep);
-                
+
                 if (m_nStep >= nSize - nGap)
                 {
                     m_nStep = 0;
@@ -561,7 +571,7 @@ namespace OpenJigWare
                         //return null;
                     }
                 }
-                
+
                 return strResult;
             }
 #if false // making ... ojw5014
@@ -577,7 +587,7 @@ namespace OpenJigWare
                 string strDatas;
 
 #if true
-                #region Var
+            #region Var
                 float fQ4 = 0.5f;
                 float fK;
                 float fL;
@@ -852,10 +862,10 @@ namespace OpenJigWare
             float fY;
             float fZ;
 #endif
-                #endregion Var
+            #endregion Var
 
                 int i = nStep;
-                #region For
+            #region For
                 strDatas = String.Empty;
 
                 fK = (i <= nSize_Frame ? 1.0f : 0.0f); // En
@@ -1054,7 +1064,7 @@ namespace OpenJigWare
                 else
                 {
 
-                    #region Read Forward
+            #region Read Forward
                     // 결과가 나오기 보다는 결과를 메모리에 올리기만 한다.
                     Ojw.CKinematics.CForward.CalcKinematics(m_C3d.GetHeader().pDhParamAll[(int)m_afParam[nStart_0_Repeat_1_End_2, 13 - 4]], afMots, out afX[nNum], out afY[nNum], out afZ[nNum]);
                     #endregion Read Forward
@@ -1168,7 +1178,25 @@ namespace OpenJigWare
 
             }
 #endif
+            private List<float> lstTilt = new List<float>();
+            private List<float> lstTilt_Start = new List<float>();
+            private List<float> lstTilt_Repeat = new List<float>();
+            private List<float> lstTilt_End = new List<float>();
+
             public string MakeWalkingMotion(int nStart_0_Repeat_1_End_2, int nStep)
+            {
+                int[] anIDs = null;
+                float[] afMots = null;
+                return MakeWalkingMotion(nStart_0_Repeat_1_End_2, nStep, true, ref anIDs, ref afMots);
+            }
+            public string MakeWalkingMotion(int nStart_0_Repeat_1_End_2, int nStep, bool bString)
+            {   
+                int[] anIDs = null;
+                float[] afMots = null;
+                return MakeWalkingMotion(nStart_0_Repeat_1_End_2, nStep, bString, ref anIDs, ref afMots);
+            }
+            // bString 부터는 아직 구현 전
+            public string MakeWalkingMotion(int nStart_0_Repeat_1_End_2, int nStep, bool bString, ref int [] anIDs, ref float[] afMots)
             {
                 // 1점지지 : m_afParam[nMode, 3]            
                 // 2점지지 : m_afParam[nMode, 4]
@@ -1180,9 +1208,6 @@ namespace OpenJigWare
 
                 int nMode = nStart_0_Repeat_1_End_2;
                 string strDatas;
-                //List<string> lstStrFrame = new List<string>();
-                //lstStrFrame.Clear();
-
 
 #if true
                 // fL => i;
@@ -1264,6 +1289,12 @@ namespace OpenJigWare
 
                 float fI19 = fF19 / 2 * (float)Math.Tan((Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 17 - 4])) / 180.0f * Math.PI); // Offset R
                 float fI20 = -fI19; // Offset L
+
+                if (nStart_0_Repeat_1_End_2 != 1)
+                {
+                    fI20 = fI19;
+                    fI19 = -fI20;
+                }
 
                 // 초기 동작시엔 CB, CC 가 상수가 아닌 변수가 된다.
                 float fCB = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 20 - 4]);
@@ -1469,319 +1500,363 @@ namespace OpenJigWare
                 int i = nStep;
                 //for (int i = 1; i <= nSize_Frame; i++)
                 //{
-                    #region For
-                    strDatas = String.Empty;
+                #region For
+                strDatas = String.Empty;
 
-                    fK = (i <= nSize_Frame ? 1.0f : 0.0f); // En
-                    fL = i;
-                    fM = i * fK;
-                    //fU = (float)Math.Round(fR * Math.Sin((((fO == 0 ? fM : fN) - fS) / (fZ) * 180.0f) / 180.0f * Math.PI), 3) + fT;
-                    //fO
-                    fV = fM - 1.0f;
-                    fAC = ((float)((int)fV % (int)fZ) + 1.0f) * fK;
-                    fAH = (((fAC - (fY + fW)) <= fX && fAC > (fY + fW)) ? 1 : 0);
-                    fAE = (fAC - (fY + fW)) * fAH;
-                    fAF = (float)Math.Round((fV + 0.001f) / fZ - 0.5f, 0);
-                    fAG = (float)Math.Pow(-1.0f, fAF) * fK;
-                    fAI = fAH * fAG;
-                    fAJ = (fAI > 0 ? 1 : 0);
-                    fAN = (fAI < 0 ? 1 : 0);
-                    // fAP 수식변경(20190515)
-                    fAP = (fAN == 0 ? 0 : fAE); //(fAN == 0 ? 0 : fAN + fAP8); fAP8 = fAP;
-                    // fAL 수식변경(20190515)
-                    fAL = (fAJ == 0 ? 0 : fAE);// (fAJ == 0 ? 0 : fAJ + fAL8); fAL8 = fAL;
+                fK = (i <= nSize_Frame ? 1.0f : 0.0f); // En
+                fL = i;
+                fM = i * fK;
+                //fU = (float)Math.Round(fR * Math.Sin((((fO == 0 ? fM : fN) - fS) / (fZ) * 180.0f) / 180.0f * Math.PI), 3) + fT;
+                //fO
+                fV = fM - 1.0f;
+                fAC = ((float)((int)fV % (int)fZ) + 1.0f) * fK;
+                fAH = (((fAC - (fY + fW)) <= fX && fAC > (fY + fW)) ? 1 : 0);
+                fAE = (fAC - (fY + fW)) * fAH;
+                fAF = (float)Math.Round((fV + 0.001f) / fZ - 0.5f, 0);
+                fAG = (float)Math.Pow(-1.0f, fAF) * fK;
+                fAI = fAH * fAG;
+                fAJ = (fAI > 0 ? 1 : 0);
+                fAN = (fAI < 0 ? 1 : 0);
+                // fAP 수식변경(20190515)
+                fAP = (fAN == 0 ? 0 : fAE); //(fAN == 0 ? 0 : fAN + fAP8); fAP8 = fAP;
+                // fAL 수식변경(20190515)
+                fAL = (fAJ == 0 ? 0 : fAE);// (fAJ == 0 ? 0 : fAJ + fAL8); fAL8 = fAL;
 
-                    fAS = (fAG < 0 ? 1.0f : 0.0f);
-                    fAR = (fAG > 0 ? 1.0f : 0.0f);
-                    // fAK 수식변경(20190515)
-                    fAK = (fAR == 0 ? 0 : fAC); //(fAR == 0 ? 0 : fAR + fAK8); fAK8 = fAK;
-                    // fAO 수식변경(20190515)
-                    fAO = (fAS == 0 ? 0 : fAC); //(fAS == 0 ? 0 : fAS + fAO8); fAO8 = fAO;
-                    // fN 수식 변경(20190515), 
-                    //fN = fAK - fAL + fAO - fAP + (fAL + fAP > 0 ? 1.0f : 0.0f) + fK * fAF * fZ;//((fAL + fAP > 0 && fAL + fAP != fX) ? fN8 : fM); fN8 = fN;
-                    // fN 수식 변경-통합(20190701),     
-                    fN = (fO == 1 ? (fM >= fZ ? fZ : fAK - fAL) + (fM >= fZ * 2.0f ? fZ : fAO - fAP) : fAK - fAL + fAO - fAP + (fAL + fAP > 0 ? 1.0f : 0.0f) + fK * fAF * fZ);
-                    //fN = ((fO == 1) ? ((fAL + fAP > 0 && fAL + fAP != fX) ? fN8 : fM) : (fAK - fAL + fAO - fAP + (fAL + fAP > 0 ? 1.0f : 0.0f) + fK * fAF * fZ));
-                    fR = (fAA + fAB != 0 ? ((fM <= fZ && fAB != 0) ? fP : fQ) * fAR + ((fM > fZ && fAA != 0) ? fP : fQ) * fAS : fP * fK); // fAS, fAR
-                    fU = (float)(fR * (float)Math.Sin((((fO == 0 ? fM : fN) - fS) / (fZ) * 180.0f) / 180.0f * Math.PI)) + fT;
+                fAS = (fAG < 0 ? 1.0f : 0.0f);
+                fAR = (fAG > 0 ? 1.0f : 0.0f);
+                // fAK 수식변경(20190515)
+                fAK = (fAR == 0 ? 0 : fAC); //(fAR == 0 ? 0 : fAR + fAK8); fAK8 = fAK;
+                // fAO 수식변경(20190515)
+                fAO = (fAS == 0 ? 0 : fAC); //(fAS == 0 ? 0 : fAS + fAO8); fAO8 = fAO;
+                // fN 수식 변경(20190515), 
+                //fN = fAK - fAL + fAO - fAP + (fAL + fAP > 0 ? 1.0f : 0.0f) + fK * fAF * fZ;//((fAL + fAP > 0 && fAL + fAP != fX) ? fN8 : fM); fN8 = fN;
+                // fN 수식 변경-통합(20190701),     
+                fN = (fO == 1 ? (fM >= fZ ? fZ : fAK - fAL) + (fM >= fZ * 2.0f ? fZ : fAO - fAP) : fAK - fAL + fAO - fAP + (fAL + fAP > 0 ? 1.0f : 0.0f) + fK * fAF * fZ);
+                //fN = ((fO == 1) ? ((fAL + fAP > 0 && fAL + fAP != fX) ? fN8 : fM) : (fAK - fAL + fAO - fAP + (fAL + fAP > 0 ? 1.0f : 0.0f) + fK * fAF * fZ));
+                fR = (fAA + fAB != 0 ? ((fM <= fZ && fAB != 0) ? fP : fQ) * fAR + ((fM > fZ && fAA != 0) ? fP : fQ) * fAS : fP * fK); // fAS, fAR
+                fU = (float)(fR * (float)Math.Sin((((fO == 0 ? fM : fN) - fS) / (fZ) * 180.0f) / 180.0f * Math.PI)) + fT;
 
-                    fAD = fAF * fZ + fAG * fAC + fAF;
-                    fAM = (float)Math.Round((fAL > fAA ? (fAL - fAA) / (fX - fAA) * fX : 0), 3);
-                    fAQ = (float)Math.Round((fAP > fAB ? (fAP - fAB) / (fX - fAB) * fX : 0.0f), 3);
-                    fAV = (fAA + fAB != 0 ? ((fM <= fZ && fAB != 0) ? fAT : fAU) * fAR + ((fM > fZ && fAA != 0) ? fAT : fAU) * fAS : fAT * fK);
-                    fAW = fAV * (float)Math.Sin(((fO == 0 ? fAK : fN) / fZ * 180.0f) / 180.0f * Math.PI);
-                    fAX = fAV * (float)Math.Sin((fAL / fX * 180.0f) / 180.0f * Math.PI);
+                fAD = fAF * fZ + fAG * fAC + fAF;
+                fAM = (float)Math.Round((fAL > fAA ? (fAL - fAA) / (fX - fAA) * fX : 0), 3);
+                fAQ = (float)Math.Round((fAP > fAB ? (fAP - fAB) / (fX - fAB) * fX : 0.0f), 3);
+                fAV = (fAA + fAB != 0 ? ((fM <= fZ && fAB != 0) ? fAT : fAU) * fAR + ((fM > fZ && fAA != 0) ? fAT : fAU) * fAS : fAT * fK);
+                fAW = fAV * (float)Math.Sin(((fO == 0 ? fAK : fN) / fZ * 180.0f) / 180.0f * Math.PI);
+                fAX = fAV * (float)Math.Sin((fAL / fX * 180.0f) / 180.0f * Math.PI);
 
-                    fBA = (fAY == 1 ? fAW : fAX) * fAZ;
-                    fBB = fAV * (float)Math.Sin((fAO / fZ * 180.0f) / 180.0f * Math.PI);
-                    fBC = fAV * (float)Math.Sin((fAP / fX * 180.0f) / 180.0f * Math.PI);
-                    fBF = (fBD == 1 ? fBB : fBC) * fBE;
+                fBA = (fAY == 1 ? fAW : fAX) * fAZ;
+                fBB = fAV * (float)Math.Sin((fAO / fZ * 180.0f) / 180.0f * Math.PI);
+                fBC = fAV * (float)Math.Sin((fAP / fX * 180.0f) / 180.0f * Math.PI);
+                fBF = (fBD == 1 ? fBB : fBC) * fBE;
 
-                    fBI = fBG * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI) * fBH;
-                    fBK = fBG * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI) * fBJ;
+                fBI = fBG * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI) * fBH;
+                fBK = fBG * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI) * fBJ;
 
-                    fBL = (fAD - (fY + fW)) * fK;
-                    fBO = (fAR + fAJ + fAS + fAN - 1.0f) * fAG;
-                    // fBP 수식변경(20190515)
-                    fBP = (fBL < 0 ? 0 : (fBL > fX ? fX : fBL)); //fBP8 + fBO; fBP8 = fBP;
-                    fBQ = (fBO < 0 ? fBP + 1.0f : fBP);
-
-
-
-                    //////////////////////////////////////////////////////////////////
-                    fBT = (fBR * fBQ / fX);
-                    fBU = (fBS * fBQ / fX);
-
-                    fBX = fAJ * fBW * fK;
-                    fBY = (float)Math.Round(fBX * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI), 3);
-                    fBZ = fAN * fBW * fK;
+                fBL = (fAD - (fY + fW)) * fK;
+                fBO = (fAR + fAJ + fAS + fAN - 1.0f) * fAG;
+                // fBP 수식변경(20190515)
+                fBP = (fBL < 0 ? 0 : (fBL > fX ? fX : fBL)); //fBP8 + fBO; fBP8 = fBP;
+                fBQ = (fBO < 0 ? fBP + 1.0f : fBP);
 
 
-                    fCA = (float)Math.Round(fBZ * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI), 3);
 
-                    // fCJ 수식변경(20190515)
-                    fCJ = (fM > (fZ + fW) ? fCG * 2.0f : fCG / fX * fAL * 2.0f);//(fAL > 0 ? fCH / fX * fAL * 2.0f : fCJ8); fCJ8 = fCJ;
-                    // fCK 수식변경(20190515)
-                    fCK = (fM > (fZ + fW + fY + fX) ? fCG * 2.0f : fCG / fX * fAP * 2.0f);//(fAP > 0 ? fCI / fX * fAP * 2.0f : fCK8); fCK8 = fCK;
+                //////////////////////////////////////////////////////////////////
+                fBT = (fBR * fBQ / fX);
+                fBU = (fBS * fBQ / fX);
 
-                    fCL = fCH * (fM / (fZ * 2.0f) * 2.0f);
-                    fCM = fCI * (fM / (fZ * 2.0f) * 2.0f);
-
-                    fCP = fCN * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI);
-                    fCQ = fCO * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI);
-                    fCR = fAM / fZ * 2.0f;
-                    fCS = (fCR * fCP - (2.0f - fCR) * fCQ);
-                    fCT = fCN * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI);
-                    fCU = fCO * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI);
-                    fCV = fAQ / fZ * 2.0f;
-                    fCW = (fCV * fCT - (2.0f - fCV) * fCU);
+                fBX = fAJ * fBW * fK;
+                fBY = (float)Math.Round(fBX * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI), 3);
+                fBZ = fAN * fBW * fK;
 
 
-                    if (nStart_0_Repeat_1_End_2 != 1)
+                fCA = (float)Math.Round(fBZ * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI), 3);
+
+                // fCJ 수식변경(20190515)
+                fCJ = (fM > (fZ + fW) ? fCG * 2.0f : fCG / fX * fAL * 2.0f);//(fAL > 0 ? fCH / fX * fAL * 2.0f : fCJ8); fCJ8 = fCJ;
+                // fCK 수식변경(20190515)
+                fCK = (fM > (fZ + fW + fY + fX) ? fCG * 2.0f : fCG / fX * fAP * 2.0f);//(fAP > 0 ? fCI / fX * fAP * 2.0f : fCK8); fCK8 = fCK;
+
+                fCL = fCH * (fM / (fZ * 2.0f) * 2.0f);
+                fCM = fCI * (fM / (fZ * 2.0f) * 2.0f);
+
+                fCP = fCN * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI);
+                fCQ = fCO * (float)Math.Sin((fAM / fX * 180.0f) / 180.0f * (float)Math.PI);
+                fCR = fAM / fZ * 2.0f;
+                fCS = (fCR * fCP - (2.0f - fCR) * fCQ);
+                fCT = fCN * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI);
+                fCU = fCO * (float)Math.Sin((fAQ / fX * 180.0f) / 180.0f * (float)Math.PI);
+                fCV = fAQ / fZ * 2.0f;
+                fCW = (fCV * fCT - (2.0f - fCV) * fCU);
+
+
+                if (nStart_0_Repeat_1_End_2 != 1)
+                {
+                    fCZ = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 19 - 4]);
+                    float fCZ_1 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 19 - 4]);
+                    fCZ = (fCZ + (fCZ_1 - fCZ) / fZ * fAD) * fK;
+                }
+
+                fDC = (fCJ - fCL) + fCS;
+                fDD = fDC * ((nStart_0_Repeat_1_End_2 != 1) ? 1.0f : 2.0f) + fDA;
+                fDE = fDC;
+                //fDF;
+                fDG = (fCK - fCM) + fCW;
+                fDH = fDG * ((nStart_0_Repeat_1_End_2 != 1) ? 1.0f : 2.0f) + fDB;
+                fDI = fDG;
+                //fDJ;
+
+
+                if (nStart_0_Repeat_1_End_2 != 1)
+                {
+                    fDN = (Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 12 - 4]) >= 0) ? Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 34 - 4]) : -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 34 - 4]); //IF(CG8 >= 0, B34, -B34);
+                    float fDN_1 = (Ojw.CConvert.StrToFloat(m_aStrParam[1, 12 - 4]) >= 0) ? Ojw.CConvert.StrToFloat(m_aStrParam[1, 34 - 4]) : -Ojw.CConvert.StrToFloat(m_aStrParam[1, 34 - 4]); //IF(CG8 >= 0, B34, -B34);
+                    fDN = (fDN + (fDN_1 - fDN) / fZ * fAD) * fK;
+                }
+
+
+                fDO = fDN * (float)Math.Sin((fM / (fZ * 2.0f) * 180.0f) / 180.0f * (float)Math.PI) - fDN / 2.0f;
+                fDP = -fDO;
+
+                fDS = (float)Math.Abs(fDR * (float)Math.Sin((fM / (fZ) * 180.0f) / 180.0f * (float)Math.PI)) + fDQ;
+                fDT = fDS;
+                fDV = -(float)Math.Abs(fDU * (float)Math.Sin((fM / (fZ) * 180.0f) / 180.0f * (float)Math.PI)) * (fDU >= 0 ? 1.0f : -1.0f);
+
+                // 시작/종료 보행시는 아래의 파라미터가 가변이 된다.
+                if (nStart_0_Repeat_1_End_2 != 1)
+                {
+                    fCB_Result = (fCB_Start_End + (fCB_Walk - fCB_Start_End) / fZ * fAD) * fK;
+                    //fCB_Result = (fCB_Start_End + (fCB_Walk - fCB_Start_End) / fZ * fAD) * fK;
+
+                    // 앉기(CB) + Offset(R : CC)
+                    // 앉기(CB) + Offset(L : CD)
+                    fCE = fCB_Result + fCC;
+                    fCF = fCB_Result + fCD;
+                }
+
+                fEC = fBY + fCE + fDV;
+                fED = (float)Math.Round(fDD, 3);
+
+
+                fEI = fCA + fCF + fDV;
+                fEJ = (float)Math.Round(fDH, 3);
+
+
+                if (nStart_0_Repeat_1_End_2 != 1)
+                {
+                    float fDK_0 = -Ojw.CConvert.StrToFloat(m_aStrParam[1, 21 - 4]);
+                    float fDK_1 = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 21 - 4]);
+                    fDK = (fDK_1 + (fDK_0 - fDK_1) / fX * fBQ) * fK;
+                    fDL = -fDK;
+                    fEB = fDK;
+                    fEH = fDL;
+
+                    // 팔 Up Shift
+                    float fDM_0 = -Ojw.CConvert.StrToFloat(m_aStrParam[1, 33 - 4]); //-B33;
+                    float fDM_1 = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 33 - 4]); //-B33;
+                    fDM = (fDM_1 + (fDM_0 - fDM_1) / fZ * fAD) * fK;
+
+                    // 팔 Up 동작각
+                    float fDQ_0 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 37 - 4]); //B37;
+                    float fDQ_1 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 37 - 4]); //B37;
+                    fDQ = (fDQ_1 + (fDQ_0 - fDQ_1) / fZ * fAD) * fK;
+
+                    // ojw5014
+                    // 발목 숙이기 - 미 검증
+                    float fEQ_0 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 49 - 4]); //B49;
+                    float fEQ_1 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 49 - 4]); //B49;
+                    fEQ = (fEQ_1 + (fEQ_0 - fEQ_1) / fZ * fAD) * fK;
+                }
+
+                //fEK = fU + ((float)Math.Cos(fDX) * fEB + (float)Math.Sin(fDX) * fED) * fDY;
+                fEK = fU + (fEB + (float)Math.Sin(fDX) * fED) * fDY;
+                fEL = fEC * fDZ;
+
+
+
+
+                //fEM = (-(float)Math.Sin(fDX) * fEB + (float)Math.Cos(fDX) * fED) * fEA - fCZ;
+                fEM = ((float)Math.Cos(fDX) * fED) * fEA - fCZ;
+                //fEN = fU + ((float)Math.Cos(fDX) * fEH + (float)Math.Sin(fDX) * fEJ) * fEE;
+                fEN = fU + (fEH + (float)Math.Sin(fDX) * fEJ) * fEE;
+                fEO = fEI * fEF;
+                //fEP = (-(float)Math.Sin(fDX) * fEH + (float)Math.Cos(fDX) * fEJ) * fEG - fCZ;
+                fEP = ((float)Math.Cos(fDX) * fEJ) * fEG - fCZ;
+
+
+                fES = (fAL > 0 ? fER * (float)Math.Sin((fAL / fX * 180.0f) / 180.0f * (float)Math.PI) : 0.0f) + fEQ;
+                fET = (fAP > 0 ? fER * (float)Math.Sin((fAP / fX * 180.0f) / 180.0f * (float)Math.PI) : 0.0f) + fEQ;
+
+                // 허리
+                if (nStart_0_Repeat_1_End_2 == 1)
+                    fIC = fIB * (float)Math.Sin(((fM / fZ * 180.0f) + 90.0f) / 180.0f * Math.PI);
+                else
+                    fIC = fIB * (float)Math.Sin((-fM / (fZ * 2.0f) * 180.0f) / 180.0f * Math.PI);
+
+                // 머리
+                if (nStart_0_Repeat_1_End_2 == 1)
+                    fIF = fIE * (float)Math.Sin(((fM / fZ * 180.0f) + 90.0f) / 180.0f * Math.PI);
+                else
+                    fIF = fIE * (float)Math.Sin((-fM / (fZ * 2.0f) * 180.0f) / 180.0f * Math.PI);
+
+                // fEU;
+
+                int j = 0;
+                // EV: "E", EW: "1" 은 당연히 붙는 것
+                //=IF(B13="","",CONCATENATE("I",B13))
+                bool bData = false;
+                if ((GetWalkingCount() <= 0) && (nStart_0_Repeat_1_End_2 == 1))
+                {
+                }
+                else
+                {
+                    strDatas += String.Format("E\t1\t");
+
+                    // I2 X Y Z
+                    bData = (m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4] == "" ? false : true);
+                    if (bData == true) { strDatas += String.Format("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4], fEK, fEL, fEM); }
+
+                    // I3 X Y Z
+                    bData = (m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4] == "" ? false : true);
+                    if (bData == true) { strDatas += String.Format("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4], fEN, fEO, fEP); }
+
+                    if ((i == 1) && (nStart_0_Repeat_1_End_2 == 0))
                     {
-                        fCZ = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 19 - 4]);
-                        float fCZ_1 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 19 - 4]);
-                        fCZ = (fCZ + (fCZ_1 - fCZ) / fZ * fAD) * fK;
+                        // S 50 D 0
+                        strDatas += String.Format("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 4 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
                     }
-
-                    fDC = (fCJ - fCL) + fCS;
-                    fDD = fDC * ((nStart_0_Repeat_1_End_2 != 1) ? 1.0f : 2.0f) + fDA;
-                    fDE = fDC;
-                    //fDF;
-                    fDG = (fCK - fCM) + fCW;
-                    fDH = fDG * ((nStart_0_Repeat_1_End_2 != 1) ? 1.0f : 2.0f) + fDB;
-                    fDI = fDG;
-                    //fDJ;
-
-
-                    if (nStart_0_Repeat_1_End_2 != 1)
-                    {
-                        fDN = (Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 12 - 4]) >= 0) ? Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 34 - 4]) : -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 34 - 4]); //IF(CG8 >= 0, B34, -B34);
-                        float fDN_1 = (Ojw.CConvert.StrToFloat(m_aStrParam[1, 12 - 4]) >= 0) ? Ojw.CConvert.StrToFloat(m_aStrParam[1, 34 - 4]) : -Ojw.CConvert.StrToFloat(m_aStrParam[1, 34 - 4]); //IF(CG8 >= 0, B34, -B34);
-                        fDN = (fDN + (fDN_1 - fDN) / fZ * fAD) * fK;
-                    }
-
-
-                    fDO = fDN * (float)Math.Sin((fM / (fZ * 2.0f) * 180.0f) / 180.0f * (float)Math.PI) - fDN / 2.0f;
-                    fDP = -fDO;
-
-                    fDS = (float)Math.Abs(fDR * (float)Math.Sin((fM / (fZ) * 180.0f) / 180.0f * (float)Math.PI)) + fDQ;
-                    fDT = fDS;
-                    fDV = -(float)Math.Abs(fDU * (float)Math.Sin((fM / (fZ) * 180.0f) / 180.0f * (float)Math.PI)) * (fDU >= 0 ? 1.0f : -1.0f);
-
-                    // 시작/종료 보행시는 아래의 파라미터가 가변이 된다.
-                    if (nStart_0_Repeat_1_End_2 != 1)
-                    {
-                        fCB_Result = (fCB_Start_End + (fCB_Walk - fCB_Start_End) / fZ * fAD) * fK;
-                        //fCB_Result = (fCB_Start_End + (fCB_Walk - fCB_Start_End) / fZ * fAD) * fK;
-
-                        // 앉기(CB) + Offset(R : CC)
-                        // 앉기(CB) + Offset(L : CD)
-                        fCE = fCB_Result + fCC;
-                        fCF = fCB_Result + fCD;
-                    }
-
-                    fEC = fBY + fCE + fDV;
-                    fED = (float)Math.Round(fDD, 3);
-
-
-                    fEI = fCA + fCF + fDV;
-                    fEJ = (float)Math.Round(fDH, 3);
-
-
-                    if (nStart_0_Repeat_1_End_2 != 1)
-                    {
-                        float fDK_0 = -Ojw.CConvert.StrToFloat(m_aStrParam[1, 21 - 4]);
-                        float fDK_1 = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 21 - 4]);
-                        fDK = (fDK_1 + (fDK_0 - fDK_1) / fX * fBQ) * fK;
-                        fDL = -fDK;
-                        fEB = fDK;
-                        fEH = fDL;
-
-                        // 팔 Up Shift
-                        float fDM_0 = -Ojw.CConvert.StrToFloat(m_aStrParam[1, 33 - 4]); //-B33;
-                        float fDM_1 = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 33 - 4]); //-B33;
-                        fDM = (fDM_1 + (fDM_0 - fDM_1) / fZ * fAD) * fK;
-
-                        // 팔 Up 동작각
-                        float fDQ_0 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 37 - 4]); //B37;
-                        float fDQ_1 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 37 - 4]); //B37;
-                        fDQ = (fDQ_1 + (fDQ_0 - fDQ_1) / fZ * fAD) * fK;
-
-                        // ojw5014
-                        // 발목 숙이기 - 미 검증
-                        float fEQ_0 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 49 - 4]); //B49;
-                        float fEQ_1 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 49 - 4]); //B49;
-                        fEQ = (fEQ_1 + (fEQ_0 - fEQ_1) / fZ * fAD) * fK;
-                    }
-
-                    //fEK = fU + ((float)Math.Cos(fDX) * fEB + (float)Math.Sin(fDX) * fED) * fDY;
-                    fEK = fU + (fEB + (float)Math.Sin(fDX) * fED) * fDY;
-                    fEL = fEC * fDZ;
-
-
-
-
-                    //fEM = (-(float)Math.Sin(fDX) * fEB + (float)Math.Cos(fDX) * fED) * fEA - fCZ;
-                    fEM = ((float)Math.Cos(fDX) * fED) * fEA - fCZ;
-                    //fEN = fU + ((float)Math.Cos(fDX) * fEH + (float)Math.Sin(fDX) * fEJ) * fEE;
-                    fEN = fU + (fEH + (float)Math.Sin(fDX) * fEJ) * fEE;
-                    fEO = fEI * fEF;
-                    //fEP = (-(float)Math.Sin(fDX) * fEH + (float)Math.Cos(fDX) * fEJ) * fEG - fCZ;
-                    fEP = ((float)Math.Cos(fDX) * fEJ) * fEG - fCZ;
-
-
-                    fES = (fAL > 0 ? fER * (float)Math.Sin((fAL / fX * 180.0f) / 180.0f * (float)Math.PI) : 0.0f) + fEQ;
-                    fET = (fAP > 0 ? fER * (float)Math.Sin((fAP / fX * 180.0f) / 180.0f * (float)Math.PI) : 0.0f) + fEQ;
-                    
-                    // 허리
-                    if (nStart_0_Repeat_1_End_2 == 1)
-                        fIC = fIB * (float)Math.Sin(((fM / fZ * 180.0f) + 90.0f) / 180.0f * Math.PI);
                     else
-                        fIC = fIB * (float)Math.Sin((-fM / (fZ * 2.0f) * 180.0f) / 180.0f * Math.PI);
-
-                    // 머리
-                    if (nStart_0_Repeat_1_End_2 == 1)
-                        fIF = fIE * (float)Math.Sin(((fM / fZ * 180.0f) + 90.0f) / 180.0f * Math.PI);
-                    else
-                        fIF = fIE * (float)Math.Sin((-fM / (fZ * 2.0f) * 180.0f) / 180.0f * Math.PI);
-                
-                    // fEU;
-
-                    int j = 0;
-                    // EV: "E", EW: "1" 은 당연히 붙는 것
-                    //=IF(B13="","",CONCATENATE("I",B13))
-                    bool bData = false;
-                    if ((GetWalkingCount() <= 0) && (nStart_0_Repeat_1_End_2 == 1))
                     {
+                        // S 50 D 0
+                        strDatas += String.Format("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 28 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
                     }
-                    else
+
+                    // 발목
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4], fBA + fCX); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4], fBF + fCY); }
+
+                    // 엉치
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], fBI); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4], fBK); }
+
+                    // 팔Up
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4], fDO + fDM); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4], fDP + fDM); }
+
+                    // 팔Wing
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4], fDS + fDQ); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4], fDT + fDQ); }
+
+
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4], fES); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4], fET); }
+
+
+
+                    float fFD = 0;
+                    if (nStart_0_Repeat_1_End_2 != 1)
                     {
-                        strDatas += String.Format("E\t1\t");
-
-                        // I2 X Y Z
-                        bData = (m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4] == "" ? false : true);
-                        if (bData == true) { strDatas += String.Format("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4], fEK, fEL, fEM); }
-
-                        // I3 X Y Z
-                        bData = (m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4] == "" ? false : true);
-                        if (bData == true) { strDatas += String.Format("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4], fEN, fEO, fEP); }
-
-                        if ((i == 1) && (nStart_0_Repeat_1_End_2 == 0))
+                        // 고관절 Tilt 숙이기
+                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
                         {
-                            // S 50 D 0
-                            strDatas += String.Format("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 4 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
-                        }
-                        else
+                            float fFD_0 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 45 - 4]); //B45;
+                            float fFD_1 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); //B45;
+                            fFD = (fFD_1 + (fFD_0 - fFD_1) / fZ * fAD) * fK;
+                        } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}  
+                        if (nStart_0_Repeat_1_End_2 == 0)
                         {
-                            // S 50 D 0
-                            strDatas += String.Format("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 28 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
-                        }
-
-                        // 발목
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4], fBA + fCX); }
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4], fBF + fCY); }
-
-                        // 엉치
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], fBI); }
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4], fBK); }
-
-                        // 팔Up
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4], fDO + fDM); }
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4], fDP + fDM); }
-
-                        // 팔Wing
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4], fDS + fDQ); }
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4], fDT + fDQ); }
-
-
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4], fES); }
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4], fET); }
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); } // P6
-
-
-                        if (nStart_0_Repeat_1_End_2 != 1)
-                        {
-                            // ojw5014
-                            // 고관절 Tilt 숙이기 - 미 검증
-                            if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
+                            if (fM <= fZ)
                             {
-                                float fFD_0 = Ojw.CConvert.StrToFloat(m_aStrParam[1, 45 - 4]); //B45;
-                                float fFD_1 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); //B45;
-                                float fFD = (fFD_1 + (fFD_0 - fFD_1) / fZ * fAD) * fK;
-
-                                strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
-                            } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}                    
-                        }
-                        else
-                        {
-                            if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}
-                        }
-
-                        //if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], FA9); }
-
-
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4], fBT); } // BM8 = B51
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4], fBU); } // BN8 = B52
-
-
-                        // 허리
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4], fIC); }
-                        // 머리
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4], fIE); } 
-                        
-                        if (nStart_0_Repeat_1_End_2 != 1)
-                        {
-                            strDatas += String.Format("X\t-1\t");
-                        }
-                        strDatas += String.Format("G\t{0}\t", nStart_0_Repeat_1_End_2 + 1);
-                        
-                        if (m_bMirror == true)
-                        {
-                            strDatas += String.Format("X\t-1\t");
-                        }
-
-                        // 반복 패턴
-                        if ((nStart_0_Repeat_1_End_2 == 1) && (GetWalkingCount() > 1) && (i == 1))
-                        {
-                            if (fK == 1)
-                            {
-                                strDatas += String.Format("@SET_COMMAND,1\t@SET_DATA0,{0}\t@SET_DATA1,{1}\t", nSize_Frame - 1, GetWalkingCount());
+                                lstTilt.Add(fFD); // fZ 는 fX, fY 를 더한 프레임 값, fM 은 fZ 의 2배까지 증가한다.
+                                lstTilt_Start.Add(fFD);
                             }
                         }
-
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4] != "") { strDatas += String.Format("{0}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4]); } // B58
-
-                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4] != null)
-                            strDatas += Ojw.CConvert.ChangeChar(m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4], ' ', '\t'); // B53 - 덧붙임 명령어
-                        //lstStrFrame.Add(strDatas);
+                        else
+                        {
+                            if (fM > fZ)
+                            {
+                                lstTilt.Add(fFD); // fZ 는 fX, fY 를 더한 프레임 값, fM 은 fZ 의 2배까지 증가한다.
+                                lstTilt_End.Add(fFD);
+                            }
+                        }
                     }
-                    #endregion For
+                    else
+                    {
+                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
+                        {
+                            fFD = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]);
+                        } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}
+                        lstTilt.Add(fFD);
+                        lstTilt_Repeat.Add(fFD);
+                    }
+                    //CMessage.Write2("[fZ={0},fK={1}, fM={2},fX={3}, fY={4}][mode={5}]fFD={6}\r\n", fZ, fK, fM, fX, fY, nStart_0_Repeat_1_End_2, fFD);
+                    //if (fK > 0) lstTilt.Add(fFD);
+
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4] != "")
+                    {
+                        strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4], fFD);//m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); 
+                    } // P6
+
+
+                    if (nStart_0_Repeat_1_End_2 != 1)
+                    {
+                        // ojw5014
+                        // 고관절 Tilt 숙이기 - 미 검증
+                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
+                        {
+                            strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
+                        } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}
+                    }
+                    else
+                    {
+                        if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
+                        {
+                            strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
+                        } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}
+                    }
+
+                    //if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], FA9); }
+
+
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4], fBT); } // BM8 = B51
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4], fBU); } // BN8 = B52
+
+
+                    // 허리
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4], fIC); }
+                    // 머리
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4], fIE); }
+
+                    if (nStart_0_Repeat_1_End_2 != 1)
+                    {
+                        strDatas += String.Format("X\t-1\t");
+                    }
+                    strDatas += String.Format("G\t{0}\t", nStart_0_Repeat_1_End_2 + 1);
+
+                    if (m_bMirror == true)
+                    {
+                        strDatas += String.Format("X\t-1\t");
+                    }
+
+                    // 반복 패턴
+                    if ((nStart_0_Repeat_1_End_2 == 1) && (GetWalkingCount() > 1) && (i == 1))
+                    {
+                        if (fK == 1)
+                        {
+                            strDatas += String.Format("@SET_COMMAND,1\t@SET_DATA0,{0}\t@SET_DATA1,{1}\t", nSize_Frame - 1, GetWalkingCount());
+                        }
+                    }
+
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4] != "") { strDatas += String.Format("{0}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4]); } // B58
+
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4] != null)
+                        strDatas += Ojw.CConvert.ChangeChar(m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4], ' ', '\t'); // B53 - 덧붙임 명령어
+                    //lstStrFrame.Add(strDatas);
+                }
+                #endregion For
                 //}
 
                 //for (int i = 0; i < m_aStrParam.GetLength(1); i++)
                 //{
-                    //m_aStrParam_Old[nStart_0_Repeat_1_End_2, i] = m_aStrParam[nStart_0_Repeat_1_End_2, i];
+                //m_aStrParam_Old[nStart_0_Repeat_1_End_2, i] = m_aStrParam[nStart_0_Repeat_1_End_2, i];
                 //}
                 return strDatas;// lstStrFrame;
 #endif

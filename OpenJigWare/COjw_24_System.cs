@@ -17,6 +17,7 @@ using Microsoft.Win32;
 using System.Net;
 using SKYPE4COMLib;
 using System.Management;
+using System.Security.Principal;
 
 namespace OpenJigWare
 {
@@ -143,6 +144,27 @@ namespace OpenJigWare
             }
             #endregion ToolTip
 
+            public static bool IsAdmin()
+            {
+                WindowsIdentity identity = WindowsIdentity.GetCurrent();
+                if (null != identity)
+                {
+                    WindowsPrincipal principal = new WindowsPrincipal(identity);
+                    return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+                return false;
+            }
+            public static bool SetAdmin()
+            {
+                try
+                {
+                }
+                catch (Exception ex)
+                {
+                    
+                }
+                return false;
+            }
             public static void ScreenKeyboard()
             {
                 m_ps = GetProcess("osk");

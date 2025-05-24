@@ -2727,6 +2727,10 @@ namespace OpenJigWare
                 //}
                 return nGridIndex;
             }
+            public DataGridView GetHandle_GridView()
+            {
+                return dgAngle;
+            }
             public void SetData(int nLine, int nNum, object value)
             {
 #if false

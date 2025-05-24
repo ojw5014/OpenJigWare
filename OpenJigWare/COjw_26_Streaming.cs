@@ -771,7 +771,14 @@ namespace rtaNetworking.Streaming
         public static IEnumerable<Image> Snapshots(int width, int height, bool showCursor)
         {
             int nError = 0;
-            Size size = new Size(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width, System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
+            //===============================================================
+            // 주 화면만 캡쳐 됨
+            //Size size = new Size(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width, System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
+            //===============================================================
+            // 정체 화면이 캡쳐 됨
+            Rectangle virtualScreen = SystemInformation.VirtualScreen;
+            Size size = new Size(virtualScreen.Width, virtualScreen.Height);
+            //===============================================================
 
             Bitmap srcImage = new Bitmap(size.Width, size.Height);
             Graphics srcGraphics = Graphics.FromImage(srcImage);
@@ -833,7 +840,25 @@ namespace rtaNetworking.Streaming
                     }
                     else
                     {
-                        srcGraphics.CopyFromScreen(0, 0, 0, 0, size);
+                        //=========================================================
+                        // (0,0)에서만 캡처
+                        // srcGraphics.CopyFromScreen(0, 0, 0, 0, size);
+                        //=========================================================
+                        // 가상 화면 전체에서 캡처
+                        srcGraphics.CopyFromScreen(virtualScreen.X, virtualScreen.Y, 0, 0, size);
+
+                        if (showCursor)
+                            Cursors.Default.Draw(srcGraphics, new Rectangle(Cursor.Position, curSize));
+
+                        if (scaled)
+                            dstGraphics.DrawImage(srcImage, dst, src, GraphicsUnit.Pixel);
+                        //=========================================================
+
+
+
+
+
+                        
 
                         if (showCursor)
                             Cursors.Default.Draw(srcGraphics, new Rectangle(Cursor.Position, curSize));
@@ -950,9 +975,9 @@ namespace rtaNetworking.Streaming
             m_bScreenCutting = bEn;
             if (bEn == false)
             {
-                m_nScreenCutting_Left = -1;
-                m_nScreenCutting_Top = -1;
-                m_nScreenCutting_Width = -1;
+                m_nScreenCutting_Left = 0;
+                m_nScreenCutting_Top = 0;
+                m_nScreenCutting_Width = 0;
                 m_nScreenCutting_Height = -1;
             }
             else
@@ -973,8 +998,10 @@ namespace rtaNetworking.Streaming
 
                 if (m_bScreenCutting)
                 {
-                    int nX = ((m_nScreenCutting_Left < 0) ? 0 : m_nScreenCutting_Left);
-                    int nY = ((m_nScreenCutting_Top < 0) ? 0 : m_nScreenCutting_Top);
+                    int nX = m_nScreenCutting_Left;
+                    int nY = m_nScreenCutting_Top;
+                    //int nX = ((m_nScreenCutting_Left < 0) ? 0 : m_nScreenCutting_Left);
+                    //int nY = ((m_nScreenCutting_Top < 0) ? 0 : m_nScreenCutting_Top);
                     int nW = ((m_nScreenCutting_Width < 0) ? nWidth : m_nScreenCutting_Width);
                     int nH = ((m_nScreenCutting_Height < 0) ? nHeight : m_nScreenCutting_Height);
                     if (nW > nWidth) nW = nWidth;

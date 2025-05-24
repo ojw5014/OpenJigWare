@@ -69,7 +69,220 @@ namespace OpenJigWare.Docking
             }
             for (int i = 0; i < 254; i++)
                 DisplayIndex(i);
+
+            txtDh.MouseWheel += new MouseEventHandler(txtDh_MouseWheel);
+            txtDh.MouseDown += new MouseEventHandler(txtDh_MouseDown);
+            txtDh.MouseUp += new MouseEventHandler(txtDh_MouseUp);
         }
+
+        int m_nDhMouseEvent_Down = 0;
+        void txtDh_MouseUp(object sender, MouseEventArgs e)
+        {
+            m_nDhMouseEvent_Down = 0;
+        }
+
+        void txtDh_MouseDown(object sender, MouseEventArgs e)
+        {
+            m_nDhMouseEvent_Down = 1;
+        }
+        private void txtDh_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (m_nDhMouseEvent_Down > 0)
+            {
+                int charIndex = txtDh.GetCharIndexFromPosition(txtDh.PointToClient(Cursor.Position));
+                int start = charIndex + 1;
+                int end = charIndex;
+                while (start > 0 && ((txtDh.Text[start - 1] != ',') && (txtDh.Text[start - 1] != '\n') && (txtDh.Text[start - 1] != '['))) start--;
+                // Find the end of the current segment
+                //while (end < txtDh.Text.Length - 1 && ((txtDh.Text[end + 1] != ',') && (txtDh.Text[end + 1] != '\n') && (txtDh.Text[end + 1] != '\r') && (txtDh.Text[start - 1] != '/')))
+
+                while (end < txtDh.Text.Length - 1 && (txtDh.Text[end + 1] != ',') && (txtDh.Text[end + 1] != ']'))
+                {
+                    if ((txtDh.Text[end + 1] == '\n') || (txtDh.Text[end + 1] == '\r') || (txtDh.Text[start - 1] == '/'))
+                    {
+                        return; // 마지막 행은 수정할 필요 없다. 
+                    }
+                    end++;
+                }
+                string strData = txtDh.Text.Substring(start, end - start + 1);
+                if (strData.Length == 0) return;
+                int nDataOffset = 0;
+                if (strData.IndexOf('[') >= 0)
+                {
+                    nDataOffset |= 0x01;
+                }
+                if (strData.IndexOf(']') >= 0)
+                {
+                    nDataOffset |= 0x02;
+                }
+                if (strData.IndexOf('\n') >= 0) // \r\n 으로 세트로 묶여있다.
+                {
+                    nDataOffset |= 0x04;
+                }
+
+                float fData = Ojw.CConvert.StrToFloat(
+                                Ojw.CConvert.RemoveChar(
+                                    Ojw.CConvert.RemoveChar(
+                                    Ojw.CConvert.RemoveChar(
+                                        Ojw.CConvert.RemoveChar(Ojw.CConvert.RemoveCaption(strData, true, true), '[')
+                                    , ']'),
+                                    '\r'),
+                               '\n')
+                            );
+
+                if (e.Delta > 0) // Scroll up
+                    fData += 1.0f;
+                else if (e.Delta < 0) // Scroll down
+                    fData -= 1.0f;
+                strData = Ojw.CConvert.FloatToStr(fData);
+                if ((nDataOffset & 0x01) != 0) strData = "[" + strData;
+                if ((nDataOffset & 0x02) != 0) strData = strData + "]";
+                if ((nDataOffset & 0x04) != 0) strData = strData + "\r\n";
+
+                txtDh.Text = txtDh.Text.Substring(0, start) + strData + txtDh.Text.Substring(end + 1);
+
+                txtDh.SelectionStart = charIndex;
+                txtDh.SelectionLength = 0;
+
+            }
+
+            if (chkAutoRefresh.Checked)
+            {
+                float fSize = Ojw.CConvert.StrToFloat(txtDHSize.Text);
+                MakeDHSkeleton(chkMakeVisibleSkeleton.Checked, fSize, Color.Violet, txtDh.Text);
+                MakeString_For_ForwardKinematics();
+            }
+#if false
+            //var lines = txtDh.Lines;
+
+            int charIndex = txtDh.GetCharIndexFromPosition(txtDh.PointToClient(Cursor.Position));
+            int start = charIndex;
+            int end = charIndex;
+
+            // Find the start of the current segment (delimited by commas)
+            while (start > 0 && txtDh.Text[start - 1] != ',')
+                start--;
+
+            // Find the end of the current segment
+            while (end < txtDh.Text.Length - 1 && txtDh.Text[end + 1] != ',')
+                end++;
+            string strData = txtDh.Text.Substring(start, end - start);
+            strData = "<" + strData + ">";
+            
+            // Replace the segment with "Q"
+            txtDh.Text = txtDh.Text.Substring(0, start) + strData + txtDh.Text.Substring(end + 1);
+#else
+            //// Get the character index of the cursor position within the TextBox
+            //int charIndex = txtDh.GetCharIndexFromPosition(txtDh.PointToClient(Cursor.Position));
+            //// Get the line number at that character index
+            //int lineIndex = txtDh.GetLineFromCharIndex(charIndex);
+
+            //// Split the text into lines
+            //string[] lines = txtDh.Text.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+
+            //if (lineIndex < lines.Length)
+            //{
+            //    // Replace the entire line with "Q"
+            //    lines[lineIndex] = "<" + lines[lineIndex] + ">";
+
+            //    // Join the lines back together and update the txtDh
+            //    txtDh.Text = string.Join("\r\n", lines);
+            //}
+#endif
+
+            
+            //for (int j = 0; j < lines.Length; j++)
+            //{
+            //    // Split the current line into parts by commas
+            //    string strComment = "";
+            //    int nIndexof = lines[j].IndexOf("//");
+            //    if (nIndexof >= 0)
+            //    {
+            //        strComment = lines[j].Substring(nIndexof);
+            //    }
+            //    string strData = Ojw.CConvert.RemoveChar(
+            //                        Ojw.CConvert.RemoveChar(
+            //                            Ojw.CConvert.RemoveChar(Ojw.CConvert.RemoveCaption(lines[j], true, true), '[')
+            //                        , ']'), 
+            //                     '\r');
+
+            //    string[] parts = strData.Split(',');
+
+            //    // Prepare to store modified numbers
+            //    int number;
+            //    for (int i = 0; i < parts.Length; i++)
+            //    {
+            //        // Parse each part as a number, increment or decrement based on scroll direction
+            //        if (int.TryParse(parts[i].Trim(), out number))
+            //        {
+            //            if (e.Delta > 0) // Scroll up
+            //                number += 1;
+            //            else if (e.Delta < 0) // Scroll down
+            //                number -= 1;
+            //            parts[i] = number.ToString();
+            //        }
+            //    }
+
+            //    // Join the modified parts back into a single string and update the line
+            //    lines[j] = string.Join(", ", parts);
+            //}
+
+            //// Update all lines in the TextBox
+            //txtDh.Lines = lines;
+
+            //// Check the direction of the scroll (Delta > 0 is scroll up, Delta < 0 is scroll down)
+            //if (e.Delta > 0)
+            //{
+            //}
+            //else if (e.Delta < 0)
+            //{
+            //}
+
+
+
+            /*int index = txtDh.GetCharIndexFromPosition(txtDh.PointToClient(Cursor.Position));
+            int line = txtDh.GetLineFromCharIndex(index);
+            string currentLine = Ojw.CConvert.RemoveChar(
+                                    Ojw.CConvert.RemoveChar(
+                                        Ojw.CConvert.RemoveChar(Ojw.CConvert.RemoveCaption(txtDh.Lines[line], true, true), '[')
+                                    , ']'),
+                                 '\r');
+            string updatedLine = UpdateLineNumbers(currentLine, e.Delta);
+            string[] lines = txtDh.Lines;
+            lines[line] = updatedLine;
+            txtDh.Lines = lines;*/
+        }
+        /*private string UpdateLineNumbers(string line, int delta)
+        {
+            // Split the line into segments based on commas
+            string[] parts = line.Split(',');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                // Attempt to parse each segment which might contain numbers
+                string part = parts[i].Trim();
+                if (part.StartsWith("[") && part.EndsWith("]"))
+                {
+                    // Extract the content inside brackets
+                    string numericContent = part.Substring(1, part.Length - 2);
+                    string[] numbers = numericContent.Split(' ');
+
+                    for (int j = 0; j < numbers.Length; j++)
+                    {
+                        int number;
+                        if (int.TryParse(numbers[j], out number))
+                        {
+                            // Adjust the number based on the scroll direction
+                            number += delta > 0 ? 1 : -1;
+                            numbers[j] = number.ToString();
+                        }
+                    }
+                    parts[i] = "[" + string.Join(" ", numbers) + "]";
+                }
+            }
+            return string.Join(", ", parts);
+        }*/
+
+
         private void InitTestDrawing()
         {
             CDhParam CDh = new CDhParam();
@@ -1666,7 +1879,7 @@ namespace OpenJigWare.Docking
 
         private void btnCopyToDraw_Click(object sender, EventArgs e)
         {
-            frmDesigner.m_frmDrawText.rtxtDraw.Text += String.Format("\r\n//===>Add Skeleton=========================\r\n{0}\r\n", txtDH_Tab_Skeleton.Text);
+            frmDesigner.m_frmDrawText.rtxtDraw.Text = String.Format("\r\n//===>Clone Skeleton=========================\r\n{0}\r\n", txtDH_Tab_Skeleton.Text);
         }
 
         private void DisplayIndex(int nIndex)
@@ -2617,6 +2830,22 @@ namespace OpenJigWare.Docking
             m_C3d.GetLight_Specular(out fA, out fB, out fC, out fD);
             fD = Ojw.CConvert.StrToFloat(txtDh_Light_Specular_D.Text);
             m_C3d.SetLight_Specular(fA, fB, fC, fD);
+        }
+
+        private void txtDh_TextChanged(object sender, EventArgs e)
+        {
+            if (chkAutoRefresh.Checked)
+            {
+                if (m_nDhMouseEvent_Down == 0)
+                {
+                    if (txtDh.Focused)
+                    {
+                        float fSize = Ojw.CConvert.StrToFloat(txtDHSize.Text);
+                        MakeDHSkeleton(chkMakeVisibleSkeleton.Checked, fSize, Color.Violet, txtDh.Text);
+                        MakeString_For_ForwardKinematics();
+                    }
+                }
+            }
         }
     }
 }

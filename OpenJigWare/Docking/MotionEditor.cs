@@ -5978,7 +5978,7 @@ namespace OpenJigWare.Docking
                     Connection();
 
                     Ojw.CMonster2 CMon = new Ojw.CMonster2();
-                    if (CMon.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text)) == true);
+                    if (CMon.Open(Ojw.CConvert.StrToInt(txtPort.Text), Ojw.CConvert.StrToInt(txtBaudrate.Text)) == true)
                     {
                         //CMon.Write(200, 0x03, 21, (byte)2);
                         CMon.Write(200, 0x03, 66, Ojw.CConvert.ShortToBytes(1));

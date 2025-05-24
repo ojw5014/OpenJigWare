@@ -1,4 +1,5 @@
-﻿using System;
+﻿//#define _ARDUINO_OPENRB150
+using System;
 using System.Collections.Generic;
 //using System.Linq;
 using System.Text;
@@ -6,6 +7,7 @@ using System.Drawing;
 using System.Threading;
 using Leap;
 
+#if !_ARDUINO_OPENRB150
 namespace OpenJigWare
 {
     partial class Ojw
@@ -49,6 +51,15 @@ namespace OpenJigWare
                 m_aCParam[nID].m_bDirReverse = bDirReverse;
                 m_aCParam[nID].m_fMulti = fMulti;
             }
+            public void SetParam_Dir(int nID, bool bDirReverse)
+            {
+                m_aCParam[nID].m_bDirReverse = bDirReverse;
+             
+            }
+            public void SetParam_Model(int nID, EModel_t EModel)
+            {
+                m_aCParam[nID].SetParams_Model(EModel);
+            }
             public bool[] m_abMot = new bool[256];
             public int[] m_anMot = new int[256];
             public float[] m_afMot = new float[256];
@@ -56,15 +67,31 @@ namespace OpenJigWare
             public float[] m_afMot_Pose = new float[256];
             public class CParam_t
             {
-                public bool m_bModel_High = false;
-                //public int m_nSet_Operation_Address = 11;
-                //public int m_nSet_Operation_Size = 1;
-                //public int m_nSet_GoalCurrent_Address = 11;
-                //public int m_nSet_Operation_Size = 1;
+                //public bool m_bModel_High = false;
+                public int m_nSet_Operation_Address = 11;
+                public int m_nSet_Operation_Size = 1;
+
+                public int m_nSet_GoalCurrent_Address = -1;//102; // XM에서만 동작, -1은 사용 안함
+                public int m_nSet_GoalCurrent_Size = 2;
+                public int m_nSet_GAIN_POS_P = 84;
+                public int m_nSet_GAIN_POS_P_Size = 2;
+                public int m_nSet_GAIN_POS_I = 82;
+                public int m_nSet_GAIN_POS_I_Size = 2;
+                public int m_nSet_GAIN_POS_D = 80;
+                public int m_nSet_GAIN_POS_D_Size = 2;
+                public int m_nSet_GAIN_VEL_P = 78;
+                public int m_nSet_GAIN_VEL_P_Size = 2;
+                public int m_nSet_GAIN_VEL_I = 76;
+                public int m_nSet_GAIN_VEL_I_Size = 2;
+                public int m_nSet_GAIN_VEL_D = -1;
+                public int m_nSet_GAIN_VEL_D_Size = 2;
+
                 public int m_nSet_Torq_Address = 64;
                 public int m_nSet_Torq_Size = 1;
                 public int m_nSet_Led_Address = 65;
                 public int m_nSet_Led_Size = 1;
+                public int m_nSet_Curr_Address = 102;
+                public int m_nSet_Curr_Size = 2;
                 public int m_nSet_Position_Speed_Address = 112;
                 public int m_nSet_Position_Speed_Size = 4;
                 public int m_nSet_Position_Address = 116;
@@ -72,8 +99,8 @@ namespace OpenJigWare
                 public int m_nSet_Speed_Address = 104;
                 public int m_nSet_Speed_Size = 4;
 
-                public float m_fMechMove = 4096f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
-                public float m_fCenter = 2048f;
+                public float m_fMechMove = 4096.0f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
+                public float m_fCenter = 2048.0f;
                 public float m_fMechAngle = 360;
                 public float m_fJointRpm = 0.229f; // ph54-100 = 0.01, H54-200 = 0.01
                 public bool m_bDirReverse = false;
@@ -81,9 +108,14 @@ namespace OpenJigWare
 
                 public int m_nGet_Position_Address = 132;
                 public int m_nGet_Position_Size = 4;
+                public int m_nGet_Current_Address = 126;
+                public int m_nGet_Current_Size = 2;
+                public int m_nMax_Speed_For_Position = 0;
 
                 public void SetParam_Address_Torq(int nVal = 64) { m_nSet_Torq_Address = nVal; }
                 public void SetParam_Address_Size_Torq(int nVal = 1) { m_nSet_Torq_Size = nVal; }
+                public void SetParam_Address_Curr(int nVal = 102) { m_nSet_Curr_Address = nVal; }
+                public void SetParam_Address_Size_Curr(int nVal = 2) { m_nSet_Curr_Size = nVal; }
                 public void SetParam_Address_Led(int nVal = 66) { m_nSet_Led_Address = nVal; }
                 public void SetParam_Address_Size_Led(int nVal = 1) { m_nSet_Led_Size = nVal; }
                 public void SetParam_Address_PositionSpeed(int nVal = 112) { m_nSet_Position_Speed_Address = nVal; }
@@ -97,12 +129,178 @@ namespace OpenJigWare
 
                 public void SetParam_Dir(bool bReverse = false) { m_bDirReverse = bReverse; }
                 public void SetParam_Multi(float fMulti = 1.0f) { m_fMulti = fMulti; if (fMulti == 0) m_fMulti = 1.0f; }
+                
+                public void SetParams_Model(EModel_t EModel)
+                {
+                    switch(EModel)
+                    {
+                        case EModel_t.X:
+                        case EModel_t._X_430_250:
+                        case EModel_t._X_330_077:
+                        case EModel_t._X_330_288:
+                        case EModel_t._2X_430_250:
+                        case EModel_t._X_540_150:
+                        case EModel_t._X_540_270:
+                        //case EModel_t._X_320:
+                            {
+                                //m_bModel_High = false;
+                                m_nSet_Torq_Address = 64;
+                                m_nSet_Torq_Size = 1;
+                                m_nSet_Led_Address = 65;
+                                m_nSet_Led_Size = 1;
+                                m_nSet_Curr_Address = 102;
+                                m_nSet_Curr_Size = 2;
+                                m_nSet_Speed_Address = 104;
+                                m_nSet_Speed_Size = 4;
+                                m_nSet_Position_Speed_Address = 112;
+                                m_nSet_Position_Speed_Size = 4;
+                                m_nSet_Position_Address = 116;
+                                m_nSet_Position_Size = 4;
 
+                                m_fMechMove = 4096.0f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
+                                m_fCenter = 2048.0f;
+                                m_fMechAngle = 360;
+                                m_fJointRpm = 0.229f; // ph54-100 = 0.01, H54-200 = 0.01
+                                m_bDirReverse = false;
+                                m_fMulti = 1.0f;
+                                m_nGet_Position_Address = 132;
+                                m_nGet_Position_Size = 4;
+
+                                //
+                                m_nSet_GoalCurrent_Address = -1;
+                                m_nSet_GoalCurrent_Size = 2;
+                                m_nSet_GAIN_POS_P = 84;
+                                m_nSet_GAIN_POS_P_Size = 2;
+                                m_nSet_GAIN_POS_I = 82;
+                                m_nSet_GAIN_POS_I_Size = 2;
+                                m_nSet_GAIN_POS_D = 80;
+                                m_nSet_GAIN_POS_D_Size = 2;
+                                m_nSet_GAIN_VEL_P = 78;
+                                m_nSet_GAIN_VEL_P_Size = 2;
+                                m_nSet_GAIN_VEL_I = 76;
+                                m_nSet_GAIN_VEL_I_Size = 2;
+                                m_nSet_GAIN_VEL_D = -1;
+                                m_nSet_GAIN_VEL_D_Size = 2;
+
+                                m_nGet_Current_Address = 126; // present load
+                                m_nGet_Current_Size = 2;
+
+                                m_nMax_Speed_For_Position = 0; // 0 일때 최고속력으로...
+                            }
+                            break;
+                        case EModel_t.Y:
+                        case EModel_t._Y_70_210_M001:
+                        case EModel_t._Y_70_210_R051:
+                        case EModel_t._Y_70_210_R099:
+                        case EModel_t._Y_80_230_M001:
+                        case EModel_t._Y_80_230_R051:
+                        case EModel_t._Y_80_230_R099:
+                            {
+                                //m_bModel_High = false;
+                                m_nSet_Torq_Address = 512;
+                                m_nSet_Torq_Size = 1;
+                                m_nSet_Led_Address = 513;
+                                m_nSet_Led_Size = 1;
+                                m_nSet_Curr_Address = 526;
+                                m_nSet_Curr_Size = 2;
+                                m_nSet_Speed_Address = 528;
+                                m_nSet_Speed_Size = 4;
+                                m_nSet_Position_Speed_Address = 528;// 244;// 528; // Y는 속도값을 속도제어모드와 같이 사용한다.
+                                m_nSet_Position_Speed_Size = 4;
+                                m_nSet_Position_Address = 532;
+                                m_nSet_Position_Size = 4;
+
+                                m_fMechMove = 524288.0f;// 51904512.0f;    // Resolution
+                                m_fCenter = 0f;// 524288.0f / 2.0f;
+                                m_fMechAngle = 360.0f;
+                                m_fJointRpm = 0.01f;// Goal velocity 참조
+                                m_bDirReverse = false;
+                                m_fMulti = 1.0f;
+                                m_nGet_Position_Address = 552;
+                                m_nGet_Position_Size = 4;
+                                //
+                                
+                                m_nSet_GoalCurrent_Address = 526;
+                                m_nSet_GoalCurrent_Size = 2;
+                                m_nSet_GAIN_POS_P = 232;
+                                m_nSet_GAIN_POS_P_Size = 4;
+                                m_nSet_GAIN_POS_I = 228;
+                                m_nSet_GAIN_POS_I_Size = 4;
+                                m_nSet_GAIN_POS_D = 224;
+                                m_nSet_GAIN_POS_D_Size = 4;
+                                m_nSet_GAIN_VEL_P = 216;
+                                m_nSet_GAIN_VEL_P_Size = 4;
+                                m_nSet_GAIN_VEL_I = 212;
+                                m_nSet_GAIN_VEL_I_Size = 4;
+                                m_nSet_GAIN_VEL_D = -1;
+                                m_nSet_GAIN_VEL_D_Size = 4;
+                                
+                                m_nGet_Current_Address = 546;
+                                m_nGet_Current_Size = 2;
+
+                                m_nMax_Speed_For_Position = 2020; // 2020 일때 최고속력으로...
+                            }
+                            break;
+                        case EModel_t.P:
+                        case EModel_t._PH54_60_250:
+                        case EModel_t._PH54_40_250:
+                        case EModel_t._PH42_10_260:
+                        case EModel_t._PM54_60_250:
+                        case EModel_t._PM54_40_250:
+                        case EModel_t._PM42_10_260:
+                            {
+                                //m_bModel_High = true;
+                                m_nSet_Torq_Address = 512;
+                                m_nSet_Torq_Size = 1;
+                                m_nSet_Led_Address = 513;
+                                m_nSet_Led_Size = 1;
+                                m_nSet_Curr_Address = 550;
+                                m_nSet_Curr_Size = 2;
+                                m_nSet_Speed_Address = 552;
+                                m_nSet_Speed_Size = 4;
+                                m_nSet_Position_Speed_Address = 560;
+                                m_nSet_Position_Speed_Size = 4;
+                                m_nSet_Position_Address = 564;
+                                m_nSet_Position_Size = 4;
+
+                                m_fMechMove = 1003846.0f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
+                                m_fCenter = 0f;
+                                m_fMechAngle = 360;
+                                m_fJointRpm = 0.01f; // ph54-100 = 0.01, H54-200 = 0.01
+                                m_bDirReverse = false;
+                                m_fMulti = 1.0f;
+                                m_nGet_Position_Address = 580;
+                                m_nGet_Position_Size = 4;
+
+                                ////////////
+                                m_nSet_GoalCurrent_Address = 550;
+                                m_nSet_GoalCurrent_Size = 2;
+                                m_nSet_GAIN_POS_P = 532;
+                                m_nSet_GAIN_POS_P_Size = 2;
+                                m_nSet_GAIN_POS_I = 530;
+                                m_nSet_GAIN_POS_I_Size = 2;
+                                m_nSet_GAIN_POS_D = 528;
+                                m_nSet_GAIN_POS_D_Size = 2;
+                                m_nSet_GAIN_VEL_P = 526;
+                                m_nSet_GAIN_VEL_P_Size = 2;
+                                m_nSet_GAIN_VEL_I = 524;
+                                m_nSet_GAIN_VEL_I_Size = 2;
+                                m_nSet_GAIN_VEL_D = -1;
+                                m_nSet_GAIN_VEL_D_Size = 2;
+
+                                m_nGet_Current_Address = 574;
+                                m_nGet_Current_Size = 2;
+
+                                m_nMax_Speed_For_Position = 0; // 0 일때 최고속력으로...
+                            }
+                            break;
+                    }
+                }
                 public void SetParam(bool bSetHight = false)
                 {
                     if (bSetHight == true) // PH, H54(Pro) ... 
                     {
-                        m_bModel_High = true;
+                        //m_bModel_High = true;
                         m_nSet_Torq_Address = 512;
                         m_nSet_Torq_Size = 1;
                         m_nSet_Led_Address = 513;
@@ -114,7 +312,7 @@ namespace OpenJigWare
                         m_nSet_Position_Address = 564;
                         m_nSet_Position_Size = 4;
 
-                        m_fMechMove = 1003846f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
+                        m_fMechMove = 1003846.0f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
                         m_fCenter = 0f;
                         m_fMechAngle = 360;
                         m_fJointRpm = 0.01f; // ph54-100 = 0.01, H54-200 = 0.01
@@ -125,7 +323,7 @@ namespace OpenJigWare
                     }
                     else
                     {
-                        m_bModel_High = false;
+                        //m_bModel_High = false;
                         m_nSet_Torq_Address = 64;
                         m_nSet_Torq_Size = 1;
                         m_nSet_Led_Address = 65;
@@ -137,8 +335,8 @@ namespace OpenJigWare
                         m_nSet_Position_Address = 116;
                         m_nSet_Position_Size = 4;
 
-                        m_fMechMove = 4096f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
-                        m_fCenter = 2048f;
+                        m_fMechMove = 4096.0f;    // PH54-100 => -501,923 ~ 501,923, H54-200 => -501,923 ~ 501,923
+                        m_fCenter = 2048.0f;
                         m_fMechAngle = 360;
                         m_fJointRpm = 0.229f; // ph54-100 = 0.01, H54-200 = 0.01
                         m_bDirReverse = false;
@@ -222,7 +420,7 @@ namespace OpenJigWare
 
 
             private const int _SIZE_QUE = 3;
-            private const int _SIZE_QUE_LENGTH = 100;
+            private const int _SIZE_QUE_LENGTH = 512;
             private int m_nQue_Index_Next = 0;
             private int m_nQue_Index = 0;
             private int m_nQue_Count = 0;
@@ -662,6 +860,15 @@ namespace OpenJigWare
             {
                 Send(254, 0x03, 64, (byte)((bOn == true) ? 1 : 0));
             }
+            public void SetTorq(params float [] afVals)
+            {
+                int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+                CCommand_t[] aCCommands = new CCommand_t[nLen];
+                for (int i = 0; i < nLen; i++) { aCCommands[i] = new CCommand_t((int)afVals[i*2], afVals[i*2 + 1]); }
+                SetTorq(aCCommands);
+            }
+
+            public void SetTorq() { SetTorq(m_lstCmdIDs.ToArray()); }
             public void SetTorq(params CCommand_t[] aCCommands)
             {
                 List<CCommand_t> lstSecond = new List<CCommand_t>();
@@ -694,6 +901,76 @@ namespace OpenJigWare
                 }
                 //Command_Clear();
             }
+            public void SetCurr(int nID, int nValue)
+            {
+                //if (nValue < 0) nValue = 2250;//1750;
+                //m_CMot.Writes_Frame(102, 2, 1, m_anIDs, m_anDatas);
+                Send(nID, 0x03, m_aCParam[nID].m_nSet_Curr_Address, Ojw.CConvert.ShortToBytes((short)nValue));
+            }
+            public void SetLed(bool bOn)
+            {
+                int nID = 254;
+                Send(nID, 0x03, m_aCParam[nID].m_nSet_Led_Address, (byte)((bOn == true) ? 1 : 0));
+            }
+            public void SetLed(params float [] afVals)
+            {
+                int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+                CCommand_t[] aCCommands = new CCommand_t[nLen];
+                //for (int i = 0; i < nLen; i += 2) { aCCommands[i] = new CCommand_t((int)afVals[i], afVals[i + 1]); }
+                for (int i = 0; i < nLen; i++) { aCCommands[i] = new CCommand_t((int)afVals[i * 2], afVals[i * 2 + 1]); }
+                SetLed(aCCommands);
+            }
+            public void SetLed(params CCommand_t[] aCCommands)
+            {
+                List<CCommand_t> lstSecond = new List<CCommand_t>();
+                //for (int nIter = 0; nIter < 2; nIter++)
+                while (true)
+                {
+                    Sync_Clear();
+                    bool bRes = false;
+                    CCommand_t[] CCmd = ((aCCommands.Length > 0) ? aCCommands : ((m_lstCmdIDs.Count > 0) ? m_lstCmdIDs.ToArray() : null));
+                    Command_Clear();
+                    if (lstSecond.Count > 0)
+                    {
+                        CCmd = lstSecond.ToArray();
+                        lstSecond.Clear();
+                    }
+                    if (CCmd == null) break;
+                    if (CCmd.Length > 0)
+                    {
+                        for (int i = 0; i < CCmd.Length; i++)
+                        {
+                            if (m_aCParam[CCmd[0].nID].m_nSet_Led_Address != m_aCParam[CCmd[i].nID].m_nSet_Led_Address)
+                            {
+                                lstSecond.Add(new CCommand_t(CCmd[i].nID, CCmd[i].fVal));
+                            }
+                            else Sync_Push_Byte(CCmd[i].nID, (int)Math.Round(CCmd[i].fVal));
+                        }
+                        Sync_Flush(m_aCParam[CCmd[0].nID].m_nSet_Led_Address);
+                    }
+                    if (lstSecond.Count == 0) break;
+                }
+                //Command_Clear();
+            }
+            public void SetOperation(int nID=254, int nMode=3)
+            {
+                SetCommand(nID, m_aCParam[nID].m_nSet_Operation_Address, nMode);
+            }
+            public void SetCommand(int nID, int nAddress, int nData, int nSize = 1)
+            {
+                if (nSize <= 1) Send(nID, 0x03, nAddress, (byte)nData);
+                else
+                {
+                    byte[] buffer;
+                    if (nSize == 2) 
+                        buffer = Ojw.CConvert.ShortToBytes((short)nData);
+                    else if (nSize == 4)
+                        buffer = Ojw.CConvert.IntToBytes((short)nData);
+                    else
+                        buffer = Ojw.CConvert.LongToBytes((short)nData);
+                    Send(nID, 0x03, nAddress, buffer);
+                }
+            }
             //private List<CCommand_t> lstCCommand = new List<CCommand_t>();
             //public void Move(int nTime_ms, int nDelay, params CCommand_t[] aCCommands)
             //{
@@ -708,7 +985,7 @@ namespace OpenJigWare
             //        List<int> lstIDs = new List<int>();
             //        lstIDs.Clear();
             //        for (int i = 0; i < CCmd.Length; i++) { lstIDs.Add(CCmd[i].nID); Command_Set(CCmd[i].nID, CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal)); }
-            //        SetPosition_Speed();
+            //        SetPosition_Speed(m_lstCmdIDs.ToArray());
 
             //        for (int i = 0; i < CCmd.Length; i++) { Command_Set(CCmd[i].nID, CCmd[i].fVal); }
             //        SetPosition();
@@ -790,7 +1067,7 @@ namespace OpenJigWare
                             List<int> lstIDs = new List<int>();
                             lstIDs.Clear();
                             for (int i = 0; i < CCmd.Length; i++) { lstIDs.Add(CCmd[i].nID); Command_Set(CCmd[i].nID, 0); } //CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal)); }
-                            SetPosition_Speed();
+                            SetPosition_Speed(m_lstCmdIDs.ToArray());
 
                             float fGet = CTmr.Get();
                             float fTmr = (fGet / (float)nTime_ms);
@@ -810,7 +1087,7 @@ namespace OpenJigWare
                             }
 
                             for (int i = 0; i < CCmd.Length; i++) { afRes[CCmd[i].nID] = afMot[CCmd[i].nID] + (CCmd[i].fVal - afMot[CCmd[i].nID]) * fTmr; Command_Set(CCmd[i].nID, afRes[CCmd[i].nID]); }
-                            SetPosition();
+                            SetPosition(m_lstCmdIDs.ToArray());
 
                             if (fTmr >= 1f) break;
                             //Thread.Sleep(1);
@@ -833,8 +1110,8 @@ namespace OpenJigWare
             }
 
             private bool m_bNext = false;
-            public void PlayNext() { m_bNext = true; }
-            public void Play(string strFileName, bool bOneshot_Style = false)
+            public void PlayFile_Next() { m_bNext = true; }
+            public void PlayFile(string strFileName, bool bNowait = false)
             {
                 if (IsOpen() == false) return;
 
@@ -858,7 +1135,7 @@ namespace OpenJigWare
                     if (str.Length > 0)
                     {
                         if (str[0] != 's') str = 's' + str;
-                        PlayFrameString(str);
+                        PlayFrameString(str, bNowait);
                     }
                     //string[] pstr = str.Split(',');
 
@@ -900,6 +1177,81 @@ namespace OpenJigWare
                 //for (int i = 0; i < anIDs.Length; i++) { m_CCom.Command_Set(anIDs[i], m_C3d.GetData(anIDs[i])); }
                 //m_CCom.Move(m_CGrid.GetTime(nLine), m_CGrid.GetDelay(nLine), bContinue);
             }
+            //public void Play(string strData, bool bNowait = false)
+            //{
+            //    int nOffset = 0;
+            //    int start = 0;
+            //    int end = strData.IndexOf(',');
+            //    float[] afVals = new float[50];
+            //    int nIndex = 0;
+            //    String strData2;
+            //    int nCmd = 0;
+            //    bool bWheel = false;
+            //    bool bAngle = false;
+            //    bool bWheel_Rpm = false;
+            //    bool bWrite = false;
+            //    int nTime = 0;
+            //    int nDelay = 0;
+            //    while (end != -1) {
+            //    strData2 = strData.Substring(start, end);
+            //    if ((strData2.IndexOf('s') < 0) && (strData2.IndexOf('S') < 0))
+            //    {
+            //        afVals[nIndex] = CConvert.StrToFloat(strData2);
+            //        if (nIndex == 0) { nTime = (int)afVals[nIndex]; if (afVals[nIndex] == 0) { bWheel = true; bWheel_Rpm = true; } } // Time
+            //        else if (nIndex == 1) { nTime = (int)afVals[nIndex]; } // Delay
+            //        else { if (nIndex % 2 != 0) { if (bWheel_Rpm == true) { Command_Set_Rpm((int)afVals[nIndex - 1], afVals[nIndex]); } } }
+            //    }
+            //    else
+            //    {
+            //        strData2.ToLower();
+            //        if (strData2.CompareTo("s1") == 0) { nCmd = 1; }
+            //        else if (strData2.CompareTo("s2") == 0) { nCmd = 2; bAngle = true; }
+            //        else if (strData2.CompareTo("s3") == 0) { nCmd = 3; bWheel = false; }
+            //        else if (strData2.CompareTo("s4") == 0) { nCmd = 4; bWheel = false; bWheel_Rpm = true; }
+            //        else if (strData2.CompareTo("s5") == 0) { nCmd = 5; bWrite = true; }
+            //        nOffset = 1; // 2개 패스하고 다음 데이터에서...
+            //    }
+            
+            //    // if (nCmd == 0) { }
+            
+            //    start = end + 1;
+            //    end = strData.IndexOf(',', start);
+            //    nIndex++;
+            //    if (nOffset > 0) { nOffset--; nIndex = 0; }
+            //    }
+
+            //    afVals[nIndex] = CConvert.StrToFloat(strData.Substring(start, end));
+            //    nIndex++;
+            //    if ((nCmd == 0) || (nCmd == 2)) { Move(afVals, nIndex, bNowait); } //{ Move(afVals, nIndex, bNowait); }
+            //    else if (bWheel == true) { SetSpeed(afVals); } //{ SetSpeed(afVals, nIndex); }
+            //}
+            //bool Move(float []afVals, int nLength, bool bNowait = false)
+            //{
+            //    //int nLength = afVals.Length;
+            //    int nLen_Off = nLength % 2;// * 2;
+            //    int nLen = nLength - nLen_Off;
+            //    if (nLen < 4) return false;
+            //    int nTime_ms = (int)afVals[0];
+            //    int nDelay = (int)afVals[1];
+            //    if (nTime_ms > 0)
+            //    {
+            //        CCommand_t [] aCCommands = new CCommand_t[(int)(nLen / 2 - 1)];
+            //        for (int i = 2; i < nLen; i += 2)
+            //        {
+            //            aCCommands[i / 2 - 1].nID = (int)afVals[i];
+            //            aCCommands[i / 2 - 1].fVal = afVals[i + 1];
+            //        }
+            //        //Move(nTime_ms, nDelay, aCCommands, nLen / 2 - 1, bNowait); // -1은 Time, Delay 위치를 뺀 값
+            //        Move(nTime_ms, nDelay, bNowait, aCCommands); // -1은 Time, Delay 위치를 뺀 값
+            //    }
+            //    else
+            //    {
+            //        Command_Clear();
+            //        for (int i = 2; i < nLen; i += 2) Command_Set_Rpm((int)afVals[i], afVals[i + 1]);
+            //        SetSpeed(m_lstCmdIDs.ToArray());//, m_nSize_Command);
+            //    }
+            //    return true;
+            //}
             // bypass 모드가 아닌 경우에 발동
             public void Play_Stream(string str)
             {
@@ -920,12 +1272,104 @@ namespace OpenJigWare
                 pbyte[pbyte.Length - 1] = 0x03;
                 m_CSock_Client.Send(pbyte);
             }
+            // Time, Delay, [id, pos, id, pos, id, pos...]
+            // Time <= 0 이면 속도모드 값으로 동작한다.
+            public bool Play(String str)
+            {
+                string [] pstr = str.Split(',');
+                float[] afDatas = new float[pstr.Length];
+                for (int i = 0; i < pstr.Length; i++)
+                {
+                    afDatas[i] = CConvert.StrToFloat(pstr[i]);
+                }
+                return Play(afDatas);
+            }
+            public bool Play(params float[] afDatas)
+            {
+                if (afDatas.Length > 2)
+                {
+                    string strData = "";
+                    try
+                    {
+                        if ((afDatas.Length % 2) == 0)
+                        {
+                            int nTime = (int)afDatas[0];
+                            if (nTime <= 0) { strData = "s4,"; nTime = 0; }
+                            else strData = "s2,";
+                            int nDelay = (int)afDatas[1];
+                            strData += Ojw.CConvert.IntToStr(nTime) + "," + Ojw.CConvert.IntToStr(nDelay) + ",";
+                            for (int i = 2; i < afDatas.Length; i += 2)
+                            {
+                                strData += Ojw.CConvert.IntToStr((int)afDatas[i]) + ":" + Ojw.CConvert.FloatToStr(afDatas[i + 1]);
+                                if ((i + 2) < afDatas.Length) strData += ",";
+                            }
+
+                            PlayFrameString(strData, false);
+                            //Ojw.CTimer CTmr = new CTimer(); CTmr.Set(); while (true) { if (m_bEms) break; if (CTmr.Get() >= (nTime + nDelay)) break; }
+                            return true;
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        Ojw.CMessage.Write_Error(strData + ": " + e.ToString());
+                        return false;
+                    }
+                }
+                return false;
+            }
+            // Time, Delay, [id, pos, id, pos, id, pos...]
+            // Time <= 0 이면 속도모드 값으로 동작한다.
+            public bool Play_NoWait(params float [] afDatas)
+            {
+                if (afDatas.Length > 2)
+                {
+                    string strData = "";
+                    try
+                    {
+                        if ((afDatas.Length % 2) == 0)
+                        {
+                            int nTime = (int)afDatas[0];
+                            if (nTime <= 0) { strData = "s4,"; nTime = 0; } // s3 은 속도, s4 는 속도 인데 RPM
+                            else strData = "s2,";
+                            strData += Ojw.CConvert.IntToStr(nTime) + "," + Ojw.CConvert.IntToStr((int)afDatas[1]) + ",";
+                            for (int i = 2; i < afDatas.Length; i += 2)
+                            {
+                                strData += Ojw.CConvert.IntToStr((int)afDatas[i]) + ":" + Ojw.CConvert.FloatToStr(afDatas[i + 1]);
+                                if ((i + 2) < afDatas.Length) strData += ",";
+                            }
+
+                            PlayFrameString(strData, true);
+                            return true;
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        Ojw.CMessage.Write_Error(strData + ": " + e.ToString());
+                        return false;
+                    }
+                }
+                return false;
+            }
+            public bool m_bSimulOnly = false;
+            public void SetSimulation_Only(bool bSimul)
+            {
+                m_bSimulOnly = bSimul;
+            }
+            public bool SetSimulation_Only()
+            {
+                return m_bSimulOnly;
+            }
+            //public void Play_Pos(int nTime, string buff, bool bNoWait = false) { PlayFrameString("s2," + Ojw.CConvert.IntToStr(nTime) + ",0," + buff, bNoWait);  }
+            public void Play_Pos(string buff, bool bNoWait = false) { PlayFrameString("s2," + buff, bNoWait); }
+            public void Play_Speed(string buff, bool bRpm = true) { PlayFrameString((bRpm?"s4,0,0,":"s3,0,0,") + buff, true); }
             public void PlayFrameString(string buff, bool bNoWait = false)
             {
                 //if (IsOpen() == false) return;
                 //Ojw.printf("TEST===>\r\n");
-                Ojw.printf("PlayFrameString({0})\r\n", buff);
-                Ojw.newline();
+                //Ojw.printf("PlayFrameString({0})\r\n", buff);
+                //Ojw.newline();
 
                 bool bWheel = false;
                 if (buff.Length > 1)
@@ -978,47 +1422,116 @@ namespace OpenJigWare
                         else
                         {
                             Command_Clear();
+                            int nCnt_Func = 256;
+                            float[] afX = new float[nCnt_Func];
+                            float[] afY = new float[nCnt_Func];
+                            float[] afZ = new float[nCnt_Func];
+                            bool[] abFunction = new bool[nCnt_Func];
+                            Array.Clear(abFunction, 0, abFunction.Length);
+
                             for (int nIndex = 3; nIndex < pstr.Length; nIndex++)
                             {
                                 string[] pstrDatas = pstr[nIndex].Split(':');
                                 if (pstrDatas.Length > 1)
                                 {
-                                    int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
-
-                                    float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
-                                    if ((bAngle) || (bWheel_Rpm))
-                                    {
-                                        //Ojw.printf("=====1->\r\n");
-                                        if (bWheel_Rpm) Command_Set_Rpm(nID, fEvd);
-                                        else
-                                        {
-                                            //Ojw.printf("=====123->\r\n");
-                                            Command_Set(nID, fEvd);
-
-                                            //3D
-                                            if (m_bSyncRendering) m_C3d.SetData(nID, fEvd);
-                                        }
-                                    }
+                                    int nXyz = -1;
+                                    int nFunctionNumber = -1;
+                                    // 좌표제어
+                                    if (pstrDatas[0].ToUpper().IndexOf("X") == 0)       { nXyz = 0; } 
+                                    else if (pstrDatas[0].ToUpper().IndexOf("Y") == 0)  { nXyz = 1; }
+                                    else if (pstrDatas[0].ToUpper().IndexOf("Z") == 0)  { nXyz = 2; }
+                                    #region etc
                                     else
                                     {
-                                        //Ojw.printf("=====2->\r\n");
-                                        int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
-                                        float fAngle = (float)Math.Round(CalcEvd2Angle(nID, nEvd), 3);
-                                        if (bWheel) Command_Set(nID, CalcRaw2Rpm(nID, nEvd));
-                                        else Command_Set(nID, fAngle);
-                                        //3D
-                                        if (m_bSyncRendering) m_C3d.SetData(nID, fAngle);
+                                        int nID = Ojw.CConvert.StrToInt(pstrDatas[0]);
+
+                                        float fEvd = Ojw.CConvert.StrToFloat(pstrDatas[1]);
+                                        if ((bAngle) || (bWheel_Rpm))
+                                        {
+                                            //Ojw.printf("=====1->\r\n");
+                                            if (bWheel_Rpm) Command_Set_Rpm(nID, fEvd);
+                                            else
+                                            {
+                                                //Ojw.printf("=====123->\r\n");
+                                                Command_Set(nID, fEvd);
+
+                                                //3D
+                                                if (m_bSyncRendering) m_C3d.SetData(nID, fEvd);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            //Ojw.printf("=====2->\r\n");
+                                            int nEvd = Ojw.CConvert.StrToInt(pstrDatas[1]);
+                                            float fAngle = (float)Math.Round(CalcEvd2Angle(nID, nEvd), 3);
+                                            if (bWheel)
+                                            {
+                                                if (bWheel_Rpm) Command_Set(nID, nEvd);
+                                                else Command_Set(nID, CalcRaw2Rpm(nID, nEvd));
+                                            }
+                                            else Command_Set(nID, fAngle);
+                                            //3D
+                                            if (m_bSyncRendering) m_C3d.SetData(nID, fAngle);
+                                        }
+                                    }
+                                    #endregion etc
+
+                                    if (nXyz >= 0)
+                                    {
+                                        nFunctionNumber = Ojw.CConvert.StrToInt(pstrDatas[0].Substring(1));
+                                        float[] afFunc = ((nXyz == 0) ? afX : ((nXyz == 1) ? afY : afZ));
+                                        if ((nFunctionNumber >= 0) && (nFunctionNumber < afX.Length))
+                                        {
+                                            abFunction[nFunctionNumber] = true;
+                                            afFunc[nFunctionNumber] = Ojw.CConvert.StrToFloat(pstrDatas[1]);
+                                        }
                                     }
                                 }
                             }
-                            if (bWheel)
+
+                            ////
+                            for (int i = 0; i < nCnt_Func; i++)
                             {
-                                SetSpeed();
+                                if (abFunction[i] == true)
+                                {
+                                    int[] anIDs;
+                                    double[] adValues;
+                                    float fX, fY, fZ;
+                                    m_C3d.CalcF(i, false, out fX, out fY, out fZ);
+                                    if (m_C3d.IsInverseFunction(i) == true)
+                                    {
+                                        m_C3d.GetData_Inverse(i, (double)fX, (double)fY, (double)fZ, out anIDs, out adValues);
+
+                                    }
+                                    else
+                                    {
+                                        m_C3d.CalcInv(i, fX, fY, fZ);
+                                        anIDs = m_C3d.GetInfo_Forward_Motors(i);
+                                        adValues = new double[anIDs.Length];
+                                        for (int j = 0; j < anIDs.Length; j++)
+                                        {
+                                            adValues[anIDs[j]] = (double)m_C3d.GetData(anIDs[j]);
+                                        }
+                                    }
+                                    for (int j = 0; j < anIDs.Length; j++)
+                                    {
+                                        Command_Set(anIDs[j], (float)adValues[j]);
+                                        if (m_bSyncRendering) m_C3d.SetData(anIDs[j], (float)adValues[j]);
+                                    }
+                                }
                             }
-                            else
+                            ////
+                            if (m_bSimulOnly == false)
                             {
-                                if (bNoWait == false) Move(nTime, nDelay);
-                                else Move_NoWait(nTime, nDelay);
+                                if (bWheel)
+                                {
+                                    SetSpeed(m_lstCmdIDs.ToArray());
+                                }
+                                else
+                                {
+                                    if (bNoWait == false) Move(nTime, nDelay, m_lstCmdIDs.ToArray());
+                                    else Move_NoWait(nTime, nDelay, m_lstCmdIDs.ToArray());
+                                }
                             }
                         }
 
@@ -1028,7 +1541,45 @@ namespace OpenJigWare
                 }
             }
             // 마지막 모션이 아니라면 bContinue = false
-            public void Move(int nTime_ms, int nDelay, bool bContinue = false, params CCommand_t[] aCCommands)
+
+            public bool Move(params float [] afVals)
+            {
+                //string strErr = "";
+                //try
+                //{
+                    // (afVals.Length - 1) 은 안전장치
+                    int nLen_Off = afVals.Length % 2 * 2;
+                    int nLen = (int)(Math.Round((afVals.Length - nLen_Off) / 2.0f)) * 2;
+                    if (nLen < 4) return false;
+                    int nTime_ms = (int)afVals[0];
+                    int nDelay = (int)afVals[1];
+                    if (nTime_ms > 0)
+                    {
+                        CCommand_t[] aCCommands = new CCommand_t[nLen / 2 - 1];
+                        //strErr += aCCommands.Length.ToString() + ",";
+                        for (int i = 2; i < nLen; i += 2)
+                        {
+                            //strErr += i.ToString() + ","; 
+                            aCCommands[i / 2 - 1] = new CCommand_t((int)afVals[i], afVals[i + 1]);
+                        }
+                        Move(nTime_ms, nDelay, aCCommands);
+                    }
+                    else
+                    {
+                        for (int i = 2; i < nLen; i += 2) Command_Set_Rpm((int)afVals[i], afVals[i + 1]);
+                        SetSpeed(m_lstCmdIDs.ToArray());
+                    }
+                    return true;
+                //    return "Good";
+                //}
+                //catch (Exception ex)
+                //{
+                //    return strErr + ":" + ex.ToString();
+                //}
+            }
+            //public void Move(int nTime_ms, int nDelay, bool bContinue = false, params CCommand_t[] aCCommands)
+            public void Move(int nTime_ms, int nDelay, params CCommand_t[] aCCommands) { Move(nTime_ms, nDelay, false, aCCommands); }
+            public void Move(int nTime_ms, int nDelay, bool bContinue, params CCommand_t[] aCCommands)
             {
                 m_nWait_Time = 0;
                 if (IsOpen() == false) return;
@@ -1056,22 +1607,40 @@ namespace OpenJigWare
                         List<int> lstIDs = new List<int>();
                         lstIDs.Clear();
                         for (int i = 0; i < CCmd.Length; i++) { lstIDs.Add(CCmd[i].nID); Command_Set(CCmd[i].nID, 0); } //CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal)); }
-                        SetPosition_Speed();
+                        SetPosition_Speed(m_lstCmdIDs.ToArray());
 
                         float fGet = CTmr.Get();
                         float fTmr = (fGet / (float)nTime_ms);
                         if (fTmr > 1f) fTmr = 1f;
 
                         // -Delay 탈출
-                        if (bContinue == true)
-                        {
-                            float fTmr_Sub = (nDelay >= 0) ? 0 : (fGet / (float)(nTime_ms + nDelay));
-                            if (fTmr_Sub >= 1f) break;
-                        }
+                        //if (bContinue == true)
+                        //{
+                        //    float fTmr_Sub = (nDelay >= 0) ? 0 : (fGet / (float)(nTime_ms + nDelay));
+                        //    if (fTmr_Sub >= 1f) break;
+                        //}
+                        
+
+
+
 
                         for (int i = 0; i < CCmd.Length; i++) { afRes[CCmd[i].nID] = afMot[CCmd[i].nID] + (CCmd[i].fVal - afMot[CCmd[i].nID]) * fTmr; Command_Set(CCmd[i].nID, afRes[CCmd[i].nID]); }
-                        SetPosition();
+                        SetPosition(m_lstCmdIDs.ToArray());
+                        
+                        //if (nDelay < 0)
+                        //{
+                        if (fGet >= (nTime_ms + nDelay)) // 남은 시간값으로 마저 이동
+                        {
+                            lstIDs.Clear();
+                            for (int i = 0; i < CCmd.Length; i++) { lstIDs.Add(CCmd[i].nID); Command_Set(CCmd[i].nID, CalcPosition_Time(CCmd[i].nID, (int)Math.Round(nTime_ms - fGet), 0, CCmd[i].fVal)); }//(int)Math.Round((nTime_ms - fGet) / nTime_ms)); }
+                            SetPosition_Speed(m_lstCmdIDs.ToArray());
 
+                            for (int i = 0; i < CCmd.Length; i++) { afRes[CCmd[i].nID] = CCmd[i].fVal; Command_Set(CCmd[i].nID, afRes[CCmd[i].nID]); }
+                            SetPosition(m_lstCmdIDs.ToArray());
+                            break;
+                        }
+                        //}
+                        
                         if (fTmr >= 1f) break;
                         Ojw.CTimer.DoEvent();
                     }
@@ -1099,7 +1668,43 @@ namespace OpenJigWare
                 m_nWait_Time = 0;
                 while (true) { if (CTmr.Get() >= nWait) break; Ojw.CTimer.DoEvent(); }
             }
-            public void Move_NoWait(int nTime_ms, int nDelay, bool bContinue = false, params CCommand_t[] aCCommands)
+            //public void Move_NoWait(int nTime_ms, int nDelay, params float[] afVals)
+            //{
+            //    int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+            //    CCommand_t[] aCCommands = new CCommand_t[nLen];
+            //    for (int i = 0; i < nLen; i += 2) { aCCommands[i] = new CCommand_t((int)afVals[i], afVals[i + 1]); }
+            //    Move_NoWait(nTime_ms, nDelay, aCCommands);
+            //}
+            public bool Move_NoWait(params float[] afVals)
+            {
+                //string strErr = "";
+                //try
+                //{
+                // (afVals.Length - 1) 은 안전장치
+                int nLen_Off = afVals.Length % 2 * 2;
+                int nLen = (int)(Math.Round((afVals.Length - nLen_Off) / 2.0f)) * 2;
+                if (nLen < 4) return false;
+                int nTime_ms = (int)afVals[0];
+                int nDelay = (int)afVals[1];
+                if (nTime_ms > 0)
+                {
+                    CCommand_t[] aCCommands = new CCommand_t[nLen / 2 - 1];
+                    //strErr += aCCommands.Length.ToString() + ",";
+                    for (int i = 2; i < nLen; i += 2)
+                    {
+                        //strErr += i.ToString() + ","; 
+                        aCCommands[i / 2 - 1] = new CCommand_t((int)afVals[i], afVals[i + 1]);
+                    }
+                    Move_NoWait(nTime_ms, nDelay, aCCommands);
+                }
+                else
+                {
+                    for (int i = 2; i < nLen; i += 2) Command_Set_Rpm((int)afVals[i], afVals[i + 1]);
+                    SetSpeed(m_lstCmdIDs.ToArray());
+                }
+                return true;
+            }
+            public void Move_NoWait(int nTime_ms, int nDelay, params CCommand_t[] aCCommands)
             {
                 if (IsOpen() == false) return;
                 if (m_bEms == true) return;
@@ -1122,14 +1727,14 @@ namespace OpenJigWare
                         lstIDs.Add(CCmd[i].nID);
                         Command_Set(CCmd[i].nID, CalcPosition_Time(CCmd[i].nID, nTime_ms, nDelay, CCmd[i].fVal));
                     }
-                    SetPosition_Speed();
+                    SetPosition_Speed(m_lstCmdIDs.ToArray());
 
                     Command_Clear();
                     for (int i = 0; i < CCmd.Length; i++)
                     {
                         Command_Set(CCmd[i].nID, CCmd[i].fVal);
                     }
-                    SetPosition();
+                    SetPosition(m_lstCmdIDs.ToArray());
                 }
             }
             //public void WaitMotion(int nTime, int [] anIDs = null)
@@ -1159,6 +1764,14 @@ namespace OpenJigWare
             //public void Wheel(params CCommand_t[] aCCommands)
             //{
             //}
+            public void Wheel(float fRpm, params float[] afVals)
+            {
+                int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+                CCommand_t[] aCCommands = new CCommand_t[nLen];
+                //for (int i = 0; i < nLen; i += 2) { aCCommands[i] = new CCommand_t((int)afVals[i], afVals[i + 1]); }
+                for (int i = 0; i < nLen; i++) { aCCommands[i] = new CCommand_t((int)afVals[i * 2], afVals[i * 2 + 1]); }
+                Wheel(fRpm, aCCommands);
+            }
             public void Wheel(float fRpm, params CCommand_t[] aCCommands)
             {
                 if (IsOpen() == false) return;
@@ -1173,10 +1786,17 @@ namespace OpenJigWare
                     for (int i = 0; i < CCmd.Length; i++) { lstIDs.Add(CCmd[i].nID); }
 
                     for (int i = 0; i < CCmd.Length; i++) { Command_Set(CCmd[i].nID, 0); CalcRpm2Raw(CCmd[i].nID, fRpm); }
-                    SetSpeed();
+                    SetSpeed(m_lstCmdIDs.ToArray());
                 }
             }
-
+            public void SetSpeed(params float[] afVals)
+            {
+                int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+                CCommand_t[] aCCommands = new CCommand_t[nLen];
+                //for (int i = 0; i < nLen; i += 2) { aCCommands[i] = new CCommand_t((int)afVals[i], afVals[i + 1]); }
+                for (int i = 0; i < nLen; i++) { aCCommands[i] = new CCommand_t((int)afVals[i * 2], afVals[i * 2 + 1]); }
+                SetSpeed(aCCommands);
+            }
             public void SetSpeed(params CCommand_t[] aCCommands)
             {
                 List<CCommand_t> lstSecond = new List<CCommand_t>();
@@ -1211,6 +1831,15 @@ namespace OpenJigWare
                 //Command_Clear();
             }
 
+            public void SetPosition_Speed(params float[] afVals)
+            {
+                int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+                CCommand_t[] aCCommands = new CCommand_t[nLen];
+                //for (int i = 0; i < nLen; i += 2) { aCCommands[i] = new CCommand_t((int)afVals[i], afVals[i + 1]); }
+                for (int i = 0; i < nLen; i++) { aCCommands[i] = new CCommand_t((int)afVals[i * 2], afVals[i * 2 + 1]); }
+                SetPosition_Speed(aCCommands);
+            }
+            public void SetPosition_Speed() { SetPosition_Speed(m_lstCmdIDs.ToArray()); }
             public void SetPosition_Speed(params CCommand_t[] aCCommands)
             {
                 List<CCommand_t> lstSecond = new List<CCommand_t>();
@@ -1234,7 +1863,15 @@ namespace OpenJigWare
                             {
                                 lstSecond.Add(new CCommand_t(CCmd[i].nID, CCmd[i].fVal));
                             }
-                            else Sync_Push_Dword(CCmd[i].nID, (int)Math.Round(CCmd[i].fVal));
+                            else
+                            {
+                                int nVal = (int)Math.Round(CCmd[i].fVal);
+                                
+                                // ojw5014
+                                if (nVal == 0) nVal = m_aCParam[CCmd[i].nID].m_nMax_Speed_For_Position;
+
+                                Sync_Push_Dword(CCmd[i].nID, nVal);
+                            }
                         }
                         Sync_Flush(m_aCParam[CCmd[0].nID].m_nSet_Position_Speed_Address);
                     }
@@ -1286,6 +1923,15 @@ namespace OpenJigWare
                 }
                 Command_Clear();
             }*/
+            public void SetPosition(params float [] afVals)
+            {
+                int nLen = (int)Math.Round(((float)afVals.Length - 0.5f) / 2.0f);
+                CCommand_t[] aCCommands = new CCommand_t[nLen];
+                //for (int i = 0; i < nLen; i += 2) { aCCommands[i] = new CCommand_t((int)afVals[i], afVals[i + 1]); }
+                for (int i = 0; i < nLen; i++) { aCCommands[i] = new CCommand_t((int)afVals[i * 2], afVals[i * 2 + 1]); }
+                SetPosition(aCCommands);
+            }
+            public void SetPosition() { SetPosition(m_lstCmdIDs.ToArray()); }
             public void SetPosition(params CCommand_t[] aCCommands)
             {
                 List<CCommand_t> lstSecond = new List<CCommand_t>();
@@ -2058,7 +2704,7 @@ namespace OpenJigWare
                 pbyteBuffer[pbyteBuffer.Length - 1] = (byte)((nCrc >> 8) & 0xff);
                 return pbyteBuffer;
             }
-            private void Send(int nMotorRealID, int nCommand, int nAddress, params byte[] pbyDatas)
+            public void Send(int nMotorRealID, int nCommand, int nAddress, params byte[] pbyDatas)
             {
                 int i;
                 i = 0;
@@ -2262,6 +2908,10 @@ namespace OpenJigWare
                 private float fInit_Bottom_Length = 0;
                 private float fInit_Bottom_Radius = 0;
 
+                public float[] m_afAngle = new float[3];
+                public float x = 0.0f;
+                public float y = 0.0f;
+                public float z = 0.0f;
                 public void Init(float fRot_Cw, int nID_Front, int nID_Left, int nID_Right, float fTop_Rad, float fTop_Length, float fBottom_Length, float fBottom_Rad)
                 {
                     fRot = fRot_Cw;
@@ -2272,8 +2922,10 @@ namespace OpenJigWare
                     fInit_Top_Length = fTop_Length;
                     fInit_Bottom_Length = fBottom_Length;
                     fInit_Bottom_Radius = fBottom_Rad;
+                    
                     IsValid = true;
                 }
+
                 public bool CalcXyzToAngle(float fPos_X, float fPos_Y, float fPos_Height, out float fAngle_Front, out float fAngle_Left, out float fAngle_Right)
                 {
                     if (IsValid == false)
@@ -2296,6 +2948,13 @@ namespace OpenJigWare
                     fAngle_Front = (float)adVal[0];
                     fAngle_Left = (float)adVal[1];
                     fAngle_Right = (float)adVal[2];
+                    ///////////
+                    x = fPos_X;
+                    y = fPos_Y;
+                    z = fPos_Height;
+                    m_afAngle[0] = (float)adVal[0];
+                    m_afAngle[1] = (float)adVal[1];
+                    m_afAngle[2] = (float)adVal[2];
                     return true;
                 }
                 public bool CalcAngleToXyz(float fAngle_Front, float fAngle_Left, float fAngle_Right, out float fX, out float fY, out float fHeight)
@@ -2311,6 +2970,14 @@ namespace OpenJigWare
                     fX = (float)adVal[0];
                     fY = (float)adVal[1];
                     fHeight = (float)adVal[2];
+                    ///////////
+                    m_afAngle[0] = fAngle_Front;
+                    m_afAngle[1] = fAngle_Left;
+                    m_afAngle[2] = fAngle_Right;
+                    x = (float)adVal[0];
+                    y = (float)adVal[1];
+                    z = (float)adVal[2];
+
                     if (fRot != 0)
                     {
                         if (Ojw.CMath.CalcRot(0.0f, 0.0f, fRot, ref fX, ref fY, ref fHeight) == false)
@@ -2335,7 +3002,8 @@ namespace OpenJigWare
             {
                 if ((nIndex >= 0) && (nIndex < m_lstCDelta.Count))
                 {
-                    return m_lstCDelta[nIndex].CalcAngleToXyz(GetAngle(m_lstCDelta[nIndex].nId_Front), GetAngle(m_lstCDelta[nIndex].nId_Left), GetAngle(m_lstCDelta[nIndex].nId_Right), out fX, out fY, out fHeight);
+                    return m_lstCDelta[nIndex].CalcAngleToXyz(m_lstCDelta[nIndex].m_afAngle[0], m_lstCDelta[nIndex].m_afAngle[1], m_lstCDelta[nIndex].m_afAngle[2], out fX, out fY, out fHeight);
+                    //return m_lstCDelta[nIndex].CalcAngleToXyz(GetAngle(m_lstCDelta[nIndex].nId_Front), GetAngle(m_lstCDelta[nIndex].nId_Left), GetAngle(m_lstCDelta[nIndex].nId_Right), out fX, out fY, out fHeight);
                 }
                 fX = fY = fHeight = 0.0f;
                 return false;
@@ -2343,8 +3011,8 @@ namespace OpenJigWare
             public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime, int nDelay, bool bNoWait = false)
             {
                 SetDelta(nIndex, fX, fY, fHeight);
-                if (bNoWait == false) Move(nTime, nDelay);
-                else Move_NoWait(nTime, nDelay);
+                if (bNoWait == false) Move(nTime, nDelay, m_lstCmdIDs.ToArray());
+                else Move_NoWait(nTime, nDelay, m_lstCmdIDs.ToArray());
                 //Wait(nTime + nDelay);
             }
             public void Move_Delta(int nIndex, float fX, float fY, float fHeight, int nTime)
@@ -2357,3 +3025,6 @@ namespace OpenJigWare
         }
     }
 }
+#else
+
+#endif

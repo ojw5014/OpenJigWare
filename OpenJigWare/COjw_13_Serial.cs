@@ -195,6 +195,7 @@ namespace OpenJigWare
             public void SetRts(bool bEn) { m_SerialPort.RtsEnable = bEn; }
             public bool Connect(int nPort, int nBaudRate, bool bDtrEnable)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
+                m_SerialPort = new SerialPort();
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
                 m_SerialPort.Parity = Parity.None;
@@ -223,6 +224,7 @@ namespace OpenJigWare
             }
             public bool Connect(int nPort, int nBaudRate, bool bDtrEnable, Parity prt)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
+                m_SerialPort = new SerialPort();
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
                 m_SerialPort.Parity = prt;//Parity.None;

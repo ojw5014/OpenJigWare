@@ -282,6 +282,30 @@ namespace OpenJigWare
                 }
                 else return true;
             }
+            public void Delay(long t)
+            {
+                if (m_bTimer)
+                {
+                    long temp_t = t, temp;
+                    long temp_1 = 0;
+
+                    DateTime tmrTemp = DateTime.Now;
+                    long temp_2 = (long)tmrTemp.Ticks * 100 / 1000000;
+
+                    do
+                    {
+                        if ((m_bProgEnd == true) || (m_bProgEnd == true) || (m_bStop == true) || (m_bKillWait == true)) break;
+                        // Delay
+                        tmrTemp = DateTime.Now;
+                        temp = (long)tmrTemp.Ticks * 100 / 1000000;
+
+                        Application.DoEvents();
+
+                        temp_1 = temp - temp_2;
+                    } while (temp_1 <= temp_t);
+                    //m_bKillWait = false; // Only 1'st use(Kor: KillWait 은 한번만 수행한다.)
+                }
+            }
             #endregion Var
 
             public static int GetYear() { return DateTime.Now.Year; }

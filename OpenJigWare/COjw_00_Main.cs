@@ -138,8 +138,11 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {
-        public const string strVersion = "02.03.00";
+        public const string strVersion = "02.04.00";
         public const string strHistory = (String)(
+                "[V02.04.00]\r\n" +
+                "  아두이노, 자바스크립트 버전 탑재" + "\r\n" +
+                "========================================\r\n" + // Release  
                 "[V02.03.00]\r\n" +
                 "  SyncRead 버그 수정" + "\r\n" +
                 "========================================\r\n" + // Release  
@@ -874,6 +877,18 @@ namespace OpenJigWare
         }
         #region MotionTool
         #endregion MotionTool
+        
+        #region 3D Box
+        public class CTools_3D
+        {
+            public Docking.frmDesigner m_frmDesigner = new Docking.frmDesigner();
+            public void Show3D()
+            {
+                m_frmDesigner.Show_3D();
+            }
+        }
+        #endregion 3D Box
+
         public class CTools_Designer
         {
             public Docking.frmDesigner m_frmDesigner = new Docking.frmDesigner();

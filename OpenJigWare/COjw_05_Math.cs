@@ -7,6 +7,7 @@ using System.Linq;
 #endif
 using System.Text;
 using System.Drawing;
+using System.Text.RegularExpressions;
 
 namespace OpenJigWare
 {
@@ -348,7 +349,47 @@ namespace OpenJigWare
 #endif
                         }
                     }
+
+                for (int i = 0; i < nLine; i++)
+                    for (int j = 0; j < nLine; j++)
+                    {
+                        aStrRes[i, j] = SimplifyExpression(aStrRes[i, j]);
+                    }
                 return true;
+            }
+
+            public static string SimplifyExpression(string expression)
+            {
+                // 1. 함수 인자의 불필요한 괄호 제거: (S(t1)) -> S(t1)
+                expression = Regex.Replace(expression, @"\((S|C)\(([^()]+)\)\)", "$1($2)");
+
+                // 2. 연산자 주변의 불필요한 괄호 제거: (a)*(b) -> a*b
+                expression = Regex.Replace(expression, @"\(([^()]+)\)\*\(([^()]+)\)", "$1*$2");
+
+                // 3. 음수 표현 정리: (-(S(t1))) -> -S(t1)
+                expression = Regex.Replace(expression, @"\(-([^()]+)\)", "-$1");
+
+                // 4. 여러 번 적용 (복잡한 중첩 괄호를 위해)
+                string previousExpression;
+                do
+                {
+                    previousExpression = expression;
+
+                    // 함수 인자의 괄호 제거 반복
+                    expression = Regex.Replace(expression, @"\((S|C)\(([^()]+)\)\)", "$1($2)");
+
+                    // 연산자 주변 괄호 제거 반복
+                    expression = Regex.Replace(expression, @"\(([^()]+)\)\*\(([^()]+)\)", "$1*$2");
+
+                    // 단일 항목의 불필요한 괄호 제거: ((a)) -> (a)
+                    expression = Regex.Replace(expression, @"\(\(([^()]+)\)\)", "($1)");
+
+                    // 외곽의 불필요한 괄호 제거: (a) -> a (단, 연산이 없는 경우)
+                    expression = Regex.Replace(expression, @"^\(([^+\-*/()]+)\)$", "$1");
+
+                } while (previousExpression != expression);
+
+                return expression;
             }
 
             // DH- making a T matrix.
