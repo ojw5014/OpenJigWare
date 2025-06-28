@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;_USING_DOTNET_3_5</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -143,6 +143,7 @@
     <Compile Include="COjw_36_Monster2.cs" />
     <Compile Include="COjw_35_Walking.cs" />
     <Compile Include="COjw_37_Protocol2.cs" />
+    <Compile Include="COjw_39_TextEditor.cs" />
     <Compile Include="Docking\AxisSetting.cs">
       <SubType>Form</SubType>
     </Compile>

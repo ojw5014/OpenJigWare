@@ -138,8 +138,14 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {
-        public const string strVersion = "02.04.00";
+        public const string strVersion = "02.05.00";
         public const string strHistory = (String)(
+                "[V02.06.00]\r\n" +
+                "  COjw_39_TextEditor.cs 파일 추가 -> CTextEditor 클래스를 이용한 수식컴파일러의 팔레트 추가, 파이썬 모드(SetPythonMode())도 추가" + "\r\n" +
+                "========================================\r\n" + // Release  
+                "[V02.05.00]\r\n" +
+                "  COjw_26_Streaming.cs -> Snapshots() 함수 수정, 전체 화면공유를 다중모니터 상태에서도 가능하도록 수정" + "\r\n" + 
+                "========================================\r\n" + // Release  
                 "[V02.04.00]\r\n" +
                 "  아두이노, 자바스크립트 버전 탑재" + "\r\n" +
                 "========================================\r\n" + // Release  

@@ -60,19 +60,105 @@ namespace OpenJigWare
             public static SVector_t operator *(SVector_t v1, SVector_t v2) { return new SVector_t(v1.x * v2.x, v1.y * v2.y); }
             public static SVector_t operator /(SVector_t v1, SVector_t v2) { return new SVector_t(v1.x / v2.x, v1.y / v2.y); }
         }
+        //public struct SVector3D_t
+        //{
+        //    public float x;
+        //    public float y;
+        //    public float z;
+        //    public SVector3D_t(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
+
+        //    //public static SVector3D_t operator =(SVector3D_t v1) { return new float[](v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
+        //    //public static SVector3D_t operator =(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x = v2.x, v1.y = v2.y, v1.z = v2.z); }
+        //    public static SVector3D_t operator +(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
+        //    public static SVector3D_t operator -(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z); }
+        //    public static SVector3D_t operator *(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z); }
+        //    public static SVector3D_t operator /(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z); }
+        //}
         public struct SVector3D_t
         {
             public float x;
             public float y;
             public float z;
-            public SVector3D_t(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
-
-            //public static SVector3D_t operator =(SVector3D_t v1) { return new float[](v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
-            //public static SVector3D_t operator =(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x = v2.x, v1.y = v2.y, v1.z = v2.z); }
+    
+            public SVector3D_t(float x, float y, float z) 
+            { 
+                this.x = x; 
+                this.y = y; 
+                this.z = z; 
+            }
+    
+            // 기존 연산자들
             public static SVector3D_t operator +(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
             public static SVector3D_t operator -(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z); }
             public static SVector3D_t operator *(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z); }
             public static SVector3D_t operator /(SVector3D_t v1, SVector3D_t v2) { return new SVector3D_t(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z); }
+            // 스칼라 곱셈/나눗셈 추가
+            public static SVector3D_t operator *(SVector3D_t v, float scalar) { return new SVector3D_t(v.x * scalar, v.y * scalar, v.z * scalar); } 
+            public static SVector3D_t operator *(float scalar, SVector3D_t v) { return new SVector3D_t(v.x * scalar, v.y * scalar, v.z * scalar); } 
+            public static SVector3D_t operator /(SVector3D_t v, float scalar) { return new SVector3D_t(v.x / scalar, v.y / scalar, v.z / scalar); } 
+            // 단항 연산자
+            public static SVector3D_t operator -(SVector3D_t v) { return new SVector3D_t(-v.x, -v.y, -v.z); }
+            // 벡터 길이 계산
+            public float Length() { return (float)Math.Sqrt(x * x + y * y + z * z); }    
+            public float LengthSquared() { return x * x + y * y + z * z; }
+            // 벡터 정규화
+            public SVector3D_t Normalized() { float length = Length(); if (length == 0) return new SVector3D_t(0, 0, 0); return new SVector3D_t(x / length, y / length, z / length); }
+            public void Normalize() { float length = Length(); if (length == 0) return; x /= length; y /= length; z /= length; }
+            // 내적 (Dot Product)
+            public float Dot(SVector3D_t other) { return x * other.x + y * other.y + z * other.z; } 
+            public static float Dot(SVector3D_t a, SVector3D_t b) { return a.x * b.x + a.y * b.y + a.z * b.z; } 
+            // 외적 (Cross Product)
+            public SVector3D_t Cross(SVector3D_t other) { return new SVector3D_t( y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x ); }
+            public static SVector3D_t Cross(SVector3D_t a, SVector3D_t b) { return new SVector3D_t( a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x ); }
+            // 벡터 간 거리
+            public float Distance(SVector3D_t other) { return (this - other).Length(); }    
+            public static float Distance(SVector3D_t a, SVector3D_t b) { return (a - b).Length(); }    
+            // 선형 보간
+            public static SVector3D_t Lerp(SVector3D_t a, SVector3D_t b, float t) { return a + (b - a) * t; }    
+            // 벡터 각도 (라디안)
+            public float Angle(SVector3D_t other) { float dot = Dot(other); float lengths = Length() * other.Length(); if (lengths == 0) return 0; return (float)Math.Acos(Math.Max(-1.0f, Math.Min(1.0f, dot / lengths))); }
+            // 유용한 상수들
+            public static SVector3D_t Zero { get { return new SVector3D_t(0, 0, 0); } }
+            public static SVector3D_t One { get { return new SVector3D_t(1, 1, 1); } }
+            public static SVector3D_t UnitX { get { return new SVector3D_t(1, 0, 0); } }
+            public static SVector3D_t UnitY { get { return new SVector3D_t(0, 1, 0); } }
+            public static SVector3D_t UnitZ { get { return new SVector3D_t(0, 0, 1); } }
+            public static SVector3D_t Forward { get { return new SVector3D_t(0, 0, 1); } }
+            public static SVector3D_t Back { get { return new SVector3D_t(0, 0, -1); } }
+            public static SVector3D_t Up { get { return new SVector3D_t(0, 1, 0); } }
+            public static SVector3D_t Down { get { return new SVector3D_t(0, -1, 0); } }
+            public static SVector3D_t Right { get { return new SVector3D_t(1, 0, 0); } }
+            public static SVector3D_t Left { get { return new SVector3D_t(-1, 0, 0); } }
+    
+            // 비교 연산자
+            public static bool operator ==(SVector3D_t a, SVector3D_t b)
+            {
+                return Math.Abs(a.x - b.x) < float.Epsilon && 
+                       Math.Abs(a.y - b.y) < float.Epsilon && 
+                       Math.Abs(a.z - b.z) < float.Epsilon;
+            }
+    
+            public static bool operator !=(SVector3D_t a, SVector3D_t b)
+            {
+                return !(a == b);
+            }
+    
+            public override bool Equals(object obj)
+            {
+                if (obj is SVector3D_t)
+                    return this == (SVector3D_t)obj;
+                return false;
+            }
+    
+            public override int GetHashCode()
+            {
+                return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
+            }
+    
+            //public override string ToString()
+            //{
+            //    return $"({x:F2}, {y:F2}, {z:F2})";
+            //}
         }
         public struct SVector4D_t
         {

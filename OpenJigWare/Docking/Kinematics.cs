@@ -16,6 +16,7 @@ namespace OpenJigWare.Docking
             InitializeComponent();
         }
 
+        private Ojw.CTextEditor m_CTextEditor = new Ojw.CTextEditor();
         private List<int> m_lstMotor_Key_for_dic = new List<int>();
         private List<string> m_lstMotor_Value_for_dic = new List<string>();
         private void frmKinematics_Load(object sender, EventArgs e)
@@ -73,6 +74,9 @@ namespace OpenJigWare.Docking
             txtDh.MouseWheel += new MouseEventHandler(txtDh_MouseWheel);
             txtDh.MouseDown += new MouseEventHandler(txtDh_MouseDown);
             txtDh.MouseUp += new MouseEventHandler(txtDh_MouseUp);
+
+            m_CTextEditor.Init(rtxtDH_Tab_Inverse);
+            m_CTextEditor.SetFontSize(12);
         }
 
         int m_nDhMouseEvent_Down = 0;
@@ -340,7 +344,7 @@ namespace OpenJigWare.Docking
                 txtDH_Tab_Forward.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, m_C3d.GetHeader_pSEncryptKinematics_encryption()[nNum].byteEncryption));
 
                 Ojw.CEncryption.SetEncrypt("OJW5014"); // 암호화 해제는 보안이 필요
-                txtDH_Tab_Inverse.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, m_C3d.GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption));
+                rtxtDH_Tab_Inverse.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, m_C3d.GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption));
 
                 // Function Name(Caption) : 예전이름 m_txtGroupName
                 txtDH_Caption.Text = m_C3d.GetHeader_pstrGroupName()[nNum];
@@ -472,19 +476,6 @@ namespace OpenJigWare.Docking
 
                 byte[] byteData = Encoding.Default.GetBytes(txtDH_Tab_Forward.Text);
                 m_C3d.GetHeader_pSEncryptKinematics_encryption()[nNum].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
-                byteData = null;
-            }
-        }
-
-        private void txtDH_Tab_Inverse_TextChanged(object sender, EventArgs e)
-        {
-            int nNum = cmbDh.SelectedIndex;
-            if (txtDH_Tab_Inverse.Focused == true)
-            {
-                m_C3d.GetHeader_pstrInverseKinematics()[nNum] = txtDH_Tab_Inverse.Text;
-
-                byte[] byteData = Encoding.Default.GetBytes(txtDH_Tab_Inverse.Text);
-                m_C3d.GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
                 byteData = null;
             }
         }
@@ -747,7 +738,7 @@ namespace OpenJigWare.Docking
 #endif
         private void chkDH_Test_Show_CheckedChanged(object sender, EventArgs e)
         {
-            int nNum = Ojw.CConvert.StrToInt(txtDH_Tab_Inverse.Text);
+            int nNum = Ojw.CConvert.StrToInt(rtxtDH_Tab_Inverse.Text);
             float fX = Ojw.CConvert.StrToFloat(txtDH_Test_X.Text);
             float fY = Ojw.CConvert.StrToFloat(txtDH_Test_Y.Text);
             float fZ = Ojw.CConvert.StrToFloat(txtDH_Test_Z.Text);
@@ -2845,6 +2836,19 @@ namespace OpenJigWare.Docking
                         MakeString_For_ForwardKinematics();
                     }
                 }
+            }
+        }
+
+        private void rtxtDH_Tab_Inverse_TextChanged(object sender, EventArgs e)
+        {
+            int nNum = cmbDh.SelectedIndex;
+            if (rtxtDH_Tab_Inverse.Focused == true)
+            {
+                m_C3d.GetHeader_pstrInverseKinematics()[nNum] = rtxtDH_Tab_Inverse.Text;
+
+                byte[] byteData = Encoding.Default.GetBytes(rtxtDH_Tab_Inverse.Text);
+                m_C3d.GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
+                byteData = null;
             }
         }
     }

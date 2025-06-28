@@ -1,6 +1,11 @@
 //#define _MONSTER_LIB // 몬스터 라이브러리의 사용여부
 
-#define _VIEW_THE_OUTLINE // 물체의 외곽 라인이 보이게 할 것인지 아닌 것인지를 결정
+//#define _VIEW_THE_OUTLINE // 물체의 외곽 라인이 보이게 할 것인지 아닌 것인지를 결정
+/*
+ #if _VIEW_THE_OUTLINE
+                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+#endif
+ */
 
 #define _COPY_FLAG
 #define _ENABLE_LED_FONT_COLOR
@@ -119,7 +124,9 @@ namespace OpenJigWare
             //
             private TextBox m_txtForwardKinematics = new TextBox();
             private TextBox m_txtForwardKinematics_Message = new TextBox();
+            
             private TextBox m_txtInverseKinematics_Message = new TextBox();
+                        
             private TextBox m_txtDH_Draw_Size = new TextBox();
             private ComboBox m_cmbDH_AxisDir = new ComboBox();
             private TextBox m_txtDH_Draw_Alpha = new TextBox();
@@ -142,7 +149,8 @@ namespace OpenJigWare
             private Button m_btnDHCompile = new Button();
             private TextBox m_txtDhParam = new TextBox();
             ////
-            private TextBox m_txtInverseKinematics = new TextBox();
+            private RichTextBox m_rtxtInverseKinematics = new RichTextBox();
+            //private TextBox m_txtInverseKinematics = new TextBox();
             private ComboBox m_cmbInverseKinematics = new ComboBox();
             private CheckBox m_chkTestObject = new CheckBox();
             private TextBox m_txtTestObjectSize = new TextBox();
@@ -376,7 +384,21 @@ namespace OpenJigWare
                     }
                 }
             }
+            // m_txtKinematics_TextChanged 에 있었으나 형식이 맞지 않아 따로 설정
+            public void m_rtxtKinematics_TextChanged(object sender, EventArgs e)
+            {
+                if ((((System.Windows.Forms.RichTextBox)sender) == m_rtxtInverseKinematics) && (m_cmbDh.SelectedIndex >= 0))
+                {
+                    if (m_rtxtInverseKinematics.Focused == true)
+                    {
+                        GetHeader_pstrInverseKinematics()[m_cmbDh.SelectedIndex] = m_rtxtInverseKinematics.Text;
 
+                        byte[] byteData = Encoding.Default.GetBytes(m_rtxtInverseKinematics.Text);
+                        GetHeader_pSEncryptInverseKinematics_encryption()[m_cmbDh.SelectedIndex].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
+                        byteData = null;
+                    }
+                }
+            }
             public void m_txtKinematics_TextChanged(object sender, EventArgs e)
             {
                 if ((((System.Windows.Forms.TextBox)sender) == m_txtGroupName) && (m_cmbDh.SelectedIndex >= 0))
@@ -397,17 +419,17 @@ namespace OpenJigWare
                         byteData = null;
                     }
                 }
-                else if ((((System.Windows.Forms.TextBox)sender) == m_txtInverseKinematics) && (m_cmbDh.SelectedIndex >= 0))
-                {
-                    if (m_txtInverseKinematics.Focused == true)
-                    {
-                        GetHeader_pstrInverseKinematics()[m_cmbDh.SelectedIndex] = m_txtInverseKinematics.Text;
+                //else if ((((System.Windows.Forms.RichTextBox)sender) == m_rtxtInverseKinematics) && (m_cmbDh.SelectedIndex >= 0))
+                //{
+                //    if (m_rtxtInverseKinematics.Focused == true)
+                //    {
+                //        GetHeader_pstrInverseKinematics()[m_cmbDh.SelectedIndex] = m_rtxtInverseKinematics.Text;
 
-                        byte[] byteData = Encoding.Default.GetBytes(m_txtInverseKinematics.Text);
-                        GetHeader_pSEncryptInverseKinematics_encryption()[m_cmbDh.SelectedIndex].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
-                        byteData = null;
-                    }
-                }
+                //        byte[] byteData = Encoding.Default.GetBytes(m_rtxtInverseKinematics.Text);
+                //        GetHeader_pSEncryptInverseKinematics_encryption()[m_cmbDh.SelectedIndex].byteEncryption = Ojw.CEncryption.Encryption(true, byteData);
+                //        byteData = null;
+                //    }
+                //}
                 else if (((System.Windows.Forms.TextBox)sender) == m_txtDH_Draw_Size)
                 {
                     SetTestDh_Size(Ojw.CConvert.StrToFloat(m_txtDH_Draw_Size.Text)); 
@@ -720,6 +742,8 @@ namespace OpenJigWare
                 m_atxtAngle = atxtAngle;
                 if (m_atxtAngle != null) m_bTextBox_ForAngle = true;
             }
+
+            CTextEditor m_CTextEditor = new CTextEditor();
             private bool m_bInitKinematicsFunction = false;
             public void InitTools_Kinematics(Panel pnKinematics)
             {
@@ -918,25 +942,28 @@ namespace OpenJigWare
                 i++; nItems++;
                 //return;
 
-                m_txtInverseKinematics.Left = 10;
-                m_txtInverseKinematics.Top = 10;
-                m_txtInverseKinematics.Multiline = true;
-                m_txtInverseKinematics.WordWrap = false;
-                m_txtInverseKinematics.ScrollBars = ScrollBars.Both;
-                m_txtInverseKinematics.Width = m_tabKinematics.Width - m_txtInverseKinematics.Left * 2 - 10;
-                m_txtInverseKinematics.Height = m_tabKinematics.Height - m_txtInverseKinematics.Top * 2 - 30 - nHeight_Message;
-                m_tabpgInverse.Controls.Add(m_txtInverseKinematics);
+                m_rtxtInverseKinematics.Left = 10;
+                m_rtxtInverseKinematics.Top = 10;
+                m_rtxtInverseKinematics.Multiline = true;
+                m_rtxtInverseKinematics.WordWrap = false;
+                m_rtxtInverseKinematics.ScrollBars = RichTextBoxScrollBars.Both;
+                m_rtxtInverseKinematics.Width = m_tabKinematics.Width - m_rtxtInverseKinematics.Left * 2 - 10;
+                m_rtxtInverseKinematics.Height = m_tabKinematics.Height - m_rtxtInverseKinematics.Top * 2 - 30 - nHeight_Message;
+                m_tabpgInverse.Controls.Add(m_rtxtInverseKinematics);
+                m_CTextEditor.Init(m_rtxtInverseKinematics);
+                m_CTextEditor.SetFontSize(12);
+
                 // Event
-                if (bInit == true) m_txtInverseKinematics.TextChanged += new System.EventHandler(m_txtKinematics_TextChanged);
+                if (bInit == true) m_rtxtInverseKinematics.TextChanged += new System.EventHandler(m_rtxtKinematics_TextChanged);
                 //
                 i++; nItems++;
 
                 m_txtInverseKinematics_Message.Left = 10;
-                m_txtInverseKinematics_Message.Top = 10 + m_txtInverseKinematics.Height + nHeight_Message_Gap;
+                m_txtInverseKinematics_Message.Top = 10 + m_rtxtInverseKinematics.Height + nHeight_Message_Gap;
                 m_txtInverseKinematics_Message.Multiline = true;
                 m_txtInverseKinematics_Message.WordWrap = false;
-                m_txtInverseKinematics_Message.ScrollBars = ScrollBars.Both;
-                m_txtInverseKinematics_Message.Width = m_txtInverseKinematics.Width;// m_tabKinematics.Width - m_txtInverseKinematics_Message.Left * 2 - 10;
+                m_txtInverseKinematics_Message.ScrollBars = ScrollBars.Both;//ScrollBars.Both;
+                m_txtInverseKinematics_Message.Width = m_rtxtInverseKinematics.Width;// m_tabKinematics.Width - m_txtInverseKinematics_Message.Left * 2 - 10;
                 m_txtInverseKinematics_Message.Height = nHeight_Message;
                 m_tabpgInverse.Controls.Add(m_txtInverseKinematics_Message);
                 #endregion Inverse
@@ -1527,6 +1554,7 @@ namespace OpenJigWare
                         Ojw.CMessage.Write(m_txtForwardKinematics_Message, "V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)));
                         Ojw.CMessage.Write(m_txtInverseKinematics_Message, "V" + i.ToString() + ":" + Ojw.CConvert.DoubleToStr(Ojw.CKinematics.CInverse.GetValue_V(i)));                    
                     }
+                    
                     // 나온 결과값을 옮긴다.
                     int nMotCnt = GetHeader_pSOjwCode()[nNum].nMotor_Max;
                     for (int i = 0; i < nMotCnt; i++)
@@ -3372,7 +3400,7 @@ namespace OpenJigWare
                     m_txtForwardKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptKinematics_encryption()[nNum].byteEncryption));
 
                     Ojw.CEncryption.SetEncrypt("OJW5014"); // 암호화 해제는 보안이 필요
-                    m_txtInverseKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption));
+                    m_rtxtInverseKinematics.Text = Encoding.Default.GetString(Ojw.CEncryption.Encryption(false, GetHeader_pSEncryptInverseKinematics_encryption()[nNum].byteEncryption));
 
                     m_txtGroupName.Text = GetHeader_pstrGroupName()[nNum];
                     m_cmbDh.SelectedIndex = nNum;
@@ -25616,9 +25644,30 @@ namespace OpenJigWare
                                 if (strTrack.Length > 0)
                                 {
                                     //OjwBall_Outside(bFill, Color.Green, fAlpha, fR / 10, 50, 0, 0, 0, fPos, 0, 0);
-                                    OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                    if (bFill == false)
+                                    {
+                                        OjwAse_Outside(bFill, color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
                                             fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
                                             fTrack_OffsetX + fPos, fTrack_OffsetY, fTrack_OffsetZ, strTrack);
+                                    }
+                                    else
+                                    {
+                                        for (int iii = 0; iii < 2; iii++)
+                                        {
+
+                                            if (iii == 0)
+                                            {
+                                                m_bDisable_Light = true;
+                                            }
+                                            OjwAse_Outside(((iii == 0) ? false : true), color, fAlpha, fTrack_W, fTrack_H, fTrack_D,
+                                                    fTrack_OffsetPan, fTrack_OffsetTilt, fTrack_OffsetSwing,
+                                                    fTrack_OffsetX + fPos, fTrack_OffsetY, fTrack_OffsetZ, strTrack);
+                                            if (iii == 0)
+                                            {
+                                                m_bDisable_Light = false;
+                                            }
+                                        }
+                                    }
                                 }
                                 else
                                 {
@@ -26674,6 +26723,7 @@ namespace OpenJigWare
                     return nIndex;
 #endif
                 }
+                private bool m_bDisable_Light = false;
                 private List<string> m_lststrModelingFiles = new List<string>();
                 private string m_strNoLoaded_ModelingFile = "";
                 // 3D 모델링 파일의 부품이 로드 되었는지 확인...(stl, ase, dat)
@@ -26686,6 +26736,12 @@ namespace OpenJigWare
                                     String strIndex_Ase  // File Index name(Kor: 파일 인덱싱 이름)
                                 )
                 {
+
+                    OjwAse_Outside_Line(bFill, color, fAlpha, fW, fH, fD, fOffsetPan, fOffsetTilt, fOffsetSwing, fOffsetX, fOffsetY, fOffsetZ, strIndex_Ase);
+#if false
+                    return;
+
+
                     int nOld = strIndex_Ase.LastIndexOf('*');
                     if (nOld == strIndex_Ase.Length - 1)
                     {
@@ -26707,19 +26763,12 @@ namespace OpenJigWare
 
                     bool bStl = false;
                     if (
-#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
-                        (strIndex_Ase.ToUpper().IndexOf('.') < 0) ||
-#endif
                         (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0) ||
                         (strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0) ||
                         (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0)
                         ) bStl = true;
                     bool bDat = false;
                     if (
-                        //(strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0) ||
-#if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
-                        (strIndex_Ase.ToUpper().IndexOf('.') < 0) ||
-#endif
                         (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0) 
                         ) bDat = true;
 
@@ -26728,15 +26777,8 @@ namespace OpenJigWare
                     m_fColor[1] = ((float)cColor.G / 255.0f);  // G
                     m_fColor[2] = ((float)cColor.B / 255.0f);  // B
                     m_fColor[3] = fAlpha;// m_fAlpha;
-
                     
-                    //RenderWithStencilOutline_Start();
-
                     Gl.glPushMatrix();
-#if _STL_CW
-                    Gl.glFrontFace((bStl == true) ? Gl.GL_CW : Gl.GL_CCW);
-#else
-
 
 
                     OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
@@ -26744,50 +26786,30 @@ namespace OpenJigWare
                     OjwRotation(0, fOffsetTilt, 0);
                     OjwRotation(fOffsetPan, 0, 0);
 
-                    Gl.glPushMatrix(); // setlight2()
+                    Gl.glPushMatrix();
+
+
                     SetLight();
                     SetLight2();
                     SetLight3();
+
                     Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
 
 
-
-
-
-                    //Gl.glFrontFace(Gl.GL_CCW); // 20150528 수정 - 이게 맞다.
                     Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
-                    //Gl.glFrontFace((bStl == true) ? Gl.GL_CCW : Gl.GL_CCW);
-#endif
-#if true // 1
-#if _STL_CW
-                    Gl.glPolygonMode(Gl.GL_BACK,
-                            (int)(
-                                (bFill == true) ?
-                                    ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
-                            )
-                        );
-                    Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
-#else       // original    
+
                     if (IsPerspectiveMode() == true)
                     {
                         Gl.glPolygonMode(Gl.GL_FRONT,
                                 (int)(
                                     (bFill == true) ?
-                                        Gl.GL_FILL : Gl.GL_LINE//((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                                        Gl.GL_FILL : Gl.GL_LINE
                                 )
                             );
-                        //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
 
-#if _VIEW_THE_OUTLINE
-                        //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+
                         Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
-#endif
-                        //Gl.glPolygonMode(Gl.GL_FRONT,
-                        //        (int)(
-                        //            (bFill == true) ?
-                        //                ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
-                        //        )
-                        //    );
+
                     }
                     else
                     {
@@ -26797,36 +26819,14 @@ namespace OpenJigWare
                                         Gl.GL_FILL : Gl.GL_LINE//((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
                                 )
                             );
-                        //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
-#if _VIEW_THE_OUTLINE
+
                         Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
-                        //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
-#endif
-                        //Gl.glPolygonMode(Gl.GL_FRONT,
-                        //        (int)(
-                        //            (bFill == true) ?
-                        //                ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
-                        //        )
-                        //    );
-#if false
-                        Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
-                        //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_POINT : Gl.GL_POINT));
-                        Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_LINE : Gl.GL_LINE));
-#endif
+
+                       
+
 
                     }
 
-#endif
-#else
-                    //Gl.glEdgeFlag(Gl.GL_TRUE);
-                    Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
-                    Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_FILL);
-                    //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
-                    //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
-                    //Gl.glPolygonMode(Gl.GL_FRONT, (int)((bFill == true) ? Gl.GL_LINES : Gl.GL_POINT));
-                    //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_FILL : Gl.GL_LINE));
-                    //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? Gl.GL_LINE : Gl.GL_LINE));
-#endif
                     int uiType = (bDat == true) ? Gl.GL_TRIANGLES : Gl.GL_TRIANGLES;// Gl.GL_POLYGON;// Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
 
                     Gl.glColor4fv(m_fColor);
@@ -26839,70 +26839,14 @@ namespace OpenJigWare
                     float fZ2 = fD / 2.0f;
 
                     if (m_lstOjwAse[nIndex_Ase].Data_GetCnt() <= 0) return;
-#if false
-                    //SVector3D_t[] aSPos = new SVector3D_t[m_lstOjwAse[nIndex_Ase].Face_GetCnt() * 3];
-                    //int nPos = 0;
-                    //int nPos2;
-                    //foreach (SPoint3D_t SPnt in pSData)
-                    //{
-                    //    nPos2 = nPos * 3;
-                    //    aSPos[nPos2] = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x);
-                    //    aSPos[nPos2 + 1] = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y);
-                    //    aSPos[nPos2 + 2] = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z);
-                    //    nPos++;
-                    //}
-#endif
-                    //SetLight();
-                    //SetLight2();
+
                     Gl.glBegin(uiType);
-                    //Gl.glEdgeFlag(Gl.GL_FALSE);  
-                    // Draw        
-#if false
-                    foreach (SVector3D_t SVector3D in aSPos)
-                    {
-                        Gl.glVertex3f(SVector3D.x, SVector3D.y, SVector3D.z);
-                    }
-                    aSPos = null;
-#else
-#if true
-                    //CTimer CTmr = new CTimer();
-                    //CTmr.Set();
-#if false
-                    SPoint3D_t[] pSData = m_lstOjwAse[nIndex_Ase].Face_Get();
-                    foreach (SPoint3D_t SPnt in pSData)
-                    {
-                        SVector3D_t SVtx_x = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x);
-                        SVector3D_t SVtx_y = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y);
-                        SVector3D_t SVtx_z = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z);
-
-                        Gl.glVertex3f(SVtx_x.x, SVtx_x.y, SVtx_x.z);
-                        Gl.glVertex3f(SVtx_y.x, SVtx_y.y, SVtx_y.z);
-                        Gl.glVertex3f(SVtx_z.x, SVtx_z.y, SVtx_z.z);
-
-                        //Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x).z);
-                        //Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y).z);
-                        //Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).z);
-                    }
-#else
+                    
                     if (IsPerspectiveMode() == true)
                     {
-                        //Gl.glEdgeFlag(Gl.GL_TRUE); -> 상관없음
-                        //Gl.glFrontFace(Gl.GL_CW); -> 관계없음
                     }
                     if (bStl == true)
                     {
-#if false
-
-                        //Gl.glEnableClientState(Gl.GL_VERTEX_ARRAY);
-                        //Gl.glVertexPointer(3, Gl.GL_FLOAT, 0, (IntPtr)m_lstOjwAse[nIndex_Ase].Data_Get());
-                        //Gl.glDrawArrays(uiType, 0, m_lstOjwAse[nIndex_Ase].Data_GetCnt());
-
-                        //for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Data_GetCnt(); i++)
-                        //    Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(i).x, m_lstOjwAse[nIndex_Ase].Data_Get(i).y, m_lstOjwAse[nIndex_Ase].Data_Get(i).z);
-#else
-                        //SVector3D_t[] pSVec = m_lstOjwAse[nIndex_Ase].Data_Get();
-                        //foreach (SVector3D_t SVec in pSVec) Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
-
                         Gl.glPushMatrix();
                         bool bStart = true;
                         foreach (SVector4D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get())
@@ -26918,22 +26862,10 @@ namespace OpenJigWare
                             }
                             Gl.glVertex3f(SVec.x, SVec.y, SVec.z);                            
                         }
-                        Gl.glPopMatrix();
-#endif
-                        
-                        //for (int i = 0; i < pSVec.Length; i += 3)
-                        //{
-                        //    //Gl.glBegin(uiType);
-                        //    Gl.glVertex3f(pSVec[i].x, pSVec[i].y, pSVec[i].z);
-                        //    Gl.glVertex3f(pSVec[i + 1].x, pSVec[i + 1].y, pSVec[i + 1].z);
-                        //    Gl.glVertex3f(pSVec[i + 2].x, pSVec[i + 2].y, pSVec[i + 2].z);
-                        //    //Gl.glEnd();// end drawing
-                        //}
-                        //Gl.glFrontFace(Gl.GL_CCW);
+                        Gl.glPopMatrix();                      
                     }
                     else
                     {
-#if true
                         Gl.glPushMatrix();
                         for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Face_GetCnt(); i++)
                         {
@@ -26950,63 +26882,663 @@ namespace OpenJigWare
                             Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).z);
                         }
                         Gl.glPopMatrix();
-#else
-                        SPoint3D_t[] pSData = m_lstOjwAse[nIndex_Ase].Face_Get();
-                        foreach (SPoint3D_t SPnt in pSData)
-                        {
-#if false
-                            SVector3D_t SVtx_x = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x);
-                            SVector3D_t SVtx_y = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y);
-                            SVector3D_t SVtx_z = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z);
-                            //Gl.glBegin(uiType);
-                            Gl.glVertex3f(SVtx_x.x, SVtx_x.y, SVtx_x.z);
-                            Gl.glVertex3f(SVtx_y.x, SVtx_y.y, SVtx_y.z);
-                            Gl.glVertex3f(SVtx_z.x, SVtx_z.y, SVtx_z.z);
-                            //Gl.glEnd();// end drawing
-#else                            
-                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x).z);
-                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y).z);
-                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).x, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).y, m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z).z);                          
-#endif
-                        }
-#endif
-                    }
-                    //Gl.glEdgeFlag(Gl.GL_TRUE);
-#endif
-                    //CMessage.Write("[" + CConvert.IntToStr(nIndex_Ase) + "]" + CConvert.IntToStr(CTmr.GetTick()));
-#else
-                    //CTimer CTmr = new CTimer();
-                    //CTmr.Set();
-                    int nCnt = m_lstOjwAse[nIndex_Ase].Face_GetCnt();
-                    for (int i = 0; i < nCnt; i++)
-                    {
-#if true
-                        SPoint3D_t SPnt = m_lstOjwAse[nIndex_Ase].Face_Get(i);
-                        SVector3D_t SVtx_x = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.x);
-                        SVector3D_t SVtx_y = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.y);
-                        SVector3D_t SVtx_z = m_lstOjwAse[nIndex_Ase].Data_Get(SPnt.z);
-                        
-                        Gl.glVertex3f(SVtx_x.x, SVtx_x.y, SVtx_x.z);
-                        Gl.glVertex3f(SVtx_y.x, SVtx_y.y, SVtx_y.z);
-                        Gl.glVertex3f(SVtx_z.x, SVtx_z.y, SVtx_z.z);
-#else
-                        Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).z);
-                        Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).z);
-                        Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).z);
-#endif
-                    }
-                    //CMessage.Write("[" + CConvert.IntToStr(nIndex_Ase) + "]" + CConvert.IntToStr(CTmr.GetTick()));
-#endif
-#endif
-                    //Gl.glEdgeFlag(Gl.GL_TRUE);  
-                    Gl.glEnd();// end drawing the cube
 
-                    //if (bStl == true) Gl.glFrontFace(Gl.GL_CW);
-                    Gl.glFrontFace(m_nCWMode);//
-                    Gl.glPopMatrix(); // setlight2()
+                    }
+
+                    Gl.glEnd();
+
+                    Gl.glFrontFace(m_nCWMode);
+                    Gl.glPopMatrix();
+
+                  
+                    SetLight();
+                    SetLight2();
+                    SetLight3();
+            
+
                     Gl.glPopMatrix();
                     
-                    //RenderWithStencilOutline_End();
+#endif
+                }
+
+                public void OjwAse_Outside_Simple_Fast(Color color, float fAlpha,
+                                          float fOffsetPan, float fOffsetTilt, float fOffsetSwing,
+                                          float fOffsetX, float fOffsetY, float fOffsetZ,
+                                          String strIndex_Ase)
+                {
+                    // 기본 검증 코드 (동일)
+                    int nOld = strIndex_Ase.LastIndexOf('*');
+                    if (nOld == strIndex_Ase.Length - 1)
+                        strIndex_Ase = strIndex_Ase.Substring(0, strIndex_Ase.Length - 1);
+                    if (strIndex_Ase.Length == 0) return;
+                    int nIndex_Ase = OjwAse_GetIndex(strIndex_Ase);
+                    if ((nIndex_Ase >= m_nCnt_Obj_Ase) || (nIndex_Ase < 0)) return;
+                    bool bStl = (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0) ||
+                                (strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0);
+                    if (!bStl) return;
+                    if (m_lstOjwAse[nIndex_Ase].Data_GetCnt() <= 0) return;
+
+                    // 색상 설정
+                    m_fColor[0] = ((float)color.R / 255.0f);
+                    m_fColor[1] = ((float)color.G / 255.0f);
+                    m_fColor[2] = ((float)color.B / 255.0f);
+                    m_fColor[3] = fAlpha;
+
+                    Gl.glPushMatrix();
+
+                    OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                    OjwRotation(0, 0, fOffsetSwing);
+                    OjwRotation(0, fOffsetTilt, 0);
+                    OjwRotation(fOffsetPan, 0, 0);
+
+                    // 핵심 설정
+                    Gl.glEnable(Gl.GL_DEPTH_TEST);
+                    Gl.glDisable(Gl.GL_CULL_FACE);  // 앞뒤 모두 그리기
+                    Gl.glColor4fv(m_fColor);
+
+                    // 뒷면만 선으로 그리기 (윤곽선 효과)
+                    Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_LINE);
+                    Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                    Gl.glLineWidth(1.5f);
+
+                    // STL 삼각형들 그리기
+                    SVector4D_t[] vertices = m_lstOjwAse[nIndex_Ase].Data_Get();
+
+                    Gl.glBegin(Gl.GL_TRIANGLES);
+                    for (int i = 0; i < vertices.Length; i += 3)
+                    {
+                        if (i + 2 >= vertices.Length) break;
+                        Gl.glVertex3f(vertices[i].x, vertices[i].y, vertices[i].z);
+                        Gl.glVertex3f(vertices[i + 1].x, vertices[i + 1].y, vertices[i + 1].z);
+                        Gl.glVertex3f(vertices[i + 2].x, vertices[i + 2].y, vertices[i + 2].z);
+                    }
+                    Gl.glEnd();
+
+                    // 복원
+                    Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_FILL);
+                    Gl.glEnable(Gl.GL_CULL_FACE);
+                    Gl.glLineWidth(1.0f);
+                    Gl.glPopMatrix();
+                }
+
+                // 실험용: 앞면/뒷면 다른 색상
+                public void OjwAse_Outside_TwoColor(bool bFill, Color color, float fAlpha,
+                                                   float fW, float fH, float fD,
+                                                   float fOffsetPan, float fOffsetTilt, float fOffsetSwing,
+                                                   float fOffsetX, float fOffsetY, float fOffsetZ,
+                                                   String strIndex_Ase)
+                {
+                    
+#if true
+                    #region Code Complete
+                    #if true
+                    // 기본 검증 코드 (동일)
+                    int nOld = strIndex_Ase.LastIndexOf('*');
+                    if (nOld == strIndex_Ase.Length - 1)
+                        strIndex_Ase = strIndex_Ase.Substring(0, strIndex_Ase.Length - 1);
+                    if (strIndex_Ase.Length == 0) return;
+                    int nIndex_Ase = OjwAse_GetIndex(strIndex_Ase);
+                    if ((nIndex_Ase >= m_nCnt_Obj_Ase) || (nIndex_Ase < 0))
+                    {
+                        if (m_nSeq_Compile_Back != m_nSeq_Compile)
+                        {
+                            m_strNoLoaded_ModelingFile += strIndex_Ase + ",";
+                        }
+                        return;
+                    }
+                    
+                    bool bStl = false;
+                    if (
+                        (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0) ||
+                        (strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0) ||
+                        (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0)
+                        ) bStl = true;
+                    bool bDat = false;
+                    if (
+                        (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0)
+                        ) bDat = true;
+
+                    if (m_lstOjwAse[nIndex_Ase].Data_GetCnt() <= 0) return;
+
+                    // 두 번째 색상 자동 생성 (더 어둡게)
+                    Color fillColor = color;  // 윤곽선 색상 = 원래 색상
+                    const int _BRIGHT = 50;
+                    int nR = (color.R > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+                    int nG = (color.G > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+                    int nB = (color.B > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+
+                    Color lineColor = Color.FromArgb(
+                        Math.Max(0, color.R + nR),    // 50만큼 어둡게
+                        Math.Max(0, color.G + nG),
+                        Math.Max(0, color.B + nB)
+                    );
+
+                    //Color lineColor = color;  // 윤곽선 색상 = 원래 색상
+                    //Color fillColor = Color.FromArgb(
+                    //    Math.Max(0, color.R - 50),    // 50만큼 어둡게
+                    //    Math.Max(0, color.G - 50),
+                    //    Math.Max(0, color.B - 50)
+                    //);
+
+                    // 또는 더 밝게 하려면:
+                    // Color fillColor = Color.FromArgb(
+                    //     Math.Min(255, color.R + 50),   // 50만큼 밝게
+                    //     Math.Min(255, color.G + 50), 
+                    //     Math.Min(255, color.B + 50)
+                    // );
+
+                    Color cColor = color;
+                    m_fColor[0] = ((float)cColor.R / 255.0f);  // R
+                    m_fColor[1] = ((float)cColor.G / 255.0f);  // G
+                    m_fColor[2] = ((float)cColor.B / 255.0f);  // B
+                    m_fColor[3] = fAlpha;// m_fAlpha;
+
+                    Gl.glPushMatrix();
+                    OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                    OjwRotation(0, 0, fOffsetSwing);
+                    OjwRotation(0, fOffsetTilt, 0);
+                    OjwRotation(fOffsetPan, 0, 0);
+
+                    //Gl.glPushMatrix();
+                    //SetLight();
+                    //SetLight2();
+                    //SetLight3();
+
+                    Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
+                    Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
+
+                    Gl.glEnable(Gl.GL_DEPTH_TEST);
+                    Gl.glDisable(Gl.GL_CULL_FACE);
+                    
+                    // 1단계: 앞면을 채워진 색으로
+                    //float[] fillColorArray = { (float)fillColor.R / 255.0f, (float)fillColor.G / 255.0f, 
+                    //          (float)fillColor.B / 255.0f, fAlpha };
+
+                    //if (IsPerspectiveMode() == true)
+                    //{
+                    //    Gl.glPolygonMode(Gl.GL_FRONT,
+                    //            (int)(
+                    //                (bFill == true) ?
+                    //                    Gl.GL_FILL : Gl.GL_LINE
+                    //            )
+                    //        );
+
+
+                    //    Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+
+                    //}
+                    Gl.glColor4fv(m_fColor);//fillColorArray);
+                    //Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                    //Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_FILL);
+                    Gl.glPolygonMode(Gl.GL_FRONT,
+                                (int)(
+                                    (bFill == true) ?
+                                        Gl.GL_FILL : Gl.GL_LINE//((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                                )
+                            );
+                    Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_FILL : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+                    //Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+
+                    int uiType = (bDat == true) ? Gl.GL_TRIANGLES : Gl.GL_TRIANGLES;// Gl.GL_POLYGON;// Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
+                    Gl.glBegin(uiType);
+                    
+                    if (bStl == true)
+                    {
+                        Gl.glPushMatrix();
+                        SVector4D_t[] vertices = m_lstOjwAse[nIndex_Ase].Data_Get();
+                        for (int i = 0; i < vertices.Length; i += 3)
+                        {
+                            if (i + 2 >= vertices.Length) break;
+                            Gl.glVertex3f(vertices[i].x, vertices[i].y, vertices[i].z);
+                            Gl.glVertex3f(vertices[i + 1].x, vertices[i + 1].y, vertices[i + 1].z);
+                            Gl.glVertex3f(vertices[i + 2].x, vertices[i + 2].y, vertices[i + 2].z);
+                        }
+                        Gl.glPopMatrix();
+                    }
+                    else
+                    {
+                        Gl.glPushMatrix();
+                        for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Face_GetCnt(); i++)
+                        {
+                            //if (m_lstOjwAse[nIndex_Ase].Data_Get(i).w != 0)
+                            //{
+                            //    if (i != 0)
+                            //    {
+                            //        Gl.glPopMatrix();
+                            //        Gl.glPushMatrix();
+                            //    }
+                            //}
+                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).z);
+                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).z);
+                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).z);
+                        }
+                        Gl.glPopMatrix();
+                    }
+
+                    Gl.glEnd();
+
+                    // Gl.glPopMatrix();
+
+
+                    // 2단계: 뒷면을 선으로
+                    float[] lineColorArray = { (float)lineColor.R / 255.0f, (float)lineColor.G / 255.0f, 
+                              (float)lineColor.B / 255.0f, fAlpha };
+                    Gl.glColor4fv(lineColorArray);
+                    Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_LINE);
+                    Gl.glLineWidth(1.5f);
+
+                    Gl.glBegin(Gl.GL_TRIANGLES);
+                   
+                    
+                    
+                    //for (int i = 0; i < vertices.Length; i += 3)
+                    //{
+                    //    if (i + 2 >= vertices.Length) break;
+                    //    Gl.glVertex3f(vertices[i].x, vertices[i].y, vertices[i].z);
+                    //    Gl.glVertex3f(vertices[i + 1].x, vertices[i + 1].y, vertices[i + 1].z);
+                    //    Gl.glVertex3f(vertices[i + 2].x, vertices[i + 2].y, vertices[i + 2].z);
+                    //}
+                    if (bStl == true)
+                    {
+                        //Gl.glPushMatrix();
+                        SVector4D_t[] vertices = m_lstOjwAse[nIndex_Ase].Data_Get();
+                        for (int i = 0; i < vertices.Length; i += 3)
+                        {
+                            if (i + 2 >= vertices.Length) break;
+                            Gl.glVertex3f(vertices[i].x, vertices[i].y, vertices[i].z);
+                            Gl.glVertex3f(vertices[i + 1].x, vertices[i + 1].y, vertices[i + 1].z);
+                            Gl.glVertex3f(vertices[i + 2].x, vertices[i + 2].y, vertices[i + 2].z);
+                        }
+                        //Gl.glPopMatrix();
+                    }
+                    else
+                    {
+                        //Gl.glPushMatrix();
+                        for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Face_GetCnt(); i++)
+                        {
+                            //if (m_lstOjwAse[nIndex_Ase].Data_Get(i).w != 0)
+                            //{
+                            //    if (i != 0)
+                            //    {
+                            //        Gl.glPopMatrix();
+                            //        Gl.glPushMatrix();
+                            //    }
+                            //}
+                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).z);
+                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).z);
+                            Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).z);
+                        }
+                        //Gl.glPopMatrix();
+                    }
+                    
+                    
+                    Gl.glEnd();
+
+                    Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_FILL);
+                    Gl.glEnable(Gl.GL_CULL_FACE);
+                    Gl.glLineWidth(1.0f);
+                    
+                    //Gl.glPopMatrix();
+
+                    Gl.glPopMatrix();
+                    #endif
+                    #endregion Code Complete
+
+                    #region Code Simple - 이것도 잘 된다. 다만 ASE 파일등 STL 이외의 파일에서 어떻게 동작할 지 모름
+                    #if false
+                    // 기본 검증 코드 (동일)
+                    int nOld = strIndex_Ase.LastIndexOf('*');
+                    if (nOld == strIndex_Ase.Length - 1)
+                        strIndex_Ase = strIndex_Ase.Substring(0, strIndex_Ase.Length - 1);
+                    if (strIndex_Ase.Length == 0) return;
+                    int nIndex_Ase = OjwAse_GetIndex(strIndex_Ase);
+                    if ((nIndex_Ase >= m_nCnt_Obj_Ase) || (nIndex_Ase < 0)) return;
+                    bool bStl = (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0) ||
+                                (strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0);
+                    if (!bStl) return;
+                    if (m_lstOjwAse[nIndex_Ase].Data_GetCnt() <= 0) return;
+
+                    // 두 번째 색상 자동 생성 (더 어둡게)
+                    Color fillColor = color;  // 윤곽선 색상 = 원래 색상
+                    const int _BRIGHT = 50;
+                    int nR = (color.R > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+                    int nG = (color.G > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+                    int nB = (color.B > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+
+                    Color lineColor = Color.FromArgb(
+                        Math.Max(0, color.R + nR),    // 50만큼 어둡게
+                        Math.Max(0, color.G + nG),
+                        Math.Max(0, color.B + nB)
+                    );
+
+                    //Color lineColor = color;  // 윤곽선 색상 = 원래 색상
+                    //Color fillColor = Color.FromArgb(
+                    //    Math.Max(0, color.R - 50),    // 50만큼 어둡게
+                    //    Math.Max(0, color.G - 50),
+                    //    Math.Max(0, color.B - 50)
+                    //);
+
+                    // 또는 더 밝게 하려면:
+                    // Color fillColor = Color.FromArgb(
+                    //     Math.Min(255, color.R + 50),   // 50만큼 밝게
+                    //     Math.Min(255, color.G + 50), 
+                    //     Math.Min(255, color.B + 50)
+                    // );
+
+                    Gl.glPushMatrix();
+                    OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                    OjwRotation(0, 0, fOffsetSwing);
+                    OjwRotation(0, fOffsetTilt, 0);
+                    OjwRotation(fOffsetPan, 0, 0);
+
+                    Gl.glEnable(Gl.GL_DEPTH_TEST);
+                    Gl.glDisable(Gl.GL_CULL_FACE);
+
+                    SVector4D_t[] vertices = m_lstOjwAse[nIndex_Ase].Data_Get();
+
+                    // 1단계: 앞면을 채워진 색으로
+                    float[] fillColorArray = { (float)fillColor.R / 255.0f, (float)fillColor.G / 255.0f, 
+                              (float)fillColor.B / 255.0f, fAlpha };
+                    Gl.glColor4fv(fillColorArray);
+                    Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                    Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_FILL);
+
+                    Gl.glBegin(Gl.GL_TRIANGLES);
+                    for (int i = 0; i < vertices.Length; i += 3)
+                    {
+                        if (i + 2 >= vertices.Length) break;
+                        Gl.glVertex3f(vertices[i].x, vertices[i].y, vertices[i].z);
+                        Gl.glVertex3f(vertices[i + 1].x, vertices[i + 1].y, vertices[i + 1].z);
+                        Gl.glVertex3f(vertices[i + 2].x, vertices[i + 2].y, vertices[i + 2].z);
+                    }
+                    Gl.glEnd();
+
+                    // 2단계: 뒷면을 선으로
+                    float[] lineColorArray = { (float)lineColor.R / 255.0f, (float)lineColor.G / 255.0f, 
+                              (float)lineColor.B / 255.0f, fAlpha };
+                    Gl.glColor4fv(lineColorArray);
+                    Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_LINE);
+                    Gl.glLineWidth(1.5f);
+
+                    Gl.glBegin(Gl.GL_TRIANGLES);
+                    for (int i = 0; i < vertices.Length; i += 3)
+                    {
+                        if (i + 2 >= vertices.Length) break;
+                        Gl.glVertex3f(vertices[i].x, vertices[i].y, vertices[i].z);
+                        Gl.glVertex3f(vertices[i + 1].x, vertices[i + 1].y, vertices[i + 1].z);
+                        Gl.glVertex3f(vertices[i + 2].x, vertices[i + 2].y, vertices[i + 2].z);
+                    }
+                    Gl.glEnd();
+
+                    Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_FILL);
+                    Gl.glEnable(Gl.GL_CULL_FACE);
+                    Gl.glLineWidth(1.0f);
+                    Gl.glPopMatrix();
+                    #endif
+                    #endregion Code Simple
+#else
+                    int nOld = strIndex_Ase.LastIndexOf('*');
+                    if (nOld == strIndex_Ase.Length - 1)
+                    {
+                        strIndex_Ase = strIndex_Ase.Substring(0, strIndex_Ase.Length - 1);
+                    }
+
+                    if (strIndex_Ase.Length == 0) return;
+
+                    int nIndex_Ase = OjwAse_GetIndex(strIndex_Ase);
+                    if ((nIndex_Ase >= m_nCnt_Obj_Ase) || (nIndex_Ase < 0))
+                    {
+                        if (m_nSeq_Compile_Back != m_nSeq_Compile)
+                        {
+                            //m_nSeq_Compile_Back = m_nSeq_Compile;
+                            m_strNoLoaded_ModelingFile += strIndex_Ase + ",";
+                        }
+                        return;
+                    }
+
+                    bool bStl = false;
+                    if (
+                        (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0) ||
+                        (strIndex_Ase.ToUpper().IndexOf(".SSTL") >= 0) ||
+                        (strIndex_Ase.ToUpper().IndexOf(".STL") >= 0)
+                        ) bStl = true;
+                    bool bDat = false;
+                    if (
+                        (strIndex_Ase.ToUpper().IndexOf(".DAT") >= 0)
+                        ) bDat = true;
+
+                    // 두 번째 색상 자동 생성 (원래 코드와 동일한 방식으로)
+                    Color fillColor = color;
+                    Color lineColor = color;
+
+                    if (bFill) // bFill=true일 때만 TwoColor 효과 적용
+                    {
+                        const int _BRIGHT = 50;
+                        int nR = (color.R > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+                        int nG = (color.G > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+                        int nB = (color.B > (256 / 2)) ? -_BRIGHT : _BRIGHT;
+
+                        lineColor = Color.FromArgb(
+                            Math.Max(0, Math.Min(255, color.R + nR)),
+                            Math.Max(0, Math.Min(255, color.G + nG)),
+                            Math.Max(0, Math.Min(255, color.B + nB))
+                        );
+                    }
+
+                    Color cColor = fillColor; // 기본은 fillColor 사용
+                    m_fColor[0] = ((float)cColor.R / 255.0f);  // R
+                    m_fColor[1] = ((float)cColor.G / 255.0f);  // G
+                    m_fColor[2] = ((float)cColor.B / 255.0f);  // B
+                    m_fColor[3] = fAlpha;// m_fAlpha;
+
+                    Gl.glPushMatrix();
+
+                    OjwTranslate(fOffsetX, fOffsetY, fOffsetZ);
+                    OjwRotation(0, 0, fOffsetSwing);
+                    OjwRotation(0, fOffsetTilt, 0);
+                    OjwRotation(fOffsetPan, 0, 0);
+
+                    Gl.glPushMatrix();
+
+                    SetLight();
+                    SetLight2();
+                    SetLight3();
+
+                    Gl.glFrontFace(((bDat == true) ? Gl.GL_CW : Gl.GL_CCW)); // 20150528 수정 - 이게 맞다.
+
+                    if (IsPerspectiveMode() == true)
+                    {
+                        if (bFill && bStl) // TwoColor 효과를 위한 특별 처리
+                        {
+                            // TwoColor 모드: 앞면 채우기, 뒷면 선
+                            Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                            Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_LINE);
+                            Gl.glDisable(Gl.GL_CULL_FACE); // 앞뒤 모두 그리기
+                        }
+                        else
+                        {
+                            // 원래 로직 유지
+                            Gl.glPolygonMode(Gl.GL_FRONT,
+                                    (int)(
+                                        (bFill == true) ?
+                                            Gl.GL_FILL : Gl.GL_LINE
+                                    )
+                                );
+                            Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+                        }
+                    }
+                    else
+                    {
+                        if (bFill && bStl) // TwoColor 효과를 위한 특별 처리
+                        {
+                            // TwoColor 모드: 앞면 채우기, 뒷면 선
+                            Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                            Gl.glPolygonMode(Gl.GL_BACK, Gl.GL_LINE);
+                            Gl.glDisable(Gl.GL_CULL_FACE); // 앞뒤 모두 그리기
+                        }
+                        else
+                        {
+                            // 원래 로직 유지
+                            Gl.glPolygonMode(Gl.GL_FRONT,
+                                    (int)(
+                                        (bFill == true) ?
+                                            Gl.GL_FILL : Gl.GL_LINE//((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_FILL) : ((m_bDetail == true) ? Gl.GL_POINT : Gl.GL_LINE)
+                                    )
+                                );
+                            Gl.glPolygonMode(Gl.GL_BACK, (int)((bFill == true) ? ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_LINE) : ((m_bDetail == true) ? Gl.GL_LINE : Gl.GL_POINT)));
+                        }
+                    }
+
+                    int uiType = (bDat == true) ? Gl.GL_TRIANGLES : Gl.GL_TRIANGLES;// Gl.GL_POLYGON;// Gl.GL_TRIANGLES;//(int)((bFill == true) ? Gl.GL_TRIANGLES : Gl.GL_LINE_STRIP);//Gl.GL_TRIANGLES;// 
+
+                    Gl.glColor4fv(m_fColor);
+
+                    float fX1 = -fW / 2.0f;
+                    float fX2 = fW / 2.0f;
+                    float fY2 = -fH;
+                    float fZ1 = -fD / 2.0f;
+                    float fZ2 = fD / 2.0f;
+
+                    if (m_lstOjwAse[nIndex_Ase].Data_GetCnt() <= 0) return;
+
+                    // TwoColor 모드일 때는 두 번 그리기
+                    if (bFill && bStl)
+                    {
+                        // 1단계: 앞면을 fillColor로 채우기
+                        float[] fillColorArray = { (float)fillColor.R / 255.0f, (float)fillColor.G / 255.0f, 
+                                  (float)fillColor.B / 255.0f, fAlpha };
+                        Gl.glColor4fv(fillColorArray);
+
+                        Gl.glBegin(uiType);
+
+                        Gl.glPushMatrix();
+                        bool bStart = true;
+                        foreach (SVector4D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get())
+                        {
+                            if (SVec.w != 0)
+                            {
+                                if (bStart == false)
+                                {
+                                    Gl.glPopMatrix();
+                                    Gl.glPushMatrix();
+                                }
+                                else bStart = false;
+                            }
+                            Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
+                        }
+                        Gl.glPopMatrix();
+
+                        Gl.glEnd();
+
+                        // 2단계: 뒷면을 lineColor로 선으로 그리기
+                        float[] lineColorArray = { (float)lineColor.R / 255.0f, (float)lineColor.G / 255.0f, 
+                                  (float)lineColor.B / 255.0f, fAlpha };
+                        Gl.glColor4fv(lineColorArray);
+                        Gl.glLineWidth(1.5f);
+
+                        Gl.glBegin(uiType);
+
+                        Gl.glPushMatrix();
+                        bStart = true;
+                        foreach (SVector4D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get())
+                        {
+                            if (SVec.w != 0)
+                            {
+                                if (bStart == false)
+                                {
+                                    Gl.glPopMatrix();
+                                    Gl.glPushMatrix();
+                                }
+                                else bStart = false;
+                            }
+                            Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
+                        }
+                        Gl.glPopMatrix();
+
+                        Gl.glEnd();
+
+                        Gl.glLineWidth(1.0f);
+                    }
+                    else
+                    {
+                        // 원래 방식 (단일 색상)
+                        Gl.glBegin(uiType);
+
+                        if (IsPerspectiveMode() == true)
+                        {
+                        }
+                        if (bStl == true)
+                        {
+                            Gl.glPushMatrix();
+                            bool bStart = true;
+                            foreach (SVector4D_t SVec in m_lstOjwAse[nIndex_Ase].Data_Get())
+                            {
+                                if (SVec.w != 0)
+                                {
+                                    if (bStart == false)
+                                    {
+                                        Gl.glPopMatrix();
+                                        Gl.glPushMatrix();
+                                    }
+                                    else bStart = false;
+                                }
+                                Gl.glVertex3f(SVec.x, SVec.y, SVec.z);
+                            }
+                            Gl.glPopMatrix();
+                        }
+                        else
+                        {
+                            Gl.glPushMatrix();
+                            for (int i = 0; i < m_lstOjwAse[nIndex_Ase].Face_GetCnt(); i++)
+                            {
+                                if (m_lstOjwAse[nIndex_Ase].Data_Get(i).w != 0)
+                                {
+                                    if (i != 0)
+                                    {
+                                        Gl.glPopMatrix();
+                                        Gl.glPushMatrix();
+                                    }
+                                }
+                                Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).x).z);
+                                Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).y).z);
+                                Gl.glVertex3f(m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).x, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).y, m_lstOjwAse[nIndex_Ase].Data_Get(m_lstOjwAse[nIndex_Ase].Face_Get(i).z).z);
+                            }
+                            Gl.glPopMatrix();
+                        }
+
+                        Gl.glEnd();
+                    }
+
+                    // 설정 복원 (TwoColor 모드일 때만)
+                    if (bFill && bStl)
+                    {
+                        Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_FILL);
+                        Gl.glEnable(Gl.GL_CULL_FACE);
+                    }
+
+                    Gl.glFrontFace(m_nCWMode);
+                    Gl.glPopMatrix();
+
+                    SetLight();
+                    SetLight2();
+                    SetLight3();
+
+                    Gl.glPopMatrix();
+#endif
+                }
+                public void OjwAse_Outside_Line(bool bFill, Color color, float fAlpha,
+                                   float fW, float fH, float fD,
+                                   float fOffsetPan, float fOffsetTilt, float fOffsetSwing,
+                                   float fOffsetX, float fOffsetY, float fOffsetZ,
+                                   String strIndex_Ase)
+                {
+                    // 기본 사용
+                    //OjwAse_Outside_Simple_Fast(color, fAlpha, fOffsetPan, fOffsetTilt, fOffsetSwing, fOffsetX, fOffsetY, fOffsetZ, strIndex_Ase);
+
+                    // 색상 조합
+                    OjwAse_Outside_TwoColor(bFill, color, fAlpha, fW, fH, fD, fOffsetPan, fOffsetTilt, fOffsetSwing, fOffsetX, fOffsetY, fOffsetZ, strIndex_Ase);
+
+
                 }
                 #endregion File(by Name)
                 #endregion OjwAse_Outside

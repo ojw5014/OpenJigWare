@@ -146,7 +146,6 @@ D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.xml
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache
 D:\Bin\C#\GitHub\for Me(In Secret)\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Docking.frmGridEditor.resources
-D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\Interop.WMPLib.dll
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\AxInterop.WMPLib.dll
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.ResolveComReference.cache
@@ -165,3 +164,35 @@ D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Dockin
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.Properties.Resources.resources
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csproj.GenerateResource.Cache
 D:\Bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.dll.config
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\OpenJigWare.pdb
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\AForge.Controls.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\AForge.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\AForge.Imaging.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\AForge.Video.DirectShow.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\AForge.Video.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Interop.SKYPE4COMLib.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\IronPython.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\IronPython.Modules.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\LeapCSharp.NET3.5.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Contracts.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Dynamic.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.AspNet.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\MyoSharp.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Tao.FreeGlut.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Tao.Ode.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Tao.OpenGl.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Tao.Platform.Windows.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\IronPython.xml
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\IronPython.Modules.xml
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Dynamic.xml
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.xml
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.AspNet.xml
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Microsoft.Scripting.Metadata.xml
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\Interop.WMPLib.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\bin\Debug\AxInterop.WMPLib.dll
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.pdb
+D:\bin\cs\OpenJigWare\trunk\OpenJigWare\OpenJigWare\obj\Debug\OpenJigWare.csprojResolveAssemblyReference.cache

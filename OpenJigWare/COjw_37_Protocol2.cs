@@ -61,7 +61,20 @@ namespace OpenJigWare
                 m_aCParam[nID].SetParams_Model(EModel);
             }
             public bool[] m_abMot = new bool[256];
+            public int[] m_anMap = new int[256];
             public int[] m_anMot = new int[256];
+            public int[] m_anMot_Seq = new int[256];
+            public int[] m_anMot_Curr = new int[256];
+            public int[] m_anMot_Seq_Back = new int[256];
+            public bool IsReceived_Angle(int nID)
+            {
+                if (m_anMot_Seq[nID] != m_anMot_Seq_Back[nID])
+                {
+                    m_anMot_Seq_Back[nID] = m_anMot_Seq[nID];
+                    return true;
+                }
+                return false;
+            }
             public float[] m_afMot = new float[256];
             public int[] m_anMot_Pose = new int[256];
             public float[] m_afMot_Pose = new float[256];
@@ -2105,6 +2118,35 @@ namespace OpenJigWare
                 Command_Clear();
                 return bRet;
             }
+            //public void SyncRead_NoWait(params int[] anIDs)
+            //{
+            //    //bool bRet = false;
+            //    List<int> lstSecond = new List<int>();
+            //    while (true)
+            //    {
+            //        Request_Clear();
+            //        int[] anIDsCurr = ((lstSecond.Count > 0) ? lstSecond.ToArray() : anIDs);
+            //        lstSecond.Clear();
+            //        if (anIDsCurr.Length > 0)
+            //        {
+            //            for (int i = 0; i < anIDsCurr.Length; i++)
+            //            {
+            //                //Request_Push(anIDsCurr[i]);
+            //                if (m_aCParam[anIDsCurr[0]].m_nGet_Position_Address != m_aCParam[anIDsCurr[i]].m_nGet_Position_Address)
+            //                {
+            //                    lstSecond.Add(anIDsCurr[i]);
+            //                }
+            //                else Request_Push(anIDsCurr[i]);
+            //            }
+            //            Request_Flush(m_aCParam[anIDsCurr[0]].m_nGet_Position_Address, m_aCParam[anIDsCurr[0]].m_nGet_Position_Size);
+            //            //bRet = WaitReceive(anIDs);
+            //        }
+            //        else break;
+            //        if (lstSecond.Count == 0) break;
+            //    }
+            //    Command_Clear();
+            //    //return bRet;
+            //}
             private void Request(int nMotor, int nCommand, byte[] pbyDatas) { Request_with_RealID(nMotor, nCommand, pbyDatas); }
 
             private List<int> m_lstRequestMotors = new List<int>();// = new int[];
@@ -2209,7 +2251,11 @@ namespace OpenJigWare
             #endregion Reboot / Reset
 
             #region Read
-            const int _WAIT_TIME = 5000; // ms
+            public void Set_WaitTime(int nMillisec) { m_nWaitTime_Limit = nMillisec; }
+            public int Get_WaitTime() { return m_nWaitTime_Limit; }
+            const int _WAIT_TIME = 50; // ms
+            int m_nWaitTime_Limit = _WAIT_TIME;
+            const int _WAIT_TIME_SOCK = 5000; // ms
             private int m_nShowReturnPacket = 0;//1;//0; // 테스트... 나중에 0 으로 기본값 줄 것
             public void ShowPacketReturn(int nPacket_0_Disable_1_Enable) { m_nShowReturnPacket = nPacket_0_Disable_1_Enable; }
 
@@ -2247,7 +2293,7 @@ namespace OpenJigWare
                             }
                         }
                     }
-                    if (CTmr.Get() >= _WAIT_TIME)
+                    if (CTmr.Get() >= Get_WaitTime())
                     {
                         Ojw.LogErr("대기시간 초과");
                         break;
@@ -2260,7 +2306,7 @@ namespace OpenJigWare
             {
                 Ojw.CTimer CTmr = new CTimer();
                 CTmr.Set();
-                if (nWaitTime <= 0) nWaitTime = _WAIT_TIME;
+                if (nWaitTime <= 0) nWaitTime = _WAIT_TIME_SOCK;
                 while (true)
                 {
                     if (CSock.IsConnect())
@@ -2285,7 +2331,7 @@ namespace OpenJigWare
             {
                 Ojw.CTimer CTmr = new CTimer();
                 CTmr.Set();
-                if (nWaitTime <= 0) nWaitTime = _WAIT_TIME;
+                if (nWaitTime <= 0) nWaitTime = Get_WaitTime();
                 while (true)
                 {
                     if (CSerial.IsConnect())
@@ -2306,7 +2352,7 @@ namespace OpenJigWare
                 return false;
             }
 
-            class CReceive_t
+            public class CReceive_t
             {
                 public int nID = 0;
                 public int nCmd = 0;
@@ -2321,6 +2367,13 @@ namespace OpenJigWare
             int m_nReceive_Cmd = 0;
             int m_nReceive_Length_Check = 0;
             int m_nReceive_Error = 0;
+            public int m_nSeq = 0;
+            //public int m_nSeq_Back = 0;
+            public int m_nSeq_Raw = 0;
+            //public int m_nSeq_Back_Raw = 0;
+            public List<CReceive_t> m_aCReceive = new List<CReceive_t>();
+            //public CReceive_t[] m_aCReceive = new CReceive_t[10];
+
             public List<int> m_anReceive_Datas = new List<int>();
             public int[] GetBuffers_Int() { return m_anReceive_Datas.ToArray(); }
             public byte[] GetBuffers() { return Array.ConvertAll(m_anReceive_Datas.ToArray(), element => (byte)element); }
@@ -2477,6 +2530,8 @@ namespace OpenJigWare
                                             }
                                             else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nGet_Position_Address)
                                             {
+                                                m_anMot_Seq[m_nReceive_ID]++;
+
                                                 m_anMot_Pose[m_nReceive_ID] = nVal;
                                                 m_afMot_Pose[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
 
@@ -2484,9 +2539,18 @@ namespace OpenJigWare
                                                 m_afMot[m_nReceive_ID] = m_afMot_Pose[m_nReceive_ID];
                                                 //Ojw.Log("[Receive]Get:{0}번 -> {1}({2}도)", m_nReceive_ID, nVal, m_afMot[m_nReceive_ID]);
                                             }
+                                            else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nGet_Current_Address)
+                                            {
+                                                m_anMot_Seq[m_nReceive_ID]++;
+                                                m_anMot_Curr[m_nReceive_ID] = nVal;
+                                            }
                                             else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Torq_Address)
                                             {
                                                 m_abMot[m_nReceive_ID] = ((nVal == 0) ? false : true);
+                                            }
+                                            else
+                                            {
+                                                m_anMap[m_nReceive_ID] = nVal;
                                             }
                                         }
 
@@ -2557,6 +2621,7 @@ namespace OpenJigWare
                                     //CReceive.lstDatas = m_anReceive_Datas.slice();
                                     CReceive.lstDatas.AddRange(m_anReceive_Datas.ToArray());
 
+                                    
                                     /* m_aCReceive.Add(CReceive);
                                      //if (bShow_Str) log2("Seq:" + m_nSeq_Receive + ", length:" + CReceive.nLength_Data);
                                      if (m_aCReceive.length > 10) m_aCReceive.shift(); // 가장 먼저 왔던 맨 앞의 데이터를 날린다.
@@ -2564,6 +2629,11 @@ namespace OpenJigWare
                                      //m_nSeq_Receive++; // Que 에서 처리할 Seq
                                      m_nSeq++; // User 가 처리할 Seq
                                      */
+
+
+                                    if (m_aCReceive.Count >= 10) m_aCReceive.RemoveAt(0); // 가장 먼저 왔던 맨 앞의 데이터를 날린다.
+                                    m_aCReceive.Add(CReceive);
+
                                     // to the next...
                                     m_nReceive_Index++;
                                 }
@@ -2576,6 +2646,10 @@ namespace OpenJigWare
                                     else m_nReceive_Header = 0;
                                     m_nReceive_Index = 0;
                                 }
+
+
+
+                                m_nSeq_Raw++;
                                 break;
                         }
                     }
@@ -2585,6 +2659,8 @@ namespace OpenJigWare
                 if (bShow_Str)
                     Ojw.Log("[˘︹˘ ] :" + str);
                 // log2("[˘︹˘ ] :" + strLetter + "\r\n============\r\n" + str);
+
+                m_nSeq++;
             }
 
             public string GetError(int nErrorNumber)
@@ -2704,6 +2780,7 @@ namespace OpenJigWare
                 pbyteBuffer[pbyteBuffer.Length - 1] = (byte)((nCrc >> 8) & 0xff);
                 return pbyteBuffer;
             }
+            public void SendRaw(int nMotorRealID, int nCommand, params byte[] pbyDatas) { Request_with_RealID(nMotorRealID, nCommand, pbyDatas); }
             public void Send(int nMotorRealID, int nCommand, int nAddress, params byte[] pbyDatas)
             {
                 int i;
