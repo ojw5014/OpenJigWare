@@ -1188,6 +1188,126 @@ namespace OpenJigWare
                 Reader.Start();
                 return true;
             }
+
+            // ================================================================
+            // 동기 수신 (타임아웃 지원) — 요청→응답 텍스트 프로토콜용
+            //   기존 GetByte()/GetBytes(n)/GetInt16() 은 BinaryReader(inData) 경유의
+            //   블로킹 읽기라 상대가 안 보내면 영구 대기 → WinForms UI 가 얼어붙는다.
+            //   아래 함수들은 NetworkStream(stream) 을 직접 쓰고 타임아웃을 받아,
+            //   그 시간 안에 못 받으면 받은 만큼만 돌려준다.
+            //   ※ 주의: inData(BinaryReader) 계열과 섞어 쓰지 말 것 —
+            //     BufferedStream 에 남은 데이터를 서로 못 본다.
+            // ================================================================
+
+            /// <summary>수신 타임아웃(ms) 설정. 0 이하면 무한 대기.</summary>
+            public bool SetReceiveTimeout(int nMs)
+            {
+                try
+                {
+                    if (stream == null) return false;
+                    stream.ReadTimeout = (nMs <= 0) ? Timeout.Infinite : nMs;
+                    return true;
+                }
+                catch { return false; }
+            }
+
+            /// <summary>지금 즉시 읽을 데이터가 있는지 (논블로킹 확인).</summary>
+            public bool IsDataAvailable()
+            {
+                try
+                {
+                    if (m_tcpClient == null || m_bConnect == false) return false;
+                    return (m_tcpClient.Available > 0);
+                }
+                catch { return false; }
+            }
+
+            /// <summary>타임아웃 안에 최대 nSize 바이트 수신. 다 못 채우면 받은 만큼만 반환.</summary>
+            public byte[] GetBytes(int nSize, int nTimeoutMs)
+            {
+                if (m_bConnect == false || nSize <= 0) return null;
+                byte[] buffer = new byte[nSize];
+                int nGot = 0;
+                DateTime tEnd = DateTime.Now.AddMilliseconds((nTimeoutMs <= 0) ? 1000 : nTimeoutMs);
+                try
+                {
+                    while (nGot < nSize)
+                    {
+                        if (m_tcpClient.Available > 0)
+                        {
+                            int nRead = stream.Read(buffer, nGot, nSize - nGot);
+                            if (nRead <= 0) break;
+                            nGot += nRead;
+                            continue;
+                        }
+                        if (DateTime.Now >= tEnd) break;
+                        Thread.Sleep(1);
+                    }
+                }
+                catch { }
+                if (nGot <= 0) return null;
+                if (nGot == nSize) return buffer;
+                byte[] res = new byte[nGot];
+                Array.Copy(buffer, res, nGot);
+                return res;
+            }
+
+            /// <summary>타임아웃 안에 도착한 바이트를 UTF-8 문자열로 수신.</summary>
+            public string GetString(int nTimeoutMs)
+            {
+                if (m_bConnect == false) return "";
+                StringBuilder sb = new StringBuilder();
+                byte[] buf = new byte[1024];
+                DateTime tEnd = DateTime.Now.AddMilliseconds((nTimeoutMs <= 0) ? 1000 : nTimeoutMs);
+                try
+                {
+                    while (m_tcpClient.Available <= 0 && DateTime.Now < tEnd)
+                        Thread.Sleep(1);
+                    while (m_tcpClient.Available > 0)
+                    {
+                        int nRead = stream.Read(buf, 0, buf.Length);
+                        if (nRead <= 0) break;
+                        sb.Append(Encoding.UTF8.GetString(buf, 0, nRead));
+                    }
+                }
+                catch { }
+                return sb.ToString();
+            }
+
+            /// <summary>구분자 cEnd 가 나올 때까지(또는 타임아웃까지) 모아 UTF-8 문자열로 반환.
+            /// 가변 길이 텍스트 응답(예: "POS,11,-1.3,...;") 수신용.</summary>
+            public string GetStringUntil(char cEnd, int nTimeoutMs)
+            {
+                if (m_bConnect == false) return "";
+                StringBuilder sb = new StringBuilder();
+                byte[] buf = new byte[1024];
+                DateTime tEnd = DateTime.Now.AddMilliseconds((nTimeoutMs <= 0) ? 1000 : nTimeoutMs);
+                try
+                {
+                    while (true)
+                    {
+                        if (m_tcpClient.Available > 0)
+                        {
+                            int nRead = stream.Read(buf, 0, buf.Length);
+                            if (nRead <= 0) break;
+                            sb.Append(Encoding.UTF8.GetString(buf, 0, nRead));
+                            if (sb.ToString().IndexOf(cEnd) >= 0) break;
+                            continue;
+                        }
+                        if (DateTime.Now >= tEnd) break;
+                        Thread.Sleep(1);
+                    }
+                }
+                catch { }
+                return sb.ToString();
+            }
+
+            /// <summary>문자열 1회 전송 (UTF-8).</summary>
+            public bool SendString(string strData)
+            {
+                if (string.IsNullOrEmpty(strData)) return false;
+                return Send(Encoding.UTF8.GetBytes(strData));
+            }
         }
 #if false
         public class CUdpServer

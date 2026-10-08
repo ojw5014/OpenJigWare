@@ -734,6 +734,14 @@ namespace OpenJigWare.Docking
                 saveDlg.FileName = "*." + Ojw.C3d._STR_EXT;
                 saveDlg.Filter = "Design file(*." + Ojw.C3d._STR_EXT + ")|*." + Ojw.C3d._STR_EXT;
 
+                // [미사용] 저장 버전 선택 - 되살리려면 위 Filter 를 지우고 아래를 해제할 것 (④ 지점).
+                //   COjw_12_3D.cs 의 _STR_EXT_VERSION_LEGACY / CheckSavable_LegacyVersion /
+                //   FileSave(.., strSaveVersion) 오버로드도 함께 해제해야 한다.
+                //saveDlg.Filter =
+                //    "Design file - 최신 " + Ojw.C3d._STR_EXT_VERSION + "(*." + Ojw.C3d._STR_EXT + ")|*." + Ojw.C3d._STR_EXT +
+                //    "|Design file - 구버전 호환 " + Ojw.C3d._STR_EXT_VERSION_LEGACY + "(*." + Ojw.C3d._STR_EXT + ")|*." + Ojw.C3d._STR_EXT;
+                //saveDlg.FilterIndex = 1;
+
                 saveDlg.DefaultExt = Ojw.C3d._STR_EXT;
                 if (saveDlg.ShowDialog() == DialogResult.OK)
                 {
@@ -745,8 +753,29 @@ namespace OpenJigWare.Docking
                             //m_strWorkDirectory = Directory.GetCurrentDirectory();
                             //txtFileName.Text = fileName;
 
+                            // [미사용] 저장 버전 선택 - 되살릴 때 함께 해제할 것 (④ 지점)
+                            //bool bLegacy = (saveDlg.FilterIndex == 2);
+                            //String strSaveVersion = bLegacy ? Ojw.C3d._STR_EXT_VERSION_LEGACY : null;
+                            //
+                            //if (bLegacy == true)
+                            //{
+                            //    // 구버전 형식은 문자열 길이 한계가 있어 저장 전에 확인한다.
+                            //    String strReason;
+                            //    if (m_C3d.CheckSavable_LegacyVersion(m_C3d.GetHeader(), out strReason) == false)
+                            //    {
+                            //        MessageBox.Show(
+                            //            "구버전(" + Ojw.C3d._STR_EXT_VERSION_LEGACY + ") 형식으로 저장할 수 없습니다.\r\n" +
+                            //            "아래 항목이 길이 한계를 넘습니다.\r\n\r\n" + strReason + "\r\n\r\n" +
+                            //            "최신(" + Ojw.C3d._STR_EXT_VERSION + ") 형식으로 저장하세요.",
+                            //            "File Save", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            //        saveDlg.Dispose();
+                            //        return;
+                            //    }
+                            //}
+                            //m_C3d.FileSave(fileName, m_C3d.GetHeader(), strSaveVersion);
+
                             m_C3d.FileSave(fileName, m_C3d.GetHeader());
-                            Ojw.CMessage.Write(fileName + "(" + m_C3d.GetHeader().strVersion + ") file saved");
+                            Ojw.CMessage.Write(fileName + "(" + Ojw.C3d._STR_EXT_VERSION + ") file saved");
                         }
                     }
                 }
@@ -1066,11 +1095,22 @@ namespace OpenJigWare.Docking
 
         private void btnPos_Top_Click(object sender, EventArgs e)
         {
-            txtBack_X.Text = "0";
-            txtBack_Y.Text = "0";
-            txtBack_Z.Text = "0";
+            //txtBack_X.Text = "0";
+            //txtBack_Y.Text = "0";
+            //txtBack_Z.Text = "0";
             txtBack_Pan.Text = "0";
             txtBack_Tilt.Text = "90";
+            txtBack_Swing.Text = "0";
+            RefreshDisplay();
+        }
+        
+        private void btnPos_Back_Click(object sender, EventArgs e)
+        {
+            //txtBack_X.Text = "0";
+            //txtBack_Y.Text = "0";
+            //txtBack_Z.Text = "0";
+            txtBack_Pan.Text = "180";
+            txtBack_Tilt.Text = "0";
             txtBack_Swing.Text = "0";
             RefreshDisplay();
         }
@@ -1122,7 +1162,7 @@ namespace OpenJigWare.Docking
             m_frm3D.Show();
             //m_C3d.InitTools_Kinematics(m_frmKinematics.pnKinematics);
         }
-
+        
         //private void frmDesigner_FormClosing(object sender, FormClosingEventArgs e)
         //{
             

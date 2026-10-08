@@ -113,6 +113,11 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
+    <Reference Include="System.Xaml" />
     <Reference Include="Tao.FreeGlut, Version=2.4.0.2, Culture=neutral, PublicKeyToken=6e602a6ad6c0d06d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>.\Tao.FreeGlut.dll</HintPath>
@@ -142,8 +147,17 @@
     <Compile Include="COjw_34_Lattepanda.cs" />
     <Compile Include="COjw_36_Monster2.cs" />
     <Compile Include="COjw_35_Walking.cs" />
+    <Compile Include="COjw_35_Walking_g.cs" />
+    <Compile Include="COjw_35_Walking_g.Amp.cs" />
+    <Compile Include="COjw_35_Walking_c.cs" />
+    <Compile Include="COjw_35_Walking_c.Amp.cs" />
+    <Compile Include="COjw_35_Walking_c.Step.cs" />
     <Compile Include="COjw_37_Protocol2.cs" />
     <Compile Include="COjw_39_TextEditor.cs" />
+    <Compile Include="COjw_40_Protocol1.cs" />
+    <Compile Include="COjw_41_Protocol.cs" />
+    <Compile Include="COjw_42_Sim2Real.cs" />
+    <Compile Include="COjw_43_SimBridge.cs" />
     <Compile Include="Docking\AxisSetting.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -232,6 +246,11 @@
     <Compile Include="COjw_11_2D.cs" />
     <Compile Include="COjw_09_Register.cs" />
     <Compile Include="COjw_12_3D.cs" />
+    <Compile Include="COjw_12_3D_DhBuilder.cs" />
+    <Compile Include="COjw_12_3D_Html.cs" />
+    <Compile Include="COjw_12_3D_SagComp.cs" />
+    <Compile Include="COjw_12_3D_EdhValidator.cs" />
+    <Compile Include="COjw_12_3D_StlParser.cs" />
     <Compile Include="COjw_14_Socket.cs" />
     <Compile Include="COjw_13_Serial.cs" />
     <Compile Include="COjw_15_Mx28.cs" />
@@ -716,30 +735,32 @@
     <Content Include="KeyPad\etc\es_nomal_확인.png" />
   </ItemGroup>
   <ItemGroup>
-    <COMReference Include="AxWMPLib">
-      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>aximp</WrapperTool>
-      <Isolated>False</Isolated>
-    </COMReference>
-    <COMReference Include="WMPLib">
-      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>tlbimp</WrapperTool>
-      <Isolated>False</Isolated>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </COMReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="MotionTool.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent></PostBuildEvent>
+    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
+copy *.dll "..\..\..\Tools\Tools\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\Github_Release\Released_DLL\"
+copy *.dll "..\..\..\..\..\..\Github_Release\Beta_Release\"
+
+echo "/////////////////////////////////"
+echo "현재는 Checkout을 담당하는 프로그램이 따로 있어 필요 없다."
+echo mkdir "..\..\..\..\..\..\..\Github\"
+echo mkdir "..\..\..\..\..\..\..\Github\OpenJigWare\"
+echo mkdir "..\..\..\..\..\..\..\Github\OpenJigWare\OpenJigWare\"
+echo mkdir "..\..\..\..\..\..\..\Github\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\..\Github\Released_DLL\"
+echo copy  ..\..\..\OpenJigWare.* "..\..\..\..\..\..\..\Github\OpenJigWare\"
+echo xcopy  ..\..\..\OpenJigWare\* "..\..\..\..\..\..\..\Github\OpenJigWare\OpenJigWare\" /E/C/H/R/Y
+echo rmdir "..\..\..\..\..\..\..\Github\OpenJigWare\OpenJigWare\bin" /S/Q
+echo "/////////////////////////////////"
+
+echo copy *.dll "..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
+echo copy *.dll "..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
+echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
+echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

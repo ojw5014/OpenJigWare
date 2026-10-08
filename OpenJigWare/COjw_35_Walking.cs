@@ -246,6 +246,141 @@ namespace OpenJigWare
 
             private readonly string _STR_FILE_NAME_FOR_WALKING = "WalkingParam.dat";
 
+            #region 최적화: 파라미터 캐시 및 상수
+            // 상수 정의 (반복 계산 제거)
+            private const float DEG_TO_RAD = (float)(Math.PI / 180.0);
+            private const float RAD_TO_DEG = (float)(180.0 / Math.PI);
+
+            // 파라미터 캐시 클래스 (C# 4.0 호환)
+            private class WalkingParamCache
+            {
+                public bool IsValid;
+                public float fO, fP, fQ, fS, fT, fW, fX, fY, fZ;
+                public float fAA, fAB, fAT, fAU, fBG;
+                public float fD50, fBW, fE19, fF19, fI19, fI20;
+                public float fCB, fCB_Walk, fCB_Start_End;
+                public float fCG, fCN, fCO, fE17, fE18, fCZ;
+                public float fDK, fDQ, fDR, fDW, fDX;
+                public float fEQ, fER, fBM, fBN;
+                public float fDM, fDN, fDU, fIB, fIE;
+                // 문자열 파라미터 캐시 (ID 값)
+                public string strID13, strID14, strID23, strID24, strID25, strID26;
+                public string strID31, strID32, strID35, strID36;
+                public string strID43, strID44, strID46, strID47;
+                public string strID51, strID52, strID54, strID56, strID58, strID53;
+                public string strID4, strID28, strID29;
+            }
+            private WalkingParamCache[] m_ParamCache = new WalkingParamCache[3] { new WalkingParamCache(), new WalkingParamCache(), new WalkingParamCache() };
+            private bool[] m_bParamCacheDirty = new bool[3] { true, true, true };
+
+            // 파라미터 변경 시 캐시 무효화
+            public void InvalidateParamCache(int nMode = -1)
+            {
+                if (nMode < 0)
+                {
+                    m_bParamCacheDirty[0] = true;
+                    m_bParamCacheDirty[1] = true;
+                    m_bParamCacheDirty[2] = true;
+                }
+                else if (nMode < 3)
+                {
+                    m_bParamCacheDirty[nMode] = true;
+                }
+            }
+
+            // 캐시 갱신
+            private void UpdateParamCache(int nMode)
+            {
+                if (!m_bParamCacheDirty[nMode]) return;
+
+                WalkingParamCache cache = m_ParamCache[nMode];
+
+                cache.fO = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 1]);
+                cache.fP = -Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 10 - 4]);
+                cache.fQ = cache.fP * 0.5f;
+                cache.fS = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 7 - 4]);
+                cache.fT = -Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 30 - 4]);
+                cache.fW = -Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 6 - 4]);
+                cache.fX = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 8 - 4]);
+                cache.fY = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 9 - 4]);
+                cache.fZ = cache.fX + cache.fY;
+
+                float fAA_temp = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 41 - 4]);
+                cache.fAB = -fAA_temp;
+                cache.fAA = (fAA_temp > 0 ? fAA_temp : 0.0f);
+                cache.fAB = (cache.fAB > 0 ? cache.fAB : 0.0f);
+
+                cache.fAT = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 27 - 4]);
+                cache.fAU = cache.fAT * 0.5f;
+                cache.fBG = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 22 - 4]);
+                cache.fD50 = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 50 - 4]);
+                cache.fBW = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 11 - 4]);
+                cache.fE19 = 72;
+                cache.fF19 = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 21 - 4] + cache.fE19);
+                float fB17 = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 17 - 4]);
+                cache.fI19 = cache.fF19 / 2 * (float)Math.Tan(fB17 * DEG_TO_RAD);
+                cache.fI20 = -cache.fI19;
+
+                cache.fCB = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 20 - 4]);
+                cache.fCB_Walk = Ojw.CConvert.StrToFloat(m_aStrParam[1, 20 - 4]);
+                cache.fCB_Start_End = cache.fCB;
+
+                cache.fCG = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 12 - 4]);
+                cache.fCN = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 15 - 4]);
+                cache.fCO = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 16 - 4]);
+                cache.fE17 = -fB17;
+                cache.fE18 = fB17;
+                cache.fCZ = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 19 - 4]);
+
+                cache.fDK = -Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 21 - 4]);
+                cache.fDQ = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 37 - 4]);
+                cache.fDR = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 38 - 4]);
+                cache.fDW = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 40 - 4]) * ((nMode != 1) ? -1 : 1);
+                cache.fDX = cache.fDW * DEG_TO_RAD;
+
+                cache.fEQ = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 49 - 4]);
+                cache.fER = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 48 - 4]);
+                cache.fBM = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 51 - 4]);
+                cache.fBN = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 52 - 4]);
+
+                cache.fDM = -Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 33 - 4]);
+                float fCG_val = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 12 - 4]);
+                float fB34 = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 34 - 4]);
+                cache.fDN = (fCG_val >= 0) ? fB34 : -fB34;
+                cache.fDU = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 39 - 4]);
+                cache.fIB = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 55 - 4]);
+                cache.fIE = Ojw.CConvert.StrToFloat(m_aStrParam[nMode, 57 - 4]);
+
+                // 문자열 ID 캐시
+                cache.strID13 = m_aStrParam[nMode, 13 - 4];
+                cache.strID14 = m_aStrParam[nMode, 14 - 4];
+                cache.strID23 = m_aStrParam[nMode, 23 - 4];
+                cache.strID24 = m_aStrParam[nMode, 24 - 4];
+                cache.strID25 = m_aStrParam[nMode, 25 - 4];
+                cache.strID26 = m_aStrParam[nMode, 26 - 4];
+                cache.strID31 = m_aStrParam[nMode, 31 - 4];
+                cache.strID32 = m_aStrParam[nMode, 32 - 4];
+                cache.strID35 = m_aStrParam[nMode, 35 - 4];
+                cache.strID36 = m_aStrParam[nMode, 36 - 4];
+                cache.strID43 = m_aStrParam[nMode, 43 - 4];
+                cache.strID44 = m_aStrParam[nMode, 44 - 4];
+                cache.strID46 = m_aStrParam[nMode, 46 - 4];
+                cache.strID47 = m_aStrParam[nMode, 47 - 4];
+                cache.strID51 = m_aStrParam[nMode, 51 - 4];
+                cache.strID52 = m_aStrParam[nMode, 52 - 4];
+                cache.strID54 = m_aStrParam[nMode, 54 - 4];
+                cache.strID56 = m_aStrParam[nMode, 56 - 4];
+                cache.strID58 = m_aStrParam[nMode, 58 - 4];
+                cache.strID53 = m_aStrParam[nMode, 53 - 4];
+                cache.strID4 = m_aStrParam[nMode, 4 - 4];
+                cache.strID28 = m_aStrParam[nMode, 28 - 4];
+                cache.strID29 = m_aStrParam[nMode, 29 - 4];
+
+                cache.IsValid = true;
+                m_bParamCacheDirty[nMode] = false;
+            }
+            #endregion
+
             public CGrid m_COjwGrid = new CGrid();
             public void Grid_Init_Param(Control ctrlHandle,
                 Color cLineColor,
@@ -350,6 +485,7 @@ namespace OpenJigWare
                         else m_abParam[i, j] = false;
                     }
                 }
+                InvalidateParamCache(); // 초기화 시 캐시 무효화
             }
             public bool ParamSave()
             {
@@ -483,6 +619,7 @@ namespace OpenJigWare
                     }
                 }
 
+                InvalidateParamCache(); // 모든 모드 캐시 무효화
                 return nRet;
             }
 #if false
@@ -518,7 +655,11 @@ namespace OpenJigWare
                 return 1;
             }
             public int GetWalkingCount() { return m_nWalkingCount; }
-            public void SetData(int nStart_0_Repeat_1_End_2, int nNum, string strData) { m_aStrParam[nStart_0_Repeat_1_End_2, nNum] = strData; }
+            public void SetData(int nStart_0_Repeat_1_End_2, int nNum, string strData)
+            {
+                m_aStrParam[nStart_0_Repeat_1_End_2, nNum] = strData;
+                InvalidateParamCache(nStart_0_Repeat_1_End_2); // 캐시 무효화
+            }
 
             public int Size_Gate(int nStart_0_Repeat_1_End_2) { return (int)(Ojw.CConvert.StrToInt(m_aStrParam[nStart_0_Repeat_1_End_2, 4]) + Ojw.CConvert.StrToInt(m_aStrParam[nStart_0_Repeat_1_End_2, 5])); }
             public int Size_Frame(int nStart_0_Repeat_1_End_2) { return Size_Gate(nStart_0_Repeat_1_End_2) * ((nStart_0_Repeat_1_End_2 == 1) ? 2 : 1); }
@@ -1105,16 +1246,16 @@ namespace OpenJigWare
                     if (m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4], fBK); }
 
                     // 팔Up
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4], fDO + fDM); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4], fDP + fDM); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4], fDO + fDM); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4], fDP + fDM); }
 
                     // 팔Wing
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4], fDS + fDQ); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4], fDT + fDQ); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4], fDS + fDQ); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4], fDT + fDQ); }
 
 
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4], fES); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4], fET); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4], fES); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4], fET); }
                     if (m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); } // P6
 
 
@@ -1207,7 +1348,10 @@ namespace OpenJigWare
 
 
                 int nMode = nStart_0_Repeat_1_End_2;
-                string strDatas;
+
+                // 최적화: 캐시 갱신
+                UpdateParamCache(nMode);
+                WalkingParamCache cache = m_ParamCache[nMode];
 
 #if true
                 // fL => i;
@@ -1217,23 +1361,22 @@ namespace OpenJigWare
                 float fL;
                 float fM;
                 float fN;
-                float fO = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 1]);
-                float fP = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 10 - 4]); // sway
-                float fQ = fP * fQ4; // 0.5f(fQ4) -> H41 의 대치값 비율
+                // 최적화: 캐시된 값 사용
+                float fO = cache.fO;
+                float fP = cache.fP;
+                float fQ = cache.fQ;
                 float fR;
-                float fS = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 7 - 4]);
-                float fT = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 30 - 4]);
+                float fS = cache.fS;
+                float fT = cache.fT;
                 float fU;
                 float fV;
-                float fW = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 6 - 4]);
-                float fX = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 8 - 4]);
-                float fY = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 9 - 4]);
-                float fZ = fX + fY;
+                float fW = cache.fW;
+                float fX = cache.fX;
+                float fY = cache.fY;
+                float fZ = cache.fZ;
                 // 초기/종료 동작시엔 미러링동작이라 부호가 반대로 된다.
-                float fAA = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 41 - 4]);
-                float fAB = -fAA;
-                fAA = (fAA > 0 ? fAA : 0.0f);//(Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 41 - 4]) > 0 ? Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 41 - 4]) : 0.0f) * (nStart_0_Repeat_1_End_2 == 1 ? 1 : -1);
-                fAB = (fAB > 0 ? fAB : 0.0f);
+                float fAA = cache.fAA;
+                float fAB = cache.fAB;
                 float fAC;
                 float fAD;
                 float fAE;
@@ -1251,8 +1394,8 @@ namespace OpenJigWare
                 float fAQ;
                 float fAR;
                 float fAS;
-                float fAT = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 27 - 4]);
-                float fAU = fAT * fQ4;
+                float fAT = cache.fAT;
+                float fAU = cache.fAU;
                 float fAV;
                 float fAW;
                 float fAX;
@@ -1272,23 +1415,24 @@ namespace OpenJigWare
                 float fBE = fD26;
 
                 float fBF;
-                float fBG = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 22 - 4]);
+                // 최적화: 캐시된 값 사용
+                float fBG = cache.fBG;
                 float fD23 = -1; // +가 바깥으로 되게 숫자를 조정
                 float fBH = fD23;
 
                 float fD24 = -1; // +가 바깥으로 되게 숫자를 조정
                 float fBJ = fD24;
 
-                float fD50 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 50 - 4]); // (+오른쪽, -왼쪽)
+                float fD50 = cache.fD50; // (+오른쪽, -왼쪽)
                 float fD51 = fD50; // (+오른쪽, -왼쪽)
                 float fBR = fD50;
                 float fBS = fD51;
-                float fBW = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 11 - 4]);
-                float fE19 = 72;// 발바닥 사이간격
-                float fF19 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 21 - 4] + fE19);
+                float fBW = cache.fBW;
+                float fE19 = cache.fE19;// 발바닥 사이간격
+                float fF19 = cache.fF19;
 
-                float fI19 = fF19 / 2 * (float)Math.Tan((Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 17 - 4])) / 180.0f * Math.PI); // Offset R
-                float fI20 = -fI19; // Offset L
+                float fI19 = cache.fI19;
+                float fI20 = cache.fI20;
 
                 if (nStart_0_Repeat_1_End_2 != 1)
                 {
@@ -1297,11 +1441,11 @@ namespace OpenJigWare
                 }
 
                 // 초기 동작시엔 CB, CC 가 상수가 아닌 변수가 된다.
-                float fCB = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 20 - 4]);
+                float fCB = cache.fCB;
                 float fCC = fI19;
                 // 초기 동작시
-                float fCB_Walk = Ojw.CConvert.StrToFloat(m_aStrParam[1, 20 - 4]); // 반복보행의 파라미터 필요
-                float fCB_Start_End = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 20 - 4]); // 현재보행의 파라미터
+                float fCB_Walk = cache.fCB_Walk; // 반복보행의 파라미터 필요
+                float fCB_Start_End = cache.fCB_Start_End; // 현재보행의 파라미터
                 float fCB_Result;
                 // 종료 동작시
 
@@ -1311,13 +1455,13 @@ namespace OpenJigWare
                 float fCE = fCB + fCC;
                 float fCF = fCB + fCD;
 
-                float fCG = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 12 - 4]);
+                float fCG = cache.fCG;
                 float fCH = fCG;
                 float fCI = fCG;
-                float fCN = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 15 - 4]); // B15;
-                float fCO = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 16 - 4]); //B16;
-                float fE17 = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 17 - 4]); //-B17;
-                float fE18 = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 17 - 4]); //B17;
+                float fCN = cache.fCN;
+                float fCO = cache.fCO;
+                float fE17 = cache.fE17;
+                float fE18 = cache.fE18;
                 if (nStart_0_Repeat_1_End_2 != 1)
                 {
                     fE17 *= -1.0f;
@@ -1325,7 +1469,7 @@ namespace OpenJigWare
                 }
                 float fCX = fE17;
                 float fCY = fE18;
-                float fCZ = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 19 - 4]); //B19;
+                float fCZ = cache.fCZ;
 
                 float fDA = -fCG;
                 float fDB = fCG;
@@ -1335,10 +1479,10 @@ namespace OpenJigWare
                     fDA = fDB = 0.0f;
                 }
 
-                float fDK = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 21 - 4]); //-B21;
+                float fDK = cache.fDK;
                 float fDL = -fDK;
-                float fDQ = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 37 - 4]); //B37;
-                float fDR = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 38 - 4]); //B38;
+                float fDQ = cache.fDQ;
+                float fDR = cache.fDR;
 
                 float fD13 = 1;
                 float fE13 = 1;
@@ -1347,8 +1491,8 @@ namespace OpenJigWare
                 float fE14 = 1;
                 float fF14 = 1;
 
-                float fDW = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 40 - 4]) * ((nStart_0_Repeat_1_End_2 != 1) ? -1 : 1); //B40;
-                float fDX = fDW / 180.0f * (float)Math.PI;
+                float fDW = cache.fDW;
+                float fDX = cache.fDX; // 최적화: DEG_TO_RAD 적용된 캐시 사용
                 float fDY = fD13;
                 float fDZ = fE13;
 
@@ -1357,13 +1501,13 @@ namespace OpenJigWare
                 float fEF = fE14;
                 float fEG = fF14;
                 float fEH = fDL;
-                float fEQ = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 49 - 4]); //B49;
-                float fER = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 48 - 4]); //B48;
+                float fEQ = cache.fEQ;
+                float fER = cache.fER;
                 float fBI;
                 float fBK;
                 float fBL;
-                float fBM = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4]); //B51;
-                float fBN = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4]); //B52;
+                float fBM = cache.fBM;
+                float fBN = cache.fBN;
                 float fBO;
                 float fBP;
                 float fBQ;
@@ -1397,13 +1541,14 @@ namespace OpenJigWare
                 float fDI;
                 //float fDJ;
 
-                float fDM = -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 33 - 4]); //-B33;
-                float fDN = (Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 12 - 4]) >= 0) ? Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 34 - 4]) : -Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 34 - 4]); //IF(CG8 >= 0, B34, -B34);
+                // 최적화: 캐시된 값 사용
+                float fDM = cache.fDM;
+                float fDN = cache.fDN;
                 float fDO;
                 float fDP;
                 float fDS;
                 float fDT;
-                float fDU = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 39 - 4]); //B39;
+                float fDU = cache.fDU;
                 float fDV;
 
                 float fEB = fDK; // X 값, 상수지만 나중 어떻게 될지는...
@@ -1424,10 +1569,10 @@ namespace OpenJigWare
                 float fES;
                 float fET;
                 // 허리동작
-                float fIB = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 55 - 4]); //B55;
+                float fIB = cache.fIB;
                 float fIC;
                 // 머리동작
-                float fIE = Ojw.CConvert.StrToFloat(m_aStrParam[nStart_0_Repeat_1_End_2, 57 - 4]); //B57;
+                float fIE = cache.fIE;
                 float fIF;
 #if false
            
@@ -1501,7 +1646,7 @@ namespace OpenJigWare
                 //for (int i = 1; i <= nSize_Frame; i++)
                 //{
                 #region For
-                strDatas = String.Empty;
+                StringBuilder sbDatas = new StringBuilder(4096);
 
                 fK = (i <= nSize_Frame ? 1.0f : 0.0f); // En
                 fL = i;
@@ -1708,46 +1853,46 @@ namespace OpenJigWare
                 }
                 else
                 {
-                    strDatas += String.Format("E\t1\t");
+                    sbDatas.Append("E\t1\t");
 
                     // I2 X Y Z
                     bData = (m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4] == "" ? false : true);
-                    if (bData == true) { strDatas += String.Format("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4], fEK, fEL, fEM); }
+                    if (bData == true) { sbDatas.AppendFormat("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 13 - 4], fEK, fEL, fEM); }
 
                     // I3 X Y Z
                     bData = (m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4] == "" ? false : true);
-                    if (bData == true) { strDatas += String.Format("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4], fEN, fEO, fEP); }
+                    if (bData == true) { sbDatas.AppendFormat("I{0}\t{1}\t{2}\t{3}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 14 - 4], fEN, fEO, fEP); }
 
                     if ((i == 1) && (nStart_0_Repeat_1_End_2 == 0))
                     {
                         // S 50 D 0
-                        strDatas += String.Format("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 4 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
+                        sbDatas.AppendFormat("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 4 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
                     }
                     else
                     {
                         // S 50 D 0
-                        strDatas += String.Format("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 28 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
+                        sbDatas.AppendFormat("S\t{0}\tD\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 28 - 4], m_aStrParam[nStart_0_Repeat_1_End_2, 29 - 4]);
                     }
 
                     // 발목
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4], fBA + fCX); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4], fBF + fCY); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 26 - 4], fBA + fCX); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 25 - 4], fBF + fCY); }
 
                     // 엉치
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], fBI); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4], fBK); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], fBI); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 24 - 4], fBK); }
 
                     // 팔Up
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4], fDO + fDM); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4], fDP + fDM); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 31 - 4], fDO + fDM); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 32 - 4], fDP + fDM); }
 
                     // 팔Wing
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4], fDS + fDQ); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4] != "") { strDatas += String.Format("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4], fDT + fDQ); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 35 - 4], fDS + fDQ); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4] != "") { sbDatas.AppendFormat("T{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 36 - 4], fDT + fDQ); }
 
 
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4], fES); }
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4], fET); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 46 - 4], fES); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 47 - 4], fET); }
 
 
 
@@ -1792,7 +1937,7 @@ namespace OpenJigWare
 
                     if (m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4] != "")
                     {
-                        strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4], fFD);//m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]); 
+                        sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 43 - 4], fFD);//m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]);
                     } // P6
 
 
@@ -1802,38 +1947,38 @@ namespace OpenJigWare
                         // 고관절 Tilt 숙이기 - 미 검증
                         if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
                         {
-                            strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
+                            sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
                         } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}
                     }
                     else
                     {
                         if (m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4] != "")
                         {
-                            strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
+                            sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 44 - 4], fFD);
                         } // GE = B45{m_aStrParam[nStart_0_Repeat_1_End_2, 45 - 4]}
                     }
 
-                    //if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], FA9); }
+                    //if (m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 23 - 4], FA9); }
 
 
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4], fBT); } // BM8 = B51
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4], fBU); } // BN8 = B52
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 51 - 4], fBT); } // BM8 = B51
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 52 - 4], fBU); } // BN8 = B52
 
 
                     // 허리
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4], fIC); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 54 - 4], fIC); }
                     // 머리
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4] != "") { strDatas += String.Format("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4], fIE); }
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4] != "") { sbDatas.AppendFormat("P{0}\t{1}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 56 - 4], fIE); }
 
                     if (nStart_0_Repeat_1_End_2 != 1)
                     {
-                        strDatas += String.Format("X\t-1\t");
+                        sbDatas.Append("X\t-1\t");
                     }
-                    strDatas += String.Format("G\t{0}\t", nStart_0_Repeat_1_End_2 + 1);
+                    sbDatas.AppendFormat("G\t{0}\t", nStart_0_Repeat_1_End_2 + 1);
 
                     if (m_bMirror == true)
                     {
-                        strDatas += String.Format("X\t-1\t");
+                        sbDatas.Append("X\t-1\t");
                     }
 
                     // 반복 패턴
@@ -1841,14 +1986,14 @@ namespace OpenJigWare
                     {
                         if (fK == 1)
                         {
-                            strDatas += String.Format("@SET_COMMAND,1\t@SET_DATA0,{0}\t@SET_DATA1,{1}\t", nSize_Frame - 1, GetWalkingCount());
+                            sbDatas.AppendFormat("@SET_COMMAND,1\t@SET_DATA0,{0}\t@SET_DATA1,{1}\t", nSize_Frame - 1, GetWalkingCount());
                         }
                     }
 
-                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4] != "") { strDatas += String.Format("{0}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4]); } // B58
+                    if (m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4] != "") { sbDatas.AppendFormat("{0}\t", m_aStrParam[nStart_0_Repeat_1_End_2, 58 - 4]); } // B58
 
                     if (m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4] != null)
-                        strDatas += Ojw.CConvert.ChangeChar(m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4], ' ', '\t'); // B53 - 덧붙임 명령어
+                        sbDatas.Append(Ojw.CConvert.ChangeChar(m_aStrParam[nStart_0_Repeat_1_End_2, 53 - 4], ' ', '\t')); // B53 - 덧붙임 명령어
                     //lstStrFrame.Add(strDatas);
                 }
                 #endregion For
@@ -1858,7 +2003,7 @@ namespace OpenJigWare
                 //{
                 //m_aStrParam_Old[nStart_0_Repeat_1_End_2, i] = m_aStrParam[nStart_0_Repeat_1_End_2, i];
                 //}
-                return strDatas;// lstStrFrame;
+                return sbDatas.ToString();// lstStrFrame;
 #endif
 
             }
@@ -2468,5 +2613,639 @@ namespace OpenJigWare
                 public List<String> lstStrDatas;// = new List<String>();
             }
         }
+
+        public class COjwWalkingGenerator
+        {
+            #region 보행 단계 enum
+
+            public enum WalkingPhase
+            {
+                Start = 0,    // 시작 보행
+                Repeat = 1,   // 반복 보행
+                End = 2       // 종료 보행
+            }
+
+            #endregion
+
+            #region 모터 ID 클래스
+
+            public static class MotorID
+            {
+                public const int RIGHT_FOOT_X = 101;
+                public const int RIGHT_FOOT_Y = 102;
+                public const int RIGHT_FOOT_Z = 103;
+                public const int LEFT_FOOT_X = 201;
+                public const int LEFT_FOOT_Y = 202;
+                public const int LEFT_FOOT_Z = 203;
+                public const int RIGHT_ANKLE = 110;
+                public const int LEFT_ANKLE = 210;
+                public const int RIGHT_HIP = 120;
+                public const int LEFT_HIP = 220;
+                public const int RIGHT_ARM_UP = 130;
+                public const int LEFT_ARM_UP = 230;
+                public const int RIGHT_ARM_SIDE = 131;
+                public const int LEFT_ARM_SIDE = 231;
+                public const int WAIST = 300;
+                public const int NECK = 400;
+                public const int SPEED = 500;
+                public const int DELAY = 501;
+            }
+
+            #endregion
+
+            #region 모션 프레임 클래스
+
+            public class MotionFrame
+            {
+                private Dictionary<int, float> motorValues;
+                public float Time { get; set; }
+                public float Delay { get; set; }
+                public WalkingPhase Phase { get; set; }
+                public int StepNumber { get; set; }
+
+                // 순차적 접근을 위한 배열 (ID 1부터 시작)
+                private float[] sequentialValues;
+                private const int MAX_SEQUENTIAL_ID = 20; // 최대 ID 수
+
+                public MotionFrame()
+                {
+                    motorValues = new Dictionary<int, float>();
+                    sequentialValues = new float[MAX_SEQUENTIAL_ID + 1]; // 인덱스 0은 사용안함, 1부터 시작
+                    Time = 0f;
+                    Delay = 0f;
+                    Phase = WalkingPhase.Start;
+                    StepNumber = 0;
+                }
+
+                public float Get(int motorID)
+                {
+                    if (motorValues.ContainsKey(motorID))
+                        return motorValues[motorID];
+                    else
+                        return 0f;
+                }
+
+                public void Set(int motorID, float value)
+                {
+                    motorValues[motorID] = value;
+                }
+
+                // 순차적 ID로 값 가져오기 (1부터 시작)
+                public float GetBySequentialId(int sequentialId)
+                {
+                    if (sequentialId >= 1 && sequentialId <= MAX_SEQUENTIAL_ID)
+                        return sequentialValues[sequentialId];
+                    else
+                        return 0f;
+                }
+
+                // 순차적 ID로 값 설정 (1부터 시작)  
+                public void SetBySequentialId(int sequentialId, float value)
+                {
+                    if (sequentialId >= 1 && sequentialId <= MAX_SEQUENTIAL_ID)
+                        sequentialValues[sequentialId] = value;
+                }
+
+                // 모든 순차적 값들을 배열로 반환 (인덱스 0은 무시, 1부터 사용)
+                public float[] GetAllSequentialValues()
+                {
+                    float[] result = new float[MAX_SEQUENTIAL_ID + 1];
+                    Array.Copy(sequentialValues, result, sequentialValues.Length);
+                    return result;
+                }
+
+                // 순차적 데이터 업데이트 (모터값들을 1, 2, 3... 순서로 배치)
+                public void UpdateSequentialValues()
+                {
+                    // 모터 데이터를 순차적 ID로 매핑
+                    SetBySequentialId(1, Get(MotorID.RIGHT_FOOT_X));
+                    SetBySequentialId(2, Get(MotorID.RIGHT_FOOT_Y));
+                    SetBySequentialId(3, Get(MotorID.RIGHT_FOOT_Z));
+                    SetBySequentialId(4, Get(MotorID.LEFT_FOOT_X));
+                    SetBySequentialId(5, Get(MotorID.LEFT_FOOT_Y));
+                    SetBySequentialId(6, Get(MotorID.LEFT_FOOT_Z));
+                    SetBySequentialId(7, Get(MotorID.RIGHT_ANKLE));
+                    SetBySequentialId(8, Get(MotorID.LEFT_ANKLE));
+                    SetBySequentialId(9, Get(MotorID.RIGHT_HIP));
+                    SetBySequentialId(10, Get(MotorID.LEFT_HIP));
+                    SetBySequentialId(11, Get(MotorID.RIGHT_ARM_UP));
+                    SetBySequentialId(12, Get(MotorID.LEFT_ARM_UP));
+                    SetBySequentialId(13, Get(MotorID.RIGHT_ARM_SIDE));
+                    SetBySequentialId(14, Get(MotorID.LEFT_ARM_SIDE));
+                    SetBySequentialId(15, Get(MotorID.WAIST));
+                    SetBySequentialId(16, Get(MotorID.NECK));
+                    SetBySequentialId(17, Get(MotorID.SPEED));
+                    SetBySequentialId(18, Get(MotorID.DELAY));
+                    SetBySequentialId(19, Time);
+                    SetBySequentialId(20, (float)Phase);
+                }
+
+                // 최대 순차적 ID 반환
+                public int GetMaxSequentialId()
+                {
+                    return MAX_SEQUENTIAL_ID;
+                }
+
+                public Dictionary<int, float> GetAllMotors()
+                {
+                    return new Dictionary<int, float>(motorValues);
+                }
+            }
+
+            #endregion
+
+            #region 파라미터 상수
+
+            private const int SWAY_AMPLITUDE = 0;
+            private const int STEP_HEIGHT = 1;
+            private const int STEP_LENGTH = 2;
+            private const int SINGLE_SUPPORT_STEPS = 3;
+            private const int DOUBLE_SUPPORT_STEPS = 4;
+            private const int CROUCH_DEPTH = 5;
+            private const int LEG_SPREAD = 6;
+            private const int BODY_TILT = 7;
+            private const int WEIGHT_SHIFT = 8;
+            private const int HIP_SPREAD = 9;
+            private const int ANKLE_ROLL = 10;
+            private const int ARM_SWING_UP = 11;
+            private const int ARM_SWING_SIDE = 12;
+            private const int WAIST_TWIST = 13;
+            private const int NECK_TILT = 14;
+            private const int ELASTIC_HEIGHT = 15;
+            private const int PARALLEL_ROTATION = 16;
+            private const int STABILITY_FACTOR = 17;
+            private const int SPEED_MULTIPLIER = 18;
+            private const int BALANCE_ADJUST = 19;
+
+            #endregion
+
+            #region 멤버 변수
+
+            private float[,] parameters;
+            private WalkingPhase currentPhase;
+            private int currentStep;
+            private int maxSteps;
+            private int repeatCount;
+            private int currentRepeatStep;
+            private bool isActive;
+
+            #endregion
+
+            #region Residual (잔차 보정) 시스템
+
+            private const int MAX_RESIDUAL_ID = 20;
+            private float[] residuals = new float[MAX_RESIDUAL_ID + 1];
+            private float[] residualLimits = new float[MAX_RESIDUAL_ID + 1];
+            private bool residualEnabled = true;
+
+            /// <summary>
+            /// 개별 모터 보정값 설정
+            /// </summary>
+            public void SetResidual(int motorId, float value)
+            {
+                int idx = MotorIdToSequential(motorId);
+                if (idx >= 1 && idx <= MAX_RESIDUAL_ID)
+                {
+                    float limit = residualLimits[idx];
+                    if (limit > 0)
+                        residuals[idx] = Math.Max(-limit, Math.Min(limit, value));
+                    else
+                        residuals[idx] = value;
+                }
+            }
+
+            /// <summary>
+            /// 순차 인덱스로 보정값 설정 (1부터 시작)
+            /// </summary>
+            public void SetResidualByIndex(int index, float value)
+            {
+                if (index >= 1 && index <= MAX_RESIDUAL_ID)
+                {
+                    float limit = residualLimits[index];
+                    if (limit > 0)
+                        residuals[index] = Math.Max(-limit, Math.Min(limit, value));
+                    else
+                        residuals[index] = value;
+                }
+            }
+
+            /// <summary>
+            /// 배열로 전체 보정값 설정 (AI 출력 연결용, 인덱스 0부터)
+            /// </summary>
+            public void SetResiduals(float[] values)
+            {
+                for (int i = 0; i < Math.Min(values.Length, MAX_RESIDUAL_ID); i++)
+                {
+                    int idx = i + 1;
+                    float limit = residualLimits[idx];
+                    if (limit > 0)
+                        residuals[idx] = Math.Max(-limit, Math.Min(limit, values[i]));
+                    else
+                        residuals[idx] = values[i];
+                }
+            }
+
+            /// <summary>
+            /// 현재 보정값 배열 반환 (인덱스 0부터)
+            /// </summary>
+            public float[] GetResiduals()
+            {
+                float[] result = new float[MAX_RESIDUAL_ID];
+                for (int i = 0; i < MAX_RESIDUAL_ID; i++)
+                    result[i] = residuals[i + 1];
+                return result;
+            }
+
+            /// <summary>
+            /// 모든 보정값 초기화
+            /// </summary>
+            public void ClearResiduals()
+            {
+                Array.Clear(residuals, 0, residuals.Length);
+            }
+
+            /// <summary>
+            /// 보정값 범위 제한 설정 (0이면 무제한)
+            /// </summary>
+            public void SetResidualLimit(int motorId, float limit)
+            {
+                int idx = MotorIdToSequential(motorId);
+                if (idx >= 1 && idx <= MAX_RESIDUAL_ID)
+                    residualLimits[idx] = Math.Abs(limit);
+            }
+
+            /// <summary>
+            /// 전체 보정값 범위 제한 일괄 설정
+            /// </summary>
+            public void SetAllResidualLimits(float limit)
+            {
+                for (int i = 1; i <= MAX_RESIDUAL_ID; i++)
+                    residualLimits[i] = Math.Abs(limit);
+            }
+
+            /// <summary>
+            /// 보정 활성화/비활성화
+            /// </summary>
+            public bool ResidualEnabled
+            {
+                get { return residualEnabled; }
+                set { residualEnabled = value; }
+            }
+
+            /// <summary>
+            /// MotorID를 순차 인덱스로 변환
+            /// </summary>
+            private int MotorIdToSequential(int motorId)
+            {
+                switch (motorId)
+                {
+                    case MotorID.RIGHT_FOOT_X: return 1;
+                    case MotorID.RIGHT_FOOT_Y: return 2;
+                    case MotorID.RIGHT_FOOT_Z: return 3;
+                    case MotorID.LEFT_FOOT_X: return 4;
+                    case MotorID.LEFT_FOOT_Y: return 5;
+                    case MotorID.LEFT_FOOT_Z: return 6;
+                    case MotorID.RIGHT_ANKLE: return 7;
+                    case MotorID.LEFT_ANKLE: return 8;
+                    case MotorID.RIGHT_HIP: return 9;
+                    case MotorID.LEFT_HIP: return 10;
+                    case MotorID.RIGHT_ARM_UP: return 11;
+                    case MotorID.LEFT_ARM_UP: return 12;
+                    case MotorID.RIGHT_ARM_SIDE: return 13;
+                    case MotorID.LEFT_ARM_SIDE: return 14;
+                    case MotorID.WAIST: return 15;
+                    case MotorID.NECK: return 16;
+                    default: return -1;
+                }
+            }
+
+            /// <summary>
+            /// 프레임에 보정값 적용
+            /// </summary>
+            private void ApplyResiduals(MotionFrame frame)
+            {
+                if (!residualEnabled) return;
+
+                for (int i = 1; i <= MAX_RESIDUAL_ID - 4; i++) // Time, Delay, Speed, Phase 제외
+                {
+                    if (residuals[i] != 0f)
+                    {
+                        float original = frame.GetBySequentialId(i);
+                        frame.SetBySequentialId(i, original + residuals[i]);
+                    }
+                }
+            }
+
+            #endregion
+
+            #region 프로퍼티
+
+            public bool IsActive
+            {
+                get { return isActive; }
+            }
+
+            public WalkingPhase CurrentPhase
+            {
+                get { return currentPhase; }
+            }
+
+            public int CurrentStep
+            {
+                get { return currentStep; }
+            }
+
+            public int MaxSteps
+            {
+                get { return maxSteps; }
+            }
+
+            public int CurrentRepeatStep
+            {
+                get { return currentRepeatStep; }
+            }
+
+            public int RepeatCount
+            {
+                get { return repeatCount; }
+            }
+
+            public float Progress
+            {
+                get { return maxSteps > 0 ? (float)currentStep / maxSteps : 0f; }
+            }
+
+            #endregion
+
+            #region 생성자
+
+            public COjwWalkingGenerator()
+            {
+                parameters = new float[3, 20];
+                currentPhase = WalkingPhase.Start;
+                currentStep = 0;
+                maxSteps = 0;
+                repeatCount = 5;
+                currentRepeatStep = 0;
+                isActive = false;
+
+                InitializeDefaultParameters();
+            }
+
+            #endregion
+
+            #region 초기화
+
+            private void InitializeDefaultParameters()
+            {
+                // 시작 단계 파라미터
+                float[] startParams = new float[] {
+                    5f, 25f, 20f, 2f, 1f, 5f, 0f, 0f, 3f, 1f,
+                    -5f, 0f, 0f, 0f, 0f, 0f, 0f, 1f, 1f, 0f
+                };
+                SetPhaseParameters(WalkingPhase.Start, startParams);
+
+                // 반복 단계 파라미터
+                float[] repeatParams = new float[] {
+                    10f, 50f, 40f, 4f, 2f, 10f, 0f, 0f, 5f, 2f,
+                    -10f, 0f, 0f, 0f, 0f, 0f, 0f, 1f, 1f, 0f
+                };
+                SetPhaseParameters(WalkingPhase.Repeat, repeatParams);
+
+                // 종료 단계 파라미터
+                float[] endParams = new float[] {
+                    5f, 25f, 20f, 2f, 1f, 5f, 0f, 0f, 3f, 1f,
+                    -5f, 0f, 0f, 0f, 0f, 0f, 0f, 1f, 0.8f, 0f
+                };
+                SetPhaseParameters(WalkingPhase.End, endParams);
+            }
+
+            #endregion
+
+            #region 공용 메서드
+
+            public void SetPhaseParameters(WalkingPhase phase, float[] values)
+            {
+                if (values.Length < 20) return;
+
+                for (int i = 0; i < 20; i++)
+                {
+                    parameters[(int)phase, i] = values[i];
+                }
+            }
+
+            public float[] GetPhaseParameters(WalkingPhase phase)
+            {
+                float[] result = new float[20];
+                for (int i = 0; i < 20; i++)
+                {
+                    result[i] = parameters[(int)phase, i];
+                }
+                return result;
+            }
+
+            public void SetRepeatCount(int count)
+            {
+                repeatCount = Math.Max(1, count);
+            }
+
+            public void StartWalking()
+            {
+                isActive = true;
+                currentPhase = WalkingPhase.Start;
+                currentStep = 0;
+                currentRepeatStep = 0;
+                maxSteps = CalculateMaxSteps(currentPhase);
+            }
+
+            public void StopWalking()
+            {
+                isActive = false;
+            }
+
+            public MotionFrame NextStep()
+            {
+                if (!isActive)
+                    return new MotionFrame();
+
+                currentStep++;
+
+                if (currentStep > maxSteps)
+                {
+                    AdvancePhase();
+                }
+
+                return GenerateFrame();
+            }
+
+            public MotionFrame GetStep(WalkingPhase phase, int step)
+            {
+                WalkingPhase savedPhase = currentPhase;
+                int savedStep = currentStep;
+
+                currentPhase = phase;
+                currentStep = step;
+                maxSteps = CalculateMaxSteps(phase);
+
+                MotionFrame frame = GenerateFrame();
+
+                currentPhase = savedPhase;
+                currentStep = savedStep;
+                maxSteps = CalculateMaxSteps(currentPhase);
+
+                return frame;
+            }
+
+            #endregion
+
+            #region 내부 메서드
+
+            private float GetCurrentParameter(int paramIndex)
+            {
+                return parameters[(int)currentPhase, paramIndex];
+            }
+
+            private void AdvancePhase()
+            {
+                switch (currentPhase)
+                {
+                    case WalkingPhase.Start:
+                        currentPhase = WalkingPhase.Repeat;
+                        currentRepeatStep = 0;
+                        break;
+
+                    case WalkingPhase.Repeat:
+                        currentRepeatStep++;
+                        if (currentRepeatStep >= repeatCount)
+                        {
+                            currentPhase = WalkingPhase.End;
+                        }
+                        break;
+
+                    case WalkingPhase.End:
+                        isActive = false;
+                        return;
+                }
+
+                currentStep = 0;
+                maxSteps = CalculateMaxSteps(currentPhase);
+            }
+
+            private int CalculateMaxSteps(WalkingPhase phase)
+            {
+                float singleSupport = GetCurrentParameter(SINGLE_SUPPORT_STEPS);
+                float doubleSupport = GetCurrentParameter(DOUBLE_SUPPORT_STEPS);
+                float gateSize = singleSupport + doubleSupport;
+
+                return (int)(gateSize * ((phase == WalkingPhase.Repeat) ? 2 : 1));
+            }
+
+            private MotionFrame GenerateFrame()
+            {
+                MotionFrame frame = new MotionFrame();
+                frame.Phase = currentPhase;
+                frame.StepNumber = currentStep;
+                frame.Time = 50f;
+                frame.Delay = 0f;
+
+                // 파라미터 읽기
+                float swayAmp = GetCurrentParameter(SWAY_AMPLITUDE);
+                float stepHeight = GetCurrentParameter(STEP_HEIGHT);
+                float stepLength = GetCurrentParameter(STEP_LENGTH);
+                float singleSupport = GetCurrentParameter(SINGLE_SUPPORT_STEPS);
+                float doubleSupport = GetCurrentParameter(DOUBLE_SUPPORT_STEPS);
+                float crouchDepth = GetCurrentParameter(CROUCH_DEPTH);
+                float legSpread = GetCurrentParameter(LEG_SPREAD);
+                float bodyTilt = GetCurrentParameter(BODY_TILT);
+                float weightShift = GetCurrentParameter(WEIGHT_SHIFT);
+                float hipSpread = GetCurrentParameter(HIP_SPREAD);
+                float ankleRoll = GetCurrentParameter(ANKLE_ROLL);
+                float armSwingUp = GetCurrentParameter(ARM_SWING_UP);
+                float armSwingSide = GetCurrentParameter(ARM_SWING_SIDE);
+                float waistTwist = GetCurrentParameter(WAIST_TWIST);
+                float neckTilt = GetCurrentParameter(NECK_TILT);
+                float speedMult = GetCurrentParameter(SPEED_MULTIPLIER);
+
+                // 계산
+                float gateSize = singleSupport + doubleSupport;
+                float frameSize = gateSize * ((currentPhase == WalkingPhase.Repeat) ? 2 : 1);
+                float normalizedTime = (currentStep - 1f) / Math.Max(1f, frameSize - 1f);
+                float gatePosition = ((currentStep - 1f) % gateSize) + 1f;
+
+                float legPhase = (float)Math.Floor((currentStep - 1f) / gateSize);
+                float legDirection = (float)Math.Pow(-1f, legPhase);
+
+                bool isSingleSupport = gatePosition > doubleSupport && gatePosition <= (doubleSupport + singleSupport);
+                float supportProgress = isSingleSupport ? (gatePosition - doubleSupport) / singleSupport : 0f;
+
+                float pi = (float)Math.PI;
+                float swayAngle = (normalizedTime * 360f) * (pi / 180f);
+                float sway = swayAmp * (float)Math.Sin(swayAngle);
+
+                float rightFootHeight = (legDirection > 0 && isSingleSupport) ? stepHeight * (float)Math.Sin(supportProgress * pi) : 0f;
+                float leftFootHeight = (legDirection < 0 && isSingleSupport) ? stepHeight * (float)Math.Sin(supportProgress * pi) : 0f;
+
+                float forwardProgress = normalizedTime * stepLength;
+                float baseSpread = 36f + legSpread;
+
+                // 발 위치 설정
+                frame.Set(MotorID.RIGHT_FOOT_X, sway + forwardProgress + (legDirection > 0 ? stepLength * supportProgress : 0f));
+                frame.Set(MotorID.RIGHT_FOOT_Y, crouchDepth + rightFootHeight);
+                frame.Set(MotorID.RIGHT_FOOT_Z, baseSpread / 2f + weightShift * legDirection);
+
+                frame.Set(MotorID.LEFT_FOOT_X, sway + forwardProgress + (legDirection < 0 ? stepLength * supportProgress : 0f));
+                frame.Set(MotorID.LEFT_FOOT_Y, crouchDepth + leftFootHeight);
+                frame.Set(MotorID.LEFT_FOOT_Z, -baseSpread / 2f - weightShift * legDirection);
+
+                // 발목 각도
+                frame.Set(MotorID.RIGHT_ANKLE, (isSingleSupport && legDirection > 0 ? ankleRoll * supportProgress : 0f) + bodyTilt);
+                frame.Set(MotorID.LEFT_ANKLE, (isSingleSupport && legDirection < 0 ? ankleRoll * supportProgress : 0f) - bodyTilt);
+
+                // 엉덩이 각도
+                frame.Set(MotorID.RIGHT_HIP, hipSpread * (float)Math.Sin(supportProgress * pi) * (legDirection > 0 ? 1f : -1f));
+                frame.Set(MotorID.LEFT_HIP, hipSpread * (float)Math.Sin(supportProgress * pi) * (legDirection < 0 ? 1f : -1f));
+
+                // 팔 동작
+                float armSwing = (float)Math.Sin(normalizedTime * 2f * pi);
+                frame.Set(MotorID.RIGHT_ARM_UP, armSwingUp * armSwing);
+                frame.Set(MotorID.LEFT_ARM_UP, -armSwingUp * armSwing);
+                frame.Set(MotorID.RIGHT_ARM_SIDE, armSwingSide + Math.Abs(armSwingSide * armSwing));
+                frame.Set(MotorID.LEFT_ARM_SIDE, armSwingSide + Math.Abs(armSwingSide * armSwing));
+
+                // 허리와 목
+                frame.Set(MotorID.WAIST, waistTwist * (float)Math.Sin(normalizedTime * pi));
+                frame.Set(MotorID.NECK, neckTilt * (float)Math.Sin(normalizedTime * pi + pi / 2f));
+
+                // 속도와 딜레이
+                frame.Set(MotorID.SPEED, 50f * speedMult);
+                frame.Set(MotorID.DELAY, 0f);
+
+                frame.Time = 50f * speedMult;
+                frame.Delay = 0f;
+
+                // 순차적 배열 업데이트 (중요!)
+                frame.UpdateSequentialValues();
+
+                // 잔차 보정 적용
+                ApplyResiduals(frame);
+
+                return frame;
+            }
+
+            /// <summary>
+            /// 보정 없이 기본 프레임만 반환 (비교/디버깅용)
+            /// </summary>
+            public MotionFrame GetBaseFrame()
+            {
+                bool savedEnabled = residualEnabled;
+                residualEnabled = false;
+                MotionFrame frame = GenerateFrame();
+                residualEnabled = savedEnabled;
+                return frame;
+            }
+
+            #endregion
+        }
+
     }
 }

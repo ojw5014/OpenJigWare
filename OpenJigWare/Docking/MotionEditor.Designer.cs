@@ -257,7 +257,8 @@
             this.chkDynamixel = new System.Windows.Forms.CheckBox();
             this.tmrCheckMotor = new System.Windows.Forms.Timer(this.components);
             this.chkExcel = new System.Windows.Forms.CheckBox();
-            this.mpPlayer = new AxWMPLib.AxWindowsMediaPlayer();
+            this.mpHost = new System.Windows.Forms.Integration.ElementHost();
+            this.mpPlayer = new System.Windows.Controls.MediaElement();
             ((System.ComponentModel.ISupportInitialize)(this.dgAngle)).BeginInit();
             this.tcControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -271,7 +272,6 @@
             this.pnButton.SuspendLayout();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picIcon)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.mpPlayer)).BeginInit();
             this.SuspendLayout();
             // 
             // dgAngle
@@ -3043,17 +3043,18 @@
             this.chkExcel.TabIndex = 652;
             this.chkExcel.Text = "Exel";
             this.chkExcel.UseVisualStyleBackColor = false;
-            // 
-            // mpPlayer
-            // 
-            this.mpPlayer.Enabled = true;
-            this.mpPlayer.Location = new System.Drawing.Point(931, 145);
-            this.mpPlayer.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.mpPlayer.Name = "mpPlayer";
-            this.mpPlayer.OcxState = ((System.Windows.Forms.AxHost.State)(resources.GetObject("mpPlayer.OcxState")));
-            this.mpPlayer.Size = new System.Drawing.Size(200, 153);
-            this.mpPlayer.TabIndex = 674;
-            this.mpPlayer.Visible = false;
+            //
+            // mpHost + mpPlayer  (AxWindowsMediaPlayer 대체: WPF MediaElement + ElementHost)
+            //
+            this.mpPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
+            this.mpPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Manual;
+            this.mpHost.Child = this.mpPlayer;
+            this.mpHost.Location = new System.Drawing.Point(931, 145);
+            this.mpHost.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.mpHost.Name = "mpHost";
+            this.mpHost.Size = new System.Drawing.Size(200, 153);
+            this.mpHost.TabIndex = 674;
+            this.mpHost.Visible = false;
             // 
             // frmMotionEditor
             // 
@@ -3072,7 +3073,7 @@
             this.Controls.Add(this.btnSync_Mp3_Grid);
             this.Controls.Add(this.prbStatus);
             this.Controls.Add(this.lbPlayState);
-            this.Controls.Add(this.mpPlayer);
+            this.Controls.Add(this.mpHost);
             this.Controls.Add(this.btnMode1);
             this.Controls.Add(this.btnMode0);
             this.Controls.Add(this.chkTracking);
@@ -3128,7 +3129,6 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picIcon)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.mpPlayer)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -3250,7 +3250,8 @@
         private System.Windows.Forms.Button btnZ_Plus;
         private System.Windows.Forms.Button btnY_Plus;
         private System.Windows.Forms.Button btnX_Plus;
-        private AxWMPLib.AxWindowsMediaPlayer mpPlayer;
+        private System.Windows.Forms.Integration.ElementHost mpHost;
+        private System.Windows.Controls.MediaElement mpPlayer;
         private System.Windows.Forms.Label lbPlayState;
         private System.Windows.Forms.ProgressBar prbStatus;
         private System.Windows.Forms.Button btnSync_Mp3_Grid;

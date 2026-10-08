@@ -38,6 +38,8 @@ namespace OpenJigWare
             private bool m_bTimer = false;
             private long m_lTimer = 0;
             private long m_lTimer_Tick = 0;
+            // 고해상도 측정용 (Start() 로 시작 시 사용). 기존 Set()/Get() 경로와 독립.
+            private System.Diagnostics.Stopwatch m_swHighRes = null;
 
             #region static 
             // if you use this _SIZE_STATIC_TIMER will change.
@@ -142,7 +144,23 @@ namespace OpenJigWare
             public void Set() { Set_Tick(DateTime.Now.Ticks); }
             private void Set_Tick(long lTick) { long temp = (long)lTick * 100 / 1000000; m_bTimer = true; m_lTimer = temp; m_lTimer_Tick = lTick; }
             // Kill Timer ( if you have set you should kill it for sure ) (Kor: 생성을 했으면 반드시 Kill를 하도록 한다. )
-            public void Kill() { m_bTimer = false; m_lTimer = 0; m_lTimer_Tick = 0; }
+            public void Kill() { m_bTimer = false; m_lTimer = 0; m_lTimer_Tick = 0; if (m_swHighRes != null) m_swHighRes.Reset(); }
+
+            // 고해상도 측정 시작 (QueryPerformanceCounter 기반).
+            // 변수 선언 → Start() → Get() 패턴. Set()/Get_us() 와 독립이며 기존 코드에 영향 없음.
+            public void Start()
+            {
+                if (m_swHighRes == null) m_swHighRes = new System.Diagnostics.Stopwatch();
+                m_swHighRes.Reset();
+                m_swHighRes.Start();
+            }
+            // Start() 이후 경과 시간(ms, 소수점 포함 고해상도). Start() 안 했으면 -1.
+            public double Get_ms()
+            {
+                if (m_swHighRes != null && m_swHighRes.IsRunning)
+                    return m_swHighRes.Elapsed.TotalMilliseconds;
+                return -1.0;
+            }
 
             // IntervalTime 간격으로 fInterval Value 만큼 증가한 값을 되돌림
             private double m_dInterval_Init = 0.0;
@@ -246,6 +264,9 @@ namespace OpenJigWare
             // Returns to the current time(Kor: Timer 생성 후 현재까지의 시간 값을 return)
             public long Get()
             {
+                // Start() 로 시작했으면 고해상도 경과 ms (정수). 소수점 정밀값은 Get_ms() 사용.
+                if (m_swHighRes != null && m_swHighRes.IsRunning)
+                    return (long)m_swHighRes.Elapsed.TotalMilliseconds;
                 if (m_bTimer == true)
                 {
                     DateTime tmrTemp = DateTime.Now;

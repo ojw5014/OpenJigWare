@@ -211,16 +211,16 @@ namespace OpenJigWare
                         // Theta
                         dTheta = DhParam.dTheta;
                         dD = DhParam.dD;
-                        if (DhParam.nAxisDir < 2)
+                        if ((DhParam.nAxisDir < 2) || (DhParam.nAxisDir >= 4)) // Dir 0,1: revolute, Dir 4,5: 바퀴형(continuous revolute)
                         {
-                            dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
-                            if (DhParam.nAxisDir != 0)
+                            dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * (((DhParam.nAxisDir == 0) || (DhParam.nAxisDir == 4)) ? 1.0f : -1.0f));
+                            if ((DhParam.nAxisDir != 0) && (DhParam.nAxisDir != 4))
                             {
                                 bInv = true;
                             }
                         }
                         // D
-                        else
+                        else // Dir 2,3: prismatic
                         {
                             dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
                             if (DhParam.nAxisDir != 2)
@@ -387,9 +387,9 @@ namespace OpenJigWare
                         dA = DhParam.dA;
                         dD = DhParam.dD;
                         // Theta
-                        if (DhParam.nAxisDir < 2) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+                        if ((DhParam.nAxisDir < 2) || (DhParam.nAxisDir >= 4)) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * (((DhParam.nAxisDir == 0) || (DhParam.nAxisDir == 4)) ? 1.0f : -1.0f)); // Dir 0,1,4,5: revolute/continuous
                         // D
-                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
+                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f)); // Dir 2,3: prismatic
                         CMath.CalcT(dA, DhParam.dAlpha, dD, dTheta, out aSDhT[i].adT);
                     }
                     DhParam = null;
@@ -515,9 +515,9 @@ namespace OpenJigWare
                         dA = DhParam.dA;
                         dD = DhParam.dD;
                         // Theta
-                        if (DhParam.nAxisDir < 2) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+                        if ((DhParam.nAxisDir < 2) || (DhParam.nAxisDir >= 4)) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * (((DhParam.nAxisDir == 0) || (DhParam.nAxisDir == 4)) ? 1.0f : -1.0f)); // Dir 0,1,4,5: revolute/continuous
                         // D
-                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
+                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f)); // Dir 2,3: prismatic
                         CMath.CalcT(dA, DhParam.dAlpha, dD, dTheta, out aSDhT[i].adT);
 
                         if (nCnt2 >= 0)
@@ -687,9 +687,9 @@ namespace OpenJigWare
                         dA = DhParam.dA;
                         dD = DhParam.dD;
                         // Theta
-                        if (DhParam.nAxisDir < 2) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 0) ? 1.0f : -1.0f));
+                        if ((DhParam.nAxisDir < 2) || (DhParam.nAxisDir >= 4)) dTheta += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * (((DhParam.nAxisDir == 0) || (DhParam.nAxisDir == 4)) ? 1.0f : -1.0f)); // Dir 0,1,4,5: revolute/continuous
                         // D
-                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f));
+                        else dD += (((DhParam.nAxisNum >= 0) ? dAngleData : 0) * ((DhParam.nAxisDir == 2) ? 1.0f : -1.0f)); // Dir 2,3: prismatic
                         CMath.CalcT(dA, DhParam.dAlpha, dD, dTheta, out aSDhT[i].adT);
 
                         if (nCnt2 >= 0) break;
@@ -999,6 +999,8 @@ namespace OpenJigWare
                         pCDhParam = new CDhParam[txtData.Lines.Length];
                         //int j = 0;
                         int nPos = 0;
+                        // '!' 라인 이후 수식 계산 스킵 플래그 (Init=1 라인에서 재개)
+                        bool bStopFormula = false;
                         for (int i = 0; i < txtData.Lines.Length; i++)
                         {
                             String strCaption = "";
@@ -1039,9 +1041,29 @@ namespace OpenJigWare
                                 continue;
                             }
 
-                            if (strData.Length > 0)
-                                if (strData[0] == '!') 
-                                    break;// !인 경우부터는 계산식에 넣지 않는다.
+                            // ! 라인: 현재 체인의 수식 계산 종료 마커
+                            //   - 이 라인부터는 수식에 포함시키지 않음 (3D 시각화는 계속 진행)
+                            //   - 다음 Init=1 라인을 만나면 새 체인 시작 (플래그 해제)
+                            if (strData.Length > 0 && strData[0] == '!')
+                            {
+                                bStopFormula = true;
+                                continue; // ! 라인 자체는 수식에 넣지 않음
+                            }
+
+                            // 수식 종료 상태에서 일반 라인은 건너뜀 (단, Init=1 만나면 재개)
+                            if (bStopFormula)
+                            {
+                                CDhParam tmpParam;
+                                if (StringLine_To_Class_DHParam(strData, out tmpParam) && tmpParam.nInit == 1)
+                                {
+                                    // 새 체인 시작 → 플래그 해제하고 정상 파싱 진행
+                                    bStopFormula = false;
+                                }
+                                else
+                                {
+                                    continue; // 아직 ! 구간 내부 → 건너뜀
+                                }
+                            }
 
                             // real interpreter(Kor: 실제 해석)
                             bRet2 = StringLine_To_Class_DHParam(strData, out pCDhParam[nPos]);
@@ -1165,8 +1187,8 @@ namespace OpenJigWare
 
 
                     // z축 회전
-                    i = 0; adCalcZ[i, 0] = (double)CMath.Cos(dAngleY); adCalcZ[i, 1] = -(double)CMath.Sin(dAngleY); adCalcZ[i, 2] = 0.0f; adCalcZ[i, 3] = 0.0f;
-                    i = 1; adCalcZ[i, 0] = (double)CMath.Sin(dAngleY); adCalcZ[i, 1] = (double)CMath.Cos(dAngleY); adCalcZ[i, 2] = 0.0f; adCalcZ[i, 3] = 0.0f;
+                    i = 0; adCalcZ[i, 0] = (double)CMath.Cos(dAngleZ); adCalcZ[i, 1] = -(double)CMath.Sin(dAngleZ); adCalcZ[i, 2] = 0.0f; adCalcZ[i, 3] = 0.0f;
+                    i = 1; adCalcZ[i, 0] = (double)CMath.Sin(dAngleZ); adCalcZ[i, 1] = (double)CMath.Cos(dAngleZ); adCalcZ[i, 2] = 0.0f; adCalcZ[i, 3] = 0.0f;
                     i = 2; adCalcZ[i, 0] = 0.0f; adCalcZ[i, 1] = 0.0f; adCalcZ[i, 2] = 1.0f; adCalcZ[i, 3] = 0.0f;
                     i = 3; adCalcZ[i, 0] = 0.0f; adCalcZ[i, 1] = 0.0f; adCalcZ[i, 2] = 0.0f; adCalcZ[i, 3] = 1.0f;
 
@@ -1961,7 +1983,13 @@ public static double hypot(double v, double w) {
                 private const int _ASIN2 = 0x2000000;
                 //private const int _MOD   = 0x4000000;
                 private const int _ROUND = 0x8000000;
-                private static int _CALL =0x10000000;
+                private const int _CALL = 0x10000000;
+                private const int _IF = 0x20000000;
+                private const int _INV = 0x04000000;  // @Inv() IK 함수 호출 (COjw_04_Convert.cs와 동일한 값)
+
+                // 비교 연산자 (CalcCmd에서 사용하는 opcode)
+                // 0x17: <, 0x18: >, 0x19: ==, 0x1A: !=, 0x1B: <=, 0x1C: >=
+                // 0x1D: && (AND), 0x1E: || (OR), 0x1F: ! (NOT)
 
                 private const int _COMMA2 = 0x0100000;
                 #endregion Math Function Address(Kor: 수식 Address 정의)
@@ -2172,6 +2200,234 @@ public static double hypot(double v, double w) {
                 public static String CheckCompileError_String() { return m_pstrError[m_nErrorCode]; }
                 #endregion Compile Errors (GetErrorString_..., GetErrorCode, CheckCompileError_...)
 
+                #region If/Else Block Preprocessing
+                // ------------------------------------------------------------
+                // if/else 블록 전처리
+                // 입력: if(조건) { 문장들 } else { 문장들 }
+                // 출력: __IF_START__(조건변수)
+                //       문장들
+                //       __ELSE__
+                //       문장들
+                //       __ENDIF__
+                // ------------------------------------------------------------
+                // 비교 연산자를 함수 형태로 변환 (예: "t11 > 0" -> "cmpgt(t11, 0)")
+                private static String ConvertComparisonToFunction(String strCondition)
+                {
+                    String strResult = strCondition;
+
+                    // 논리 연산자 먼저 처리 (&&, ||)
+                    // 복잡한 조건문은 단순화를 위해 단일 비교만 지원
+                    // 추후 필요시 확장 가능
+
+                    // 비교 연산자 처리 (순서 중요: <=, >=, ==, != 먼저, 그 다음 <, >)
+                    // "a <= b" -> "cmple(a, b)"
+                    string[] operators = new string[] { "<=", ">=", "==", "!=", "<", ">" };
+                    string[] funcNames = new string[] { "cmple", "cmpge", "cmpeq", "cmpne", "cmplt", "cmpgt" };
+
+                    for (int i = 0; i < operators.Length; i++)
+                    {
+                        int nPos = strResult.IndexOf(operators[i]);
+                        if (nPos >= 0)
+                        {
+                            String strLeft = strResult.Substring(0, nPos).Trim();
+                            String strRight = strResult.Substring(nPos + operators[i].Length).Trim();
+                            strResult = funcNames[i] + "(" + strLeft + "," + strRight + ")";
+                            break; // 하나만 처리
+                        }
+                    }
+
+                    return strResult;
+                }
+
+                // call(x) -> call(x,) 변환 함수
+                // call은 1인자 함수이므로 쉼표가 없어서 _UP6_ 마커가 생성되지 않음
+                // 인자 뒤에 쉼표를 추가하여 2인자 함수처럼 처리되도록 함
+                private static String PreprocessCallFunction(String strSrc)
+                {
+                    String strResult = strSrc;
+                    int nSearchStart = 0;
+
+                    while (true)
+                    {
+                        // call( 패턴 찾기 (대소문자 무시)
+                        int nCallPos = strResult.IndexOf("call(", nSearchStart, StringComparison.OrdinalIgnoreCase);
+                        if (nCallPos < 0) break;
+
+                        // call( 다음의 여는 괄호 위치
+                        int nOpenParen = nCallPos + 4; // "call" 길이
+
+                        // 대응하는 닫는 괄호 찾기
+                        int nDepth = 1;
+                        int nCloseParen = nOpenParen + 1;
+                        while (nCloseParen < strResult.Length && nDepth > 0)
+                        {
+                            if (strResult[nCloseParen] == '(') nDepth++;
+                            else if (strResult[nCloseParen] == ')') nDepth--;
+                            nCloseParen++;
+                        }
+
+                        if (nDepth == 0)
+                        {
+                            // nCloseParen은 ')' 다음 위치를 가리킴
+                            // ')' 바로 앞에 ',' 삽입
+                            strResult = strResult.Insert(nCloseParen - 1, ",");
+                            nSearchStart = nCloseParen + 1; // ',' 추가되었으므로 +1
+                        }
+                        else
+                        {
+                            nSearchStart = nCallPos + 1;
+                        }
+                    }
+
+                    return strResult;
+                }
+
+                // inv(x, y) -> inv(x,y,) 변환 함수
+                // inv는 2인자 함수이지만 마지막에 쉼표를 추가하여 _UP9_ 마커가 생성되도록 함
+                private static String PreprocessInvFunction(String strSrc)
+                {
+                    String strResult = strSrc;
+                    int nSearchStart = 0;
+
+                    while (true)
+                    {
+                        // inv( 패턴 찾기 (대소문자 무시)
+                        int nInvPos = strResult.IndexOf("inv(", nSearchStart, StringComparison.OrdinalIgnoreCase);
+                        if (nInvPos < 0) break;
+
+                        // inv( 다음의 여는 괄호 위치
+                        int nOpenParen = nInvPos + 3; // "inv" 길이
+
+                        // 대응하는 닫는 괄호 찾기
+                        int nDepth = 1;
+                        int nCloseParen = nOpenParen + 1;
+                        while (nCloseParen < strResult.Length && nDepth > 0)
+                        {
+                            if (strResult[nCloseParen] == '(') nDepth++;
+                            else if (strResult[nCloseParen] == ')') nDepth--;
+                            nCloseParen++;
+                        }
+
+                        if (nDepth == 0)
+                        {
+                            // nCloseParen은 ')' 다음 위치를 가리킴
+                            // ')' 바로 앞에 ',' 삽입
+                            strResult = strResult.Insert(nCloseParen - 1, ",");
+                            nSearchStart = nCloseParen + 1; // ',' 추가되었으므로 +1
+                        }
+                        else
+                        {
+                            nSearchStart = nInvPos + 1;
+                        }
+                    }
+
+                    return strResult;
+                }
+
+                private static String PreprocessIfElseBlocks(String strSrc)
+                {
+                    String strResult = strSrc;
+
+                    // if( 패턴 찾기
+                    int nSearchStart = 0;
+                    while (true)
+                    {
+                        int nIfPos = strResult.IndexOf("if(", nSearchStart, StringComparison.OrdinalIgnoreCase);
+                        if (nIfPos < 0)
+                        {
+                            nIfPos = strResult.IndexOf("if (", nSearchStart, StringComparison.OrdinalIgnoreCase);
+                        }
+                        if (nIfPos < 0) break;
+
+                        // if( 다음의 조건 괄호 찾기
+                        int nCondStart = strResult.IndexOf('(', nIfPos);
+                        if (nCondStart < 0) break;
+
+                        // 대응하는 닫는 괄호 찾기
+                        int nDepth = 1;
+                        int nCondEnd = nCondStart + 1;
+                        while (nCondEnd < strResult.Length && nDepth > 0)
+                        {
+                            if (strResult[nCondEnd] == '(') nDepth++;
+                            else if (strResult[nCondEnd] == ')') nDepth--;
+                            nCondEnd++;
+                        }
+                        if (nDepth != 0) break;
+                        nCondEnd--; // ')' 위치
+
+                        String strCondition = strResult.Substring(nCondStart + 1, nCondEnd - nCondStart - 1);
+                        // 비교 연산자를 함수 형태로 변환
+                        strCondition = ConvertComparisonToFunction(strCondition);
+
+                        // 조건 다음의 { 찾기
+                        int nBlockStart = strResult.IndexOf('{', nCondEnd);
+                        if (nBlockStart < 0) break;
+
+                        // 대응하는 } 찾기 (중첩 고려)
+                        nDepth = 1;
+                        int nBlockEnd = nBlockStart + 1;
+                        while (nBlockEnd < strResult.Length && nDepth > 0)
+                        {
+                            if (strResult[nBlockEnd] == '{') nDepth++;
+                            else if (strResult[nBlockEnd] == '}') nDepth--;
+                            nBlockEnd++;
+                        }
+                        if (nDepth != 0) break;
+                        nBlockEnd--; // '}' 위치
+
+                        String strIfBlock = strResult.Substring(nBlockStart + 1, nBlockEnd - nBlockStart - 1);
+
+                        // else 블록 찾기
+                        String strElseBlock = "";
+                        int nElseEnd = nBlockEnd + 1;
+
+                        // } 다음에 else가 있는지 확인
+                        String strAfterBlock = strResult.Substring(nBlockEnd + 1).TrimStart();
+                        if (strAfterBlock.StartsWith("else", StringComparison.OrdinalIgnoreCase))
+                        {
+                            int nElsePos = strResult.IndexOf("else", nBlockEnd, StringComparison.OrdinalIgnoreCase);
+                            int nElseBlockStart = strResult.IndexOf('{', nElsePos);
+                            if (nElseBlockStart >= 0)
+                            {
+                                nDepth = 1;
+                                int nElseBlockEnd = nElseBlockStart + 1;
+                                while (nElseBlockEnd < strResult.Length && nDepth > 0)
+                                {
+                                    if (strResult[nElseBlockEnd] == '{') nDepth++;
+                                    else if (strResult[nElseBlockEnd] == '}') nDepth--;
+                                    nElseBlockEnd++;
+                                }
+                                if (nDepth == 0)
+                                {
+                                    nElseBlockEnd--; // '}' 위치
+                                    strElseBlock = strResult.Substring(nElseBlockStart + 1, nElseBlockEnd - nElseBlockStart - 1);
+                                    nElseEnd = nElseBlockEnd + 1;
+                                }
+                            }
+                        }
+
+                        // 변환된 문자열 생성
+                        String strConverted = "";
+                        strConverted += "__IF_COND__=" + strCondition.Trim() + "\r\n";
+                        strConverted += "__IF_START__\r\n";
+                        strConverted += strIfBlock.Trim() + "\r\n";
+                        if (strElseBlock.Length > 0)
+                        {
+                            strConverted += "__ELSE__\r\n";
+                            strConverted += strElseBlock.Trim() + "\r\n";
+                        }
+                        strConverted += "__ENDIF__\r\n";
+
+                        // 원본에서 if문 전체를 변환된 문자열로 교체
+                        strResult = strResult.Substring(0, nIfPos) + strConverted + strResult.Substring(nElseEnd);
+
+                        nSearchStart = nIfPos + strConverted.Length;
+                    }
+
+                    return strResult;
+                }
+                #endregion If/Else Block Preprocessing
+
                 private static void StringSeparate(String strSrc, out String[] pstrData)
                 {
 #if true
@@ -2195,6 +2451,8 @@ public static double hypot(double v, double w) {
                 bool bAtan2 = false;
                 bool bAcos2 = false;
                 bool bAsin2 = false;
+                bool bCall = false;
+                bool bInv = false;
 
                 for (int i = 0; i < strSrc.Length; i++)
                 {
@@ -2292,6 +2550,8 @@ public static double hypot(double v, double w) {
                             if (strCurr.ToLower() == "atan2") bAtan2 = true;
                             if (strCurr.ToLower() == "acos2") bAcos2 = true;
                             if (strCurr.ToLower() == "asin2") bAsin2 = true;
+                            if (strCurr.ToLower() == "call") bCall = true;
+                            if (strCurr.ToLower() == "inv") bInv = true;
                             if (strCurr == ",")
                             {
                                 if (bSqrt == true) strCurr = ",_UP1_";
@@ -2299,11 +2559,15 @@ public static double hypot(double v, double w) {
                                 else if (bAtan2 == true) strCurr = ",_UP2_";
                                 else if (bAcos2 == true) strCurr = ",_UP3_";
                                 else if (bAsin2 == true) strCurr = ",_UP4_";
+                                else if (bCall == true) strCurr = ",_UP6_";
+                                else if (bInv == true) strCurr = ",_UP9_";
                                 bSqrt = false;
                                 bPow = false;
                                 bAtan2 = false;
                                 bAcos2 = false;
                                 bAsin2 = false;
+                                bCall = false;
+                                bInv = false;
                             }
                             pstrData2[nNum++] = strCurr;
                             strPrev = strCurr;
@@ -2366,6 +2630,15 @@ public static double hypot(double v, double w) {
                 private static String Compile_Org2Basic(String strSrc)
                 {
                     strSrc = CConvert.RemoveChar(strSrc, ' ');
+
+                    // if/else 블록 제어 키워드는 그대로 통과
+                    if (strSrc == "__if_start__" || strSrc == "__IF_START__")
+                        return "__IF_START__=0";
+                    if (strSrc == "__else__" || strSrc == "__ELSE__")
+                        return "__ELSE__=0";
+                    if (strSrc == "__endif__" || strSrc == "__ENDIF__")
+                        return "__ENDIF__=0";
+
                     String[] pstrSrc;
                     String[] pstrAsm;
                     String[] pstrSort;
@@ -2380,6 +2653,7 @@ public static double hypot(double v, double w) {
                     {
                         #region StringSeparate(strSrc, out pstrSrc); - split string data(Kor: 스트링 데이터를 조각조각 쪼개 놓는다.)
                         StringSeparate(strSrc, out pstrSrc);
+                        // DEBUG: inv 함수 토큰 확인
                         #endregion StringSeparate(strSrc, out pstrSrc); - split string data(Kor: 스트링 데이터를 조각조각 쪼개 놓는다.)
 
                         #region define a new variable with datas in step(Kor: 쪼개진 데이타를 순서에 입각하여 변수정의한다.)
@@ -2493,27 +2767,58 @@ public static double hypot(double v, double w) {
                                 }
                                 else
                                 {
-                                    if (
+                                    // inv_V0, call_V0 등 함수명_V 형태는 함수로 인식해야 함
+                                    bool bIsFuncWithVar = (pstrLineSort[i] != null) &&
+                                        (pstrLineSort[i].StartsWith("inv_") || pstrLineSort[i].StartsWith("call_") ||
+                                         pstrLineSort[i].StartsWith("sin_") || pstrLineSort[i].StartsWith("cos_") ||
+                                         pstrLineSort[i].StartsWith("tan_") || pstrLineSort[i].StartsWith("asin_") ||
+                                         pstrLineSort[i].StartsWith("acos_") || pstrLineSort[i].StartsWith("atan_") ||
+                                         pstrLineSort[i].StartsWith("sqrt_") || pstrLineSort[i].StartsWith("pow_") ||
+                                         pstrLineSort[i].StartsWith("abs_") || pstrLineSort[i].StartsWith("round_") ||
+                                         pstrLineSort[i].StartsWith("atan2_") || pstrLineSort[i].StartsWith("acos2_") ||
+                                         pstrLineSort[i].StartsWith("asin2_"));
+
+                                    // 현재 토큰이 함수명인지 체크
+                                    bool bIsFunction = (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL | _INV, pstrLineSort[i]) != 0);
+                                    // 이전 토큰이 함수명인지 체크
+                                    bool bPrevIsFunction = (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL | _INV, pstrLineSort[i - 1]) != 0);
+
+                                    if (bPrevIsFunction)
+                                    {
+                                        // 이전 토큰이 함수명이면: +func_V0 형태로 결합 (함수명 + 현재토큰)
+                                        // 콤마 마커(_UP9_, _UP6_ 등)는 StringSeparate에서 이미 _V0 내부에 포함됨
+                                        string strPrefix = ((pstrLineSort[i - 2] == "=") ? "+" : pstrLineSort[i - 2]);
+                                        pstrTmp[nPos2++] = strPrefix + pstrLineSort[i - 1] + pstrLineSort[i];
+                                    }
+                                    else if (bIsFunction && (pstrLineSort[i - 1] == "="))
+                                    {
+                                        // = 다음에 함수명이 오면: 스킵 (다음 루프에서 _V0와 함께 결합됨)
+                                        // 아무것도 하지 않음 - 다음 반복에서 bPrevIsFunction=true가 되어 처리됨
+                                    }
+                                    else if (
                                         ((pstrLineSort[i - 1] == "=") && (pstrLineSort[i] != "-")) &&
-                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL, pstrLineSort[i]) == 0)
+                                        (!bIsFunction) &&
+                                        (!bIsFuncWithVar)
                                     )
                                         pstrTmp[nPos2++] = "+" + pstrLineSort[i];
                                     else if (
                                         ((pstrLineSort[i - 1] == "=") && (pstrLineSort[i] == "-")) &&
-                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL, pstrLineSort[i]) == 0) &&
-                                        (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL, pstrLineSort[i - 1]) == 0)
+                                        (!bIsFunction) &&
+                                        (!bPrevIsFunction)
                                     )
                                         continue;
                                     else if (
                                           (CConvert.CheckCalc_Compare(_PLUS | _MINUS | _MUL | _DIV | _MOD | _COMMA, pstrLineSort[i - 1]) != 0) &&
-                                          (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL, pstrLineSort[i]) == 0)
+                                          (!bIsFunction) &&
+                                          (!bIsFuncWithVar)
                                       )
                                     {
                                         pstrTmp[nPos2++] = pstrLineSort[i - 1] + pstrLineSort[i];
                                     }
-                                    else if (CConvert.CheckCalc_Compare(_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _POW | _SQRT | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL, pstrLineSort[i - 1]) != 0)
+                                    else if (bIsFuncWithVar)
                                     {
-                                        pstrTmp[nPos2++] = ((pstrLineSort[i - 2] == "=") ? "+" : pstrLineSort[i - 2]) + pstrLineSort[i - 1] + pstrLineSort[i];
+                                        // inv_V0 등을 그대로 유지 (+ 붙이지 않음)
+                                        pstrTmp[nPos2++] = pstrLineSort[i];
                                     }
                                 }
                             }
@@ -2655,6 +2960,14 @@ public static double hypot(double v, double w) {
                         int nMemNum = 0;
                         for (int i = 0; i < nCnt; i++)
                         {
+                            // if/else 블록 키워드는 변수 치환에서 완전히 제외
+                            if (pstrVar[i].StartsWith("__IF_") || pstrVar[i].StartsWith("__if_") ||
+                                pstrVar[i].StartsWith("__ELSE") || pstrVar[i].StartsWith("__else") ||
+                                pstrVar[i].StartsWith("__ENDIF") || pstrVar[i].StartsWith("__endif"))
+                            {
+                                continue;
+                            }
+
                             //if (pstrVar[i].IndexOf("_T") < 0)
                             if ((pstrVar[i].IndexOf("_T") < 0) && (pstrVar[i].IndexOf("_M") < 0)
                                  && (pstrVar[i].IndexOf("_X") < 0) && (pstrVar[i].IndexOf("_Y") < 0) && (pstrVar[i].IndexOf("_Z") < 0)
@@ -2684,8 +2997,33 @@ public static double hypot(double v, double w) {
                         }
 
                         strResult = "";
+                        String strLastCondVar = "_M0"; // 마지막 조건문 결과 저장 변수 (IF_START에서 참조)
                         for (int i = 0; i < nCnt; i++)
                         {
+                            // if/else 블록 제어 키워드 처리
+                            if (pstrVar[i] == "__IF_START__" || pstrVar[i] == "__if_start__")
+                            {
+                                // 직전 __IF_COND__의 결과 메모리 주소 사용
+                                strResult += "IF_START," + strLastCondVar + "\r\n";
+                                continue;
+                            }
+                            if (pstrVar[i] == "__ELSE__" || pstrVar[i] == "__else__")
+                            {
+                                strResult += "ELSE,0\r\n";
+                                continue;
+                            }
+                            if (pstrVar[i] == "__ENDIF__" || pstrVar[i] == "__endif__")
+                            {
+                                strResult += "ENDIF,0\r\n";
+                                continue;
+                            }
+                            // __IF_COND__ 조건문은 건너뜀 - 실제 비교 연산은 이미 별도 줄에서 수행됨
+                            // strLastCondVar는 비교 연산(LE, LT 등) 수행 시 자동 설정됨
+                            if (pstrVar[i] == "__IF_COND__" || pstrVar[i] == "__if_cond__")
+                            {
+                                continue;
+                            }
+
 #if _REMOVE_CLR_COMMAND
                             strResult += "VAR," + pstrVar[i] + "\r\n";
 #else
@@ -2700,8 +3038,16 @@ public static double hypot(double v, double w) {
                             bool bRound = false;
                             bool bCall = false;
                             bool bIf = false;
+                            bool bInv = false;
                             //bool bAsin2 = false;
                             bool bPow = false;
+                            // 비교 연산자 함수
+                            bool bCmpLt = false;
+                            bool bCmpGt = false;
+                            bool bCmpEq = false;
+                            bool bCmpNe = false;
+                            bool bCmpLe = false;
+                            bool bCmpGe = false;
                             //int nIndex = strTmp.IndexOf(",");
                             //if (nIndex < 0)
                             //{
@@ -2733,6 +3079,11 @@ public static double hypot(double v, double w) {
                                                         if (nIndex < 0)
                                                         {
                                                             nIndex = strTmp.IndexOf(",_UP8_");
+                                                            if (nIndex < 0)
+                                                            {
+                                                                nIndex = strTmp.IndexOf(",_UP9_");// Inv
+                                                                if (nIndex >= 0) bInv = true;
+                                                            }
                                                             //if (nIndex >= 0) bRound = true;
                                                         }
                                                         else bIf = true;
@@ -2751,6 +3102,38 @@ public static double hypot(double v, double w) {
                             }
                             else bPow = true;
 
+                            // 비교 연산자 함수 검사
+                            if (nIndex < 0)
+                            {
+                                nIndex = strTmp.IndexOf(",_UPLT_");
+                                if (nIndex >= 0) bCmpLt = true;
+                            }
+                            if (nIndex < 0)
+                            {
+                                nIndex = strTmp.IndexOf(",_UPGT_");
+                                if (nIndex >= 0) bCmpGt = true;
+                            }
+                            if (nIndex < 0)
+                            {
+                                nIndex = strTmp.IndexOf(",_UPEQ_");
+                                if (nIndex >= 0) bCmpEq = true;
+                            }
+                            if (nIndex < 0)
+                            {
+                                nIndex = strTmp.IndexOf(",_UPNE_");
+                                if (nIndex >= 0) bCmpNe = true;
+                            }
+                            if (nIndex < 0)
+                            {
+                                nIndex = strTmp.IndexOf(",_UPLE_");
+                                if (nIndex >= 0) bCmpLe = true;
+                            }
+                            if (nIndex < 0)
+                            {
+                                nIndex = strTmp.IndexOf(",_UPGE_");
+                                if (nIndex >= 0) bCmpGe = true;
+                            }
+
                             if (nIndex >= 0)
                             {
                                 strTmp = pstrData[i].Substring(0, nIndex);
@@ -2764,6 +3147,17 @@ public static double hypot(double v, double w) {
                                 strEnd = CConvert.RemoveString(strEnd, ",_UP6_"); // call
                                 strEnd = CConvert.RemoveString(strEnd, ",_UP7_"); // if
                                 strEnd = CConvert.RemoveString(strEnd, ",_UP8_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UP9_"); // inv
+                                // 비교 연산자 함수
+                                strEnd = CConvert.RemoveString(strEnd, ",_UPLT_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UPGT_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UPEQ_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UPNE_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UPLE_");
+                                strEnd = CConvert.RemoveString(strEnd, ",_UPGE_");
+                                // 괄호 제거
+                                strEnd = CConvert.RemoveString(strEnd, "(");
+                                strEnd = CConvert.RemoveString(strEnd, ")");
                             }
 
                             #region StringSeparate(strTmp, out pstrTmp); - Split the string data.(Kor: 스트링 데이터를 조각조각 쪼개 놓는다.)
@@ -2805,9 +3199,38 @@ public static double hypot(double v, double w) {
                                 {
                                     pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "call");
                                 }
+                                else if (pstrTmp[j].IndexOf("inv") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "inv");
+                                }
                                 else if (pstrTmp[j].IndexOf("if") >= 0)
                                 {
                                     pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "if");
+                                }
+                                // 비교 연산자 함수 이름 제거
+                                else if (pstrTmp[j].IndexOf("cmplt") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "cmplt");
+                                }
+                                else if (pstrTmp[j].IndexOf("cmpgt") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "cmpgt");
+                                }
+                                else if (pstrTmp[j].IndexOf("cmpeq") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "cmpeq");
+                                }
+                                else if (pstrTmp[j].IndexOf("cmpne") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "cmpne");
+                                }
+                                else if (pstrTmp[j].IndexOf("cmple") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "cmple");
+                                }
+                                else if (pstrTmp[j].IndexOf("cmpge") >= 0)
+                                {
+                                    pstrTmp[j] = CConvert.RemoveString(pstrTmp[j], "cmpge");
                                 }
 
                                 if ((nData & _PLUS) != 0)
@@ -2849,7 +3272,26 @@ public static double hypot(double v, double w) {
                             if (nIndex >= 0)
                             {
                                 //strResult += ((bSqrt == false) ? "POW," : "SQRT,") + strEnd + "\r\n";
-                                strResult += ((bPow == true) ? "POW," : ((bSqrt == true) ? "SQRT," : ((bAtan2 == true) ? "ATAN2," : ((bAcos2 == true) ? "ACOS2," : ((bRound == true) ? "ROUND," : ((bCall == true) ? "CALL," : ((bIf == true) ? "IF," : "ASIN2,"))))))) + strEnd + "\r\n";
+                                String strOp = "ASIN2,"; // default
+                                bool bIsCompare = false;
+                                if (bPow == true) strOp = "POW,";
+                                else if (bSqrt == true) strOp = "SQRT,";
+                                else if (bAtan2 == true) strOp = "ATAN2,";
+                                else if (bAcos2 == true) strOp = "ACOS2,";
+                                else if (bRound == true) strOp = "ROUND,";
+                                else if (bCall == true) strOp = "CALL,";
+                                else if (bIf == true) strOp = "IF,";
+                                else if (bInv == true) strOp = "INV,";
+                                // 비교 연산자 함수 - pow와 같은 방식 (2차 연산)
+                                else if (bCmpLt == true) { strOp = "LT,"; bIsCompare = true; }
+                                else if (bCmpGt == true) { strOp = "GT,"; bIsCompare = true; }
+                                else if (bCmpEq == true) { strOp = "EQ,"; bIsCompare = true; }
+                                else if (bCmpNe == true) { strOp = "NE,"; bIsCompare = true; }
+                                else if (bCmpLe == true) { strOp = "LE,"; bIsCompare = true; }
+                                else if (bCmpGe == true) { strOp = "GE,"; bIsCompare = true; }
+                                strResult += strOp + strEnd + "\r\n";
+                                // 비교 연산 결과가 저장되는 변수를 IF_START에서 참조하도록 저장
+                                if (bIsCompare) strLastCondVar = pstrVar[i];
                                 //strResult += "POW," + strEnd + "\r\n";
                             }
                             //strResult += "LD," + strTmp + pstrData[i].IndexOf(1, pstrData[i].Length - 1));
@@ -2952,6 +3394,23 @@ public static double hypot(double v, double w) {
                                     else if (strCode == "ROUND") nData = 0x00000014;
                                     else if (strCode == "CALL") nData = 0x00000015;
                                     else if (strCode == "IF") nData = 0x00000016;
+                                    // 비교 연산자
+                                    else if (strCode == "LT") nData = 0x00000017;   // <
+                                    else if (strCode == "GT") nData = 0x00000018;   // >
+                                    else if (strCode == "EQ") nData = 0x00000019;   // ==
+                                    else if (strCode == "NE") nData = 0x0000001a;   // !=
+                                    else if (strCode == "LE") nData = 0x0000001b;   // <=
+                                    else if (strCode == "GE") nData = 0x0000001c;   // >=
+                                    // 논리 연산자
+                                    else if (strCode == "AND") nData = 0x0000001d;  // &&
+                                    else if (strCode == "OR") nData = 0x0000001e;   // ||
+                                    else if (strCode == "NOT") nData = 0x0000001f;  // !
+                                    // IK 호출
+                                    else if (strCode == "INV") nData = 0x00000020;
+                                    // if/else/endif 블록 제어
+                                    else if (strCode == "IF_START") nData = 0x00000021;
+                                    else if (strCode == "ELSE") nData = 0x00000022;
+                                    else if (strCode == "ENDIF") nData = 0x00000023;
                                     else continue;
                                     pstrOperand[0] = CConvert.IntToHex(nData, nWidth);
                                 }
@@ -2975,6 +3434,7 @@ public static double hypot(double v, double w) {
                                     else if (strCode.IndexOf("mod") == 0) nData = 0x00000013;
                                     else if (strCode.IndexOf("round") == 0) nData = 0x00001400;
                                     else if (strCode.IndexOf("call") == 0) nData = 0x00001500;
+                                    else if (strCode.IndexOf("inv") == 0) nData = 0x00002000;
                                     else if (strCode.IndexOf("if") == 0) nData = 0x00001600;
 
                                     int nIndex = 0;
@@ -3397,6 +3857,7 @@ public static double hypot(double v, double w) {
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "abs", ",");
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "round", ",");
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "call", ",");
+                                strTmp = Ojw.CConvert.ChangeString(strTmp, "inv", ",");
                                 strTmp = Ojw.CConvert.ChangeString(strTmp, "if", ",");
                                 string [] pstrTmp = strTmp.Split(',');
                                 // v 변수, mot 변수 체크
@@ -3516,6 +3977,21 @@ public static double hypot(double v, double w) {
                         m_nVarWNum = 0;
                         #endregion Variable initialization(Kor: 변수초기화)
 
+                        #region If/Else Block Preprocessing
+                        // if(조건) { } else { } 블록을 내부 키워드로 변환
+                        strData = PreprocessIfElseBlocks(strData);
+                        #endregion If/Else Block Preprocessing
+
+                        #region call() Preprocessing
+                        // call(x) -> call(x,) 변환 (1인자 함수를 2인자처럼 처리하여 _UP6_ 마커 생성)
+                        strData = PreprocessCallFunction(strData);
+                        #endregion call() Preprocessing
+
+                        #region inv() Preprocessing
+                        // inv(x,y) 함수는 StringSeparate에서 콤마를 _UP9_ 마커로 변환
+                        // 괄호 삽입 단계에서 inv() 내부 콤마는 건너뛰므로 전처리 불필요
+                        // strData = PreprocessInvFunction(strData); // 비활성화
+                        #endregion inv() Preprocessing
 
                         #region compile - 1st step(strCompile1)(Kor: 컴파일 - 1단계(strCompile1))
                         if (bOut_Message == true) m_strCompilePath += "-1st step(strCompile1)";// "-1단계";
@@ -3573,17 +4049,36 @@ public static double hypot(double v, double w) {
                         }
 
                         // Load up the parentheses["("] following the comma[","] in sqrt, pow(Kor: sqrt, pow 의 "," 다음에 괄호"(" 집어넣기))
+                        // inv() 함수 내부의 콤마는 건너뜀 (inv는 _UP9_ 마커를 사용)
                         int nTmp = -1;
                         bool bError = true;
                         while (bError == true)
                         {
                             strTmp = "";
                             bool bCheck = false;
+                            int nInvDepth = -1; // inv() 함수 내부인지 추적 (-1: 아님, 0이상: 괄호 깊이)
 
                             strTmp += strCompile1[0];
                             for (int i = 1; i < strCompile1.Length; i++)
                             {
-                                if ((nTmp < 0) && (strCompile1[i - 1] == ',') && (strCompile1[i] != '('))
+                                // inv( 패턴 감지
+                                if (i >= 3 && strCompile1.Substring(i - 3, 4).ToLower() == "inv(")
+                                {
+                                    nInvDepth = 1; // inv( 시작
+                                }
+                                // inv 내부일 때 괄호 깊이 추적
+                                if (nInvDepth >= 0)
+                                {
+                                    if (strCompile1[i] == '(') nInvDepth++;
+                                    else if (strCompile1[i] == ')')
+                                    {
+                                        nInvDepth--;
+                                        if (nInvDepth == 0) nInvDepth = -1; // inv() 함수 종료
+                                    }
+                                }
+
+                                // inv() 내부가 아닐 때만 괄호 삽입
+                                if ((nTmp < 0) && (strCompile1[i - 1] == ',') && (strCompile1[i] != '(') && (nInvDepth < 0))
                                 {
                                     bCheck = true;
                                     nTmp = 0;
@@ -3618,6 +4113,7 @@ public static double hypot(double v, double w) {
                         strCompile2 = "";
                         if (bOut_Message == true) m_strCompilePath += "-for:Compile_Org2Basic";
                         foreach (String strItem in pstrTmp) { strCompile2 += Compile_Org2Basic(strItem.ToLower()) + "\r\n"; }
+                        // DEBUG: Org2Basic 결과 출력
                         if (m_nErrorCode != 0)
                         {
                             if (bOut_Message == true)
@@ -3656,6 +4152,7 @@ public static double hypot(double v, double w) {
 
                         #region compile - 4st step(strCompile4)(Kor: 컴파일 - 4단계(strCompile4))
                         if (bOut_Message == true) m_strCompilePath += "-4st step";// "-4단계(Compile_Asem2Code)";
+
 #if false
                         strTmp = Compile_Asem2Code(strCompile3);
                         strCompile4 = strTmp; // -> Result
@@ -3716,6 +4213,18 @@ public static double hypot(double v, double w) {
                 private static double[] m_adV = new double[_CNT_VAR_V];
                 private static double[] m_adMot = new double[_CNT_MOTOR];
 
+                // CallFunction에서 사용할 pSOjwCode 배열 참조
+                private static SOjwCode_t[] m_pSOjwCode = null;
+
+                // CallFunction에서 메모리 동기화를 위한 현재 실행 중인 SCode 참조
+                private static SOjwCode_t m_CurrentSCode;
+                private static bool m_bHasCurrentSCode = false;
+
+                // IK 함수 호출을 위한 C3d 객체 참조
+                private static C3d m_pC3d = null;
+                public static void SetC3d(C3d c3d) { m_pC3d = c3d; }
+                public static C3d GetC3d() { return m_pC3d; }
+
                 public static void SetValue_ClearAll(ref SOjwCode_t SCode)
                 {
                     //SCode.adOperation_Memory.Initialize(); // 0x00~0x0ff(Motor), 0x100~0x102(x,y,z), 0x103~0x1ff(V변수(혹은 _K변수)
@@ -3733,6 +4242,11 @@ public static double hypot(double v, double w) {
                 public static void SetValue_Motor(double[] adMotor) { if (adMotor.Length <= _CNT_MOTOR) { Array.Copy(adMotor, 0, m_adMot, 0, adMotor.Length); } }
                 public static void SetValue_V(float[] afVar) { SetValue_V(CConvert.FloatsToDoubles(afVar)); }
                 public static void SetValue_Motor(float[] afMotor) { SetValue_Motor(CConvert.FloatsToDoubles(afMotor)); }
+
+                // CallFunction에서 다른 수식을 호출할 수 있도록 pSOjwCode 배열 참조 설정
+                public static void SetCodeArray(SOjwCode_t[] pSOjwCode) { m_pSOjwCode = pSOjwCode; }
+                // C3d와 함께 설정 (inv 함수에서 C3d IK 알고리즘 사용을 위해)
+                public static void SetCodeArray(SOjwCode_t[] pSOjwCode, C3d c3d) { m_pSOjwCode = pSOjwCode; m_pC3d = c3d; }
 
                 public static double GetValue_X() { return m_dX; }
                 public static double GetValue_Y() { return m_dY; }
@@ -3823,16 +4337,81 @@ public static double hypot(double v, double w) {
                             SCode.adOperation_Memory[_ADDRESS_Z] = GetValue_Z();
                             Array.Copy(m_adV, 0, SCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
 
+                            // CallFunction에서 메모리 동기화를 위해 현재 SCode 저장
+                            m_CurrentSCode = SCode;
+                            m_bHasCurrentSCode = true;
+
                             int nSize = SCode.nCnt_Operation;
                             int nAddress = -1;
-                            for (int i = 0; i < nSize; i++)
+                            int i = 0;
+
+                            while (i < nSize)
                             {
                                 long lOperation_Cmd = SCode.alOperation_Cmd[i];
+
+                                // ----------------------------
+                                // 블록 제어 명령어 처리 (if/else/endif)
+                                // ----------------------------
+                                long lBlockCmd = (lOperation_Cmd & 0x0000ff);
+
+                                // IF_START (0x21): 조건이 거짓이면 ELSE 또는 ENDIF로 점프
+                                if (lBlockCmd == 0x21)
+                                {
+                                    // 조건값은 adOperation_Data[i]에 저장된 주소의 메모리 값
+                                    int nCondAddr = (int)SCode.adOperation_Data[i];
+                                    double dCondition = SCode.adOperation_Memory[nCondAddr];
+
+                                    if (dCondition == 0.0) // 조건이 거짓
+                                    {
+                                        // ELSE(0x22) 또는 ENDIF(0x23)를 찾아서 점프
+                                        int nDepth = 1;
+                                        int j = i + 1;
+                                        while (j < nSize && nDepth > 0)
+                                        {
+                                            long lSearchCmd = (SCode.alOperation_Cmd[j] & 0x0000ff);
+                                            if (lSearchCmd == 0x21) nDepth++; // 중첩 if
+                                            else if (lSearchCmd == 0x22 && nDepth == 1) break; // else 발견
+                                            else if (lSearchCmd == 0x23) nDepth--; // endif
+                                            j++;
+                                        }
+                                        i = j; // else 또는 endif 위치로 점프
+                                        continue;
+                                    }
+                                    i++;
+                                    continue;
+                                }
+                                // ELSE (0x22): IF 블록 실행 후 ENDIF로 점프
+                                else if (lBlockCmd == 0x22)
+                                {
+                                    // if 블록이 실행되었으면 else 블록 건너뛰기
+                                    int nDepth = 1;
+                                    int j = i + 1;
+                                    while (j < nSize && nDepth > 0)
+                                    {
+                                        long lSearchCmd = (SCode.alOperation_Cmd[j] & 0x0000ff);
+                                        if (lSearchCmd == 0x21) nDepth++; // 중첩 if
+                                        else if (lSearchCmd == 0x23) nDepth--; // endif
+                                        j++;
+                                    }
+                                    i = j; // endif 다음으로 점프
+                                    continue;
+                                }
+                                // ENDIF (0x23): 블록 끝, 아무것도 안함
+                                else if (lBlockCmd == 0x23)
+                                {
+                                    i++;
+                                    continue;
+                                }
+
+                                // ----------------------------
+                                // 기존 명령어 처리
+                                // ----------------------------
                                 // If the [Var] address values are written to the data(Kor: Var 인 경우 해당 데이타엔 번지값이 기록)
                                 if ((lOperation_Cmd & 0x0000ff) == 1) // 번지 측정은 0xff 에서만 하기에 ...
                                 {
                                     // get the address(Kor: 번지값을 가져온다.)
                                     nAddress = (int)(SCode.adOperation_Data[i]);
+                                    i++;
                                     continue;
                                 }
                                 if (nAddress < 0)
@@ -3858,14 +4437,129 @@ public static double hypot(double v, double w) {
                                 long lCmd = ((lOperation_Cmd >> 8) & 0x00ff);
                                 if (lCmd > 0)
                                 {
-                                    CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]]);
+                                    // call 명령어는 CalcCode 내에서 직접 처리 (메모리 동기화 필요)
+                                    if (lCmd == 0x15)
+                                    {
+                                        // call의 인자(함수 번호)는 원래 adOperation_Data[i] 값을 사용
+                                        int nCallNum = (int)SCode.adOperation_Data[i];
+                                        // 호출 전: 현재 SCode 메모리를 static 변수로 동기화
+                                        m_dX = SCode.adOperation_Memory[_ADDRESS_X];
+                                        m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
+                                        m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
+                                        Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
+                                        Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+
+                                        // 호출할 함수 실행
+                                        if (m_pSOjwCode != null && nCallNum >= 0 && nCallNum < m_pSOjwCode.Length && m_pSOjwCode[nCallNum].bInit)
+                                        {
+                                            CalcCode(ref m_pSOjwCode[nCallNum]);
+                                        }
+
+                                        // 호출 후: 결과를 현재 SCode 메모리로 복사
+                                        SCode.adOperation_Memory[_ADDRESS_X] = m_dX;
+                                        SCode.adOperation_Memory[_ADDRESS_Y] = m_dY;
+                                        SCode.adOperation_Memory[_ADDRESS_Z] = m_dZ;
+                                        Array.Copy(m_adMot, 0, SCode.adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
+                                        Array.Copy(m_adV, 0, SCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
+                                    }
+                                    // inv 명령어 처리 (1차연산): inv(함수선택번호, 수식번호)
+                                    else if (lCmd == 0x20)
+                                    {
+                                        // inv(funcType, funcNum) 형태
+                                        // dData에는 첫 번째 인자(funcType)가 들어있음
+                                        // 두 번째 인자(funcNum)는 2차연산에서 처리됨
+                                        // 일단 funcType을 목적지 주소에 저장
+                                        int nDestAddr = (int)SCode.adOperation_Data[i];
+                                        SCode.adOperation_Memory[nDestAddr] = dData;
+                                    }
+                                    else
+                                    {
+                                        CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]]);
+                                    }
                                     dData = SCode.adOperation_Memory[(int)SCode.adOperation_Data[i]];
                                 }
 
                                 // Second computation(Kor: 2차연산)
                                 lCmd = (lOperation_Cmd & 0x00ff);
-                                CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[nAddress]);
+
+                                // call 명령어 처리
+                                if (lCmd == 0x15)
+                                {
+                                    // call의 인자(함수 번호)는 dData에서 가져옴 (이미 메모리에서 읽어온 값)
+                                    // adOperation_Data[i]에는 메모리 주소가 있고, 실제 함수 번호는 해당 메모리에 저장됨
+                                    int nCallNum = (int)dData;
+                                    double dCallResult = 0; // 실패 시 0
+
+                                    // 호출 전: 현재 SCode 메모리를 static 변수로 동기화
+                                    m_dX = SCode.adOperation_Memory[_ADDRESS_X];
+                                    m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
+                                    m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
+                                    Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
+                                    Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+
+                                    // 호출할 함수 실행
+                                    if (m_pSOjwCode != null && nCallNum >= 0 && nCallNum < m_pSOjwCode.Length && m_pSOjwCode[nCallNum].bInit)
+                                    {
+                                        CalcCode(ref m_pSOjwCode[nCallNum]);
+                                        dCallResult = 1; // 성공 시 1
+                                    }
+
+                                    // 호출 후: 결과를 현재 SCode 메모리로 복사
+                                    SCode.adOperation_Memory[_ADDRESS_X] = m_dX;
+                                    SCode.adOperation_Memory[_ADDRESS_Y] = m_dY;
+                                    SCode.adOperation_Memory[_ADDRESS_Z] = m_dZ;
+                                    Array.Copy(m_adMot, 0, SCode.adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
+                                    Array.Copy(m_adV, 0, SCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
+
+                                    // call 결과값을 목적지 주소에 저장 (성공=1, 실패=0)
+                                    SCode.adOperation_Memory[nAddress] = dCallResult;
+                                }
+                                // inv 명령어 처리: inv(함수선택번호, 수식번호)
+                                else if (lCmd == 0x20)
+                                {
+                                    // inv(funcType, funcNum) 형태
+                                    // dData에는 수식번호(funcNum)가 들어있음
+                                    // 함수선택번호(funcType)는 이전에 처리된 값이므로 별도로 가져와야 함
+                                    // INV 명령은 2인자 함수이므로 첫 번째 인자(funcType)가 먼저 처리되고
+                                    // 두 번째 인자(funcNum)가 dData에 있음
+                                    int nFuncNum = (int)dData;
+                                    // 함수선택번호는 이전 명령에서 설정된 값을 사용
+                                    // INV 어셈블리 형식: INV,_Mx (첫번째 인자가 _Mx에 저장됨)
+                                    // 두 번째 인자는 dData
+                                    int nFuncType = (int)SCode.adOperation_Memory[nAddress]; // 첫 번째 인자 (함수선택번호)
+
+                                    double dInvResult = 0; // 실패 시 0
+
+                                    // 호출 전: 현재 SCode 메모리를 static 변수로 동기화
+                                    m_dX = SCode.adOperation_Memory[_ADDRESS_X];
+                                    m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
+                                    m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
+                                    Array.Copy(SCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
+                                    Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+
+                                    // IK 함수 호출
+                                    if (CallInverse(nFuncType, nFuncNum))
+                                    {
+                                        dInvResult = 1; // 성공 시 1
+                                    }
+
+                                    // 호출 후: 결과를 현재 SCode 메모리로 복사
+                                    SCode.adOperation_Memory[_ADDRESS_X] = m_dX;
+                                    SCode.adOperation_Memory[_ADDRESS_Y] = m_dY;
+                                    SCode.adOperation_Memory[_ADDRESS_Z] = m_dZ;
+                                    Array.Copy(m_adMot, 0, SCode.adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
+                                    Array.Copy(m_adV, 0, SCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
+
+                                    // inv 결과값을 목적지 주소에 저장 (성공=1, 실패=0)
+                                    SCode.adOperation_Memory[nAddress] = dInvResult;
+                                }
+                                else
+                                {
+                                    CalcCmd(lCmd, dData, ref SCode.adOperation_Memory[nAddress]);
+                                }
                                 //lCmd = 0;
+
+                                i++;
                             }
                             //Array.Copy(SCode.adOperation_Memory, m_afMot, _CNT_MOTOR);
                             m_dX = SCode.adOperation_Memory[_ADDRESS_X];
@@ -3880,9 +4574,13 @@ public static double hypot(double v, double w) {
                             SetValue_Y(SCode.adOperation_Memory[_ADDRESS_Y]);
                             SetValue_Z(SCode.adOperation_Memory[_ADDRESS_Z]);
                             Array.Copy(SCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+
+                            // CalcCode 종료 시 현재 SCode 플래그 해제
+                            m_bHasCurrentSCode = false;
                         }
                         catch (System.Exception e)
                         {
+                            m_bHasCurrentSCode = false;
                             m_nErrorCode = 9;
                             m_strError_Etc += "[CalcCode]" + e.ToString();
                             return false;
@@ -4020,6 +4718,29 @@ public static double hypot(double v, double w) {
                     return bRet;
                 }
 
+                // ------------------------------------------------------------
+                // CalcCode - pSOjwCode 배열을 받아서 call(N) 기능을 지원하는 버전
+                // nNum: 실행할 수식 번호
+                // pSOjwCode: 전체 수식 배열 (다른 함수 호출용)
+                //
+                // 사용법:
+                //   CalcCode(ref pSOjwCode, 1);  // 1번 수식 실행 (내부에서 call(0) 등 가능)
+                // ------------------------------------------------------------
+                public static bool CalcCode(ref SOjwCode_t[] pSOjwCode, int nNum)
+                {
+                    if (nNum < 0 || nNum >= pSOjwCode.Length)
+                    {
+                        m_nErrorCode = 9;
+                        m_strError_Etc += String.Format("[CalcCode] nNum={0} is out of range (0~{1})", nNum, pSOjwCode.Length - 1);
+                        return false;
+                    }
+
+                    // CallFunction에서 다른 함수를 호출할 수 있도록 배열 참조 설정
+                    SetCodeArray(pSOjwCode);
+
+                    return CalcCode(ref pSOjwCode[nNum]);
+                }
+
                 private static void CalcCmd(long lCmd, double dData, ref double dValue)
                 {
                     try
@@ -4135,31 +4856,54 @@ public static double hypot(double v, double w) {
                         }
                         else if (lCmd == 0x15) // call
                         {
-                            //dValue = (double)Math.Round(dValue, (int)dData);
-                            //m_dX = SCode.adOperation_Memory[_ADDRESS_X];
-                            //m_dY = SCode.adOperation_Memory[_ADDRESS_Y];
-                            //m_dZ = SCode.adOperation_Memory[_ADDRESS_Z];
-                            
-                            // ojw5014
-                            // dValue = (double)
-
-                            
-                            //// 실제 수식계산
-                            //if (GetHeader_pSOjwCode()[nNum].nMotor_Max > 0)
-                            //{
-                            //    if (Ojw.CKinematics.CInverse.CalcCode(ref GetHeader_pSOjwCode()[nNum]) == false) MessageBox.Show(String.Format("Compile Error - {0}", Ojw.CKinematics.CInverse.GetErrorString_Error_Etc()));
-                            //}
-                            //else
-                            //{
-                            //    CalcInv(nNum, GetHeader_pDhParamAll()[nNum].GetMotors(), (float)fX, (float)fY, (float)fZ, 1000, 0.0001f);
-                            //}
-
-
+                            // call(nNum) - nNum번 수식 호출
+                            int nNum = (int)dData;
+                            CallFunction(nNum);
                         }
-                        else if (lCmd == 0x16) // if
+                        else if (lCmd == 0x16) // if (조건문은 CalcCode에서 별도 처리)
                         {
-                            // dValue = (double)CMath.ATan2(dValue, ((dData == 0) ? (double)CMath.Zero() : dData));
+                            // if 조건문은 CalcCode의 메인 루프에서 처리
+                            // 여기서는 조건 결과만 dValue에 저장 (0 또는 1)
                         }
+                        // 비교 연산자
+                        else if (lCmd == 0x17) // < (less than)
+                        {
+                            dValue = (dValue < dData) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x18) // > (greater than)
+                        {
+                            dValue = (dValue > dData) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x19) // == (equal)
+                        {
+                            dValue = (Math.Abs(dValue - dData) < 1e-9) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x1A) // != (not equal)
+                        {
+                            dValue = (Math.Abs(dValue - dData) >= 1e-9) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x1B) // <= (less or equal)
+                        {
+                            dValue = (dValue <= dData) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x1C) // >= (greater or equal)
+                        {
+                            dValue = (dValue >= dData) ? 1.0 : 0.0;
+                        }
+                        // 논리 연산자
+                        else if (lCmd == 0x1D) // && (AND)
+                        {
+                            dValue = (dValue != 0.0 && dData != 0.0) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x1E) // || (OR)
+                        {
+                            dValue = (dValue != 0.0 || dData != 0.0) ? 1.0 : 0.0;
+                        }
+                        else if (lCmd == 0x1F) // ! (NOT) - 단항 연산
+                        {
+                            dValue = (dValue == 0.0) ? 1.0 : 0.0;
+                        }
+                        // @Inv() IK 함수 호출은 CalcCode에서 처리됨 (2인자 함수이므로)
 #if false
                     // Test code - 없어도 상관없는 코드
                     //            if (Single.IsNaN(fValue) == true)
@@ -4196,6 +4940,1099 @@ public static double hypot(double v, double w) {
                         MessageBox.Show(ex.ToString());
                     }
                 }
+
+                // ------------------------------------------------------------
+                // CallFunction - call 명령어에서 호출되는 함수
+                // nNum: 호출할 수식 번호 (pSOjwCode[nNum])
+                //
+                // 사용법:
+                //   1. CalcCode 호출 전에 SetCodeArray(pSOjwCode)로 배열 참조 설정
+                //   2. 수식 내에서 call(N) 으로 N번 수식 호출
+                //
+                // 예제:
+                //   0번 함수: tup = v0; if (tup >= 360) { tup = tup - 360 }; t1 = tup
+                //   1번 함수: v0 = atan2(y, x); dummy = call(0)
+                //   -> 1번 함수에서 계산 결과를 v0에 넣고 0번 함수를 호출하여 정규화된 값을 t1에 저장
+                // ------------------------------------------------------------
+                private static bool CallFunction(int nNum)
+                {
+                    // pSOjwCode 배열이 설정되었는지 확인
+                    if (m_pSOjwCode == null)
+                    {
+                        Ojw.CMessage.Write("[CallFunction] Error: pSOjwCode not set. Call SetCodeArray() first.");
+                        return false;
+                    }
+
+                    // 범위 체크
+                    if (nNum < 0 || nNum >= m_pSOjwCode.Length)
+                    {
+                        Ojw.CMessage.Write("[CallFunction] Error: nNum={0} is out of range (0~{1})", nNum, m_pSOjwCode.Length - 1);
+                        return false;
+                    }
+
+                    // 초기화 체크
+                    if (m_pSOjwCode[nNum].bInit == false)
+                    {
+                        Ojw.CMessage.Write("[CallFunction] Error: pSOjwCode[{0}] is not initialized", nNum);
+                        return false;
+                    }
+
+                    // -----------------------------------------------------
+                    // 메모리 동기화: 호출 전
+                    // 현재 실행 중인 SCode의 메모리를 m_adV, m_adMot 등으로 복사
+                    // 이렇게 해야 호출된 함수에서 현재 함수의 변수 값을 사용할 수 있음
+                    // -----------------------------------------------------
+                    SOjwCode_t callerSCode = new SOjwCode_t();
+                    bool bHasCaller = m_bHasCurrentSCode;
+                    if (bHasCaller)
+                    {
+                        callerSCode = m_CurrentSCode;
+                        // 현재 SCode의 메모리를 static 변수로 동기화
+                        m_dX = callerSCode.adOperation_Memory[_ADDRESS_X];
+                        m_dY = callerSCode.adOperation_Memory[_ADDRESS_Y];
+                        m_dZ = callerSCode.adOperation_Memory[_ADDRESS_Z];
+                        Array.Copy(callerSCode.adOperation_Memory, _ADDRESS_MOTOR, m_adMot, 0, _CNT_MOTOR);
+                        Array.Copy(callerSCode.adOperation_Memory, _ADDRESS_V, m_adV, 0, _CNT_VAR_V);
+                    }
+
+                    // 호출할 함수 실행
+                    bool bResult = CalcCode(ref m_pSOjwCode[nNum]);
+
+                    // -----------------------------------------------------
+                    // 메모리 동기화: 호출 후
+                    // 호출된 함수의 결과를 호출자의 SCode로 복사
+                    // 이렇게 해야 호출자 함수에서 호출된 함수의 결과를 사용할 수 있음
+                    // -----------------------------------------------------
+                    if (bHasCaller)
+                    {
+                        // 결과를 호출자의 메모리로 복사
+                        callerSCode.adOperation_Memory[_ADDRESS_X] = m_dX;
+                        callerSCode.adOperation_Memory[_ADDRESS_Y] = m_dY;
+                        callerSCode.adOperation_Memory[_ADDRESS_Z] = m_dZ;
+                        Array.Copy(m_adMot, 0, callerSCode.adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
+                        Array.Copy(m_adV, 0, callerSCode.adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
+
+                        // 호출자의 SCode를 현재 SCode로 복원
+                        m_CurrentSCode = callerSCode;
+                        m_bHasCurrentSCode = true;
+                    }
+
+                    return bResult;
+                }
+
+                // ------------------------------------------------------------
+                // CopyMotorValuesFromC3d - C3d의 모터 값을 m_adMot에 복사
+                // IK 함수 실행 후 결과를 수식 변수(t0~)로 전달하기 위해 사용
+                // ------------------------------------------------------------
+                private static void CopyMotorValuesFromC3d(int nFuncNum)
+                {
+                    if (m_pC3d == null)
+                    {
+                        Ojw.CMessage.Write("[CopyMotorValuesFromC3d] m_pC3d is null");
+                        return;
+                    }
+
+                    try
+                    {
+                        // 모든 모터 값(0~31)을 m_adMot에 복사
+                        // C3d의 m_afMot 배열에서 직접 값을 가져옴
+                        for (int i = 0; i < _CNT_MOTOR; i++)
+                        {
+                            m_adMot[i] = m_pC3d.GetData(i);
+                        }
+                        // 디버그: 첫 4개 모터 값 출력 (성능: 매 IK 호출마다 로그 → 주석 처리)
+                        //Ojw.CMessage.Write("[CopyMotorValuesFromC3d] t0={0:F2}, t1={1:F2}, t2={2:F2}, t3={3:F2}",
+                        //    m_adMot[0], m_adMot[1], m_adMot[2], m_adMot[3]);
+                    }
+                    catch (Exception ex)
+                    {
+                        Ojw.CMessage.Write("[CopyMotorValuesFromC3d] Exception: {0}", ex.Message);
+                    }
+                }
+
+                // ------------------------------------------------------------
+                // CallInverse - @Inv 명령어에서 호출되는 IK 함수
+                // nType: IK 함수 타입 번호
+                //   0: 현재 함수의 역기구학 코드 실행 (CalcCode 사용)
+                //   1: DC-CCD (CalcInv, 코사인법칙 ±α 2후보각 + FK 검증)
+                //   2: TRAC-IK (ROS) (DLS-RR + LM 듀얼 솔버)
+                //   3: Probe CCD (구 "Paper CCD-IK" / Wang & Chen 변형, damping 0.5)
+                //   4: WangChen CCD (Wang & Chen 1991 원본)
+                //   5: Kenwright CCD (Kenwright 2012, comfort factor)
+                //   6: Paper FABRIK (Aristidou & Lasenby 2011)
+                //   7: Paper Jacobian DLS PosOnly (3xN)
+                //   8: Paper Jacobian Euler (6xN, 위치+자세)
+                //  11: SolveIK_JacobianDLS_PosOnly (기존 Jacobian DLS)
+                //  12: SolveIK_JacobianDLS_PosWithTool (기존 Jacobian DLS + 툴)
+                //  13: SolveIK_JacobianDLS_PosWithToolGlobal (기존 Jacobian DLS + 툴 글로벌)
+                // nFuncNum: 수식 번호 (m_pSOjwCode 배열의 인덱스)
+                // ------------------------------------------------------------
+                private static bool CallInverse(int nType, int nFuncNum)
+                {
+                    // 유효성 검사
+                    if (m_pSOjwCode == null || nFuncNum < 0 || nFuncNum >= m_pSOjwCode.Length)
+                    {
+                        return false;
+                    }
+                    if (!m_pSOjwCode[nFuncNum].bInit)
+                    {
+                        return false;
+                    }
+
+                    bool bResult = false;
+
+                    switch (nType)
+                    {
+                        case 0:
+                            // 지정된 수식의 역기구학 코드 실행
+                            m_pSOjwCode[nFuncNum].adOperation_Memory[_ADDRESS_X] = m_dX;
+                            m_pSOjwCode[nFuncNum].adOperation_Memory[_ADDRESS_Y] = m_dY;
+                            m_pSOjwCode[nFuncNum].adOperation_Memory[_ADDRESS_Z] = m_dZ;
+                            Array.Copy(m_adMot, 0, m_pSOjwCode[nFuncNum].adOperation_Memory, _ADDRESS_MOTOR, _CNT_MOTOR);
+                            Array.Copy(m_adV, 0, m_pSOjwCode[nFuncNum].adOperation_Memory, _ADDRESS_V, _CNT_VAR_V);
+                            CalcCode(ref m_pSOjwCode[nFuncNum]);
+                            bResult = true;
+                            break;
+
+                        // ---- 주요 IK 알고리즘 (1~2: 권장) ----
+
+                        case 1: // DC-CCD (코사인법칙 ±α 2후보각 + FK 검증)
+                            // v0: nRepeat (기본값: 10000), v1: fCutline (기본값: 0.001)
+                            if (m_pC3d != null)
+                            {
+                                int nRepeat = (m_adV[0] > 0) ? (int)m_adV[0] : 10000;
+                                float fCut = (m_adV[1] > 0) ? (float)m_adV[1] : 0.001f;
+                                float[] afRes = m_pC3d.CalcInv(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, nRepeat, fCut);
+                                bResult = (afRes != null);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 2: // TRAC-IK (ROS) - DLS-RR + LM 듀얼 솔버
+                            // v0: maxIter (기본값: 1000), v1: tolMm (기본값: 0.1)
+                            if (m_pC3d != null)
+                            {
+                                int maxIter = (m_adV[0] > 0) ? (int)m_adV[0] : 1000;
+                                float tolMm = (m_adV[1] > 0) ? (float)m_adV[1] : 0.1f;
+                                bResult = m_pC3d.TracIK(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, maxIter, tolMm);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        // ---- 논문 기반 CCD 변형 (3~5) ----
+
+                        case 3: // Probe CCD (구 "Paper CCD-IK" / Wang & Chen 변형, damping 0.5)
+                            // v0: nRepeat (기본값: 10000), v1: fCutline (기본값: 0.001)
+                            if (m_pC3d != null)
+                            {
+                                int nRepeat = (m_adV[0] > 0) ? (int)m_adV[0] : 10000;
+                                float fCut = (m_adV[1] > 0) ? (float)m_adV[1] : 0.001f;
+                                m_pC3d.PaperCCDIK(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, nRepeat, fCut);
+                                bResult = true; CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 4: // WangChen CCD (1991 원본, 풀 스텝)
+                            // v0: nRepeat (기본값: 10000), v1: fCutline (기본값: 0.001)
+                            if (m_pC3d != null)
+                            {
+                                int nRepeat = (m_adV[0] > 0) ? (int)m_adV[0] : 10000;
+                                float fCut = (m_adV[1] > 0) ? (float)m_adV[1] : 0.001f;
+                                m_pC3d.WangChenCCDIK(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, nRepeat, fCut);
+                                bResult = true; CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 5: // Kenwright CCD (2012, comfort factor)
+                            // v0: nRepeat (기본값: 10000), v1: fCutline (기본값: 0.001)
+                            if (m_pC3d != null)
+                            {
+                                int nRepeat = (m_adV[0] > 0) ? (int)m_adV[0] : 10000;
+                                float fCut = (m_adV[1] > 0) ? (float)m_adV[1] : 0.001f;
+                                m_pC3d.KenwrightCCDIK(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, nRepeat, fCut);
+                                bResult = true; CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        // ---- FABRIK / Jacobian (6~8) ----
+
+                        case 6: // Paper FABRIK (Aristidou & Lasenby 2011)
+                            // v0: nRepeat (기본값: 10000), v1: fCutline (기본값: 0.001)
+                            if (m_pC3d != null)
+                            {
+                                int nRepeat = (m_adV[0] > 0) ? (int)m_adV[0] : 10000;
+                                float fCut = (m_adV[1] > 0) ? (float)m_adV[1] : 0.001f;
+                                m_pC3d.PaperFABRIK(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, nRepeat, fCut);
+                                bResult = true; CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 7: // Paper Jacobian DLS PosOnly (3xN)
+                            // v0: maxIter (기본값: 100), v1: tolMm (기본값: 0.1)
+                            if (m_pC3d != null)
+                            {
+                                int maxIter = (m_adV[0] > 0) ? (int)m_adV[0] : 100;
+                                float tolMm = (m_adV[1] > 0) ? (float)m_adV[1] : 0.1f;
+                                bResult = m_pC3d.PaperJacobianDLS(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, maxIter, tolMm);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 8: // Paper Jacobian Euler (6xN, 위치+자세)
+                            // v0: rxDeg, v1: ryDeg, v2: rzDeg
+                            // v3: maxIter (기본값: 100), v4: tolMm (기본값: 0.1)
+                            if (m_pC3d != null)
+                            {
+                                float rxDeg = (float)m_adV[0];
+                                float ryDeg = (float)m_adV[1];
+                                float rzDeg = (float)m_adV[2];
+                                int maxIter = (m_adV[3] > 0) ? (int)m_adV[3] : 100;
+                                float tolMm = (m_adV[4] > 0) ? (float)m_adV[4] : 0.1f;
+                                bResult = m_pC3d.PaperJacobianEuler(nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, rxDeg, ryDeg, rzDeg, maxIter, tolMm);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        // ---- 기존 Jacobian (11~13, 하위 호환) ----
+
+                        case 11: // SolveIK_JacobianDLS_PosOnly (기존 case 1)
+                            if (m_pC3d != null)
+                            {
+                                int maxIter = (m_adV[0] > 0) ? (int)m_adV[0] : 100;
+                                float tolMm = (m_adV[1] > 0) ? (float)m_adV[1] : 0.1f;
+                                float epsDeg = (m_adV[2] > 0) ? (float)m_adV[2] : 0.01f;
+                                float lambda = (m_adV[3] > 0) ? (float)m_adV[3] : 0.5f;
+                                float gain = (m_adV[4] > 0) ? (float)m_adV[4] : 1.0f;
+                                float maxStepDeg = (m_adV[5] > 0) ? (float)m_adV[5] : 5.0f;
+                                bResult = SolveIK_JacobianDLS_PosOnly(ref m_pC3d, nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ, maxIter, tolMm, epsDeg, lambda, gain, maxStepDeg);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 12: // SolveIK_JacobianDLS_PosWithTool (기존 case 2)
+                            if (m_pC3d != null)
+                            {
+                                bResult = SolveIK_JacobianDLS_PosWithTool(ref m_pC3d, nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ,
+                                    (float)m_adV[0], (float)m_adV[1], (float)m_adV[2], (float)m_adV[3],
+                                    (m_adV[4] > 0) ? (int)m_adV[4] : 100, (m_adV[5] > 0) ? (float)m_adV[5] : 0.1f,
+                                    (m_adV[6] > 0) ? (float)m_adV[6] : 0.01f, (m_adV[7] > 0) ? (float)m_adV[7] : 0.5f,
+                                    (m_adV[8] > 0) ? (float)m_adV[8] : 1.0f, (m_adV[9] > 0) ? (float)m_adV[9] : 5.0f);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        case 13: // SolveIK_JacobianDLS_PosWithToolGlobal (기존 case 3)
+                            if (m_pC3d != null)
+                            {
+                                bResult = SolveIK_JacobianDLS_PosWithToolGlobal(ref m_pC3d, nFuncNum, (float)m_dX, (float)m_dY, (float)m_dZ,
+                                    (float)m_adV[0], (float)m_adV[1], (float)m_adV[2], (float)m_adV[3],
+                                    (m_adV[4] > 0) ? (int)m_adV[4] : 100, (m_adV[5] > 0) ? (float)m_adV[5] : 0.1f,
+                                    (m_adV[6] > 0) ? (float)m_adV[6] : 0.01f, (m_adV[7] > 0) ? (float)m_adV[7] : 0.5f,
+                                    (m_adV[8] > 0) ? (float)m_adV[8] : 1.0f, (m_adV[9] > 0) ? (float)m_adV[9] : 5.0f);
+                                if (bResult) CopyMotorValuesFromC3d(nFuncNum);
+                            }
+                            break;
+
+                        default:
+                            bResult = false;
+                            break;
+                    }
+
+                    return bResult;
+                }
+
+                #region Inverse Jacob
+#if false
+                // ------------------------------------------------------------
+                // Jacobian(DLS) IK solver (position only)
+                // dq = J^T (J J^T + λ^2 I)^-1 e
+                // - angles: degree (Ojw3d.SetData/GetData)
+                // - position: mm (CalcF outputs)
+                // ------------------------------------------------------------
+                public static bool SolveIK_JacobianDLS_PosOnly(
+                    ref Ojw.C3d c3d,
+                    int fn,
+                    //int[] jointIds,
+                    float tx, float ty, float tz,
+                    int maxIter,
+                    float tolMm,
+                    float epsDeg,
+                    float lambda,
+                    float gain,
+                    float maxStepDeg
+                )
+                {
+                    c3d.SetLastIK_Iter_JacobianIK(0);
+                    //if (jointIds == null || jointIds.Length <= 0) return false;
+                    int n = c3d.m_CHeader.pDhParamAll[fn].GetMotors_Count();
+                    //int n = c3d.GetHeader_pSOjwCode()[fn].nMotor_Max;//  c3d.GetHeader_pSOjwCode()[fn].pnMotor_Number[i];// //jointIds.Length;
+
+                    float[] q0 = new float[n];
+                    float[,] J = new float[3, n];
+
+                    for (int iter = 0; iter < maxIter; iter++)
+                    {
+                        c3d.SetLastIK_Iter_JacobianIK(iter + 1);
+                        // current FK
+                        float x, y, z;
+                        CKinematics.CForward.CalcF(ref c3d, fn, out x, out y, out z); // :contentReference[oaicite:1]{index=1}
+                        
+                        float ex = tx - x;
+                        float ey = ty - y;
+                        float ez = tz - z;
+
+                        float err = (float)Math.Sqrt(ex * ex + ey * ey + ez * ez);
+                        if (err <= tolMm) return true;
+
+                        // save current joint angles
+                        for (int i = 0; i < n; i++)
+                        {
+                            q0[i] = c3d.GetData(c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i]);
+                        }
+
+                        // numeric Jacobian
+                        for (int i = 0; i < n; i++)
+                        {
+                            int id = c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i];
+
+                            c3d.SetData(id, q0[i] + epsDeg);
+
+                            float xp, yp, zp;
+                            CKinematics.CForward.CalcF(ref c3d, fn, out xp, out yp, out zp); // :contentReference[oaicite:2]{index=2}
+
+                            // restore
+                            c3d.SetData(id, q0[i]);
+
+                            float inv = 1.0f / epsDeg;
+                            J[0, i] = (xp - x) * inv;
+                            J[1, i] = (yp - y) * inv;
+                            J[2, i] = (zp - z) * inv;
+                        }
+
+                        // A = J J^T + λ^2 I (3x3)
+                        float[,] A = new float[3, 3];
+                        for (int r = 0; r < 3; r++)
+                        {
+                            for (int c = 0; c < 3; c++)
+                            {
+                                float sum = 0.0f;
+                                for (int k = 0; k < n; k++)
+                                    sum += J[r, k] * J[c, k];
+                                A[r, c] = sum;
+                            }
+                            A[r, r] += lambda * lambda;
+                        }
+
+                        float[] e = new float[3] { ex, ey, ez };
+
+                        // solve A * y = e
+                        float[] yvec = Solve3x3(A, e);
+                        if (yvec == null) return false;
+
+                        // dq = J^T y
+                        for (int i = 0; i < n; i++)
+                        {
+                            float dq = (J[0, i] * yvec[0] + J[1, i] * yvec[1] + J[2, i] * yvec[2]) * gain;
+
+                            if (dq > maxStepDeg) dq = maxStepDeg;
+                            else if (dq < -maxStepDeg) dq = -maxStepDeg;
+
+                            c3d.SetData(c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i], q0[i] + dq);
+                        }
+                    }
+
+                    return false;
+                }
+#else
+                // ------------------------------------------------------------
+                // Jacobian(DLS) IK solver (position only)
+                // dq = J^T (J J^T + λ^2 I)^-1 e
+                // - angles: degree (Ojw3d.SetData/GetData)
+                // - position: mm (CalcF outputs)
+                // ------------------------------------------------------------
+                public static bool SolveIK_JacobianDLS_PosOnly(
+                    ref Ojw.C3d c3d,
+                    int fn,
+                    //int[] jointIds,
+                    float tx, float ty, float tz,
+                    int maxIter,
+                    float tolMm,
+                    float epsDeg,
+                    float lambda,
+                    float gain,
+                    float maxStepDeg
+                )
+                {
+                    c3d.SetLastIK_Iter_JacobianIK(0);
+                    int n = c3d.m_CHeader.pDhParamAll[fn].GetMotors_Count();
+
+                    float[] q0 = new float[n];
+                    float[,] J = new float[3, n];
+
+                    for (int iter = 0; iter < maxIter; iter++)
+                    {
+                        c3d.SetLastIK_Iter_JacobianIK(iter + 1);
+                        // current FK
+                        float x, y, z;
+                        CKinematics.CForward.CalcF(ref c3d, fn, out x, out y, out z);
+
+                        float ex = tx - x;
+                        float ey = ty - y;
+                        float ez = tz - z;
+
+                        float err = (float)Math.Sqrt(ex * ex + ey * ey + ez * ez);
+                        if (err <= tolMm) return true;
+
+                        // save current joint angles
+                        for (int i = 0; i < n; i++)
+                        {
+                            q0[i] = c3d.GetData(c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i]);
+                        }
+
+                        // numeric Jacobian
+                        for (int i = 0; i < n; i++)
+                        {
+                            int id = c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i];
+
+                            c3d.SetData(id, q0[i] + epsDeg);
+
+                            float xp, yp, zp;
+                            CKinematics.CForward.CalcF(ref c3d, fn, out xp, out yp, out zp);
+
+                            // restore
+                            c3d.SetData(id, q0[i]);
+
+                            float inv = 1.0f / epsDeg;
+                            J[0, i] = (xp - x) * inv;
+                            J[1, i] = (yp - y) * inv;
+                            J[2, i] = (zp - z) * inv;
+                        }
+
+                        // A = J J^T + λ^2 I (3x3)
+                        float[,] A = new float[3, 3];
+                        for (int r = 0; r < 3; r++)
+                        {
+                            for (int c = 0; c < 3; c++)
+                            {
+                                float sum = 0.0f;
+                                for (int k = 0; k < n; k++)
+                                    sum += J[r, k] * J[c, k];
+                                A[r, c] = sum;
+                            }
+                            A[r, r] += lambda * lambda;
+                        }
+
+                        float[] e = new float[3] { ex, ey, ez };
+
+                        // solve A * y = e
+                        float[] yvec = Solve3x3(A, e);
+                        if (yvec == null) return false;
+
+                        // dq = J^T y
+                        for (int i = 0; i < n; i++)
+                        {
+                            float dq = (J[0, i] * yvec[0] + J[1, i] * yvec[1] + J[2, i] * yvec[2]) * gain;
+
+                            if (dq > maxStepDeg) dq = maxStepDeg;
+                            else if (dq < -maxStepDeg) dq = -maxStepDeg;
+
+                            c3d.SetData(c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i], q0[i] + dq);
+                        }
+                    }
+
+                    return false;
+                }
+
+                // ------------------------------------------------------------
+                // Jacobian(DLS) IK solver (position with tool offset)
+                // 목표 위치에서 툴 길이만큼 뒤로 물러난 손목 위치를 계산하여 IK 수행
+                // - 정면 방향: 홈 자세의 colX 방향
+                // - rxDeg, ryDeg, rzDeg: 홈 자세 기준 상대 회전 (ZYX 오일러)
+                // - toolLength: 툴 길이 (mm), 정면(X축) 방향으로 오프셋
+                // ------------------------------------------------------------
+                public static bool SolveIK_JacobianDLS_PosWithTool(
+                    ref Ojw.C3d c3d,
+                    int fn,
+                    float tx, float ty, float tz,              // 목표 위치 (툴 끝점)
+                    float rxDeg, float ryDeg, float rzDeg,     // 툴 자세 (홈 기준 상대 회전)
+                    float toolLength,                          // 툴 길이
+                    int maxIter,
+                    float tolMm,
+                    float epsDeg,
+                    float lambda,
+                    float gain,
+                    float maxStepDeg
+                )
+                {
+                    int n = c3d.m_CHeader.pDhParamAll[fn].GetMotors_Count();
+                    if (n <= 0) return false;
+
+                    // ----------------------------
+                    // 홈 포지션(관절 0도)에서의 기준 자세 계산
+                    // ----------------------------
+                    float[] homeX = new float[3];
+                    float[] homeY = new float[3];
+                    float[] homeZ = new float[3];
+                    {
+                        int[] motorIds = c3d.m_CHeader.pDhParamAll[fn].GetMotors();
+                        float[] backup = new float[n];
+                        for (int i = 0; i < n; i++)
+                        {
+                            backup[i] = c3d.GetData(motorIds[i]);
+                            c3d.SetData(motorIds[i], 0.0f);
+                        }
+
+                        float hx, hy, hz;
+                        CKinematics.CForward.CalcF(ref c3d, fn, out hx, out hy, out hz);
+                        GetColsAfterForward(homeX, homeY, homeZ);
+
+                        for (int i = 0; i < n; i++)
+                            c3d.SetData(motorIds[i], backup[i]);
+                    }
+
+                    // ----------------------------
+                    // 목표 자세 계산: R_tgt = R_home * R_user
+                    // ----------------------------
+                    float[] tgtX = new float[3];
+                    float[] tgtY = new float[3];
+                    float[] tgtZ = new float[3];
+                    {
+                        float[] userX = new float[3];
+                        float[] userY = new float[3];
+                        float[] userZ = new float[3];
+                        EulerZYX_ToCols(rxDeg, ryDeg, rzDeg, userX, userY, userZ);
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            tgtX[i] = homeX[i] * userX[0] + homeY[i] * userX[1] + homeZ[i] * userX[2];
+                            tgtY[i] = homeX[i] * userY[0] + homeY[i] * userY[1] + homeZ[i] * userY[2];
+                            tgtZ[i] = homeX[i] * userZ[0] + homeY[i] * userZ[1] + homeZ[i] * userZ[2];
+                        }
+                    }
+
+                    // ----------------------------
+                    // 손목 위치 계산: P_wrist = P_target - R_tgt * (toolLength, 0, 0)
+                    // tgtX가 정면 방향이므로 tgtX * toolLength 만큼 뒤로
+                    // ----------------------------
+                    float wristX = tx - tgtX[0] * toolLength;
+                    float wristY = ty - tgtX[1] * toolLength;
+                    float wristZ = tz - tgtX[2] * toolLength;
+
+                    // ----------------------------
+                    // 손목 위치까지 PosOnly IK 수행
+                    // ----------------------------
+                    return SolveIK_JacobianDLS_PosOnly(
+                        ref c3d, fn,
+                        wristX, wristY, wristZ,
+                        maxIter, tolMm, epsDeg, lambda, gain, maxStepDeg
+                    );
+                }
+
+                // ------------------------------------------------------------
+                // Jacobian(DLS) IK solver (position with tool offset - Global coordinates)
+                // 목표 위치에서 글로벌 좌표계 기준으로 툴 오프셋만큼 뒤로 물러난 손목 위치를 계산
+                // - rxDeg, ryDeg, rzDeg: 글로벌 좌표계 기준 절대 회전 (ZYX 오일러)
+                // - toolLength: 툴 길이 (mm), 글로벌 회전 적용된 X축 방향으로 오프셋
+                // ------------------------------------------------------------
+                public static bool SolveIK_JacobianDLS_PosWithToolGlobal(
+                    ref Ojw.C3d c3d,
+                    int fn,
+                    float tx, float ty, float tz,              // 목표 위치 (툴 끝점)
+                    float rxDeg, float ryDeg, float rzDeg,     // 툴 자세 (글로벌 좌표계 절대 회전)
+                    float toolLength,                          // 툴 길이
+                    int maxIter,
+                    float tolMm,
+                    float epsDeg,
+                    float lambda,
+                    float gain,
+                    float maxStepDeg
+                )
+                {
+                    int n = c3d.m_CHeader.pDhParamAll[fn].GetMotors_Count();
+                    if (n <= 0) return false;
+
+                    // ----------------------------
+                    // 글로벌 좌표계 기준 목표 자세 계산
+                    // R = Rz(rz) * Ry(ry) * Rx(rx)
+                    // ----------------------------
+                    float[] tgtX = new float[3];
+                    float[] tgtY = new float[3];
+                    float[] tgtZ = new float[3];
+                    EulerZYX_ToCols(rxDeg, ryDeg, rzDeg, tgtX, tgtY, tgtZ);
+
+                    // ----------------------------
+                    // 손목 위치 계산: P_wrist = P_target - R * (toolLength, 0, 0)
+                    // tgtX가 글로벌 회전 적용된 정면 방향
+                    // ----------------------------
+                    float wristX = tx - tgtX[0] * toolLength;
+                    float wristY = ty - tgtX[1] * toolLength;
+                    float wristZ = tz - tgtX[2] * toolLength;
+
+                    // ----------------------------
+                    // 손목 위치까지 PosOnly IK 수행
+                    // ----------------------------
+                    return SolveIK_JacobianDLS_PosOnly(
+                        ref c3d, fn,
+                        wristX, wristY, wristZ,
+                        maxIter, tolMm, epsDeg, lambda, gain, maxStepDeg
+                    );
+                }
+#if false
+                // 회전 정의: R = Rz(rz) * Ry(ry) * Rx(rx) (Yaw-Pitch-Roll, ZYX)
+                // rxDeg, ryDeg, rzDeg는 "홈 포지션(관절 0도) 자세"에서의 상대 회전
+                public static bool SolveIK_JacobianDLS_PosFixedEuler(
+                        ref Ojw.C3d c3d,
+                        int fn,
+                        float tx, float ty, float tz,
+                        float rxDeg, float ryDeg, float rzDeg,   // 홈 자세 기준 상대 회전, degree
+                        int maxIter,
+                        float posTolMm,
+                        float rotTol,
+                        float epsDeg,
+                        float lambda,
+                        float gain,
+                        float maxStepDeg,
+                        float rotWeight
+                )
+                {
+                    int n = c3d.m_CHeader.pDhParamAll[fn].GetMotors_Count();
+                    if (n <= 0) return false;
+
+                    // ----------------------------
+                    // 홈 포지션(관절 0도)에서의 기준 자세 계산
+                    // ----------------------------
+                    float[] homeX = new float[3];
+                    float[] homeY = new float[3];
+                    float[] homeZ = new float[3];
+                    {
+                        // 현재 관절각 백업
+                        int[] motorIds = c3d.m_CHeader.pDhParamAll[fn].GetMotors();
+                        float[] backup = new float[n];
+                        for (int i = 0; i < n; i++)
+                        {
+                            backup[i] = c3d.GetData(motorIds[i]);
+                            c3d.SetData(motorIds[i], 0.0f);  // 모든 관절 0도로 설정
+                        }
+
+                        // 홈 포지션에서 FK 계산
+                        float hx, hy, hz;
+                        CKinematics.CForward.CalcF(ref c3d, fn, out hx, out hy, out hz);
+                        GetColsAfterForward(homeX, homeY, homeZ);
+
+                        // 관절각 복원
+                        for (int i = 0; i < n; i++)
+                            c3d.SetData(motorIds[i], backup[i]);
+                    }
+
+                    // ----------------------------
+                    // 목표 자세 = R_home * R_user
+                    // R_user = Rz(rz) * Ry(ry) * Rx(rx)
+                    // ----------------------------
+                    float[] tgtX = new float[3];
+                    float[] tgtY = new float[3];
+                    float[] tgtZ = new float[3];
+                    {
+                        // 사용자 입력 회전행렬
+                        float[] userX = new float[3];
+                        float[] userY = new float[3];
+                        float[] userZ = new float[3];
+                        EulerZYX_ToCols(rxDeg, ryDeg, rzDeg, userX, userY, userZ);
+
+                        // R_tgt = R_home * R_user
+                        // R_home = [homeX, homeY, homeZ] (열벡터)
+                        // R_user = [userX, userY, userZ] (열벡터)
+                        // R_tgt의 각 열 = R_home * (R_user의 각 열)
+                        for (int i = 0; i < 3; i++)
+                        {
+                            tgtX[i] = homeX[i] * userX[0] + homeY[i] * userX[1] + homeZ[i] * userX[2];
+                            tgtY[i] = homeX[i] * userY[0] + homeY[i] * userY[1] + homeZ[i] * userY[2];
+                            tgtZ[i] = homeX[i] * userZ[0] + homeY[i] * userZ[1] + homeZ[i] * userZ[2];
+                        }
+                    }
+
+                    float[] q0 = new float[n];
+                    float[,] J = new float[6, n];
+
+                    float[] curX = new float[3];
+                    float[] curY = new float[3];
+                    float[] curZ = new float[3];
+
+                    float[] perX = new float[3];
+                    float[] perY = new float[3];
+                    float[] perZ = new float[3];
+
+                    // 디버그: 목표 자세 출력 (성능: 주석 처리)
+                    //Ojw.CMessage.Write(String.Format(
+                    //    "[IK Debug] tgtX=({0:F3},{1:F3},{2:F3}) tgtY=({3:F3},{4:F3},{5:F3}) tgtZ=({6:F3},{7:F3},{8:F3})",
+                    //    tgtX[0], tgtX[1], tgtX[2], tgtY[0], tgtY[1], tgtY[2], tgtZ[0], tgtZ[1], tgtZ[2]));
+
+                    for (int iter = 0; iter < maxIter; iter++)
+                    {
+                        // ----------------------------
+                        // 현재 FK
+                        // ----------------------------
+                        float x, y, z;
+                        CKinematics.CForward.CalcF(ref c3d, fn, out x, out y, out z);
+
+                        GetColsAfterForward(curX, curY, curZ);
+
+                        // 위치 오차
+                        float ex = tx - x;
+                        float ey = ty - y;
+                        float ez = tz - z;
+
+                        // 자세 오차(고정 목표)
+                        float oex, oey, oez;
+                        CalcOriError(curX, curY, curZ, tgtX, tgtY, tgtZ, out oex, out oey, out oez);
+
+                        float posErr = (float)Math.Sqrt(ex * ex + ey * ey + ez * ez);
+                        float rotErr = (float)Math.Sqrt(oex * oex + oey * oey + oez * oez);
+
+                        // 디버그: 첫 3회 iteration 출력 (성능: 주석 처리)
+                        //if (iter < 3)
+                        //{
+                        //    Ojw.CMessage.Write(String.Format(
+                        //        "[IK Debug] iter={0} pos=({1:F2},{2:F2},{3:F2}) posErr={4:F2} rotErr={5:F4}",
+                        //        iter, x, y, z, posErr, rotErr));
+                        //    Ojw.CMessage.Write(String.Format(
+                        //        "[IK Debug]   curX=({0:F3},{1:F3},{2:F3}) curY=({3:F3},{4:F3},{5:F3}) curZ=({6:F3},{7:F3},{8:F3})",
+                        //        curX[0], curX[1], curX[2], curY[0], curY[1], curY[2], curZ[0], curZ[1], curZ[2]));
+                        //    Ojw.CMessage.Write(String.Format(
+                        //        "[IK Debug]   oriErr=({0:F4},{1:F4},{2:F4})", oex, oey, oez));
+                        //}
+
+                        if (posErr <= posTolMm && rotErr <= rotTol) return true;
+
+                        // 현재 관절각 저장
+                        for (int i = 0; i < n; i++)
+                        {
+                            int id = c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i];
+                            q0[i] = c3d.GetData(id);
+                        }
+
+                        float base_oex = oex, base_oey = oey, base_oez = oez;
+
+                        // ----------------------------
+                        // 수치미분 Jacobian (6xN)
+                        // ----------------------------
+                        for (int i = 0; i < n; i++)
+                        {
+                            int id = c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i];
+
+                            c3d.SetData(id, q0[i] + epsDeg);
+
+                            float xp, yp, zp;
+                            CKinematics.CForward.CalcF(ref c3d, fn, out xp, out yp, out zp);
+                            GetColsAfterForward(perX, perY, perZ);
+
+                            c3d.SetData(id, q0[i]);
+
+                            float inv = 1.0f / epsDeg;
+
+                            // position rows
+                            J[0, i] = (xp - x) * inv;
+                            J[1, i] = (yp - y) * inv;
+                            J[2, i] = (zp - z) * inv;
+
+                            // orientation error rows: d(eR)/dtheta
+                            float poex, poey, poez;
+                            CalcOriError(perX, perY, perZ, tgtX, tgtY, tgtZ, out poex, out poey, out poez);
+
+                            J[3, i] = (poex - base_oex) * inv;
+                            J[4, i] = (poey - base_oey) * inv;
+                            J[5, i] = (poez - base_oez) * inv;
+                        }
+
+                        // ----------------------------
+                        // 가중치(자세 고정 강도)
+                        // ----------------------------
+                        float[] e = new float[6];
+                        e[0] = ex;
+                        e[1] = ey;
+                        e[2] = ez;
+                        e[3] = oex * rotWeight;
+                        e[4] = oey * rotWeight;
+                        e[5] = oez * rotWeight;
+
+                        for (int i = 0; i < n; i++)
+                        {
+                            J[3, i] *= rotWeight;
+                            J[4, i] *= rotWeight;
+                            J[5, i] *= rotWeight;
+                        }
+
+                        // ----------------------------
+                        // DLS
+                        // ----------------------------
+                        float[,] A = new float[6, 6];
+                        for (int r = 0; r < 6; r++)
+                        {
+                            for (int c = 0; c < 6; c++)
+                            {
+                                float sum = 0.0f;
+                                for (int k = 0; k < n; k++)
+                                    sum += J[r, k] * J[c, k];
+                                A[r, c] = sum;
+                            }
+                            A[r, r] += lambda * lambda;
+                        }
+
+                        float[] yvec = Solve6x6(A, e);
+                        if (yvec == null) return false;
+
+                        // dq = J^T y
+                        for (int i = 0; i < n; i++)
+                        {
+                            float dq = 0.0f;
+                            for (int r = 0; r < 6; r++) dq += J[r, i] * yvec[r];
+                            dq *= gain;
+
+                            if (dq > maxStepDeg) dq = maxStepDeg;
+                            else if (dq < -maxStepDeg) dq = -maxStepDeg;
+
+                            int id = c3d.m_CHeader.pDhParamAll[fn].GetMotors()[i];
+                            c3d.SetData(id, q0[i] + dq);
+                        }
+                    }
+
+                    return false;
+                }
+#endif
+                // ===== helpers (VS2010 compatible) =====
+                private static void GetColsAfterForward(float[] colX, float[] colY, float[] colZ)
+                {
+                    double[] dx = CKinematics.CForward.GetDirectionVectors_after_Forward(0);
+                    double[] dy = CKinematics.CForward.GetDirectionVectors_after_Forward(1);
+                    double[] dz = CKinematics.CForward.GetDirectionVectors_after_Forward(2);
+
+                    colX[0] = (float)dx[0]; colX[1] = (float)dx[1]; colX[2] = (float)dx[2];
+                    colY[0] = (float)dy[0]; colY[1] = (float)dy[1]; colY[2] = (float)dy[2];
+                    colZ[0] = (float)dz[0]; colZ[1] = (float)dz[1]; colZ[2] = (float)dz[2];
+                }
+
+                // SO(3) log map 기반 오리엔테이션 오차 계산 (월드 좌표계)
+                // R_err = R_tgt * R_cur^T 의 log map으로 오차 벡터 추출
+                // 이렇게 하면 오차가 월드 좌표계에서 직접 표현됨
+                private static void CalcOriError(
+                    float[] curX, float[] curY, float[] curZ,
+                    float[] tgtX, float[] tgtY, float[] tgtZ,
+                    out float oex, out float oey, out float oez)
+                {
+                    // R_cur = [curX, curY, curZ] (열벡터)
+                    // R_tgt = [tgtX, tgtY, tgtZ] (열벡터)
+                    // R_err = R_tgt * R_cur^T  (월드 좌표계 오차)
+
+                    // R_cur^T의 행 = curX, curY, curZ (각각 행벡터로 사용)
+                    // R_err[i,j] = dot(tgt_col_i, cur_col_j)
+                    // R_err = R_tgt * R_cur^T 이므로:
+                    // R_err[i,j] = sum_k(R_tgt[i,k] * R_cur^T[k,j]) = sum_k(R_tgt[i,k] * R_cur[j,k])
+                    // R_tgt의 i행 = [tgtX[i], tgtY[i], tgtZ[i]]
+                    // R_cur의 j열 = curX, curY, curZ 중 j번째
+
+                    float r00 = tgtX[0] * curX[0] + tgtY[0] * curY[0] + tgtZ[0] * curZ[0];
+                    float r01 = tgtX[0] * curX[1] + tgtY[0] * curY[1] + tgtZ[0] * curZ[1];
+                    float r02 = tgtX[0] * curX[2] + tgtY[0] * curY[2] + tgtZ[0] * curZ[2];
+
+                    float r10 = tgtX[1] * curX[0] + tgtY[1] * curY[0] + tgtZ[1] * curZ[0];
+                    float r11 = tgtX[1] * curX[1] + tgtY[1] * curY[1] + tgtZ[1] * curZ[1];
+                    float r12 = tgtX[1] * curX[2] + tgtY[1] * curY[2] + tgtZ[1] * curZ[2];
+
+                    float r20 = tgtX[2] * curX[0] + tgtY[2] * curY[0] + tgtZ[2] * curZ[0];
+                    float r21 = tgtX[2] * curX[1] + tgtY[2] * curY[1] + tgtZ[2] * curZ[1];
+                    float r22 = tgtX[2] * curX[2] + tgtY[2] * curY[2] + tgtZ[2] * curZ[2];
+
+                    // SO(3) log map
+                    float trace = r00 + r11 + r22;
+                    float cosTheta = (trace - 1.0f) * 0.5f;
+
+                    // clamp to [-1, 1]
+                    if (cosTheta > 1.0f) cosTheta = 1.0f;
+                    else if (cosTheta < -1.0f) cosTheta = -1.0f;
+
+                    float theta = (float)Math.Acos(cosTheta);
+
+                    // 회전각이 매우 작으면 선형 근사
+                    if (theta < 1e-6f)
+                    {
+                        // R ≈ I + [ω]× 이므로 ω ≈ 0.5 * (R - R^T)의 vee
+                        oex = 0.5f * (r21 - r12);
+                        oey = 0.5f * (r02 - r20);
+                        oez = 0.5f * (r10 - r01);
+                        return;
+                    }
+
+                    // 회전각이 π에 가까우면 특수 처리
+                    if (theta > 3.1415926f - 1e-6f)
+                    {
+                        // 대각 요소에서 축 추출
+                        float ax = (float)Math.Sqrt(Math.Max(0, (r00 + 1.0f) * 0.5f));
+                        float ay = (float)Math.Sqrt(Math.Max(0, (r11 + 1.0f) * 0.5f));
+                        float az = (float)Math.Sqrt(Math.Max(0, (r22 + 1.0f) * 0.5f));
+
+                        // 부호 결정
+                        if (r01 < 0) ay = -ay;
+                        if (r02 < 0) az = -az;
+
+                        oex = ax * theta;
+                        oey = ay * theta;
+                        oez = az * theta;
+                        return;
+                    }
+
+                    // 일반적인 경우: log(R) = (theta / 2*sin(theta)) * (R - R^T)
+                    float k = theta / (2.0f * (float)Math.Sin(theta));
+                    oex = k * (r21 - r12);
+                    oey = k * (r02 - r20);
+                    oez = k * (r10 - r01);
+                }
+
+                private static void Cross(float[] a, float[] b, out float x, out float y, out float z)
+                {
+                    x = a[1] * b[2] - a[2] * b[1];
+                    y = a[2] * b[0] - a[0] * b[2];
+                    z = a[0] * b[1] - a[1] * b[0];
+                }
+
+                // R = Rz(rz)*Ry(ry)*Rx(rx), output columns
+                // colX가 정면(접근 방향)일 때의 직관적 해석:
+                // - rx: roll (정면 축 기준 회전)
+                // - ry: pitch (위/아래)
+                // - rz: yaw (좌/우)
+                private static void EulerZYX_ToCols(float rxDeg, float ryDeg, float rzDeg,
+                    float[] colX, float[] colY, float[] colZ)
+                {
+                    float rx = (float)(rxDeg * Math.PI / 180.0);
+                    float ry = (float)(ryDeg * Math.PI / 180.0);
+                    float rz = (float)(rzDeg * Math.PI / 180.0);
+
+                    float cx = (float)Math.Cos(rx), sx = (float)Math.Sin(rx);
+                    float cy = (float)Math.Cos(ry), sy = (float)Math.Sin(ry);
+                    float cz = (float)Math.Cos(rz), sz = (float)Math.Sin(rz);
+
+                    // R = Rz(rz) * Ry(ry) * Rx(rx)
+                    // colX가 정면이므로, rz는 colZ 기준 회전(yaw), ry는 colY 기준(pitch)
+                    float r00 = cz * cy;
+                    float r01 = cz * sy * sx - sz * cx;
+                    float r02 = cz * sy * cx + sz * sx;
+
+                    float r10 = sz * cy;
+                    float r11 = sz * sy * sx + cz * cx;
+                    float r12 = sz * sy * cx - cz * sx;
+
+                    float r20 = -sy;
+                    float r21 = cy * sx;
+                    float r22 = cy * cx;
+
+                    colX[0] = r00; colX[1] = r10; colX[2] = r20;
+                    colY[0] = r01; colY[1] = r11; colY[2] = r21;
+                    colZ[0] = r02; colZ[1] = r12; colZ[2] = r22;
+                }
+
+                // 6x6 가우스 소거
+                private static float[] Solve6x6(float[,] A, float[] b)
+                {
+                    int n = 6;
+                    float[,] M = new float[n, n + 1];
+
+                    for (int r = 0; r < n; r++)
+                    {
+                        for (int c = 0; c < n; c++) M[r, c] = A[r, c];
+                        M[r, n] = b[r];
+                    }
+
+                    for (int k = 0; k < n; k++)
+                    {
+                        int piv = k;
+                        float best = Abs(M[k, k]);
+                        for (int r = k + 1; r < n; r++)
+                        {
+                            float v = Abs(M[r, k]);
+                            if (v > best) { best = v; piv = r; }
+                        }
+                        if (best < 1e-8f) return null;
+
+                        if (piv != k)
+                        {
+                            for (int c = k; c < n + 1; c++)
+                            {
+                                float tmp = M[k, c];
+                                M[k, c] = M[piv, c];
+                                M[piv, c] = tmp;
+                            }
+                        }
+
+                        float div = M[k, k];
+                        for (int c = k; c < n + 1; c++) M[k, c] /= div;
+
+                        for (int r = 0; r < n; r++)
+                        {
+                            if (r == k) continue;
+                            float f = M[r, k];
+                            if (Abs(f) < 1e-12f) continue;
+                            for (int c = k; c < n + 1; c++) M[r, c] -= f * M[k, c];
+                        }
+                    }
+
+                    float[] x = new float[n];
+                    for (int i = 0; i < n; i++) x[i] = M[i, n];
+                    return x;
+                }
+
+#endif
+
+                // ------------------------------------------------------------
+                // Simple Gauss elimination for 3x3
+                // ------------------------------------------------------------
+                private static float[] Solve3x3(float[,] A, float[] b)
+                {
+                    float[,] M = new float[3, 4];
+
+                    int r, c;
+
+                    for (r = 0; r < 3; r++)
+                    {
+                        for (c = 0; c < 3; c++) M[r, c] = A[r, c];
+                        M[r, 3] = b[r];
+                    }
+
+                    for (int k = 0; k < 3; k++)
+                    {
+                        // pivot
+                        int piv = k;
+                        float best = Abs(M[k, k]);
+                        for (r = k + 1; r < 3; r++)
+                        {
+                            float v = Abs(M[r, k]);
+                            if (v > best) { best = v; piv = r; }
+                        }
+                        if (best < 1e-8f) return null;
+
+                        if (piv != k)
+                        {
+                            for (c = k; c < 4; c++)
+                            {
+                                float tmp = M[k, c];
+                                M[k, c] = M[piv, c];
+                                M[piv, c] = tmp;
+                            }
+                        }
+
+                        float div = M[k, k];
+                        for (c = k; c < 4; c++) M[k, c] /= div;
+
+                        for (r = 0; r < 3; r++)
+                        {
+                            if (r == k) continue;
+                            float f = M[r, k];
+                            for (c = k; c < 4; c++) M[r, c] -= f * M[k, c];
+                        }
+                    }
+
+                    return new float[3] { M[0, 3], M[1, 3], M[2, 3] };
+                }
+
+                private static float Abs(float v) { return (v < 0) ? -v : v; }
+                #endregion Inverse Jacob
             }
         }
     }

@@ -942,6 +942,10 @@ namespace OpenJigWare
                 {
                     if (m_nMessageStatus >= 0)
                     {
+                        // 프로그램 종료 시 Dispose된 컨트롤 접근 방지
+                        if (txtOjwMessage == null || txtOjwMessage.IsDisposed || !txtOjwMessage.IsHandleCreated)
+                            return;
+
                         if (txtOjwMessage.InvokeRequired)
                         {
                             Ctrl_Involk CI = new Ctrl_Involk(OjwDebugMessage);
@@ -1024,7 +1028,7 @@ namespace OpenJigWare
                                 }
                                 if (bTime) strMsg += "{" + DateTime.Now.Year.ToString() + "/" + DateTime.Now.Month.ToString() + "/" + DateTime.Now.Day.ToString() + "," + DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString() + ":" + DateTime.Now.Second.ToString() + "}";
                                 if (bLinefeed == true) msg += "\r\n";
-                                if (bValid == true)
+                                if (bValid == true && !txtOjwMessage.IsDisposed && txtOjwMessage.IsHandleCreated)
                                 {
                                     SendMessage(txtOjwMessage.Handle, _WM_SETREDRAW, false, 0); // Block Redraw : Block Refresh
                                     //txtOjwMessage.AppendText(strMsg + msg + ((bLinefeed == true) ? "\r\n" : ""));       

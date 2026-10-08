@@ -33,17 +33,24 @@
             this.panel1 = new System.Windows.Forms.Panel();
             this.chkDH_Test_Show = new System.Windows.Forms.CheckBox();
             this.label28 = new System.Windows.Forms.Label();
+            this.btnDH_Test_Jacob = new System.Windows.Forms.Button();
             this.btnDH_Test_Go_Inverse = new System.Windows.Forms.Button();
             this.btnDH_Test_Get_Forward = new System.Windows.Forms.Button();
             this.label18 = new System.Windows.Forms.Label();
+            this.label112 = new System.Windows.Forms.Label();
             this.label29 = new System.Windows.Forms.Label();
+            this.label111 = new System.Windows.Forms.Label();
             this.label20 = new System.Windows.Forms.Label();
             this.label30 = new System.Windows.Forms.Label();
+            this.label110 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
             this.cmbDH_Test_Index = new System.Windows.Forms.ComboBox();
             this.txtDH_Test_BallSize = new System.Windows.Forms.TextBox();
             this.txtDepthIndex = new System.Windows.Forms.TextBox();
+            this.txtDH_Test_RX = new System.Windows.Forms.TextBox();
+            this.txtDH_Test_RY = new System.Windows.Forms.TextBox();
             this.txtDH_Test_X = new System.Windows.Forms.TextBox();
+            this.txtDH_Test_RZ = new System.Windows.Forms.TextBox();
             this.txtDH_Test_Y = new System.Windows.Forms.TextBox();
             this.txtDH_Test_Z = new System.Windows.Forms.TextBox();
             this.label26 = new System.Windows.Forms.Label();
@@ -85,6 +92,7 @@
             this.btnAdd_Model = new System.Windows.Forms.Button();
             this.btnFindStlFile = new System.Windows.Forms.Button();
             this.txtAdd_StlFile = new System.Windows.Forms.TextBox();
+            this.txtAdd_Shape = new System.Windows.Forms.TextBox();
             this.label31 = new System.Windows.Forms.Label();
             this.txtAdd_X = new System.Windows.Forms.TextBox();
             this.txtAdd_Y = new System.Windows.Forms.TextBox();
@@ -156,11 +164,15 @@
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.txtDH_Tab_Forward = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.rtxtDH_Tab_Inverse = new System.Windows.Forms.RichTextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.txtDH_Tab_Result = new System.Windows.Forms.TextBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.btnCopyToDraw = new System.Windows.Forms.Button();
             this.txtDH_Tab_Skeleton = new System.Windows.Forms.TextBox();
+            this.tabPage11 = new System.Windows.Forms.TabPage();
+            this.btnMakeUrdf = new System.Windows.Forms.Button();
+            this.txtUrdf = new System.Windows.Forms.TextBox();
             this.txtDH_Caption = new System.Windows.Forms.TextBox();
             this.label22 = new System.Windows.Forms.Label();
             this.label23 = new System.Windows.Forms.Label();
@@ -320,7 +332,12 @@
             this.label89 = new System.Windows.Forms.Label();
             this.txtRobotName = new System.Windows.Forms.TextBox();
             this.label88 = new System.Windows.Forms.Label();
-            this.rtxtDH_Tab_Inverse = new System.Windows.Forms.RichTextBox();
+            this.btnDH_Test_JacobFix = new System.Windows.Forms.Button();
+            this.label113 = new System.Windows.Forms.Label();
+            this.tabPage12 = new System.Windows.Forms.TabPage();
+            this.txtPrint = new System.Windows.Forms.TextBox();
+            this.label114 = new System.Windows.Forms.Label();
+            this.txtDH_Test_ToolLength = new System.Windows.Forms.TextBox();
             this.tabControl2.SuspendLayout();
             this.tabPage7.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -334,9 +351,11 @@
             this.tabPage2.SuspendLayout();
             this.tabPage3.SuspendLayout();
             this.tabPage4.SuspendLayout();
+            this.tabPage11.SuspendLayout();
             this.tabPage8.SuspendLayout();
             this.tabPage9.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            this.tabPage12.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl2
@@ -344,6 +363,7 @@
             this.tabControl2.Controls.Add(this.tabPage7);
             this.tabControl2.Controls.Add(this.tabPage8);
             this.tabControl2.Controls.Add(this.tabPage9);
+            this.tabControl2.Controls.Add(this.tabPage12);
             this.tabControl2.Location = new System.Drawing.Point(4, 5);
             this.tabControl2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabControl2.Name = "tabControl2";
@@ -403,23 +423,34 @@
             this.panel1.BackColor = System.Drawing.SystemColors.ActiveCaption;
             this.panel1.Controls.Add(this.chkDH_Test_Show);
             this.panel1.Controls.Add(this.label28);
+            this.panel1.Controls.Add(this.btnDH_Test_JacobFix);
+            this.panel1.Controls.Add(this.btnDH_Test_Jacob);
             this.panel1.Controls.Add(this.btnDH_Test_Go_Inverse);
             this.panel1.Controls.Add(this.btnDH_Test_Get_Forward);
+            this.panel1.Controls.Add(this.label113);
             this.panel1.Controls.Add(this.label18);
+            this.panel1.Controls.Add(this.label112);
             this.panel1.Controls.Add(this.label29);
+            this.panel1.Controls.Add(this.label111);
             this.panel1.Controls.Add(this.label20);
             this.panel1.Controls.Add(this.label30);
+            this.panel1.Controls.Add(this.label114);
+            this.panel1.Controls.Add(this.label110);
             this.panel1.Controls.Add(this.label19);
             this.panel1.Controls.Add(this.cmbDH_Test_Index);
             this.panel1.Controls.Add(this.txtDH_Test_BallSize);
             this.panel1.Controls.Add(this.txtDepthIndex);
+            this.panel1.Controls.Add(this.txtDH_Test_RX);
+            this.panel1.Controls.Add(this.txtDH_Test_RY);
             this.panel1.Controls.Add(this.txtDH_Test_X);
+            this.panel1.Controls.Add(this.txtDH_Test_ToolLength);
+            this.panel1.Controls.Add(this.txtDH_Test_RZ);
             this.panel1.Controls.Add(this.txtDH_Test_Y);
             this.panel1.Controls.Add(this.txtDH_Test_Z);
-            this.panel1.Location = new System.Drawing.Point(770, 554);
+            this.panel1.Location = new System.Drawing.Point(770, 515);
             this.panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(366, 101);
+            this.panel1.Size = new System.Drawing.Size(366, 136);
             this.panel1.TabIndex = 487;
             // 
             // chkDH_Test_Show
@@ -444,12 +475,23 @@
             this.label28.TabIndex = 8;
             this.label28.Text = "Function Index";
             // 
+            // btnDH_Test_Jacob
+            // 
+            this.btnDH_Test_Jacob.Location = new System.Drawing.Point(95, 110);
+            this.btnDH_Test_Jacob.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnDH_Test_Jacob.Name = "btnDH_Test_Jacob";
+            this.btnDH_Test_Jacob.Size = new System.Drawing.Size(131, 24);
+            this.btnDH_Test_Jacob.TabIndex = 14;
+            this.btnDH_Test_Jacob.Text = "Go (Jacob default)";
+            this.btnDH_Test_Jacob.UseVisualStyleBackColor = true;
+            this.btnDH_Test_Jacob.Click += new System.EventHandler(this.btnDH_Test_Jacob_Click);
+            // 
             // btnDH_Test_Go_Inverse
             // 
-            this.btnDH_Test_Go_Inverse.Location = new System.Drawing.Point(218, 71);
+            this.btnDH_Test_Go_Inverse.Location = new System.Drawing.Point(4, 110);
             this.btnDH_Test_Go_Inverse.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnDH_Test_Go_Inverse.Name = "btnDH_Test_Go_Inverse";
-            this.btnDH_Test_Go_Inverse.Size = new System.Drawing.Size(141, 26);
+            this.btnDH_Test_Go_Inverse.Size = new System.Drawing.Size(85, 24);
             this.btnDH_Test_Go_Inverse.TabIndex = 14;
             this.btnDH_Test_Go_Inverse.Text = "Go (Inverse)";
             this.btnDH_Test_Go_Inverse.UseVisualStyleBackColor = true;
@@ -457,10 +499,10 @@
             // 
             // btnDH_Test_Get_Forward
             // 
-            this.btnDH_Test_Get_Forward.Location = new System.Drawing.Point(10, 46);
+            this.btnDH_Test_Get_Forward.Location = new System.Drawing.Point(190, 23);
             this.btnDH_Test_Get_Forward.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnDH_Test_Get_Forward.Name = "btnDH_Test_Get_Forward";
-            this.btnDH_Test_Get_Forward.Size = new System.Drawing.Size(178, 31);
+            this.btnDH_Test_Get_Forward.Size = new System.Drawing.Size(171, 31);
             this.btnDH_Test_Get_Forward.TabIndex = 14;
             this.btnDH_Test_Get_Forward.Text = "Get (Forward)";
             this.btnDH_Test_Get_Forward.UseVisualStyleBackColor = true;
@@ -476,21 +518,41 @@
             this.label18.TabIndex = 8;
             this.label18.Text = "Ball Size(For Test)";
             // 
+            // label112
+            // 
+            this.label112.AutoSize = true;
+            this.label112.BackColor = System.Drawing.Color.Transparent;
+            this.label112.Location = new System.Drawing.Point(284, 73);
+            this.label112.Name = "label112";
+            this.label112.Size = new System.Drawing.Size(21, 12);
+            this.label112.TabIndex = 8;
+            this.label112.Text = "RZ";
+            // 
             // label29
             // 
             this.label29.AutoSize = true;
             this.label29.BackColor = System.Drawing.Color.Transparent;
-            this.label29.Location = new System.Drawing.Point(312, 31);
+            this.label29.Location = new System.Drawing.Point(125, 73);
             this.label29.Name = "label29";
             this.label29.Size = new System.Drawing.Size(13, 12);
             this.label29.TabIndex = 8;
             this.label29.Text = "Z";
             // 
+            // label111
+            // 
+            this.label111.AutoSize = true;
+            this.label111.BackColor = System.Drawing.Color.Transparent;
+            this.label111.Location = new System.Drawing.Point(237, 73);
+            this.label111.Name = "label111";
+            this.label111.Size = new System.Drawing.Size(21, 12);
+            this.label111.TabIndex = 8;
+            this.label111.Text = "RY";
+            // 
             // label20
             // 
             this.label20.AutoSize = true;
             this.label20.BackColor = System.Drawing.Color.Transparent;
-            this.label20.Location = new System.Drawing.Point(265, 31);
+            this.label20.Location = new System.Drawing.Point(78, 73);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(13, 12);
             this.label20.TabIndex = 8;
@@ -500,17 +562,27 @@
             // 
             this.label30.AutoSize = true;
             this.label30.BackColor = System.Drawing.Color.Transparent;
-            this.label30.Location = new System.Drawing.Point(193, 52);
+            this.label30.Location = new System.Drawing.Point(8, 85);
             this.label30.Name = "label30";
             this.label30.Size = new System.Drawing.Size(19, 12);
             this.label30.TabIndex = 8;
             this.label30.Text = "=>";
             // 
+            // label110
+            // 
+            this.label110.AutoSize = true;
+            this.label110.BackColor = System.Drawing.Color.Transparent;
+            this.label110.Location = new System.Drawing.Point(190, 73);
+            this.label110.Name = "label110";
+            this.label110.Size = new System.Drawing.Size(21, 12);
+            this.label110.TabIndex = 8;
+            this.label110.Text = "RX";
+            // 
             // label19
             // 
             this.label19.AutoSize = true;
             this.label19.BackColor = System.Drawing.Color.Transparent;
-            this.label19.Location = new System.Drawing.Point(218, 31);
+            this.label19.Location = new System.Drawing.Point(31, 73);
             this.label19.Name = "label19";
             this.label19.Size = new System.Drawing.Size(13, 12);
             this.label19.TabIndex = 8;
@@ -536,25 +608,52 @@
             // 
             // txtDepthIndex
             // 
-            this.txtDepthIndex.Location = new System.Drawing.Point(10, 80);
+            this.txtDepthIndex.Location = new System.Drawing.Point(125, 45);
             this.txtDepthIndex.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDepthIndex.Name = "txtDepthIndex";
-            this.txtDepthIndex.Size = new System.Drawing.Size(46, 21);
+            this.txtDepthIndex.Size = new System.Drawing.Size(60, 21);
             this.txtDepthIndex.TabIndex = 10;
             this.txtDepthIndex.Text = "-1";
             // 
+            // txtDH_Test_RX
+            // 
+            this.txtDH_Test_RX.Location = new System.Drawing.Point(190, 85);
+            this.txtDH_Test_RX.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Test_RX.Name = "txtDH_Test_RX";
+            this.txtDH_Test_RX.Size = new System.Drawing.Size(38, 21);
+            this.txtDH_Test_RX.TabIndex = 10;
+            this.txtDH_Test_RX.Text = "0";
+            // 
+            // txtDH_Test_RY
+            // 
+            this.txtDH_Test_RY.Location = new System.Drawing.Point(228, 85);
+            this.txtDH_Test_RY.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Test_RY.Name = "txtDH_Test_RY";
+            this.txtDH_Test_RY.Size = new System.Drawing.Size(38, 21);
+            this.txtDH_Test_RY.TabIndex = 10;
+            this.txtDH_Test_RY.Text = "0";
+            // 
             // txtDH_Test_X
             // 
-            this.txtDH_Test_X.Location = new System.Drawing.Point(218, 50);
+            this.txtDH_Test_X.Location = new System.Drawing.Point(31, 85);
             this.txtDH_Test_X.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Test_X.Name = "txtDH_Test_X";
             this.txtDH_Test_X.Size = new System.Drawing.Size(46, 21);
             this.txtDH_Test_X.TabIndex = 10;
             this.txtDH_Test_X.Text = "0";
             // 
+            // txtDH_Test_RZ
+            // 
+            this.txtDH_Test_RZ.Location = new System.Drawing.Point(266, 85);
+            this.txtDH_Test_RZ.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Test_RZ.Name = "txtDH_Test_RZ";
+            this.txtDH_Test_RZ.Size = new System.Drawing.Size(38, 21);
+            this.txtDH_Test_RZ.TabIndex = 10;
+            this.txtDH_Test_RZ.Text = "0";
+            // 
             // txtDH_Test_Y
             // 
-            this.txtDH_Test_Y.Location = new System.Drawing.Point(265, 50);
+            this.txtDH_Test_Y.Location = new System.Drawing.Point(78, 85);
             this.txtDH_Test_Y.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Test_Y.Name = "txtDH_Test_Y";
             this.txtDH_Test_Y.Size = new System.Drawing.Size(46, 21);
@@ -563,7 +662,7 @@
             // 
             // txtDH_Test_Z
             // 
-            this.txtDH_Test_Z.Location = new System.Drawing.Point(312, 50);
+            this.txtDH_Test_Z.Location = new System.Drawing.Point(125, 85);
             this.txtDH_Test_Z.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Test_Z.Name = "txtDH_Test_Z";
             this.txtDH_Test_Z.Size = new System.Drawing.Size(46, 21);
@@ -662,12 +761,12 @@
             // 
             // txtInverseKinematics_Message
             // 
-            this.txtInverseKinematics_Message.Location = new System.Drawing.Point(957, 6);
+            this.txtInverseKinematics_Message.Location = new System.Drawing.Point(952, 6);
             this.txtInverseKinematics_Message.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtInverseKinematics_Message.Multiline = true;
             this.txtInverseKinematics_Message.Name = "txtInverseKinematics_Message";
             this.txtInverseKinematics_Message.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtInverseKinematics_Message.Size = new System.Drawing.Size(181, 545);
+            this.txtInverseKinematics_Message.Size = new System.Drawing.Size(186, 506);
             this.txtInverseKinematics_Message.TabIndex = 477;
             this.txtInverseKinematics_Message.WordWrap = false;
             // 
@@ -687,7 +786,7 @@
             this.txtForwardKinematics_Message.Multiline = true;
             this.txtForwardKinematics_Message.Name = "txtForwardKinematics_Message";
             this.txtForwardKinematics_Message.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtForwardKinematics_Message.Size = new System.Drawing.Size(181, 545);
+            this.txtForwardKinematics_Message.Size = new System.Drawing.Size(181, 506);
             this.txtForwardKinematics_Message.TabIndex = 472;
             this.txtForwardKinematics_Message.WordWrap = false;
             // 
@@ -949,6 +1048,7 @@
             this.tabPage6.Controls.Add(this.btnAdd_Model);
             this.tabPage6.Controls.Add(this.btnFindStlFile);
             this.tabPage6.Controls.Add(this.txtAdd_StlFile);
+            this.tabPage6.Controls.Add(this.txtAdd_Shape);
             this.tabPage6.Controls.Add(this.label31);
             this.tabPage6.Controls.Add(this.txtAdd_X);
             this.tabPage6.Controls.Add(this.txtAdd_Y);
@@ -1020,7 +1120,16 @@
             this.txtAdd_StlFile.Name = "txtAdd_StlFile";
             this.txtAdd_StlFile.Size = new System.Drawing.Size(67, 21);
             this.txtAdd_StlFile.TabIndex = 10;
-            // 
+            //
+            // txtAdd_Shape
+            //
+            this.txtAdd_Shape.Location = new System.Drawing.Point(116, 52);
+            this.txtAdd_Shape.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtAdd_Shape.Name = "txtAdd_Shape";
+            this.txtAdd_Shape.Size = new System.Drawing.Size(68, 21);
+            this.txtAdd_Shape.TabIndex = 10;
+            this.txtAdd_Shape.Text = "10,10,20,4,0";
+            //
             // label31
             // 
             this.label31.AutoSize = true;
@@ -1530,6 +1639,7 @@
             // 
             this.txtDh.Location = new System.Drawing.Point(5, 249);
             this.txtDh.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDh.MaxLength = 0; // 0 = 최대치. 기본값 32767 이면 긴 DH 를 붙여넣을 때 잘린다.
             this.txtDh.Multiline = true;
             this.txtDh.Name = "txtDh";
             this.txtDh.ScrollBars = System.Windows.Forms.ScrollBars.Both;
@@ -1694,6 +1804,7 @@
             this.tabDH.Controls.Add(this.tabPage2);
             this.tabDH.Controls.Add(this.tabPage3);
             this.tabDH.Controls.Add(this.tabPage4);
+            this.tabDH.Controls.Add(this.tabPage11);
             this.tabDH.Location = new System.Drawing.Point(2, 158);
             this.tabDH.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabDH.Name = "tabDH";
@@ -1717,6 +1828,7 @@
             // 
             this.txtDH_Tab_Forward.Location = new System.Drawing.Point(5, 5);
             this.txtDH_Tab_Forward.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Tab_Forward.MaxLength = 0; // 0 = 최대치 (기본 32767 제한 해제)
             this.txtDH_Tab_Forward.Multiline = true;
             this.txtDH_Tab_Forward.Name = "txtDH_Tab_Forward";
             this.txtDH_Tab_Forward.ScrollBars = System.Windows.Forms.ScrollBars.Both;
@@ -1737,6 +1849,17 @@
             this.tabPage2.Text = "Inverse";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // rtxtDH_Tab_Inverse
+            // 
+            this.rtxtDH_Tab_Inverse.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.rtxtDH_Tab_Inverse.Location = new System.Drawing.Point(5, 5);
+            this.rtxtDH_Tab_Inverse.Name = "rtxtDH_Tab_Inverse";
+            this.rtxtDH_Tab_Inverse.Size = new System.Drawing.Size(370, 460);
+            this.rtxtDH_Tab_Inverse.TabIndex = 11;
+            this.rtxtDH_Tab_Inverse.Text = "";
+            this.rtxtDH_Tab_Inverse.WordWrap = false;
+            this.rtxtDH_Tab_Inverse.TextChanged += new System.EventHandler(this.rtxtDH_Tab_Inverse_TextChanged);
+            // 
             // tabPage3
             // 
             this.tabPage3.Controls.Add(this.txtDH_Tab_Result);
@@ -1753,6 +1876,7 @@
             // 
             this.txtDH_Tab_Result.Location = new System.Drawing.Point(5, 5);
             this.txtDH_Tab_Result.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Tab_Result.MaxLength = 0; // 0 = 최대치 (기본 32767 제한 해제)
             this.txtDH_Tab_Result.Multiline = true;
             this.txtDH_Tab_Result.Name = "txtDH_Tab_Result";
             this.txtDH_Tab_Result.ScrollBars = System.Windows.Forms.ScrollBars.Both;
@@ -1788,12 +1912,46 @@
             // 
             this.txtDH_Tab_Skeleton.Location = new System.Drawing.Point(5, 37);
             this.txtDH_Tab_Skeleton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Tab_Skeleton.MaxLength = 0; // 0 = 최대치 (기본 32767 제한 해제)
             this.txtDH_Tab_Skeleton.Multiline = true;
             this.txtDH_Tab_Skeleton.Name = "txtDH_Tab_Skeleton";
             this.txtDH_Tab_Skeleton.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.txtDH_Tab_Skeleton.Size = new System.Drawing.Size(370, 287);
             this.txtDH_Tab_Skeleton.TabIndex = 11;
             this.txtDH_Tab_Skeleton.WordWrap = false;
+            // 
+            // tabPage11
+            // 
+            this.tabPage11.Controls.Add(this.btnMakeUrdf);
+            this.tabPage11.Controls.Add(this.txtUrdf);
+            this.tabPage11.Location = new System.Drawing.Point(4, 22);
+            this.tabPage11.Name = "tabPage11";
+            this.tabPage11.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage11.Size = new System.Drawing.Size(379, 470);
+            this.tabPage11.TabIndex = 4;
+            this.tabPage11.Text = "tabPage11";
+            this.tabPage11.UseVisualStyleBackColor = true;
+            // 
+            // btnMakeUrdf
+            // 
+            this.btnMakeUrdf.Location = new System.Drawing.Point(60, 378);
+            this.btnMakeUrdf.Name = "btnMakeUrdf";
+            this.btnMakeUrdf.Size = new System.Drawing.Size(196, 53);
+            this.btnMakeUrdf.TabIndex = 1;
+            this.btnMakeUrdf.Text = "Make Urdf";
+            this.btnMakeUrdf.UseVisualStyleBackColor = true;
+            this.btnMakeUrdf.Click += new System.EventHandler(this.btnMakeUrdf_Click);
+            // 
+            // txtUrdf
+            // 
+            this.txtUrdf.Location = new System.Drawing.Point(18, 34);
+            this.txtUrdf.MaxLength = 0; // 0 = 최대치 (기본 32767 제한 해제)
+            this.txtUrdf.Multiline = true;
+            this.txtUrdf.Name = "txtUrdf";
+            this.txtUrdf.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtUrdf.Size = new System.Drawing.Size(345, 324);
+            this.txtUrdf.TabIndex = 0;
+            this.txtUrdf.WordWrap = false;
             // 
             // txtDH_Caption
             // 
@@ -1807,7 +1965,7 @@
             // label22
             // 
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(172, 125);
+            this.label22.Location = new System.Drawing.Point(172, 136);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(87, 12);
             this.label22.TabIndex = 455;
@@ -1816,7 +1974,7 @@
             // label23
             // 
             this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(10, 108);
+            this.label23.Location = new System.Drawing.Point(10, 119);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(105, 12);
             this.label23.TabIndex = 459;
@@ -1825,7 +1983,7 @@
             // label17
             // 
             this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(7, 125);
+            this.label17.Location = new System.Drawing.Point(7, 136);
             this.label17.Name = "label17";
             this.label17.Size = new System.Drawing.Size(37, 12);
             this.label17.TabIndex = 453;
@@ -1919,7 +2077,7 @@
             // 
             // txtDH_Offset_Rot_Swing
             // 
-            this.txtDH_Offset_Rot_Swing.Location = new System.Drawing.Point(342, 121);
+            this.txtDH_Offset_Rot_Swing.Location = new System.Drawing.Point(342, 132);
             this.txtDH_Offset_Rot_Swing.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Offset_Rot_Swing.Name = "txtDH_Offset_Rot_Swing";
             this.txtDH_Offset_Rot_Swing.Size = new System.Drawing.Size(42, 21);
@@ -1928,7 +2086,7 @@
             // 
             // txtDH_Offset_Rot_Tilt
             // 
-            this.txtDH_Offset_Rot_Tilt.Location = new System.Drawing.Point(302, 121);
+            this.txtDH_Offset_Rot_Tilt.Location = new System.Drawing.Point(302, 132);
             this.txtDH_Offset_Rot_Tilt.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Offset_Rot_Tilt.Name = "txtDH_Offset_Rot_Tilt";
             this.txtDH_Offset_Rot_Tilt.Size = new System.Drawing.Size(42, 21);
@@ -1937,7 +2095,7 @@
             // 
             // txtDH_Offset_Rot_Pan
             // 
-            this.txtDH_Offset_Rot_Pan.Location = new System.Drawing.Point(262, 121);
+            this.txtDH_Offset_Rot_Pan.Location = new System.Drawing.Point(262, 132);
             this.txtDH_Offset_Rot_Pan.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Offset_Rot_Pan.Name = "txtDH_Offset_Rot_Pan";
             this.txtDH_Offset_Rot_Pan.Size = new System.Drawing.Size(42, 21);
@@ -1955,7 +2113,7 @@
             // 
             // txtDH_Offset_Trans_Z
             // 
-            this.txtDH_Offset_Trans_Z.Location = new System.Drawing.Point(125, 121);
+            this.txtDH_Offset_Trans_Z.Location = new System.Drawing.Point(125, 132);
             this.txtDH_Offset_Trans_Z.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Offset_Trans_Z.Name = "txtDH_Offset_Trans_Z";
             this.txtDH_Offset_Trans_Z.Size = new System.Drawing.Size(42, 21);
@@ -1964,7 +2122,7 @@
             // 
             // txtDH_Offset_Trans_Y
             // 
-            this.txtDH_Offset_Trans_Y.Location = new System.Drawing.Point(85, 121);
+            this.txtDH_Offset_Trans_Y.Location = new System.Drawing.Point(85, 132);
             this.txtDH_Offset_Trans_Y.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Offset_Trans_Y.Name = "txtDH_Offset_Trans_Y";
             this.txtDH_Offset_Trans_Y.Size = new System.Drawing.Size(42, 21);
@@ -1973,7 +2131,7 @@
             // 
             // txtDH_Offset_Trans_X
             // 
-            this.txtDH_Offset_Trans_X.Location = new System.Drawing.Point(45, 121);
+            this.txtDH_Offset_Trans_X.Location = new System.Drawing.Point(45, 132);
             this.txtDH_Offset_Trans_X.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txtDH_Offset_Trans_X.Name = "txtDH_Offset_Trans_X";
             this.txtDH_Offset_Trans_X.Size = new System.Drawing.Size(42, 21);
@@ -3661,16 +3819,66 @@
             this.label88.Text = "Robot Name";
             this.label88.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // rtxtDH_Tab_Inverse
+            // btnDH_Test_JacobFix
             // 
-            this.rtxtDH_Tab_Inverse.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.rtxtDH_Tab_Inverse.Location = new System.Drawing.Point(5, 5);
-            this.rtxtDH_Tab_Inverse.Name = "rtxtDH_Tab_Inverse";
-            this.rtxtDH_Tab_Inverse.Size = new System.Drawing.Size(370, 460);
-            this.rtxtDH_Tab_Inverse.TabIndex = 11;
-            this.rtxtDH_Tab_Inverse.Text = "";
-            this.rtxtDH_Tab_Inverse.WordWrap = false;
-            this.rtxtDH_Tab_Inverse.TextChanged += new System.EventHandler(this.rtxtDH_Tab_Inverse_TextChanged);
+            this.btnDH_Test_JacobFix.Location = new System.Drawing.Point(230, 110);
+            this.btnDH_Test_JacobFix.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnDH_Test_JacobFix.Name = "btnDH_Test_JacobFix";
+            this.btnDH_Test_JacobFix.Size = new System.Drawing.Size(131, 24);
+            this.btnDH_Test_JacobFix.TabIndex = 14;
+            this.btnDH_Test_JacobFix.Text = "Go (Fix Target)";
+            this.btnDH_Test_JacobFix.UseVisualStyleBackColor = true;
+            this.btnDH_Test_JacobFix.Click += new System.EventHandler(this.btnDH_Test_JacobFix_Click);
+            // 
+            // label113
+            // 
+            this.label113.AutoSize = true;
+            this.label113.BackColor = System.Drawing.Color.Transparent;
+            this.label113.Location = new System.Drawing.Point(8, 48);
+            this.label113.Name = "label113";
+            this.label113.Size = new System.Drawing.Size(93, 12);
+            this.label113.TabIndex = 8;
+            this.label113.Text = "Depth(-1:None)";
+            // 
+            // tabPage12
+            // 
+            this.tabPage12.Controls.Add(this.txtPrint);
+            this.tabPage12.Location = new System.Drawing.Point(4, 22);
+            this.tabPage12.Name = "tabPage12";
+            this.tabPage12.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage12.Size = new System.Drawing.Size(1141, 655);
+            this.tabPage12.TabIndex = 3;
+            this.tabPage12.Text = "Debug";
+            this.tabPage12.UseVisualStyleBackColor = true;
+            // 
+            // txtPrint
+            // 
+            this.txtPrint.Location = new System.Drawing.Point(6, 6);
+            this.txtPrint.Multiline = true;
+            this.txtPrint.Name = "txtPrint";
+            this.txtPrint.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtPrint.Size = new System.Drawing.Size(1129, 643);
+            this.txtPrint.TabIndex = 0;
+            this.txtPrint.WordWrap = false;
+            // 
+            // label114
+            // 
+            this.label114.AutoSize = true;
+            this.label114.BackColor = System.Drawing.Color.Transparent;
+            this.label114.Location = new System.Drawing.Point(311, 73);
+            this.label114.Name = "label114";
+            this.label114.Size = new System.Drawing.Size(43, 12);
+            this.label114.TabIndex = 8;
+            this.label114.Text = "Length";
+            // 
+            // txtDH_Test_ToolLength
+            // 
+            this.txtDH_Test_ToolLength.Location = new System.Drawing.Point(311, 85);
+            this.txtDH_Test_ToolLength.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtDH_Test_ToolLength.Name = "txtDH_Test_ToolLength";
+            this.txtDH_Test_ToolLength.Size = new System.Drawing.Size(50, 21);
+            this.txtDH_Test_ToolLength.TabIndex = 10;
+            this.txtDH_Test_ToolLength.Text = "0";
             // 
             // frmKinematics
             // 
@@ -3705,12 +3913,16 @@
             this.tabPage3.PerformLayout();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
+            this.tabPage11.ResumeLayout(false);
+            this.tabPage11.PerformLayout();
             this.tabPage8.ResumeLayout(false);
             this.tabPage8.PerformLayout();
             this.tabPage9.ResumeLayout(false);
             this.tabPage9.PerformLayout();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
+            this.tabPage12.ResumeLayout(false);
+            this.tabPage12.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -3772,6 +3984,7 @@
         private System.Windows.Forms.Button btnAdd_Model;
         private System.Windows.Forms.Button btnFindStlFile;
         private System.Windows.Forms.TextBox txtAdd_StlFile;
+        private System.Windows.Forms.TextBox txtAdd_Shape;
         private System.Windows.Forms.Label label31;
         private System.Windows.Forms.TextBox txtAdd_X;
         private System.Windows.Forms.TextBox txtAdd_Y;
@@ -4010,6 +4223,22 @@
         private System.Windows.Forms.TextBox txtDh_Light_Position2_A;
         private System.Windows.Forms.CheckBox chkAutoRefresh;
         private System.Windows.Forms.RichTextBox rtxtDH_Tab_Inverse;
+        private System.Windows.Forms.TabPage tabPage11;
+        private System.Windows.Forms.Button btnMakeUrdf;
+        private System.Windows.Forms.TextBox txtUrdf;
+        private System.Windows.Forms.Button btnDH_Test_Jacob;
+        private System.Windows.Forms.Label label112;
+        private System.Windows.Forms.Label label111;
+        private System.Windows.Forms.Label label110;
+        private System.Windows.Forms.TextBox txtDH_Test_RX;
+        private System.Windows.Forms.TextBox txtDH_Test_RY;
+        private System.Windows.Forms.TextBox txtDH_Test_RZ;
+        private System.Windows.Forms.Button btnDH_Test_JacobFix;
+        private System.Windows.Forms.Label label113;
+        private System.Windows.Forms.TabPage tabPage12;
+        private System.Windows.Forms.TextBox txtPrint;
+        private System.Windows.Forms.Label label114;
+        private System.Windows.Forms.TextBox txtDH_Test_ToolLength;
 
 
     }

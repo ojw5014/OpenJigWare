@@ -71,6 +71,21 @@ namespace OpenJigWare
             [return: MarshalAs(UnmanagedType.Bool)]
             static extern bool GetWindowRect(IntPtr hWnd, ref RECT lpRect);
 
+            // ----------------------------------------->
+            // 상수들
+            public const int GWL_STYLE = -16;
+            public const int WS_OVERLAPPEDWINDOW = 0x00CF0000;
+            public const int WS_CHILD = 0x40000000;
+            public const int WS_VISIBLE = 0x10000000;
+                    
+            // 추가로 필요한 선언들
+            [DllImport("user32.dll")]
+            public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+            [DllImport("user32.dll")]
+            public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+            // <----------------------------------------->
+
             [DllImport("user32.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
@@ -638,7 +653,7 @@ namespace OpenJigWare
                 ps.Dispose();
                 if (nWaitTime_ms_AfterRunning > 0) Ojw.CTimer.Wait(nWaitTime_ms_AfterRunning);
             }
-            public static Process RunProgram(IntPtr hWnd_Dest, string strProgram, string strArgument, int nRunningMode)
+            public static Process RunProgram(IntPtr hWnd_Dest, string strProgram, string strArgument, int nRunningMode, bool bHideTitlebar = true, bool bCloseCommandWindow = true)
             {
 #if true
                 bool bRedirect = false;
@@ -671,12 +686,20 @@ namespace OpenJigWare
                     // 동일한 이름을 가진 Process를 모두 kill함.
                     bool bRunning = false;
                     foreach (System.Diagnostics.Process process in processes) { if (process.ProcessName.ToLower() == strTitle.ToLower()) { if (nRunningMode == 1) process.Kill(); else bRunning = true; } }//process.CloseMainWindow(); else bRunning = true; } }
+
                     if (bRunning == true)
                     {
                         if (nRunningMode != 2)
                         {
                             ps.StartInfo.FileName = strProgram;
                             if (strArgument != null) ps.StartInfo.Arguments = strArgument;
+
+                            if (bCloseCommandWindow)
+                            {
+                                ps.StartInfo.UseShellExecute = false;
+                                ps.StartInfo.CreateNoWindow = true; // 콘솔 창 안 뜨게
+                            }
+
                             ps.Start();
                             if (hWnd_Dest != IntPtr.Zero)
                             {
@@ -693,12 +716,52 @@ namespace OpenJigWare
                                 {
                                     System.Threading.Thread.Sleep(500);
                                 }
+                                
+#if false
+                                //// 프로그램이 완전히 로드될 때까지 대기
+                                //ps.WaitForInputIdle();
+                                //System.Threading.Thread.Sleep(1000); // 추가 대기
+
+                                //// 윈도우 스타일을 차일드 윈도우로 변경
+                                //int style = GetWindowLong(ps.MainWindowHandle, GWL_STYLE);
+                                //if (style != 0) // GetWindowLong이 실패하면 0을 반환
+                                //{
+                                //    style = style & ~WS_OVERLAPPEDWINDOW; // 기존 스타일 제거
+                                //    style = style | WS_CHILD; // 차일드 스타일 추가
+                                //    SetWindowLong(ps.MainWindowHandle, GWL_STYLE, style);
+                                //}
 
                                 //IntPtr child = FindWindowEx(ps.MainWindowHandle, new IntPtr(0), null, null);
                                 //SetParent(child, hWnd_Dest);
                                 SetParent(ps.MainWindowHandle, hWnd_Dest);
                                 //SetWindowPos(hWnd_Dest, IntPtr.Zero, 0, 0, 200, 200, 0);
                                 SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, 200, 200, 0);
+#else
+                                // 상수 정의
+                                const int GWL_STYLE = -16;
+                                const long WS_CAPTION = 0x00C00000L;     // 타이틀 바
+                                const long WS_SYSMENU = 0x00080000L;     // 시스템 메뉴 (close 등)
+                                const long WS_MINIMIZEBOX = 0x00020000L; // minimize 버튼
+                                const long WS_MAXIMIZEBOX = 0x00010000L; // maximize 버튼
+                                const long WS_THICKFRAME = 0x00040000L;  // 리사이징 테두리 (옵션)
+                                // Win32 API 상수들 - 클래스 상단에 추가해야 함
+                                const uint SWP_FRAMECHANGED = 0x0020;   // 윈도우 프레임을 다시 그리기
+                                const uint SWP_SHOWWINDOW = 0x0040;     // 윈도우를 표시
+                                //const uint SWP_NOZORDER = 0x0004;       // Z-order 변경하지 않음
+                                //const uint SWP_NOACTIVATE = 0x0010;     // 윈도우를 활성화하지 않음
+                                //const uint SWP_NOMOVE = 0x0002;         // 위치 변경하지 않음
+                                //const uint SWP_NOSIZE = 0x0001;         // 크기 변경하지 않음
+
+                                // 스타일 변경: 타이틀 바 및 버튼 제거
+                                long style = GetWindowLong(hWnd_Dest, GWL_STYLE);
+                                style &= ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME); // 테두리까지 제거하려면 WS_THICKFRAME 추가
+                                SetWindowLong(ps.MainWindowHandle, (int)GWL_STYLE, (int)style);
+
+                                // 변경 적용 및 리사이즈
+                                RECT rect = new RECT();
+                                GetWindowRect(hWnd_Dest, ref rect);
+                                SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, rect.Right, rect.Bottom, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+#endif
                             }
                         }
                     }
@@ -706,6 +769,13 @@ namespace OpenJigWare
                     {
                         ps.StartInfo.FileName = strProgram;
                         if (strArgument != null) ps.StartInfo.Arguments = strArgument;
+                        
+                        if (bCloseCommandWindow)
+                        {
+                            ps.StartInfo.UseShellExecute = false;
+                            ps.StartInfo.CreateNoWindow = true; // 콘솔 창 안 뜨게
+                        }
+                        
                         ps.Start();
                         if (hWnd_Dest != IntPtr.Zero)
                         {
@@ -718,6 +788,20 @@ namespace OpenJigWare
                             {
                                 System.Threading.Thread.Sleep(500);
                             }
+#if false
+                            //// 프로그램이 완전히 로드될 때까지 대기
+                            //ps.WaitForInputIdle();
+                            //System.Threading.Thread.Sleep(1000); // 추가 대기
+                            
+                            //// 윈도우 스타일을 차일드 윈도우로 변경
+                            //int style = GetWindowLong(ps.MainWindowHandle, GWL_STYLE);
+                            //if (style != 0) // GetWindowLong이 실패하면 0을 반환
+                            //{
+                            //    style = style & ~WS_OVERLAPPEDWINDOW; // 기존 스타일 제거
+                            //    style = style | WS_CHILD; // 차일드 스타일 추가
+                            //    SetWindowLong(ps.MainWindowHandle, GWL_STYLE, style);
+                            //}
+
                             //IntPtr child = FindWindow(strProgram, null);
                             //IntPtr child = FindWindowEx(ps.MainWindowHandle, new IntPtr(0), null, null);
                             //SetParent(child, hWnd_Dest);
@@ -727,7 +811,33 @@ namespace OpenJigWare
                             //SetWindowPos(hWnd_Dest, IntPtr.Zero, 0, 0, 200, 200, 0);
                             SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, lpRect.Right - lpRect.Left, lpRect.Bottom - lpRect.Top, 0);
                             //IntPtr pParent = FindWindowEx(hWnd_Dest, new IntPtr(0), null, null);
+#else
+                            SetParent(ps.MainWindowHandle, hWnd_Dest);
+                            // 상수 정의
+                            const int GWL_STYLE = -16;
+                            const long WS_CAPTION = 0x00C00000L;     // 타이틀 바
+                            const long WS_SYSMENU = 0x00080000L;     // 시스템 메뉴 (close 등)
+                            const long WS_MINIMIZEBOX = 0x00020000L; // minimize 버튼
+                            const long WS_MAXIMIZEBOX = 0x00010000L; // maximize 버튼
+                            const long WS_THICKFRAME = 0x00040000L;  // 리사이징 테두리 (옵션)
+                            // Win32 API 상수들 - 클래스 상단에 추가해야 함
+                            const uint SWP_FRAMECHANGED = 0x0020;   // 윈도우 프레임을 다시 그리기
+                            const uint SWP_SHOWWINDOW = 0x0040;     // 윈도우를 표시
+                            //const uint SWP_NOZORDER = 0x0004;       // Z-order 변경하지 않음
+                            //const uint SWP_NOACTIVATE = 0x0010;     // 윈도우를 활성화하지 않음
+                            //const uint SWP_NOMOVE = 0x0002;         // 위치 변경하지 않음
+                            //const uint SWP_NOSIZE = 0x0001;         // 크기 변경하지 않음
 
+                            // 스타일 변경: 타이틀 바 및 버튼 제거
+                            long style = GetWindowLong(hWnd_Dest, GWL_STYLE);
+                            style &= ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME); // 테두리까지 제거하려면 WS_THICKFRAME 추가
+                            SetWindowLong(ps.MainWindowHandle, (int)GWL_STYLE, (int)style);
+
+                            // 변경 적용 및 리사이즈
+                            RECT rect = new RECT();
+                            GetWindowRect(hWnd_Dest, ref rect);
+                            SetWindowPos(ps.MainWindowHandle, IntPtr.Zero, 0, 0, rect.Right, rect.Bottom, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+#endif
                         }
                     }
 

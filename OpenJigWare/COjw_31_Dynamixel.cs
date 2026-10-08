@@ -23,7 +23,7 @@ namespace OpenJigWare
             public const int _MODEL_AX_12 = 13; //
             public const int _MODEL_AX_18 = 14; //
 
-            public readonly int _SIZE_MEMORY = 500;//1000;
+            public readonly int _SIZE_MEMORY = 600; // 500 → 600: Y/P시리즈 고주소 대응
             public readonly int _SIZE_MOTOR_MAX = 256;//254 + 1; // Bloadcasting 도 염두
 
             public readonly int _ID_BROADCASTING = 254;
@@ -998,50 +998,41 @@ namespace OpenJigWare
             }
             private void MakeStuff(ref byte[] pBuff)
             {
+                // Dynamixel Protocol 2.0 Byte Stuffing: FF FF FD → FF FF FD FD
                 int nStuff = 0;
-                int[] pnIndex = new int[pBuff.Length];
-                Array.Clear(pnIndex, 0, pnIndex.Length);
-                int nCnt = 0;
-                for (int i = 5; i < pBuff.Length; i++)
+                List<int> lstStuffIndex = new List<int>();
+                int nScanEnd = pBuff.Length - 2;
+                for (int i = 7; i < nScanEnd; i++)
                 {
                     switch (nStuff)
                     {
-                        case 0: { if (pBuff[i] == 0xff) nStuff++; } break;
-                        case 1: { if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; } break;
-                        case 2:
-                            {
-                                if (pBuff[i] == 0xfd)
-                                {
-                                    nStuff++;
-                                    pnIndex[nCnt++] = i;
-                                }
-                                else
-                                {
-                                    nStuff = 0;
-                                }
-                            }
-                            break;
+                        case 0: if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; break;
+                        case 1: if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; break;
+                        case 2: nStuff = 0; if (pBuff[i] == 0xfd) { lstStuffIndex.Add(i); } break;
                     }
                 }
-                if (nCnt > 0)
+                if (lstStuffIndex.Count > 0)
                 {
-                    byte[] pBuff2 = new byte[pBuff.Length];
-                    Array.Copy(pBuff, pBuff2, pBuff.Length);
-                    Array.Resize<byte>(ref pBuff, pBuff2.Length + nCnt);
-                    int nIndex = 0;
-                    int nPos = 0;
-                    foreach (byte byTmp in pBuff)
+                    int nCnt = lstStuffIndex.Count;
+                    byte[] pBuff2 = (byte[])pBuff.Clone();
+                    int nNewLen = pBuff2.Length + nCnt;
+                    pBuff = new byte[nNewLen];
+                    for (int i = 0; i < 5; i++) pBuff[i] = pBuff2[i];
+                    int nNewLength = nNewLen - 7;
+                    pBuff[5] = (byte)(nNewLength & 0xff);
+                    pBuff[6] = (byte)((nNewLength >> 8) & 0xff);
+                    int nStuffIdx = 0;
+                    int dst = 7;
+                    for (int src = 7; src < pBuff2.Length; src++)
                     {
-                        pBuff[nIndex + nPos] = pBuff2[nIndex];
-                        if (nIndex == pnIndex[nPos])
+                        pBuff[dst++] = pBuff2[src];
+                        if (nStuffIdx < nCnt && src == lstStuffIndex[nStuffIdx])
                         {
-                            pBuff[nIndex + nPos + 1] = 0xfd;
-                            nPos++;
+                            pBuff[dst++] = 0xfd;
+                            nStuffIdx++;
                         }
-                        nIndex++;
                     }
                 }
-                pnIndex = null;
             }
             #endregion Reboot
             private int updateCRC(byte [] data_blk_ptr, int data_blk_size)
@@ -1169,7 +1160,7 @@ namespace OpenJigWare
                     pbyteBuffer[i++] = (byte)(nCommand & 0xff);
                    
                     int nCrc = 0;
-                    for (int j = 2; i < pbyteBuffer.Length - 1; j++) nCrc += pbyteBuffer[j];
+                    for (int j = 2; j < pbyteBuffer.Length - 1; j++) nCrc += pbyteBuffer[j];
                     pbyteBuffer[i++] = (byte)(~nCrc & 0xff);
 
                     pbyteBuffer[pbyteBuffer.Length - 1] = (byte)(nCrc & 0xff);

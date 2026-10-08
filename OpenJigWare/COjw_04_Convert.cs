@@ -119,6 +119,10 @@ namespace OpenJigWare
             //private static int _MOD = 0x4000000; // 이미 위에 선언
             private static int _ROUND = 0x8000000;
             private static int _CALL  =0x10000000;
+            private static int _INV   =0x04000000;  // inv() 역기구학 함수 (0x4000000 사용 - 기존 0x200000은 _DIGIT와 충돌)
+            // 비교 연산자 함수
+            private static int _CMPLT = 0x20000000;  // <
+            private static int _CMPGT = 0x40000000;  // >
 
             private static int _COMMA2 = 0x0100000;
 
@@ -212,6 +216,14 @@ namespace OpenJigWare
                     bool bAsin2 = false;
                     bool bCall = false;
                     bool bIf = false;
+                    bool bInv = false;  // inv() 역기구학 함수
+                    // 비교 연산자 함수
+                    bool bCmpLt = false;
+                    bool bCmpGt = false;
+                    bool bCmpEq = false;
+                    bool bCmpNe = false;
+                    bool bCmpLe = false;
+                    bool bCmpGe = false;
 
                     for (int i = 0; i < strSrc.Length; i++)
                     {
@@ -313,6 +325,14 @@ namespace OpenJigWare
                                 if (strCurr.ToLower() == "asin2") bAsin2 = true;
                                 if (strCurr.ToLower() == "call") bCall = true;
                                 if (strCurr.ToLower() == "if") bIf = true;
+                                if (strCurr.ToLower() == "inv") bInv = true;  // inv() 역기구학 함수
+                                // 비교 연산자 함수
+                                if (strCurr.ToLower() == "cmplt") bCmpLt = true;
+                                if (strCurr.ToLower() == "cmpgt") bCmpGt = true;
+                                if (strCurr.ToLower() == "cmpeq") bCmpEq = true;
+                                if (strCurr.ToLower() == "cmpne") bCmpNe = true;
+                                if (strCurr.ToLower() == "cmple") bCmpLe = true;
+                                if (strCurr.ToLower() == "cmpge") bCmpGe = true;
                                 if (strCurr == ",")
                                 {
                                     if (bSqrt == true) strCurr = ",_UP1_";
@@ -323,6 +343,14 @@ namespace OpenJigWare
                                     else if (bRound == true) strCurr = ",_UP5_";
                                     else if (bCall == true) strCurr = ",_UP6_";
                                     else if (bIf == true) strCurr = ",_UP7_";
+                                    else if (bInv == true) strCurr = ",_UP9_";  // inv() 역기구학 함수
+                                    // 비교 연산자 함수
+                                    else if (bCmpLt == true) strCurr = ",_UPLT_";
+                                    else if (bCmpGt == true) strCurr = ",_UPGT_";
+                                    else if (bCmpEq == true) strCurr = ",_UPEQ_";
+                                    else if (bCmpNe == true) strCurr = ",_UPNE_";
+                                    else if (bCmpLe == true) strCurr = ",_UPLE_";
+                                    else if (bCmpGe == true) strCurr = ",_UPGE_";
                                     bSqrt = false;
                                     bPow = false;
                                     bAtan2 = false;
@@ -331,6 +359,13 @@ namespace OpenJigWare
                                     bRound = false;
                                     bCall = false;
                                     bIf = false;
+                                    bInv = false;  // inv() 플래그 리셋
+                                    bCmpLt = false;
+                                    bCmpGt = false;
+                                    bCmpEq = false;
+                                    bCmpNe = false;
+                                    bCmpLe = false;
+                                    bCmpGe = false;
                                 }
                                 pstrData2[nNum++] = strCurr;
                                 strPrev = strCurr;
@@ -425,11 +460,11 @@ namespace OpenJigWare
                 bool bComma2_1 = false;
 
                 bool bComplete = false; // _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2;
-                int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL;
+                int nComplete = _SIN | _COS | _TAN | _ASIN | _ACOS | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL | _INV;
 
                 int nEq = _EQ | _PLUS | _MINUS | _MUL | _DIV | _MOD;
                 int nBracket = _BRACKET_SMALL_START | _BRACKET_SMALL_END | _BRACKET_MIDDLE_START | _BRACKET_MIDDLE_END | _BRACKET_LARGE_START | _BRACKET_LARGE_END;
-                int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL;
+                int nFunction = _SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL | _INV;
                 if (strPrev == null) return false;
                 else if (strCurr == "\r\n") return true;
                 else if (strCurr == "\r") return true;
@@ -442,7 +477,8 @@ namespace OpenJigWare
                     bCalc_1 = (CheckCalc_Compare(nEq, strCurr) != 0) ? true : false;
                     bBracket_0 = (CheckCalc_Compare(nBracket, strPrev) != 0) ? true : false;
                     bBracket_1 = (CheckCalc_Compare(nBracket, strCurr) != 0) ? true : false;
-                    bFunction_0 = (CheckCalc_Compare(nFunction, strPrev) != 0) ? true : false;
+                    int nFuncResult = CheckCalc_Compare(nFunction, strPrev);
+                    bFunction_0 = (nFuncResult != 0) ? true : false;
                     bFunction_1 = (CheckCalc_Compare(nFunction, strCurr) != 0) ? true : false;
                     bDigit_0 = CheckCalc_Digit(strPrev);
                     bDigit_1 = CheckCalc_Digit(strCurr);
@@ -562,7 +598,8 @@ namespace OpenJigWare
                 if ((nCompare & _POW) != 0) { if (strData == "pow") nRet |= _POW; } // 0x0b [____ ____] [___1 1111] [111_ ____]
                 if ((nCompare & _ABS) != 0) { if (strData == "abs") nRet |= _ABS; }
                 if ((nCompare & _CALL) != 0) { if (strData == "call") nRet |= _CALL; }
-                
+                if ((nCompare & _INV) != 0) { if (strData == "inv") nRet |= _INV; }
+
 
                 //if ((strData == "sin") || (strData == "cos") || (strData == "tan") || (strData == "asin") || (strData == "acos") || (strData == "atan") || (strData == "sqrt") || (strData == "pow") || (strData == "abs")) bFunction = true;
 
@@ -579,7 +616,7 @@ namespace OpenJigWare
                 if ((nCompare & _ALPHA) != 0) { if (CheckCalc_Alpha(strData) == true) nRet |= _ALPHA; } // Alpha('_' 포함)
                 // 0x0b [__11 ____] [____ ____] [____ ____]
 
-                if ((nRet & (_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL)) != 0)
+                if ((nRet & (_SIN | _COS | _TAN | _ASIN | _ACOS | _ATAN | _SQRT | _POW | _ABS | _ATAN2 | _ACOS2 | _ASIN2 | _ROUND | _CALL | _INV)) != 0)
                     nRet &= ((0x7fffffff ^ (_DIGIT | _ALPHA)) & 0x7fffffff);
 
                 if ((nCompare & _COMMA2) != 0) { if (strData == ";") nRet |= _COMMA2; } // 0x0b [___1] [____ ____] [____ ____] [____ ____]

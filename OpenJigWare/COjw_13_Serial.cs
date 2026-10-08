@@ -166,6 +166,14 @@ namespace OpenJigWare
             // StopBit - 0 : None, 1 : One, 2 : Two, 3 : OnePointFive
             public bool Connect(int nPort, int nBaudRate)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
+                // 이전 SerialPort 객체 정리 (포트 핸들 누수 방지)
+                if (m_SerialPort != null)
+                {
+                    try { if (m_SerialPort.IsOpen) m_SerialPort.Close(); } catch { }
+                    try { m_SerialPort.Dispose(); } catch { }
+                    m_SerialPort = null;
+                    Thread.Sleep(50); // 포트 핸들 해제 대기
+                }
                 m_SerialPort = new SerialPort();
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
@@ -181,7 +189,10 @@ namespace OpenJigWare
 
                     if (IsConnect() == true)
                     {
-                        m_nPort = nPort;   
+                        m_nPort = nPort;
+                        // 이전 세션의 잔여 데이터 제거
+                        m_SerialPort.DiscardInBuffer();
+                        m_SerialPort.DiscardOutBuffer();
                     }
                 }
                 catch(Exception ex)
@@ -195,6 +206,14 @@ namespace OpenJigWare
             public void SetRts(bool bEn) { m_SerialPort.RtsEnable = bEn; }
             public bool Connect(int nPort, int nBaudRate, bool bDtrEnable)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
+                // 이전 SerialPort 객체 정리
+                if (m_SerialPort != null)
+                {
+                    try { if (m_SerialPort.IsOpen) m_SerialPort.Close(); } catch { }
+                    try { m_SerialPort.Dispose(); } catch { }
+                    m_SerialPort = null;
+                    Thread.Sleep(50);
+                }
                 m_SerialPort = new SerialPort();
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
@@ -212,7 +231,9 @@ namespace OpenJigWare
 
                     if (IsConnect() == true)
                     {
-
+                        // 이전 세션의 잔여 데이터 제거
+                        m_SerialPort.DiscardInBuffer();
+                        m_SerialPort.DiscardOutBuffer();
                     }
                 }
                 catch (Exception ex)
@@ -224,6 +245,14 @@ namespace OpenJigWare
             }
             public bool Connect(int nPort, int nBaudRate, bool bDtrEnable, Parity prt)//(int nPort, int nBaudRate, int nParity, int nDataBits, int nStopBits)
             {
+                // 이전 SerialPort 객체 정리
+                if (m_SerialPort != null)
+                {
+                    try { if (m_SerialPort.IsOpen) m_SerialPort.Close(); } catch { }
+                    try { m_SerialPort.Dispose(); } catch { }
+                    m_SerialPort = null;
+                    Thread.Sleep(50);
+                }
                 m_SerialPort = new SerialPort();
                 m_SerialPort.PortName = "COM" + nPort.ToString();
                 m_SerialPort.BaudRate = nBaudRate;
@@ -240,7 +269,9 @@ namespace OpenJigWare
 
                     if (IsConnect() == true)
                     {
-
+                        // 이전 세션의 잔여 데이터 제거
+                        m_SerialPort.DiscardInBuffer();
+                        m_SerialPort.DiscardOutBuffer();
                     }
                 }
                 catch (Exception ex)
@@ -270,16 +301,17 @@ namespace OpenJigWare
             {
                 try
                 {
-                    if (IsConnect() == true)
+                    if (m_SerialPort != null)
                     {
-                        m_SerialPort.Close();
+                        if (m_SerialPort.IsOpen) m_SerialPort.Close();
                         m_SerialPort.Dispose();
                         m_SerialPort = null;
+                        Thread.Sleep(50); // .NET SerialPort 포트 핸들 해제 대기
                     }
                 }
                 catch (Exception ex)
                 {
-                    m_SerialPort.Dispose();
+                    try { m_SerialPort.Dispose(); } catch { }
                     m_SerialPort = null;
                 }
             }
@@ -287,10 +319,10 @@ namespace OpenJigWare
 
             #region Read
             public byte GetByte() { return (byte)((IsConnect() == true) ? m_SerialPort.ReadByte() : 0); }
-            public byte[] GetBytes()
+            public byte[] GetBytes(int nLength = 0)
             {
                 if (IsConnect() == false) return null;
-                int nCount = m_SerialPort.BytesToRead;
+                int nCount = (nLength >= 0) ? m_SerialPort.BytesToRead : nLength;
                 byte[] abyteBuffer = new byte[nCount];
                 m_SerialPort.Read(abyteBuffer, 0, nCount);
                 return abyteBuffer;

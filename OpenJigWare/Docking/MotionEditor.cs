@@ -1187,7 +1187,7 @@ namespace OpenJigWare.Docking
                     Grid_DisplayTime();
                     if ((nCell >= 0) && (dgAngle.RowCount > nCell))
                     {
-                        mpPlayer.Ctlcontrols.currentPosition = (double)m_lCalcTime[nCell] / 1000.0;
+                        Mp_SetPosition((double)m_lCalcTime[nCell] / 1000.0);
                     }
                     m_nMotion_Step = nCell;
                 }
@@ -1403,7 +1403,7 @@ namespace OpenJigWare.Docking
                     if ((nCell >= 0) && (dgAngle.RowCount > nCell))
                     {
                         //prgMp3.Value = (int)(mpPlayer.Ctlcontrols.currentPosition / dTime * 100);
-                        mpPlayer.Ctlcontrols.currentPosition = (double)m_lCalcTime[nCell] / 1000.0;
+                        Mp_SetPosition((double)m_lCalcTime[nCell] / 1000.0);
                     }
                     m_nMotion_Step = nCell;
                 }
@@ -2252,7 +2252,7 @@ namespace OpenJigWare.Docking
             {
                 //prgMp3.Value = (int)(mpPlayer.Ctlcontrols.currentPosition / dTime * 100);
                 //#if _ENABLE_MEDIAPLAYER
-                mpPlayer.Ctlcontrols.currentPosition = (double)m_lCalcTime[nCell] / 1000.0;
+                Mp_SetPosition((double)m_lCalcTime[nCell] / 1000.0);
                 //#endif
             }
         }
@@ -2261,7 +2261,7 @@ namespace OpenJigWare.Docking
             // 일단 그리드의 타임값 등을 디스플레이 한다.
             Grid_DisplayTime();
             int nCol = 1;
-            int nPos = (int)Math.Round(mpPlayer.Ctlcontrols.currentPosition * 1000.0f);
+            int nPos = (int)Math.Round(Mp_GetPosition() * 1000.0f);
             int nIndex0 = -1, nIndex1 = -2, nIndex_Default = 0;
             for (int i = 0; i < dgAngle.RowCount; i++)
             {
@@ -2921,6 +2921,41 @@ namespace OpenJigWare.Docking
         }
 
         #region Mp3
+
+        // ==========================================================
+        // WPF MediaElement Helpers (AxWMPLib 대체)
+        //   MediaElement API 를 WMP 스타일로 감싸 기존 호출부를 최소 변경으로 사용
+        // ==========================================================
+        private bool m_bMpIsPlaying = false;
+        private void Mp_SetUrl(string path)
+        {
+            if (string.IsNullOrEmpty(path)) mpPlayer.Source = null;
+            else mpPlayer.Source = new Uri(path, UriKind.RelativeOrAbsolute);
+        }
+        private void Mp_Play() { mpPlayer.Play(); m_bMpIsPlaying = true; }
+        private void Mp_Stop() { mpPlayer.Stop(); m_bMpIsPlaying = false; }
+        private double Mp_GetPosition() { return mpPlayer.Position.TotalSeconds; }
+        private void Mp_SetPosition(double seconds)
+        {
+            if (seconds < 0) seconds = 0;
+            mpPlayer.Position = TimeSpan.FromSeconds(seconds);
+        }
+        private void Mp_SetVolume(int vol0to100)
+        {
+            if (vol0to100 < 0) vol0to100 = 0;
+            if (vol0to100 > 100) vol0to100 = 100;
+            mpPlayer.Volume = vol0to100 / 100.0;
+        }
+        private void Mp_SetVisible(bool visible) { mpHost.Visible = visible; }
+        private bool Mp_HasDuration() { return mpPlayer.NaturalDuration.HasTimeSpan; }
+        private double Mp_GetDuration()
+        {
+            return mpPlayer.NaturalDuration.HasTimeSpan
+                ? mpPlayer.NaturalDuration.TimeSpan.TotalSeconds : 0.0;
+        }
+        private bool Mp_IsPlaying() { return m_bMpIsPlaying; }
+        private string Mp_GetStatus() { return m_bMpIsPlaying ? "Playing" : "Stopped"; }
+
         public bool m_bScreen = true;
         private void btnMp3Open_Click(object sender, EventArgs e)
         {
@@ -2954,26 +2989,22 @@ namespace OpenJigWare.Docking
                 else m_bScreen = false;
                 InitMp3();
 
-                mpPlayer.URL = fileName;
-                mpPlayer.settings.volume = 0;
-                mpPlayer.Ctlcontrols.play();
+                Mp_SetUrl(fileName);
+                Mp_SetVolume(0);
+                Mp_Play();
                 Ojw.CTimer CTmr = new Ojw.CTimer();
                 CTmr.Set();
                 //while (m_dMp3_Max <= 0)
                 while (true)
                 {
-                    if (mpPlayer.Ctlcontrols.currentItem != null)
-                    {
-                        if (mpPlayer.Ctlcontrols.currentItem.duration > 0)
-                            break;
-                    }
+                    if (Mp_HasDuration() && Mp_GetDuration() > 0) break;
                     //OjwTmrMp3();
                     if (CTmr.Get() > 5000) break;
                     //COjwTimer.WaitTimer(50);
                     Application.DoEvents();
                 }
-                mpPlayer.Ctlcontrols.stop();
-                mpPlayer.settings.volume = 100;
+                Mp_Stop();
+                Mp_SetVolume(100);
                 chkMp3.Checked = true;
 
                 m_strWorkDirectory_Mp3 = Ojw.CFile.GetPath(fileName);
@@ -3008,7 +3039,7 @@ namespace OpenJigWare.Docking
             int nTime;
 
             // 현 위치의 시간을 얻는다.
-            dTime = mpPlayer.Ctlcontrols.currentPosition;
+            dTime = Mp_GetPosition();
             if (dTime < 0)
                 dTime = 0.0;
             nTime = (int)dTime;
@@ -3032,7 +3063,7 @@ namespace OpenJigWare.Docking
                 //m_pntMain = this.Location;
                 prbStatus.Visible = true;
 
-                mpPlayer.Visible = true;
+                Mp_SetVisible(true);
                 // 동영상의 경우 Visible == true 이므로 이 경우에만 동영상 화면크기의 셋업을 실행하도록 한다.
                 if (m_bScreen == true)
                 {
@@ -3041,7 +3072,7 @@ namespace OpenJigWare.Docking
 
                 //SetPlayState(1);
 
-                mpPlayer.Ctlcontrols.play();
+                Mp_Play();
                 m_bOneShotMp3Command = true;
 
                 m_bMp3Play = true;
@@ -3054,7 +3085,7 @@ namespace OpenJigWare.Docking
             {
                 Ojw.CMessage.Write("[Message]" + error.ToString() + "\r\n");
                 m_bMp3Play = false;
-                mpPlayer.Visible = false;
+                Mp_SetVisible(false);
                 //SetPlayState(0);
             }
         }
@@ -3062,8 +3093,8 @@ namespace OpenJigWare.Docking
         {
             try
             {
-                mpPlayer.Ctlcontrols.stop();
-                mpPlayer.Ctlcontrols.currentPosition = 0;
+                Mp_Stop();
+                Mp_SetPosition(0);
                 m_bOneShotMp3Command = false;
                 Ojw.CMessage.Write("[Message] Stoped Music...\r\n");
             }
@@ -3081,7 +3112,7 @@ namespace OpenJigWare.Docking
 
             // Play 상태 없앰
             m_bMp3Play = false;
-            mpPlayer.Visible = false;
+            Mp_SetVisible(false);
 
             prbStatus.Visible = false;
 
@@ -3101,7 +3132,7 @@ namespace OpenJigWare.Docking
                 if ((strExe.ToUpper() != "MP3") && (strExe.ToUpper() != "WAV")) m_bScreen = true;
                 else m_bScreen = false;
                 InitMp3();
-                mpPlayer.URL = strFileName;
+                Mp_SetUrl(strFileName);
                 // 파일 데이터 저장
                 //TextConfigFileSave(m_strOrgDirectory + "\\ip.ini");
             }
@@ -3116,7 +3147,7 @@ namespace OpenJigWare.Docking
             double dTime = 0;
             int nTime;
 
-            if (mpPlayer.Ctlcontrols.currentItem != null) dTime = mpPlayer.Ctlcontrols.currentItem.duration;
+            if (Mp_HasDuration()) dTime = Mp_GetDuration();
 
 
             if ((int)dTime < 0)
@@ -3130,7 +3161,7 @@ namespace OpenJigWare.Docking
             {
                 prgMp3.Minimum = 0;
                 prgMp3.Maximum = 100;// (int)m_dMp3_Max;
-                prgMp3.Value = (int)(mpPlayer.Ctlcontrols.currentPosition / dTime * 100);//(int)(mpPlayer.Ctlcontrols.currentPosition * 1000);
+                prgMp3.Value = (int)(Mp_GetPosition() / dTime * 100);//(int)(mpPlayer.Ctlcontrols.currentPosition * 1000);
             }
         }
 
@@ -3160,7 +3191,7 @@ namespace OpenJigWare.Docking
                 //prbStatus.Value = ((nTimerValue < prbStatus.Maximum) ? nTimerValue : prbStatus.Maximum);
             }
 
-            if ((mpPlayer.playState == WMPLib.WMPPlayState.wmppsPlaying) && (m_bOneShotMp3Command == true))
+            if ((Mp_IsPlaying()) && (m_bOneShotMp3Command == true))
             {
                 if (chkFullSize.Checked == true)
                 {
@@ -3210,7 +3241,8 @@ namespace OpenJigWare.Docking
 
                     //mpPlayer.playerApplication.switchToPlayerApplication();
 
-                    mpPlayer.fullScreen = true;
+                    // mpPlayer.fullScreen = true; // WPF MediaElement은 fullScreen 속성 미지원 — frmPlayerForm 으로 처리됨
+
                     this.Location = m_pntMain;
                     this.Visible = true;
                     m_bOneShotMp3Command = false;
@@ -3227,7 +3259,7 @@ namespace OpenJigWare.Docking
 
         private void CheckPlayState()
         {
-            lbPlayState.Text = mpPlayer.status;
+            lbPlayState.Text = Mp_GetStatus();
         }
         #endregion Mp3
 
@@ -3239,7 +3271,7 @@ namespace OpenJigWare.Docking
             {
                 m_bMouseDown = true;
                 double dPos = (double)e.X / (double)prgMp3.Width * (double)m_dMp3_Max;//100;
-                mpPlayer.Ctlcontrols.currentPosition = (double)(dPos / 1000.0);
+                Mp_SetPosition((double)(dPos / 1000.0));
             }
         }
 
@@ -3248,7 +3280,7 @@ namespace OpenJigWare.Docking
             if (m_bMouseDown == true)
             {
                 double dPos = (double)e.X / (double)prgMp3.Width * (double)m_dMp3_Max;//100;
-                mpPlayer.Ctlcontrols.currentPosition = (double)(dPos / 1000.0);
+                Mp_SetPosition((double)(dPos / 1000.0));
             }
         }
 
@@ -3997,24 +4029,20 @@ namespace OpenJigWare.Docking
                         else m_bScreen = false;
                         InitMp3();
 
-                        mpPlayer.URL = strItem;
-                        mpPlayer.settings.volume = 0;
-                        mpPlayer.Ctlcontrols.play();
+                        Mp_SetUrl(strItem);
+                        Mp_SetVolume(0);
+                        Mp_Play();
                         Ojw.CTimer CTmr = new Ojw.CTimer();
                         CTmr.Set();
                         //while (m_dMp3_Max <= 0)
                         while (true)
                         {
-                            if (mpPlayer.Ctlcontrols.currentItem != null)
-                            {
-                                if (mpPlayer.Ctlcontrols.currentItem.duration > 0)
-                                    break;
-                            }
+                            if (Mp_HasDuration() && Mp_GetDuration() > 0) break;
                             if (CTmr.Get() > 5000) break;
                             Application.DoEvents();
                         }
-                        mpPlayer.Ctlcontrols.stop();
-                        mpPlayer.settings.volume = 100;
+                        Mp_Stop();
+                        Mp_SetVolume(100);
                         chkMp3.Checked = true;
 
                         m_strWorkDirectory_Mp3 = Ojw.CFile.GetPath(strItem);
@@ -5321,10 +5349,10 @@ namespace OpenJigWare.Docking
                     m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(lblPath.Text);
                     String strExe = Ojw.CFile.GetExe(fileName);
 
-                    if ((strExe.ToUpper() != "MP3") && (strExe.ToUpper() != "WAV")) mpPlayer.Visible = true;
-                    else mpPlayer.Visible = false;
+                    if ((strExe.ToUpper() != "MP3") && (strExe.ToUpper() != "WAV")) Mp_SetVisible(true);
+                    else Mp_SetVisible(false);
                     InitMp3();
-                    mpPlayer.URL = fileName;
+                    Mp_SetUrl(fileName);
 
                     // 파일 데이터 저장
                     //TextConfigFileSave(m_strOrgDirectory + "\\ip.ini");

@@ -1105,6 +1105,9 @@ namespace OpenJigWare.Docking
 #endif
         }
 
+        private const int _V_10 = 0;
+        private const int _V_11 = 1;
+        private const int _V_12 = 2;
         private void btnTextSave_Click(object sender, EventArgs e)
         {
             //if (chkRmt.Checked == true)
@@ -1119,11 +1122,34 @@ namespace OpenJigWare.Docking
             //    m_C3d.BinaryFileSave(chkSaveAngle.Checked, _V_10, GetMotionFileName(txtFileName.Text), false);
 
             //m_C3d.BinaryFileSave(chkSaveAngle.Checked, _V_10, GetMotionFileName(txtFileName.Text), false);
+            //m_C3d.ArduinoFileSave(GetMotionFileName(txtFileName.Text));
+            m_C3d.BinaryFileSave(false, _V_12, GetMotionFileName(txtFileName.Text), false);
+
 
             //m_strWorkDirectory_Dmt = Ojw.CFile.GetPath(txtFileName.Text);
             //m_CTmr_Save.Set();  
         }
+        private String GetMotionFileName(String strFilePath)
+        {
+            String _STR_EXT = "ojwm";
+            String fileName = "";
+            SaveFileDialog sdDialog = new SaveFileDialog();
+            /////////////////////////////////////////
+            // 파일 저장시 확장자가 ".ojwm" 아니라면 새로 저장하도록...
+            String strExe = Ojw.CFile.GetExe(strFilePath);
+            if ((strExe == null) || (Ojw.CFile.GetExe(strFilePath).ToLower() != _STR_EXT.ToLower()))
+            {
+                sdDialog.FileName = null;
+                sdDialog.DefaultExt = _STR_EXT.ToLower();
+                if (sdDialog.ShowDialog() == DialogResult.OK)
+                    fileName = sdDialog.FileName;
+            }
+            else fileName = strFilePath;
+            /////////////////////////////////////////
+            sdDialog.Dispose();
 
+            return fileName;
+        }
         private void btnBinarySave_Click(object sender, EventArgs e)
         {
             //if (chkRmt.Checked == true)

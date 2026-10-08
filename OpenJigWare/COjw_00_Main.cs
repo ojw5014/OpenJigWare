@@ -720,8 +720,30 @@ namespace OpenJigWare
         private List<int> lstIDs = new List<int>();
         private List<int> lstFunctions = new List<int>();
         //private List<int> lstFunctions_AfterCalc = new List<int>();
-        public int[] GetMotors() { return lstIDs.ToArray(); }
-        public int GetMotors_Count() { return lstIDs.Count; }
+
+        // 더미축 ID. 변수 구조체가 0~255 범위라 255 를 더미축 전용으로 예약.
+        // 실제 모터 ID 는 0~254. (axis 필드의 255 = 더미축, nFunctionNumber 의 255 와는 별개)
+        public const int _AXIS_DUMMY = 255;
+
+        // GetMotors / GetMotors_Count : 실제 모터만 (더미축 255 제외) — 일반 사용자/표시용
+        public int[] GetMotors()
+        {
+            List<int> lst = new List<int>();
+            for (int i = 0; i < lstIDs.Count; i++)
+                if (lstIDs[i] != _AXIS_DUMMY) lst.Add(lstIDs[i]);
+            return lst.ToArray();
+        }
+        public int GetMotors_Count()
+        {
+            int n = 0;
+            for (int i = 0; i < lstIDs.Count; i++)
+                if (lstIDs[i] != _AXIS_DUMMY) n++;
+            return n;
+        }
+        // GetMotors_With_Dummy / _Count_With_Dummy : 더미축 255 포함 — IK 내부 계산용
+        // (IK 의 "마지막 모터 제외" 가 더미축을 제외하도록 placeholder 역할)
+        public int[] GetMotors_With_Dummy() { return lstIDs.ToArray(); }
+        public int GetMotors_Count_With_Dummy() { return lstIDs.Count; }
         public int[] GetFunctions() { return lstFunctions.ToArray(); }
         public int GetFunctions_Count() { return lstFunctions.Count; }
         //public int[] GetFunctions_AfterCalc() { return lstFunctions_AfterCalc.ToArray(); }
@@ -1000,6 +1022,7 @@ namespace OpenJigWare
             //private int m_nSize_Disp_H = 0;
             //private float m_fScale = 0.0f;
             private Docking.frmModel m_frmTools;
+            public Form frmTool_Designer = null;
             public void ShowTools_Modeling(float fScale)
             {
                 if (fScale == 0)
@@ -1013,7 +1036,7 @@ namespace OpenJigWare
                 // 지정 폴더말고도 일반 폴더도 인식하게...(복사)
                 m_C3d_Designer = new C3d();
                 #region Main Form
-                Form frmTool_Designer = new Form();
+                frmTool_Designer = new Form();
                 frmTool_Designer.Size = new Size(_SIZE_W, _SIZE_H);
                 frmTool_Designer.Text = string.Format("OpenJigWare - Version[{0}]", Ojw.GetVersion());
                 frmTool_Designer.FormClosing += new FormClosingEventHandler(frmTool_Designer_FormClosing);

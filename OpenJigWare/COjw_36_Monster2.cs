@@ -2796,43 +2796,41 @@ namespace OpenJigWare
             }
             private void MakeStuff(ref byte[] pBuff)
             {
+                // Dynamixel Protocol 2.0 Byte Stuffing: FF FF FD → FF FF FD FD
                 int nStuff = 0;
-                int[] pnIndex = new int[pBuff.Length];
-                Array.Clear(pnIndex, 0, pnIndex.Length);
-                int nCnt = 0;
-                // (0)0xff, (1)0xff, (2)0xfd, (3)0x00,     
-                // (4)ID != 0xff 이니 검사할 필요 없다.
-                for (int i = 5; i < pBuff.Length; i++)
+                List<int> lstStuffIndex = new List<int>();
+                int nScanEnd = pBuff.Length - 2;
+                for (int i = 7; i < nScanEnd; i++)
                 {
                     switch (nStuff)
                     {
-                        case 0: { if (pBuff[i] == 0xff) nStuff++; } break;
-                        case 1: { if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; } break;
-                        case 2: { nStuff = 0; if (pBuff[i] == 0xfd) { pnIndex[nCnt++] = i; } } break;
+                        case 0: if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; break;
+                        case 1: if (pBuff[i] == 0xff) nStuff++; else nStuff = 0; break;
+                        case 2: nStuff = 0; if (pBuff[i] == 0xfd) { lstStuffIndex.Add(i); } break;
                     }
                 }
-                if (nCnt > 0)
+                if (lstStuffIndex.Count > 0)
                 {
+                    int nCnt = lstStuffIndex.Count;
                     byte[] pBuff2 = (byte[])pBuff.Clone();
-                    Array.Resize<byte>(ref pBuff, pBuff2.Length + nCnt);
-                    int nIndex = 0;
-                    int nPos = 0;
-                    int i = 5;
-                    // 내부의 패킷길이값 재 설정 
-                    pBuff[i++] = (byte)((pBuff.Length - 7) & 0xff);
-                    pBuff[i++] = (byte)(((pBuff.Length - 7) >> 8) & 0xff);
-                    for (i = 7; i < pBuff.Length; i++)
+                    int nNewLen = pBuff2.Length + nCnt;
+                    pBuff = new byte[nNewLen];
+                    for (int i = 0; i < 5; i++) pBuff[i] = pBuff2[i];
+                    int nNewLength = nNewLen - 7;
+                    pBuff[5] = (byte)(nNewLength & 0xff);
+                    pBuff[6] = (byte)((nNewLength >> 8) & 0xff);
+                    int nStuffIdx = 0;
+                    int dst = 7;
+                    for (int src = 7; src < pBuff2.Length; src++)
                     {
-                        pBuff[i + nPos] = pBuff2[i];
-                        if (i == pnIndex[nPos])
+                        pBuff[dst++] = pBuff2[src];
+                        if (nStuffIdx < nCnt && src == lstStuffIndex[nStuffIdx])
                         {
-                            pBuff[nIndex + nPos + 1] = 0xfd;
-                            nPos++;
+                            pBuff[dst++] = 0xfd;
+                            nStuffIdx++;
                         }
                     }
-                    pBuff2 = null;
                 }
-                pnIndex = null;
             }
             public void SendPacket(int nIndex_Connection, byte[] buffer, int nLength)
             {
@@ -3003,6 +3001,7 @@ namespace OpenJigWare
                 }
 
                 // 실제 수식계산
+                Ojw.CKinematics.CInverse.SetCodeArray(m_CHeader.pSOjwCode);
                 Ojw.CKinematics.CInverse.CalcCode(ref m_CHeader.pSOjwCode[nNum]);
 
 

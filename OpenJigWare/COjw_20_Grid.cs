@@ -3213,6 +3213,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(OjwC3d.m_CHeader.pSOjwCode, OjwC3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3241,6 +3242,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(OjwC3d.m_CHeader.pSOjwCode, OjwC3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3269,6 +3271,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(OjwC3d.m_CHeader.pSOjwCode, OjwC3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3299,6 +3302,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(OjwC3d.m_CHeader.pSOjwCode, OjwC3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3329,6 +3333,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(OjwC3d.m_CHeader.pSOjwCode, OjwC3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = OjwC3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3357,6 +3362,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(m_C3d.m_CHeader.pSOjwCode, m_C3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3385,6 +3391,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(m_C3d.m_CHeader.pSOjwCode, m_C3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3413,6 +3420,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(m_C3d.m_CHeader.pSOjwCode, m_C3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3443,6 +3451,7 @@ namespace OpenJigWare
                 Ojw.CKinematics.CInverse.SetValue_Z(fPos_Z);
                 Ojw.CKinematics.CInverse.SetValue_Motor(afMot); // 모터 현재값 넣어주기
 
+                Ojw.CKinematics.CInverse.SetCodeArray(m_C3d.m_CHeader.pSOjwCode, m_C3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;
                 for (int i = 0; i < nMotCnt; i++)
@@ -3492,6 +3501,7 @@ namespace OpenJigWare
                 //                 pnV[i++] = (fY < 0) ? 0 : 1;    // Swing 선택변수(0-정, 1-역) => Default 1
                 //                 pnV[i++] = 1;                   // 하박(무릎) 선택변수 - 해는 3개(v4=0, 1,2(1과 2는 같은 평면), 3) => 실험결과 0 이 정상, 1이 Overflow
 
+                Ojw.CKinematics.CInverse.SetCodeArray(m_C3d.m_CHeader.pSOjwCode, m_C3d);
                 Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber]);
                 //OjwMessage(Ojw.CKinematics.CInverse.GetValue_V(0).ToString() + ", " + Ojw.CKinematics.CInverse.GetValue_V(1).ToString() + ", " + Ojw.CKinematics.CInverse.GetValue_V(2).ToString());
                 int nMotCnt = m_C3d.m_CHeader.pSOjwCode[nInverseKinematicsNumber].nMotor_Max;

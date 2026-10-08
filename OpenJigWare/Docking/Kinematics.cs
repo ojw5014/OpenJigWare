@@ -6,6 +6,12 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Xml;
+using System.IO;
+using System.Diagnostics;
+using System.Xml.Linq;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OpenJigWare.Docking
 {
@@ -21,6 +27,7 @@ namespace OpenJigWare.Docking
         private List<string> m_lstMotor_Value_for_dic = new List<string>();
         private void frmKinematics_Load(object sender, EventArgs e)
         {
+            Ojw.printf_Init(txtPrint);
             txtDHColor.Text = Ojw.CConvert.IntToStr(Color.Red.ToArgb());
             cmbDh.Items.Clear();
             for (int j = 0; j < 512; j++)
@@ -93,7 +100,31 @@ namespace OpenJigWare.Docking
         {
             if (m_nDhMouseEvent_Down > 0)
             {
+                // 마우스 클릭+스크롤 편집 중에는 텍스트박스 자체 스크롤 방지
+                HandledMouseEventArgs he = e as HandledMouseEventArgs;
+                if (he != null)
+                    he.Handled = true;
+
                 int charIndex = txtDh.GetCharIndexFromPosition(txtDh.PointToClient(Cursor.Position));
+
+                // @ 라인의 앞쪽 필드(model, color, alpha, type, num)는 수정 불가
+                int lineIndex = txtDh.GetLineFromCharIndex(charIndex);
+                if (lineIndex < txtDh.Lines.Length)
+                {
+                    string currentLine = txtDh.Lines[lineIndex];
+                    if (currentLine.TrimStart().StartsWith("@"))
+                    {
+                        int lineStart = txtDh.GetFirstCharIndexFromLine(lineIndex);
+                        int cursorOffsetInLine = charIndex - lineStart;
+                        int commaCount = 0;
+                        for (int ci = 0; ci < cursorOffsetInLine && ci < currentLine.Length; ci++)
+                        {
+                            if (currentLine[ci] == ',') commaCount++;
+                        }
+                        if (commaCount < 5) return; // @model, color, alpha, type, num 은 스크롤 편집 제외
+                    }
+                }
+
                 int start = charIndex + 1;
                 int end = charIndex;
                 while (start > 0 && ((txtDh.Text[start - 1] != ',') && (txtDh.Text[start - 1] != '\n') && (txtDh.Text[start - 1] != '['))) start--;
@@ -104,7 +135,7 @@ namespace OpenJigWare.Docking
                 {
                     if ((txtDh.Text[end + 1] == '\n') || (txtDh.Text[end + 1] == '\r') || (txtDh.Text[start - 1] == '/'))
                     {
-                        return; // 마지막 행은 수정할 필요 없다. 
+                        return; // 마지막 행은 수정할 필요 없다.
                     }
                     end++;
                 }
@@ -465,6 +496,24 @@ namespace OpenJigWare.Docking
         {
             m_C3d.CheckForward();
             m_C3d.CheckInverse();
+
+            //txtDH_Tab_Result.Text = 
+
+            //for (int i = 0; i < 256; i++) m_C3d.SetData(i, 0);
+            string[] pstrRes = Ojw.CKinematics.CForward.Make_XYZString_By_Forward(txtDH_Tab_Forward.Text);
+            String strTmp = "===========\r\n\r\n<<수식의 결과>>\r\n  [C(각도)-Cos(각도), S(각도)-Sin(각도), t[번호]-모터[번호]의 각도\r\n  각도는 0~360의 Degree입니다.\r\n\r\n";
+            for (int i = 0; i < pstrRes.Length; i++)
+            {
+                if (i == 0) strTmp += "X=";
+                else if (i == 1) strTmp += "Y=";
+                else if (i == 2) strTmp += "Z=";
+                else if (i == 3) strTmp += "X축이 가리키는 방향벡터=";
+                else if (i == 4) strTmp += "Y축이 가리키는 방향벡터=";
+                else if (i == 5) strTmp += "Z축이 가리키는 방향벡터=";
+                strTmp += pstrRes[i] + "\r\n";
+
+            }
+            txtDH_Tab_Result.Text = strTmp;
         }
 
         private void txtDH_Tab_Forward_TextChanged(object sender, EventArgs e)
@@ -780,14 +829,18 @@ namespace OpenJigWare.Docking
             double[] dcolY;
             double[] dcolZ;
 
-            double[] adMot = new double[256];
-            Array.Clear(adMot, 0, adMot.Length);
-            for (i = 0; i < m_C3d.GetHeader_nMotorCnt(); i++) adMot[i] = (double)m_C3d.GetData(i);
+            //double[] adMot = new double[256];
+            //Array.Clear(adMot, 0, adMot.Length);
+
+            // float [] -> double []
+            double[] adMot = Array.ConvertAll(m_C3d.GetData(), d => (double)d);
+
+            //for (i = 0; i < m_C3d.GetHeader_nMotorCnt(); i++) adMot[i] = (double)m_C3d.GetData(i);
             Ojw.CKinematics.CForward.CalcKinematics(m_C3d.m_CHeader.pDhParamAll[nNum], adMot, out dcolX, out dcolY, out dcolZ, out dX, out dY, out dZ);
 
-            txtDH_Test_X.Text = Ojw.CConvert.DoubleToStr(dX);
-            txtDH_Test_Y.Text = Ojw.CConvert.DoubleToStr(dY);
-            txtDH_Test_Z.Text = Ojw.CConvert.DoubleToStr(dZ);
+            txtDH_Test_X.Text = Ojw.CConvert.DoubleToStr(Math.Round(dX, 3));
+            txtDH_Test_Y.Text = Ojw.CConvert.DoubleToStr(Math.Round(dY, 3));
+            txtDH_Test_Z.Text = Ojw.CConvert.DoubleToStr(Math.Round(dZ, 3));
 
             // 테스트 시작
             m_C3d.SetTestCircle(chkDH_Test_Show.Checked);
@@ -804,6 +857,13 @@ namespace OpenJigWare.Docking
 
         private void btnDH_Test_Go_Inverse_Click(object sender, EventArgs e)
         {
+            //// FABRIK으로 전환
+            //m_C3d.CalcInv_SetIKAlgorithm(1);
+
+            //// CCD로 복원
+            //m_C3d.CalcInv_SetIKAlgorithm(0);
+
+            
             int nNum = Ojw.CConvert.StrToInt(cmbDH_Test_Index.Text);
             float fX = Ojw.CConvert.StrToFloat(txtDH_Test_X.Text);
             float fY = Ojw.CConvert.StrToFloat(txtDH_Test_Y.Text);
@@ -839,7 +899,8 @@ namespace OpenJigWare.Docking
                 Ojw.CKinematics.CInverse.SetValue_Motor(i, m_C3d.GetData(i));
             }
 
-            // 실제 수식계산
+            // 실제 수식계산 (C3d도 함께 설정)
+            Ojw.CKinematics.CInverse.SetCodeArray(m_C3d.GetHeader_pSOjwCode(), m_C3d);
             if (Ojw.CKinematics.CInverse.CalcCode(ref m_C3d.GetHeader_pSOjwCode()[nNum]) == false) MessageBox.Show(String.Format("Compile Error - {0}", Ojw.CKinematics.CInverse.GetErrorString_Error_Etc()));
 
             txtForwardKinematics_Message.Clear();
@@ -1600,26 +1661,69 @@ namespace OpenJigWare.Docking
 
         private void btnAdd_Model_Click(object sender, EventArgs e)
         {
-            if (txtAdd_StlFile.Text.IndexOf(".stl") > 0)
+            // 모델 자리에는 STL 파일 경로(.stl) 또는 #번호(빌트인 도형) 둘 다 허용.
+            string strModelText = txtAdd_StlFile.Text.Trim();
+            bool bStl = (strModelText.IndexOf(".stl", StringComparison.OrdinalIgnoreCase) > 0); // B1: 대소문자 무시
+            bool bPrimitive = strModelText.StartsWith("#");                                     // #번호 빌트인 도형
+            if (bStl || bPrimitive)
             {
-                if (txtDh.Lines.Length > 0)
+                if (bStl)
                 {
-                    List<String> lstStrDh = new List<String>();
-                    lstStrDh.Clear();
-                    lstStrDh.AddRange(txtDh.Lines);
-                    //[model,color,alpha,type,Num],[x,y,z],[pan,tilt,swing]
-                    lstStrDh.Add(string.Format("@[{0},{1},{2}],[{3},{4}],[{5},{6},{7}],[{8},{9},{10}]",
-                        Ojw.CFile.GetName(txtAdd_StlFile.Text), txtAdd_Color.Text, txtAdd_Alpha.Text,
-                        cmbAdd_Motor.SelectedIndex, txtAdd_Motor.Text,
-                        txtAdd_X.Text, txtAdd_Y.Text, txtAdd_Z.Text,
-                        txtAdd_Pan.Text, txtAdd_Tilt.Text, txtAdd_Swing.Text));
-                    txtDh.Clear();
-                    for (int i = 0; i < lstStrDh.Count; i++)
+                    // B2: Tools 는 모델을 ase 폴더에서 로드한다(로딩 시 SetAseFile_Path("ase") 로 선언).
+                    //     Find 로 고른 STL 이 ase 밖에 있으면 ase 폴더로 복사해 둔다. (#프리미티브는 파일 없음 → 스킵)
+                    try
                     {
-                        txtDh.Text += lstStrDh[i] + "\r\n";
+                        string strSrc = txtAdd_StlFile.Text;
+                        if (System.IO.File.Exists(strSrc)) // Find 로 고른 전체 경로일 때만
+                        {
+                            string strAseDir = Application.StartupPath.Trim('\\') + m_C3d.GetAseFile_Path(); // "...\ase\"
+                            string strDst = strAseDir + Ojw.CFile.GetName(strSrc);
+                            if (!System.IO.Directory.Exists(strAseDir)) System.IO.Directory.CreateDirectory(strAseDir);
+                            if (!string.Equals(System.IO.Path.GetFullPath(strSrc), System.IO.Path.GetFullPath(strDst), StringComparison.OrdinalIgnoreCase))
+                            {
+                                System.IO.File.Copy(strSrc, strDst, true);
+                                Ojw.CMessage.Write("STL copied to ase: " + Ojw.CFile.GetName(strSrc));
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Ojw.CMessage.Write_Error("STL copy to ase failed: " + ex.Message);
                     }
                 }
-                //String.Format(
+
+                // 모델명: STL → 파일명, #프리미티브 → #코드 그대로
+                string strModelName = bPrimitive ? strModelText : Ojw.CFile.GetName(txtAdd_StlFile.Text);
+
+                // @ 라인(11필드) 생성: [model,color,alpha],[type,Num],[x,y,z],[pan,tilt,swing]
+                string strAddLine = string.Format("@[{0},{1},{2}],[{3},{4}],[{5},{6},{7}],[{8},{9},{10}]",
+                    strModelName, txtAdd_Color.Text, txtAdd_Alpha.Text,
+                    cmbAdd_Motor.SelectedIndex, txtAdd_Motor.Text,
+                    txtAdd_X.Text, txtAdd_Y.Text, txtAdd_Z.Text,
+                    txtAdd_Pan.Text, txtAdd_Tilt.Text, txtAdd_Swing.Text);
+
+                // #프리미티브 + shape 입력이 있으면 [w,h,d,thick,gap] 추가.
+                // STL 에는 붙이지 않는다(STL 에서 11~15 필드는 트랙으로 해석되어 오작동).
+                if (bPrimitive && txtAdd_Shape.Text.Trim().Length > 0)
+                {
+                    strAddLine += ",[" + txtAdd_Shape.Text.Trim() + "]";
+                }
+
+                // @ 라인 추가 (txtDh 가 비어 있어도 동작)
+                List<String> lstStrDh = new List<String>();
+                lstStrDh.AddRange(txtDh.Lines);
+                lstStrDh.Add(strAddLine);
+                txtDh.Clear();
+                for (int i = 0; i < lstStrDh.Count; i++)
+                {
+                    txtDh.Text += lstStrDh[i] + "\r\n";
+                }
+            }
+            else
+            {
+                // stl 경로도 #모델도 아닌데 버튼을 누른 경우(빈칸 제외) 원인을 알린다.
+                if (strModelText.Length > 0)
+                    Ojw.CMessage.Write_Error("Not a .stl file or #model: " + txtAdd_StlFile.Text);
             }
 
             /////////////////////////////
@@ -2252,7 +2356,13 @@ namespace OpenJigWare.Docking
             Array.Clear(m_C3d.m_CHeader.pSMotorInfo[nIndex].afGuide_Pos, 0, m_C3d.m_CHeader.pSMotorInfo[nIndex].afGuide_Pos.Length);
             for (int nGuide = 0; nGuide < pstrItems.Length; nGuide++)
             {
-                m_C3d.m_CHeader.pSMotorInfo[nIndex].afGuide_Pos[nGuide] = Ojw.CConvert.StrToFloat(pstrItems[nGuide]);
+                try
+                {
+                    m_C3d.m_CHeader.pSMotorInfo[nIndex].afGuide_Pos[nGuide] = Ojw.CConvert.StrToFloat(pstrItems[nGuide]);
+                }
+                catch
+                {
+                }
             }
             //DisplayIndex(nIndex);
         }
@@ -2264,7 +2374,8 @@ namespace OpenJigWare.Docking
             Array.Clear(m_C3d.m_CHeader.pSMotorInfo[nIndex].anGuide_Off_IDs, 0, m_C3d.m_CHeader.pSMotorInfo[nIndex].anGuide_Off_IDs.Length);
             for (int nGuide = 0; nGuide < pstrItems.Length; nGuide++)
             {
-                m_C3d.m_CHeader.pSMotorInfo[nIndex].anGuide_Off_IDs[nGuide] = Ojw.CConvert.StrToInt(pstrItems[nGuide]);
+                try { m_C3d.m_CHeader.pSMotorInfo[nIndex].anGuide_Off_IDs[nGuide] = Ojw.CConvert.StrToInt(pstrItems[nGuide]); }
+                catch { }
             }
             //DisplayIndex(nIndex);
         }
@@ -2278,7 +2389,8 @@ namespace OpenJigWare.Docking
             if (nMax > 6) nMax = 6;
             for (int nGuide = 0; nGuide < nMax; nGuide++)
             {
-                m_C3d.m_CHeader.pSMotorInfo[nIndex].anGuide_Off_Dir[nGuide] = Ojw.CConvert.StrToInt(pstrItems[nGuide]);
+                try { m_C3d.m_CHeader.pSMotorInfo[nIndex].anGuide_Off_Dir[nGuide] = Ojw.CConvert.StrToInt(pstrItems[nGuide]); }
+                catch { }
             }
             //DisplayIndex(nIndex);
         }
@@ -2851,5 +2963,1952 @@ namespace OpenJigWare.Docking
                 byteData = null;
             }
         }
+
+        
+
+        private void btnMakeUrdf_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //string src = txtDh.Text ?? "";
+                //string urdf = BuildUrdf(src ?? "", "ojw_robot");
+                //string urdf = m_C3d.BuildUrdf(src ?? "", "ojw_robot");
+
+
+                Ojw.C3d.CUrdf u = new Ojw.C3d.CUrdf();
+                //string str = "0,0,0";
+                //Ojw.scanf(ref str);
+                //string[] astr = str.Split(',');
+                //double p = Ojw.CConvert.StrToDouble(astr[0]);
+                //double t = Ojw.CConvert.StrToDouble(astr[1]);
+                //double s = Ojw.CConvert.StrToDouble(astr[2]);
+                //u.setOffset(p, t, s);
+                string urdf = u.MakeDHSkeleton_URDF(txtDh.Text, "ojw_robot");
+
+                txtUrdf.Text = urdf;
+            }
+            catch (Exception ex)
+            {
+                txtUrdf.Text = "ERROR: " + ex.Message;
+            }
+        }
+
+        private void btnDH_Test_JacobFix_Click(object sender, EventArgs e)
+        {
+
+#if true
+            int nNum = Ojw.CConvert.StrToInt(cmbDH_Test_Index.Text);
+            float fX = Ojw.CConvert.StrToFloat(txtDH_Test_X.Text);
+            float fY = Ojw.CConvert.StrToFloat(txtDH_Test_Y.Text);
+            float fZ = Ojw.CConvert.StrToFloat(txtDH_Test_Z.Text);
+            float fRX = Ojw.CConvert.StrToFloat(txtDH_Test_RX.Text);
+            float fRY = Ojw.CConvert.StrToFloat(txtDH_Test_RY.Text);
+            float fRZ = Ojw.CConvert.StrToFloat(txtDH_Test_RZ.Text);
+            float fToolLength = Ojw.CConvert.StrToFloat(txtDH_Test_ToolLength.Text);
+
+            // 목표점(mm)
+            Ojw.C3d c3d = m_C3d;
+#if false
+            bool ok = Ojw.CKinematics.CInverse.SolveIK_JacobianDLS_PosOnly(
+                ref c3d, // Error: A property, Indexer or dynamic member access may not be passed as an out or ref parameter
+                nNum,
+                fX, fY, fZ,
+                120,    // maxIter
+                0.8f,   // tolMm
+                0.2f,   // epsDeg
+                1.2f,   // lambda
+                0.8f,   // gain
+                4.0f    // maxStepDeg
+            );
+#else
+            // 툴 끝점이 (0, 150, 150)에 도달하고, 정면 방향 유지, 툴 길이 60mm
+            Ojw.CKinematics.CInverse.SolveIK_JacobianDLS_PosWithToolGlobal(
+                ref c3d,
+                nNum,
+                fX, fY, fZ,       // 목표 위치
+                fRX, fRY, fRZ,    // 자세 (홈 기준, 0,0,0 = 정면 유지)
+                fToolLength,            // 툴 길이
+                /////////////////////////////////////////
+                120,    // maxIter
+                0.8f,   // tolMm
+                0.2f,   // epsDeg
+                1.2f,   // lambda
+                0.8f,   // gain
+                4.0f    // maxStepDeg
+            );
+
+            //bool ok = Ojw.CKinematics.CInverse.SolveIK_JacobianDLS_PosFixedEuler(
+            //    ref c3d,
+            //    nNum,
+            //    fX, fY, fZ,
+            //    fRX, fRY, fRZ,
+            //    500,     // maxIter
+            //    1.0f,    // posTolMm
+            //    0.02f,   // rotTol
+            //    0.1f,    // epsDeg
+            //    1.5f,    // lambda
+            //    0.7f,    // gain
+            //    4.0f,    // maxStepDeg
+            //    100.0f    // rotWeight (자세를 얼마나 강하게 고정할지)
+            //);
+#endif
+            m_C3d = c3d;
+#endif
+        }
+
+        private void btnDH_Test_Jacob_Click(object sender, EventArgs e)
+        {
+            int nNum = Ojw.CConvert.StrToInt(cmbDH_Test_Index.Text);
+            float fX = Ojw.CConvert.StrToFloat(txtDH_Test_X.Text);
+            float fY = Ojw.CConvert.StrToFloat(txtDH_Test_Y.Text);
+            float fZ = Ojw.CConvert.StrToFloat(txtDH_Test_Z.Text);
+            float fRX = Ojw.CConvert.StrToFloat(txtDH_Test_RX.Text);
+            float fRY = Ojw.CConvert.StrToFloat(txtDH_Test_RY.Text);
+            float fRZ = Ojw.CConvert.StrToFloat(txtDH_Test_RZ.Text);
+
+            // 목표점(mm)
+            Ojw.C3d c3d = m_C3d;
+            bool ok = Ojw.CKinematics.CInverse.SolveIK_JacobianDLS_PosOnly(
+                ref c3d, // Error: A property, Indexer or dynamic member access may not be passed as an out or ref parameter
+                nNum,
+                fX, fY, fZ,
+                120,    // maxIter
+                0.8f,   // tolMm
+                0.2f,   // epsDeg
+                1.2f,   // lambda
+                0.8f,   // gain
+                4.0f    // maxStepDeg
+            );
+
+            m_C3d = c3d;
+        }
+
+#if false // for test
+#if true
+
+        public class CUrdf
+        {
+            public int m_nMode = -1; // 0 : skeleton, 1 : stl, -1 : all
+            private bool m_bPath_Urdf = false;
+            private string m_strUrdfPath = "";
+            public void SetPath_Stl(string strPath = null)
+            {
+                bool bPath = true;
+                if (strPath == null) bPath = false;
+                else if (strPath.Length <= 0) bPath = false;
+                else
+                {
+                    m_strUrdfPath = strPath;
+                }
+                m_bPath_Urdf = bPath;
+            }
+
+            // ===== 단위/시각화 옵션 =====
+            private const double SCALE = 0.001;   // mm → m
+            private const double NODE_R = 0.01;   // 노드(구) 반지름 (m)
+            private const double BAR_R = 0.005;   // 막대(실린더) 반지름 (m)
+            private const double MASS = 0.01;   // 링크 질량
+            private const double EPS = 1e-9;
+
+            // ──────────────────────────────────────────────────────────────────────
+            // STL 공통 보정값 (모든 @[…] 라인에 동일 적용; “연산 끝난 후” 적용)
+            // 회전 오프셋(도) : Pan(Y), Tilt(X), Swing(Z)
+            public double STL_PAN_OFFSET_DEG = 0.0; // +Y (pan)
+            public double STL_TILT_OFFSET_DEG = 0.0; // +X (tilt)
+            public double STL_SWING_OFFSET_DEG = 0.0; // +Z (swing)
+
+            private double STL_ORG_PAN_OFFSET_DEG = 0.0; // +Z 회전
+            private double STL_ORG_TILT_OFFSET_DEG = 0.0; // +Y 회전
+            private double STL_ORG_SWING_OFFSET_DEG = 0.0; // +X 회전
+
+            // 위치 오프셋(mm)
+            public double STL_DX_MM = 0.0;
+            public double STL_DY_MM = 0.0;
+            public double STL_DZ_MM = 0.0;
+
+            // 첫 번째 STL 여부 플래그 (메서드 시작 부분에서 선언 필요)
+            bool isFirstStl = true;
+
+            public void setOffset(double p, double t, double s)
+            {
+
+                STL_ORG_PAN_OFFSET_DEG = p; // +Z 회전
+                STL_ORG_TILT_OFFSET_DEG = t; // +Y 회전
+                STL_ORG_SWING_OFFSET_DEG = s; // +X 회전
+
+            }
+            public void setOffset_after(double p, double t, double s)
+            {
+
+                STL_PAN_OFFSET_DEG = p; // +Z 회전
+                STL_TILT_OFFSET_DEG = t; // +Y 회전
+                STL_SWING_OFFSET_DEG = s; // +X 회전
+
+            }
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 데이터 구조
+            class DhRow { public double a, d, th, al; public int motor, dir, reset; }
+
+            class LinkBuf
+            {
+                public string name;
+                public StringBuilder body = new StringBuilder(); // visual/collision 누적
+                public LinkBuf(string n) { name = n; }
+            }
+
+            class JointRec
+            {
+                public string name, type, parent, child;
+                public string origin_xyz, origin_rpy, axis, mimicOf, mimicMul, mimicOff;
+            }
+
+            class StlRow
+            {
+                public string file;       // e.g. follower_0.stl
+                public int color;         // 사용 안함
+                public double scale;      // mesh scale (입력줄 배율)
+                public int grp0, grp1;    // 사용 안함
+                public double px, py, pz; // 위치(mm)  [x,y,z]
+                public double rr, pp, yy; // 회전(deg) [roll, pitch, yaw]
+            }
+
+            // 필요시 파일별 보정 회전 넣을 자리 (지금은 비워둠)
+            private static Dictionary<string, Action<double[,], double[,]>> s_meshCorrection =
+                new Dictionary<string, Action<double[,], double[,]>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    // 예) {"some.stl",(Rin,Rout)=>{ double[,] C=new double[3,3]; R3x_Rz(Math.PI/2,C); double[,] T=new double[3,3]; MatMul(C,Rin,T); Copy3x3(T,Rout);} },
+                };
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 외부에서 바로 호출할 함수 (버튼 핸들러에서 사용)
+            // txtUrdf.Text = new UrdfFromDhVs2010().MakeDHSkeleton_URDF(txtDhInput.Text, "ojw_robot", true);
+            public string MakeDHSkeleton_URDF(string src, string robotName, bool isStlInMM /*기본 true 권장*/ = true)
+            {
+                return BuildUrdfCore(src, robotName, isStlInMM);
+            }
+
+            // 내부 코어
+            private string BuildUrdfCore(string src, string robotName, bool isStlInMM)
+            {
+                var links = new Dictionary<string, LinkBuf>();
+                links["world"] = new LinkBuf("world");
+                links["base_link"] = new LinkBuf("base_link");
+                AppendNode(links["base_link"]); // 베이스 구 추가(표시용)
+
+                var joints = new List<JointRec>();
+                var motorIdToJointName = new Dictionary<int, string>(); // T<ID>
+                var followerCount = new Dictionary<int, int>();    // t<ID>_k 카운터
+                var madeMotor = new HashSet<int>();
+
+                // world → base_link : 좌표계 매핑 (OpenJigWare 의 기준 회전축을 URDF 의 기준 회전축에 맞춤)
+                joints.Add(new JointRec
+                {
+                    name = "world_to_base",
+                    type = "fixed",
+                    parent = "world",
+                    child = "base_link",
+                    origin_xyz = "0 0 0",
+                    origin_rpy = "1.57079633 0 1.57079633"
+                });
+                string parent = "base_link";
+                int linkIdx = 0;
+
+                // 누적 고정 변환
+                double[,] Tacc = I();
+
+                // 첫 번째 STL 여부 플래그 (메서드 시작 부분에서 선언 필요)
+                isFirstStl = true;
+
+                // 라인 단위 처리
+                string[] lines = (src ?? "").Replace("\r", "").Split('\n');
+                Regex reDh = new Regex(
+                    @"\[(?<a>[-+]?\d+(\.\d+)?)[,\s]+(?<d>[-+]?\d+(\.\d+)?)[,\s]+(?<th>[-+]?\d+(\.\d+)?)[,\s]+(?<al>[-+]?\d+(\.\d+)?)\]\s*,\s*\[(?<m>[-+]?\d+)[,\s]+(?<dir>[-+]?\d+)[,\s]+(?<rst>[-+]?\d+)\]",
+                    RegexOptions.Compiled);
+
+                for (int li = 0; li < lines.Length; li++)
+                {
+                    string line = lines[li];
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    int cpos = line.IndexOf("//");
+                    string lineNoCmt = (cpos >= 0) ? line.Substring(0, cpos) : line;
+                    lineNoCmt = lineNoCmt.Trim();
+                    if (lineNoCmt.Length == 0) continue;
+
+                    // 1) STL 라인?
+                    StlRow stl;
+                    //if (TryParseStlLine(lineNoCmt, out stl))
+                    //{
+                    //    if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+                    //    AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM); // ⬅ pan→tilt→swing 오프셋 최종 적용
+                    //    continue;
+                    //}
+#if false
+                    if (TryParseStlLine(lineNoCmt, out stl))
+                    {
+                        if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+                        AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tacc); // ⬅ Tacc 전달
+                        continue;
+                    }
+#else
+                    // 첫 번째 STL 여부 플래그 (메서드 시작 부분에서 선언 필요)
+                    //bool isFirstStl = true;
+
+                    
+                    //if (TryParseStlLine(lineNoCmt, out stl))
+                    //{
+                    //    if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+
+                    //    // 첫 번째 STL만 부모 회전 제거(이동만 유지) → 앞의 고정 DH 회전이 STL 회전을 잠식하는 문제 방지
+                    //    double[,] Tparent = isFirstStl ? T_KeepTranslationOnly(Tacc) : Tacc;
+
+                    //    AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tparent);
+                    //    isFirstStl = false; // 다음부턴 정상 처리
+                    //    continue;
+                    //}
+#if false
+                    if (TryParseStlLine(lineNoCmt, out stl))
+                    {
+                        if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+
+                        if (isFirstStl)
+                        {
+                            // ── 첫 번째 STL만: 부모 회전을 STL에 선곱(프리멀티)
+                            // Rpre = Rot(Tacc), Tpar = Trans-only(Tacc)
+                            double[,] Rpre = new double[3, 3];
+                            ExtractR(Tacc, Rpre);
+
+                            double[,] Tpar = T_KeepTranslationOnly(Tacc);
+
+                            // STL 원래 포즈(네 함수) 구성: Tstl = Rstl ∘ pstl
+                            //  => 내부에서 만들던 T(=Rstl+pstl)와 Toff를 그대로 쓰기 위해,
+                            //  AppendStl_WithFinalOffset_PTS를 살짝 우회 호출: “부모를 Rpre와 Tpar로 나눠서” 적용
+                            //  구현은 간단히: Rpre를 4x4로 만들고, (Rpre*Tstl)*Toff 를 먼저 만든 뒤 Tpar를 마지막에 곱함.
+
+                            // 1) STL 내부 T, Toff를 만들기 위해 “임시 부모 = 항등”으로 한번 만들어 rpy/xyz를 얻지 말고,
+                            //    우리가 직접 합성한 최종행렬을 만들자. → 기존 함수를 재사용하기 어렵다면 아래처럼 직접 합성.
+
+                            // (a) 먼저 STL 포즈 Tstl, Toff를 만들어주는 작은 헬퍼를 하나 더 만들 수도 있지만
+                            //     기존 함수를 활용하려면 코드를 아주 조금만 수정해야 해서, 여기선 직접 합성으로 진행.
+
+                            // --- (i) STL 입력 각도/이동을 AppendStl_WithFinalOffset_PTS와 동일하게 계산 ---
+                            double rrDeg = stl.rr, ppDeg = stl.pp, yyDeg = stl.yy;
+                            // 현재 코드에서는 roll↔pitch 스왑만 하고 Extrinsic XYZ 사용 중
+                            double tt = rrDeg; rrDeg = ppDeg; ppDeg = tt;
+
+                            double px = stl.px * SCALE, py = stl.py * SCALE, pz = stl.pz * SCALE;
+                            double rr = Deg2Rad(rrDeg), pp = Deg2Rad(ppDeg), yy = Deg2Rad(yyDeg);
+
+                            double[,] Rstl = new double[3, 3];
+                            R_Extrinsic_XYZ(rr, pp, yy, Rstl);
+
+                            double[,] Tstl = I(); SetRtoT(Rstl, Tstl);
+                            Tstl[0, 3] = px; Tstl[1, 3] = py; Tstl[2, 3] = pz;
+
+                            // --- (ii) Toff (표준 ZYX: roll←swing(X), pitch←tilt(Y), yaw←pan(Z)) ---
+                            double pan = Deg2Rad(STL_PAN_OFFSET_DEG);
+                            double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);
+                            double swing = Deg2Rad(STL_SWING_OFFSET_DEG);
+
+                            double[,] Roff = new double[3, 3];
+                            R_Standard_ZYX(swing, tilt, pan, Roff);
+
+                            double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+                            double[,] Toff = I(); SetRtoT(Roff, Toff);
+                            Toff[0, 3] = dx; Toff[1, 3] = dy; Toff[2, 3] = dz;
+
+                            // --- (iii) Rpre를 4x4로 ---
+                            double[,] Tpre = I(); SetRtoT(Rpre, Tpre);
+
+                            // --- (iv) 최종: Tfinal = Tpar * ( (Tpre * Tstl) * Toff ) ---
+                            double[,] Ttmp = MM(Tpre, Tstl);
+                            Ttmp = MM(Ttmp, Toff);
+                            double[,] Tfinal = MM(Tpar, Ttmp);
+
+                            // xyz/rpy 추출하여 append
+                            string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+                            double k = isStlInMM ? 0.001 : 1.0;
+                            double uni = stl.scale * k;
+                            string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+                            string matName = Xml(stl.file) + "_mat";
+
+                            links[parent].body.AppendLine("    <visual>");
+                            links[parent].body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                            links[parent].body.AppendLine("      <geometry><mesh filename=\"" + Xml(stl.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                            links[parent].body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 1\"/></material>");
+                            links[parent].body.AppendLine("    </visual>");
+                            links[parent].body.AppendLine("    <collision>");
+                            links[parent].body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                            links[parent].body.AppendLine("      <geometry><mesh filename=\"" + Xml(stl.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                            links[parent].body.AppendLine("    </collision>");
+
+                            isFirstStl = false; // 다음부턴 원래 로직
+                        }
+                        else
+                        {
+                            // 기존 로직 그대로 (다른 STL들은 원래도 정확히 맞았다고 했으니 건드리지 않음)
+                            AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tacc);
+                        }
+                        continue;
+                    }
+#else
+                    if (TryParseStlLine(lineNoCmt, out stl))
+                    {
+                        if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+
+                        if (isFirstStl)
+                        {
+                            // 기존 로직 그대로 (다른 STL들은 원래도 정확히 맞았다고 했으니 건드리지 않음)
+                            AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tacc);
+
+                            isFirstStl = false; // 다음부턴 원래 로직
+                        }
+                        else
+                        {
+                            // 기존 로직 그대로 (다른 STL들은 원래도 정확히 맞았으니 건드리지 않음)
+                            AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tacc);
+                        }
+                        continue;
+                    }
+#endif
+
+#endif
+                    // 2) DH 라인?
+                    Match m = reDh.Match(lineNoCmt);
+                    if (!m.Success) continue;
+
+                    var r = new DhRow();
+                    r.a = D(m.Groups["a"].Value);
+                    r.d = D(m.Groups["d"].Value);
+                    r.th = D(m.Groups["th"].Value);
+                    r.al = D(m.Groups["al"].Value);
+                    r.motor = (int)D(m.Groups["m"].Value);
+                    r.dir = (int)D(m.Groups["dir"].Value);
+                    r.reset = (int)D(m.Groups["rst"].Value);
+
+                    // reset 처리
+                    if (r.reset != 0)
+                    {
+                        parent = "base_link";
+                        Tacc = I();
+#if true
+                        isFirstStl = true; // ← reset 이후 첫 STL에도 동일하게 적용하고 싶다면
+#endif
+                    }
+
+                    bool isMotor = (r.motor >= 0);
+
+                    // 막대(프리미티브) 추가: 부모원점 → (부모원점 + Racc*[a,0,d])
+                    if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+                    AddSegmentBarToParent(links[parent], Tacc, r.a * SCALE, r.d * SCALE, BAR_R);
+
+                    if (!isMotor)
+                    {
+                        // 순수 고정변환 누적 (표준 DH 전체)
+                        Tacc = MM(Tacc, DHfull(r.a * SCALE, r.d * SCALE, r.th, r.al));
+                        continue;
+                    }
+
+                    // 모터 라인
+                    if (!madeMotor.Contains(r.motor))
+                    {
+                        madeMotor.Add(r.motor);
+
+                        // 메인 모터: 이름 T<ID>, origin = Tacc * Tz(d)
+                        double[,] Torigin = MM(Tacc, Tz(r.d * SCALE));
+                        string jOriginXYZ, jOriginRPY; PoseFromT(Torigin, out jOriginXYZ, out jOriginRPY);
+
+                        string child = "link_" + (++linkIdx).ToString();
+                        if (!links.ContainsKey(child)) links[child] = new LinkBuf(child);
+                        AppendNode(links[child]);
+
+                        string jname = "T" + r.motor.ToString();
+                        motorIdToJointName[r.motor] = jname;
+
+                        var jr = new JointRec();
+                        jr.name = jname; jr.type = "revolute";
+                        jr.parent = parent; jr.child = child;
+                        jr.origin_xyz = jOriginXYZ; jr.origin_rpy = jOriginRPY;
+                        jr.axis = (r.dir == 1) ? "0 0 -1" : "0 0 1";
+                        joints.Add(jr);
+
+                        parent = child;
+                        Tacc = MM(Tx(r.a * SCALE), Rx(Deg2Rad(r.al)));
+                        if (!followerCount.ContainsKey(r.motor)) followerCount[r.motor] = 0;
+                    }
+                    else
+                    {
+                        // follower (mimic)
+                        double[,] Torigin = MM(Tacc, Tz(r.d * SCALE));
+                        string jOriginXYZ, jOriginRPY; PoseFromT(Torigin, out jOriginXYZ, out jOriginRPY);
+
+                        string child = "link_" + (++linkIdx).ToString();
+                        if (!links.ContainsKey(child)) links[child] = new LinkBuf(child);
+                        AppendNode(links[child]);
+
+                        int idx = followerCount.ContainsKey(r.motor) ? followerCount[r.motor] : 0;
+                        string jname = "t" + r.motor.ToString() + "_" + idx.ToString();
+                        followerCount[r.motor] = idx + 1;
+
+                        var jr = new JointRec();
+                        jr.name = jname; jr.type = "revolute";
+                        jr.parent = parent; jr.child = child;
+                        jr.origin_xyz = jOriginXYZ; jr.origin_rpy = jOriginRPY;
+                        jr.axis = (r.dir == 1) ? "0 0 -1" : "0 0 1";
+                        jr.mimicOf = motorIdToJointName.ContainsKey(r.motor) ? motorIdToJointName[r.motor] : null;
+                        jr.mimicMul = "1"; jr.mimicOff = "0";
+                        joints.Add(jr);
+
+                        parent = child;
+                        Tacc = MM(Tx(r.a * SCALE), Rx(Deg2Rad(r.al)));
+                    }
+                }
+
+                // ── URDF 출력
+                var sb = new StringBuilder();
+                sb.AppendLine("<robot name=\"" + Xml(robotName) + "\">");
+
+                foreach (KeyValuePair<string, LinkBuf> kv in links)
+                {
+                    sb.AppendLine("  <link name=\"" + kv.Value.name + "\">");
+                    if (kv.Value.name != "world")
+                    {
+                        sb.AppendLine("    <inertial>");
+                        sb.AppendLine("      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>");
+                        sb.AppendLine("      <mass value=\"" + Str(MASS) + "\"/>");
+                        sb.AppendLine("      <inertia ixx=\"1e-6\" ixy=\"0\" ixz=\"0\" iyy=\"1e-6\" iyz=\"0\" izz=\"1e-6\"/>");
+                        sb.AppendLine("    </inertial>");
+                    }
+                    sb.Append(kv.Value.body.ToString());
+                    sb.AppendLine("  </link>");
+                }
+
+                foreach (JointRec j in joints)
+                {
+                    sb.AppendLine("  <joint name=\"" + j.name + "\" type=\"" + j.type + "\">");
+                    sb.AppendLine("    <parent link=\"" + j.parent + "\"/>");
+                    sb.AppendLine("    <child link=\"" + j.child + "\"/>");
+                    sb.AppendLine("    <origin xyz=\"" + j.origin_xyz + "\" rpy=\"" + j.origin_rpy + "\"/>");
+                    if (!string.IsNullOrEmpty(j.axis)) sb.AppendLine("    <axis xyz=\"" + j.axis + "\"/>");
+                    if (!string.IsNullOrEmpty(j.mimicOf))
+                        sb.AppendLine("    <mimic joint=\"" + j.mimicOf + "\" multiplier=\"" + j.mimicMul + "\" offset=\"" + j.mimicOff + "\"/>");
+                    if (j.type == "revolute")
+                        sb.AppendLine("    <limit lower=\"-3.1415926535\" upper=\"3.1415926535\" effort=\"100\" velocity=\"5\"/>");
+                    sb.AppendLine("  </joint>");
+                }
+
+                sb.AppendLine("</robot>");
+                return sb.ToString();
+            }
+
+            // ──────────────────────────────────────────────────────────────────────
+            // STL 라인 파싱: @[file,color,scale],[g0,g1],[x,y,z],[r,p,y]
+            private static bool TryParseStlLine(string line, out StlRow o)
+            {
+                o = null;
+                if (!line.StartsWith("@[")) return false;
+
+                int cpos = line.IndexOf("//");
+                if (cpos >= 0) line = line.Substring(0, cpos);
+                line = line.Trim();
+
+                List<string> blocks = new List<string>();
+                int i = 0;
+                while (i < line.Length)
+                {
+                    int s = line.IndexOf('[', i);
+                    if (s < 0) break;
+                    int e = line.IndexOf(']', s + 1);
+                    if (e < 0) break;
+                    blocks.Add(line.Substring(s + 1, e - s - 1));
+                    i = e + 1;
+                }
+                if (blocks.Count < 4) return false;
+
+                string b0 = blocks[0]; // file,color,scale
+                string[] t0 = b0.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (t0.Length < 3) return false;
+                string file = t0[0].Trim();
+                int color = 0; double scale = 1.0;
+                int.TryParse(t0[1].Trim(), out color);
+                double.TryParse(t0[2].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out scale);
+
+                string[] t1 = blocks[1].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                int g0 = 0, g1 = 0;
+                if (t1.Length >= 1) int.TryParse(t1[0].Trim(), out g0);
+                if (t1.Length >= 2) int.TryParse(t1[1].Trim(), out g1);
+
+                string[] t2 = blocks[2].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (t2.Length < 3) return false;
+                double px = D(t2[0].Trim());
+                double py = D(t2[1].Trim());
+                double pz = D(t2[2].Trim());
+
+                string[] t3 = blocks[3].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (t3.Length < 3) return false;
+                double rr = D(t3[0].Trim());
+                double pp = D(t3[1].Trim());
+                double yy = D(t3[2].Trim());
+
+                o = new StlRow { file = file, color = color, scale = scale, grp0 = g0, grp1 = g1, px = px, py = py, pz = pz, rr = rr, pp = pp, yy = yy };
+                return true;
+            }
+
+#if false
+            // STL 추가: “최종 보정 Toff(PTS 순서)”를 뒤에 곱해 적용: Tfinal = T * Toff
+            private void AppendStl_WithFinalOffset_PTS(LinkBuf lb, StlRow s, bool isStlInMM)
+            {
+                // (1) 원래 포즈 T 구성 (mm→m, deg→rad)
+                double px = s.px * SCALE, py = s.py * SCALE, pz = s.pz * SCALE;
+                //double rr = Deg2Rad(s.rr), pp = Deg2Rad(s.pp), yy = Deg2Rad(s.yy);
+                double rr = Deg2Rad(s.rr + STL_ORG_SWING_OFFSET_DEG), pp = Deg2Rad(s.pp + STL_ORG_TILT_OFFSET_DEG), yy = Deg2Rad(s.yy + STL_ORG_PAN_OFFSET_DEG);
+
+                // 원래 회전행렬: R = Rz(yaw) * Ry(pitch) * Rx(roll)
+                double[,] R = new double[3, 3];
+                R_Standard_ZYX(rr, pp, yy, R);
+
+                double[,] T = I();
+                SetRtoT(R, T);
+                T[0, 3] = px; T[1, 3] = py; T[2, 3] = pz;
+
+                // (2) 공통 보정 Toff (Pan→Tilt→Swing, 위치 오프셋 포함)
+                double pan = Deg2Rad(STL_PAN_OFFSET_DEG);
+                double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);
+                double swing = Deg2Rad(STL_SWING_OFFSET_DEG);
+
+                double[,] Roff = new double[3, 3];
+                R_PanTiltSwing(pan, tilt, swing, Roff); // ⬅ 순서: Y → X → Z
+
+                double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+
+                double[,] Toff = I();
+                SetRtoT(Roff, Toff);
+                Toff[0, 3] = dx; Toff[1, 3] = dy; Toff[2, 3] = dz;
+
+                // (3) 최종: Tfinal = T * Toff  (연산 끝난 후 오프셋 덧씌움)
+                double[,] Tfinal = MM(T, Toff);
+
+                // (4) xyz/rpy 추출
+                string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+                // (5) mesh scale: (입력 스케일) × (STL이 mm라면 0.001, m라면 1)
+                double k = isStlInMM ? 0.001 : 1.0;
+                double uni = s.scale * k;
+                string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+
+                string matName = Xml(s.file) + "_mat";
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 1\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+#else
+            //// STL 추가: "최종 보정 Toff(PTS 순서)"를 뒤에 곱해 적용: Tfinal = T * Toff
+            //private void AppendStl_WithFinalOffset_PTS(LinkBuf lb, StlRow s, bool isStlInMM)
+            //{
+            //    // (1) 원래 포즈 T 구성 (mm→m, deg→rad) - 이동 먼저, 회전 나중
+            //    double px = s.px * SCALE, py = s.py * SCALE, pz = s.pz * SCALE;
+            //    double rr = Deg2Rad(s.rr + STL_ORG_SWING_OFFSET_DEG), pp = Deg2Rad(s.pp + STL_ORG_TILT_OFFSET_DEG), yy = Deg2Rad(s.yy + STL_ORG_PAN_OFFSET_DEG);
+
+            //    // 이동 행렬 생성
+            //    double[,] Tt = I();
+            //    Tt[0, 3] = px; Tt[1, 3] = py; Tt[2, 3] = pz;
+
+            //    // 회전 행렬 생성
+            //    double[,] R = new double[3, 3];
+            //    R_Standard_ZYX(rr, pp, yy, R);
+            //    double[,] Tr = I();
+            //    SetRtoT(R, Tr);
+
+            //    // 최종 T = Tr * Tt (이동 먼저, 회전 나중)
+            //    double[,] T = MM(Tr, Tt);
+
+            //    // (2) 공통 보정 Toff (Pan→Tilt→Swing, 위치 오프셋 포함) - 이동 먼저, 회전 나중
+            //    double pan = Deg2Rad(STL_PAN_OFFSET_DEG);
+            //    double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);
+            //    double swing = Deg2Rad(STL_SWING_OFFSET_DEG);
+
+            //    // 오프셋 이동 행렬
+            //    double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+            //    double[,] Toff_t = I();
+            //    Toff_t[0, 3] = dx; Toff_t[1, 3] = dy; Toff_t[2, 3] = dz;
+
+            //    // 오프셋 회전 행렬
+            //    double[,] Roff = new double[3, 3];
+            //    R_PanTiltSwing(pan, tilt, swing, Roff);
+            //    double[,] Toff_r = I();
+            //    SetRtoT(Roff, Toff_r);
+
+            //    // 최종 Toff = Toff_r * Toff_t (이동 먼저, 회전 나중)
+            //    double[,] Toff = MM(Toff_r, Toff_t);
+
+            //    // (3) 최종: Tfinal = T * Toff  (연산 끝난 후 오프셋 덧씌움)
+            //    double[,] Tfinal = MM(T, Toff);
+
+            //    // (4) xyz/rpy 추출
+            //    string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+            //    // (5) mesh scale: (입력 스케일) × (STL이 mm라면 0.001, m라면 1)
+            //    double k = isStlInMM ? 0.001 : 1.0;
+            //    double uni = s.scale * k;
+            //    string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+
+            //    string matName = Xml(s.file) + "_mat";
+            //    lb.body.AppendLine("    <visual>");
+            //    lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+            //    lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+            //    lb.body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 1\"/></material>");
+            //    lb.body.AppendLine("    </visual>");
+            //    lb.body.AppendLine("    <collision>");
+            //    lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+            //    lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+            //    lb.body.AppendLine("    </collision>");
+            //}
+            // 외적 XYZ: R = Rx(roll) * Ry(pitch) * Rz(yaw)
+            private static void R_Extrinsic_XYZ(double roll, double pitch, double yaw, double[,] R)
+            {
+                double[,] Rxm = new double[3, 3], Rym = new double[3, 3], Rzm = new double[3, 3], tmp = new double[3, 3];
+                R3x_Rx(roll, Rxm);
+                R3x_Ry(pitch, Rym);
+                R3x_Rz(yaw, Rzm);
+                MatMul(Rxm, Rym, tmp);
+                MatMul(tmp, Rzm, R);
+            }
+
+            private void AppendStl_WithFinalOffset_PTS(LinkBuf lb, StlRow s, bool isStlInMM, double[,] Tacc)
+            {
+                // (0) 입력 각도 조정 (roll↔pitch 스왑/부호 보정) — 필요 시 유지
+                double rrDeg = s.rr, ppDeg = s.pp, yyDeg = s.yy;
+                //if (STL_SWAP_ROLL_PITCH) { double t = rrDeg; rrDeg = ppDeg; ppDeg = t; }
+                //rrDeg = STL_SIGN_ROLL * rrDeg;
+                //ppDeg = STL_SIGN_PITCH * ppDeg;
+                //yyDeg = STL_SIGN_YAW * yyDeg;
+                double t = rrDeg; rrDeg = ppDeg; ppDeg = t; // Swap 하자...
+
+                if (isFirstStl)
+                {
+                    rrDeg = rrDeg - 90;
+                    ppDeg = ppDeg + 90;
+                }
+
+
+                // (1) 입력 포즈 T (mm→m, deg→rad)
+                double px = s.px * SCALE, py = s.py * SCALE, pz = s.pz * SCALE;
+                double rr = Deg2Rad(rrDeg), pp = Deg2Rad(ppDeg), yy = Deg2Rad(yyDeg);
+
+                double[,] R = new double[3, 3];
+                //R_Standard_ZYX(rr, pp, yy, R);   // R = Rz(yaw)*Ry(pitch)*Rx(roll)
+
+                // STL 각도 해석 모드: true면 외적 XYZ (Rx * Ry * Rz), false면 내적 ZYX (Rz * Ry * Rx)
+                bool STL_EXTRINSIC_XYZ = true; // ← C# OpenGL과 맞추려면 true 권장
+                if (STL_EXTRINSIC_XYZ)
+                {
+                    // C# OpenGL과 동일한 해석: R = Rx * Ry * Rz
+                    R_Extrinsic_XYZ(rr, pp, yy, R);
+                }
+                else
+                {
+                    // 표준 내적 ZYX: R = Rz * Ry * Rx
+                    R_Standard_ZYX(rr, pp, yy, R);
+                }
+
+                double[,] T = I();
+                SetRtoT(R, T);
+                T[0, 3] = px; T[1, 3] = py; T[2, 3] = pz;
+
+                // (2) 오프셋 Toff — 표준 ZYX로 환원 (yaw=pan, pitch=tilt, roll=swing)
+                double pan = Deg2Rad(STL_PAN_OFFSET_DEG);   // Z
+                double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);  // Y
+                double swing = Deg2Rad(STL_SWING_OFFSET_DEG); // X
+
+                double[,] Roff = new double[3, 3];
+                R_Standard_ZYX(swing, tilt, pan, Roff); // roll←swing, pitch←tilt, yaw←pan
+
+                double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+
+                double[,] Toff = I();
+                SetRtoT(Roff, Toff);
+                Toff[0, 3] = dx; Toff[1, 3] = dy; Toff[2, 3] = dz;
+
+                // (3) 최종 = 부모누적 * (입력 * 오프셋)
+                double[,] Ttmp = MM(T, Toff);
+                double[,] Tfinal = MM(Tacc, Ttmp);
+
+                // (4) xyz/rpy
+                string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+                // (5) mesh scale
+                double k = isStlInMM ? 0.001 : 1.0;
+                double uni = s.scale * k;
+                string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+
+                string strAlpha = (m_nMode != 0) ? ((s.file.Length > 4) ? "1" : "0") : "0";
+                if (s.file.Length > 4)
+                {
+                    if (m_bPath_Urdf == true)
+                        strAlpha = String.Format("{0}\\{1}", m_strUrdfPath, s.file);
+                }
+                string matName = Xml(s.file) + "_mat";
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 " + strAlpha + "\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+
+
+
+#endif
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 프리미티브: 링크 원점 구 추가(표시용)
+            private void AppendNode(LinkBuf lb)
+            {
+
+                string strAlpha = (m_nMode != 1) ? "1" : "0";
+
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>");
+                lb.body.AppendLine("      <geometry><sphere radius=\"" + Str(NODE_R) + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"node\"><color rgba=\"0.3 0.7 1 " + strAlpha + "\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>");
+                lb.body.AppendLine("      <geometry><sphere radius=\"" + Str(NODE_R) + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+
+            // 실린더(막대) 추가 (부모원점 → 다음 관절 원점)
+            private void AddSegmentBarToParent(LinkBuf parentLb, double[,] Tacc, double a_m, double d_m, double radius)
+            {
+                if (Math.Abs(a_m) < EPS && Math.Abs(d_m) < EPS) return;
+
+                double r00, r01, r02, r10, r11, r12, r20, r21, r22, px, py, pz;
+                Decompose(Tacc, out r00, out r01, out r02,
+                                out r10, out r11, out r12,
+                                out r20, out r21, out r22,
+                                out px, out py, out pz);
+
+                double vx = r00 * a_m + r02 * d_m;
+                double vy = r10 * a_m + r12 * d_m;
+                double vz = r20 * a_m + r22 * d_m;
+
+                double length = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                if (length < EPS) return;
+
+                double cx = px + 0.5 * vx;
+                double cy = py + 0.5 * vy;
+                double cz = pz + 0.5 * vz;
+
+                double roll, pitch, yaw;
+                RpyFromZDir(vx, vy, vz, out roll, out pitch, out yaw);
+
+                string xyz = Str(cx) + " " + Str(cy) + " " + Str(cz);
+                string rpy = Str(roll) + " " + Str(pitch) + " " + Str(yaw);
+                AppendCyl(parentLb, length, radius, xyz, rpy, "segbar");
+            }
+
+            // 시각화/충돌 실린더 공통
+            private void AppendCyl(LinkBuf lb, double length, double radius, string xyz, string rpy, string mat)
+            {
+                string strAlpha = (m_nMode != 1) ? "1" : "0";
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><cylinder length=\"" + Str(length) + "\" radius=\"" + Str(radius) + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"" + mat + "\"><color rgba=\"0.2 0.6 0.9 " + strAlpha + "\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><cylinder length=\"" + Str(length) + "\" radius=\"" + Str(radius) + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 행렬/수학 유틸
+
+            private static double[,] I()
+            {
+                return new double[4, 4] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
+            }
+
+            private static double[,] MM(double[,] A, double[,] B)
+            {
+                double[,] C = I();
+                for (int i = 0; i < 4; i++)
+                    for (int k = 0; k < 4; k++)
+                    {
+                        double s = 0;
+                        for (int j = 0; j < 4; j++) s += A[i, j] * B[j, k];
+                        C[i, k] = s;
+                    }
+                return C;
+            }
+
+            private static double[,] Tz(double z) { double[,] T = I(); T[2, 3] = z; return T; }
+            private static double[,] Tx(double x) { double[,] T = I(); T[0, 3] = x; return T; }
+            private static double[,] Rx(double r)
+            {
+                double c = Math.Cos(r);
+                double s = Math.Sin(r);
+                double[,] T = I();
+                T[1, 1] = c; T[1, 2] = -s; T[2, 1] = s; T[2, 2] = c; return T;
+            }
+            private static double[,] Ry(double r)
+            {
+                double c = Math.Cos(r);
+                double s = Math.Sin(r);
+                double[,] T = I();
+                T[0, 0] = c; T[0, 2] = s; T[2, 0] = -s; T[2, 2] = c; return T;
+            }
+
+
+            // 표준 DH 전체: Rz(θ)*Tz(d)*Tx(a)*Rx(α)  (θ,α는 deg 입력)
+            private static double[,] DHfull(double a, double d, double th, double al)
+            {
+                double rth = Deg2Rad(th), ral = Deg2Rad(al);
+                double cth = Math.Cos(rth), sth = Math.Sin(rth);
+                double cal = Math.Cos(ral), sal = Math.Sin(ral);
+
+                double[,] T = I();
+                T[0, 0] = cth; T[0, 1] = -sth * cal; T[0, 2] = sth * sal;
+                T[1, 0] = sth; T[1, 1] = cth * cal; T[1, 2] = -cth * sal;
+                T[2, 0] = 0; T[2, 1] = sal; T[2, 2] = cal;
+                T[0, 3] = cth * a; T[1, 3] = sth * a; T[2, 3] = d;
+                return T;
+            }
+
+            private static void Decompose(double[,] T, out double r00, out double r01, out double r02,
+                                                      out double r10, out double r11, out double r12,
+                                                      out double r20, out double r21, out double r22,
+                                                      out double px, out double py, out double pz)
+            {
+                r00 = T[0, 0]; r01 = T[0, 1]; r02 = T[0, 2];
+                r10 = T[1, 0]; r11 = T[1, 1]; r12 = T[1, 2];
+                r20 = T[2, 0]; r21 = T[2, 1]; r22 = T[2, 2];
+                px = T[0, 3]; py = T[1, 3]; pz = T[2, 3];
+            }
+
+            // 4x4 행렬 → rpy (조인트 origin용)
+            private static void RpyFromT(double[,] T, out double roll, out double pitch, out double yaw)
+            {
+                double r11 = T[0, 0], r21 = T[1, 0], r31 = T[2, 0];
+                double r32 = T[2, 1], r33 = T[2, 2];
+                roll = Math.Atan2(r32, r33);
+                pitch = Math.Atan2(-r31, Math.Sqrt(r11 * r11 + r21 * r21));
+                yaw = Math.Atan2(r21, r11);
+            }
+
+            // 3x3 → rpy
+            private static void RpyFromR(double[,] R, out double roll, out double pitch, out double yaw)
+            {
+                double r11 = R[0, 0], r21 = R[1, 0], r31 = R[2, 0];
+                double r32 = R[2, 1], r33 = R[2, 2];
+
+                double xy = r11 * r11 + r21 * r21;
+                pitch = Math.Atan2(-r31, Math.Sqrt(xy));
+
+                if (xy > 1e-12)
+                {
+                    roll = Math.Atan2(r32, r33);
+                    yaw = Math.Atan2(r21, r11);
+                }
+                else
+                {
+                    roll = 0.0;
+                    yaw = Math.Atan2(-R[0, 1], R[1, 1]);
+                }
+            }
+
+            // z축 정렬 회전에서 rpy 추출 (막대 방향 정렬용)
+            private static void RpyFromZDir(double vx, double vy, double vz, out double roll, out double pitch, out double yaw)
+            {
+                double len = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                if (len < 1e-12) { roll = 0; pitch = 0; yaw = 0; return; }
+                vx /= len; vy /= len; vz /= len;
+
+                double ux = 0, uy = 0, uz = 1;
+                if (Math.Abs(vz) > 0.999) { ux = 0; uy = 1; uz = 0; }
+
+                double xx = uy * vz - uz * vy;
+                double xy = uz * vx - ux * vz;
+                double xz = ux * vy - uy * vx;
+                double xlen = Math.Sqrt(xx * xx + xy * xy + xz * xz);
+                if (xlen < 1e-12) { xx = 1; xy = 0; xz = 0; xlen = 1; }
+                xx /= xlen; xy /= xlen; xz /= xlen;
+
+                double yx = vy * xz - vz * xy;
+                double yy = vz * xx - vx * xz;
+                double yz = vx * xy - vy * xx;
+
+                double r00 = xx, r01 = yx, r02 = vx;
+                double r10 = xy, r11 = yy, r12 = vy;
+                double r20 = xz, r21 = yz, r22 = vz;
+
+                roll = Math.Atan2(r21, r22);
+                pitch = Math.Atan2(-r20, Math.Sqrt(r00 * r00 + r10 * r10));
+                yaw = Math.Atan2(r10, r00);
+            }
+
+            private static void PoseFromT(double[,] T, out string xyz, out string rpy)
+            {
+                double roll, pitch, yaw; RpyFromT(T, out roll, out pitch, out yaw);
+                xyz = Str(T[0, 3]) + " " + Str(T[1, 3]) + " " + Str(T[2, 3]);
+                rpy = Str(roll) + " " + Str(pitch) + " " + Str(yaw);
+            }
+
+            // ===== 3x3 회전행렬 유틸 =====
+            private static void MatMul(double[,] A, double[,] B, double[,] C)
+            {
+                for (int r = 0; r < 3; ++r)
+                {
+                    for (int c = 0; c < 3; ++c)
+                    {
+                        C[r, c] = A[r, 0] * B[0, c] + A[r, 1] * B[1, c] + A[r, 2] * B[2, c];
+                    }
+                }
+            }
+            private static void Copy3x3(double[,] S, double[,] Dst)
+            {
+                for (int r = 0; r < 3; ++r)
+                    for (int c = 0; c < 3; ++c)
+                        Dst[r, c] = S[r, c];
+            }
+            private static void SetRtoT(double[,] R, double[,] T)
+            {
+                T[0, 0] = R[0, 0]; T[0, 1] = R[0, 1]; T[0, 2] = R[0, 2];
+                T[1, 0] = R[1, 0]; T[1, 1] = R[1, 1]; T[1, 2] = R[1, 2];
+                T[2, 0] = R[2, 0]; T[2, 1] = R[2, 1]; T[2, 2] = R[2, 2];
+            }
+            // 3x3 회전만 추출
+            private static void ExtractR(double[,] T, double[,] R)
+            {
+                R[0, 0] = T[0, 0]; R[0, 1] = T[0, 1]; R[0, 2] = T[0, 2];
+                R[1, 0] = T[1, 0]; R[1, 1] = T[1, 1]; R[1, 2] = T[1, 2];
+                R[2, 0] = T[2, 0]; R[2, 1] = T[2, 1]; R[2, 2] = T[2, 2];
+            }
+
+            // T의 회전은 I로 만들고, 평행이동만 유지
+            private static double[,] T_KeepTranslationOnly(double[,] Tin)
+            {
+                double[,] T = I();
+                T[0, 3] = Tin[0, 3];
+                T[1, 3] = Tin[1, 3];
+                T[2, 3] = Tin[2, 3];
+                return T;
+            }
+
+            // 표준 ZYX (yaw→pitch→roll) : R = Rz(yaw)*Ry(pitch)*Rx(roll)
+            private static void R_Standard_ZYX(double roll, double pitch, double yaw, double[,] R)
+            {
+                double[,] Rxm = new double[3, 3], Rym = new double[3, 3], Rzm = new double[3, 3], tmp = new double[3, 3];
+                R3x_Rx(roll, Rxm);
+                R3x_Ry(pitch, Rym);
+                R3x_Rz(yaw, Rzm);
+                MatMul(Rzm, Rym, tmp);
+                MatMul(tmp, Rxm, R);
+            }
+
+            // Pan→Tilt→Swing : R = Rz(swing) * Rx(tilt) * Ry(pan)
+            // (적용 순서를 pan(Y) → tilt(X) → swing(Z) 로 명시)
+            private static void R_PanTiltSwing(double pan, double tilt, double swing, double[,] R)
+            {
+                double[,] Ry = new double[3, 3], Rx = new double[3, 3], Rz = new double[3, 3], tmp = new double[3, 3];
+                R3x_Ry(pan, Ry);
+                R3x_Rx(tilt, Rx);
+                R3x_Rz(swing, Rz);
+                MatMul(Rx, Ry, tmp);      // 먼저 pan(Y), 그 다음 tilt(X)
+                MatMul(Rz, tmp, R);       // 마지막 swing(Z)
+            }
+
+            // 3x3 기본 회전
+            private static void R3x_Rx(double ang, double[,] R)
+            {
+                double c = Math.Cos(ang), s = Math.Sin(ang);
+                R[0, 0] = 1; R[0, 1] = 0; R[0, 2] = 0;
+                R[1, 0] = 0; R[1, 1] = c; R[1, 2] = -s;
+                R[2, 0] = 0; R[2, 1] = s; R[2, 2] = c;
+            }
+            private static void R3x_Ry(double ang, double[,] R)
+            {
+                double c = Math.Cos(ang), s = Math.Sin(ang);
+                R[0, 0] = c; R[0, 1] = 0; R[0, 2] = s;
+                R[1, 0] = 0; R[1, 1] = 1; R[1, 2] = 0;
+                R[2, 0] = -s; R[2, 1] = 0; R[2, 2] = c;
+            }
+            private static void R3x_Rz(double ang, double[,] R)
+            {
+                double c = Math.Cos(ang), s = Math.Sin(ang);
+                R[0, 0] = c; R[0, 1] = -s; R[0, 2] = 0;
+                R[1, 0] = s; R[1, 1] = c; R[1, 2] = 0;
+                R[2, 0] = 0; R[2, 1] = 0; R[2, 2] = 1;
+            }
+
+            // ── 숫자/문자 유틸
+            private static double D(string s) { return double.Parse(s, CultureInfo.InvariantCulture); }
+            private static double Deg2Rad(double v) { return v * Math.PI / 180.0; }
+            private static string Str(double v) { return v.ToString("0.########", CultureInfo.InvariantCulture); }
+            private static string Xml(string s)
+            {
+                if (s == null) return "";
+                return s.Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
+            }
+        }
+
+#else
+
+        public class COjwUrdf
+        {
+            public int m_nMode = -1; // 0 : skeleton, 1 : stl, -1 : all
+
+            // ===== 단위/시각화 옵션 =====
+            private const double SCALE = 0.001;   // mm → m
+            private const double NODE_R = 0.01;   // 노드(구) 반지름 (m)
+            private const double BAR_R = 0.005;   // 막대(실린더) 반지름 (m)
+            private const double MASS = 0.01;   // 링크 질량
+            private const double EPS = 1e-9;
+
+            // ──────────────────────────────────────────────────────────────────────
+            // STL 공통 보정값 (모든 @[…] 라인에 동일 적용; “연산 끝난 후” 적용)
+            // 회전 오프셋(도) : Pan(Y), Tilt(X), Swing(Z)
+            public double STL_PAN_OFFSET_DEG = 0.0; // +Y (pan)
+            public double STL_TILT_OFFSET_DEG = 0.0; // +X (tilt)
+            public double STL_SWING_OFFSET_DEG = 0.0; // +Z (swing)
+
+            private double STL_ORG_PAN_OFFSET_DEG = 0.0; // +Z 회전
+            private double STL_ORG_TILT_OFFSET_DEG = 0.0; // +Y 회전
+            private double STL_ORG_SWING_OFFSET_DEG = 0.0; // +X 회전
+
+            // 위치 오프셋(mm)
+            public double STL_DX_MM = 0.0;
+            public double STL_DY_MM = 0.0;
+            public double STL_DZ_MM = 0.0;
+
+            // T의 회전은 I로 만들고, 평행이동만 유지
+            private static double[,] T_KeepTranslationOnly(double[,] Tin)
+            {
+                double[,] T = I();
+                T[0, 3] = Tin[0, 3];
+                T[1, 3] = Tin[1, 3];
+                T[2, 3] = Tin[2, 3];
+                return T;
+            }
+
+            public void setOffset(double p, double t, double s)
+            {
+
+                STL_ORG_PAN_OFFSET_DEG = p; // +Z 회전
+                STL_ORG_TILT_OFFSET_DEG = t; // +Y 회전
+                STL_ORG_SWING_OFFSET_DEG = s; // +X 회전
+
+            }
+            public void setOffset_after(double p, double t, double s)
+            {
+
+                STL_PAN_OFFSET_DEG = p; // +Z 회전
+                STL_TILT_OFFSET_DEG = t; // +Y 회전
+                STL_SWING_OFFSET_DEG = s; // +X 회전
+
+            }
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 데이터 구조
+            class DhRow { public double a, d, th, al; public int motor, dir, reset; }
+
+            class LinkBuf
+            {
+                public string name;
+                public StringBuilder body = new StringBuilder(); // visual/collision 누적
+                public LinkBuf(string n) { name = n; }
+            }
+
+            class JointRec
+            {
+                public string name, type, parent, child;
+                public string origin_xyz, origin_rpy, axis, mimicOf, mimicMul, mimicOff;
+            }
+
+            class StlRow
+            {
+                public string file;       // e.g. follower_0.stl
+                public int color;         // 사용 안함
+                public double scale;      // mesh scale (입력줄 배율)
+                public int grp0, grp1;    // 사용 안함
+                public double px, py, pz; // 위치(mm)  [x,y,z]
+                public double rr, pp, yy; // 회전(deg) [roll, pitch, yaw]
+            }
+
+            // 필요시 파일별 보정 회전 넣을 자리 (지금은 비워둠)
+            private static Dictionary<string, Action<double[,], double[,]>> s_meshCorrection =
+                new Dictionary<string, Action<double[,], double[,]>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    // 예) {"some.stl",(Rin,Rout)=>{ double[,] C=new double[3,3]; R3x_Rz(Math.PI/2,C); double[,] T=new double[3,3]; MatMul(C,Rin,T); Copy3x3(T,Rout);} },
+                };
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 외부에서 바로 호출할 함수 (버튼 핸들러에서 사용)
+            // txtUrdf.Text = new UrdfFromDhVs2010().MakeDHSkeleton_URDF(txtDhInput.Text, "ojw_robot", true);
+            public string MakeDHSkeleton_URDF(string src, string robotName, bool isStlInMM /*기본 true 권장*/ = true)
+            {
+                return BuildUrdfCore(src, robotName, isStlInMM);
+            }
+
+            // 내부 코어
+            private string BuildUrdfCore(string src, string robotName, bool isStlInMM)
+            {
+                // 첫 번째 STL 여부 플래그 (메서드 시작 부분에서 선언 필요)
+                bool isFirstStl = true;
+
+                var links = new Dictionary<string, LinkBuf>();
+                links["world"] = new LinkBuf("world");
+                links["base_link"] = new LinkBuf("base_link");
+                AppendNode(links["base_link"]); // 베이스 구 추가(표시용)
+
+                var joints = new List<JointRec>();
+                var motorIdToJointName = new Dictionary<int, string>(); // T<ID>
+                var followerCount = new Dictionary<int, int>();    // t<ID>_k 카운터
+                var madeMotor = new HashSet<int>();
+
+                // world → base_link : 좌표계 매핑 없음(요청대로 회전/스왑 제거)
+                joints.Add(new JointRec
+                {
+                    name = "world_to_base",
+                    type = "fixed",
+                    parent = "world",
+                    child = "base_link",
+                    origin_xyz = "0 0 0",
+                    origin_rpy = "0 0 0"
+                });
+
+                string parent = "base_link";
+                int linkIdx = 0;
+
+                // 누적 고정 변환
+                double[,] Tacc = I();
+
+                // 라인 단위 처리
+                string[] lines = (src ?? "").Replace("\r", "").Split('\n');
+                Regex reDh = new Regex(
+                    @"\[(?<a>[-+]?\d+(\.\d+)?)[,\s]+(?<d>[-+]?\d+(\.\d+)?)[,\s]+(?<th>[-+]?\d+(\.\d+)?)[,\s]+(?<al>[-+]?\d+(\.\d+)?)\]\s*,\s*\[(?<m>[-+]?\d+)[,\s]+(?<dir>[-+]?\d+)[,\s]+(?<rst>[-+]?\d+)\]",
+                    RegexOptions.Compiled);
+
+                for (int li = 0; li < lines.Length; li++)
+                {
+                    string line = lines[li];
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    int cpos = line.IndexOf("//");
+                    string lineNoCmt = (cpos >= 0) ? line.Substring(0, cpos) : line;
+                    lineNoCmt = lineNoCmt.Trim();
+                    if (lineNoCmt.Length == 0) continue;
+
+                    // 1) STL 라인?
+                    StlRow stl;
+                    //if (TryParseStlLine(lineNoCmt, out stl))
+                    //{
+                    //    if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+                    //    AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM); // ⬅ pan→tilt→swing 오프셋 최종 적용
+                    //    continue;
+                    //}
+#if false
+                    if (TryParseStlLine(lineNoCmt, out stl))
+                    {
+                        if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+                        AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tacc); // ⬅ Tacc 전달
+                        continue;
+                    }
+#else
+                    // 첫 번째 STL 여부 플래그 (메서드 시작 부분에서 선언 필요)
+                    //bool isFirstStl = true;
+
+                    // … (위쪽 생략) …
+
+                    if (TryParseStlLine(lineNoCmt, out stl))
+                    {
+                        if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+
+                        // 첫 번째 STL만 부모 회전 제거(이동만 유지) → 앞의 고정 DH 회전이 STL 회전을 잠식하는 문제 방지
+                        double[,] Tparent = isFirstStl ? T_KeepTranslationOnly(Tacc) : Tacc;
+
+                        AppendStl_WithFinalOffset_PTS(links[parent], stl, isStlInMM, Tparent);
+                        isFirstStl = false; // 다음부턴 정상 처리
+                        continue;
+                    }
+
+#endif
+                    // 2) DH 라인?
+                    Match m = reDh.Match(lineNoCmt);
+                    if (!m.Success) continue;
+
+                    var r = new DhRow();
+                    r.a = D(m.Groups["a"].Value);
+                    r.d = D(m.Groups["d"].Value);
+                    r.th = D(m.Groups["th"].Value);
+                    r.al = D(m.Groups["al"].Value);
+                    r.motor = (int)D(m.Groups["m"].Value);
+                    r.dir = (int)D(m.Groups["dir"].Value);
+                    r.reset = (int)D(m.Groups["rst"].Value);
+
+                    // reset 처리
+                    if (r.reset != 0)
+                    {
+                        parent = "base_link";
+                        Tacc = I();
+#if true
+                         isFirstStl = true; // ← reset 이후 첫 STL에도 동일하게 적용하고 싶다면
+#endif
+                    }
+
+                    bool isMotor = (r.motor >= 0);
+
+                    // 막대(프리미티브) 추가: 부모원점 → (부모원점 + Racc*[a,0,d])
+                    if (!links.ContainsKey(parent)) links[parent] = new LinkBuf(parent);
+                    AddSegmentBarToParent(links[parent], Tacc, r.a * SCALE, r.d * SCALE, BAR_R);
+
+                    if (!isMotor)
+                    {
+                        // 순수 고정변환 누적 (표준 DH 전체)
+                        Tacc = MM(Tacc, DHfull(r.a * SCALE, r.d * SCALE, r.th, r.al));
+                        continue;
+                    }
+
+                    // 모터 라인
+                    if (!madeMotor.Contains(r.motor))
+                    {
+                        madeMotor.Add(r.motor);
+
+                        // 메인 모터: 이름 T<ID>, origin = Tacc * Tz(d)
+                        double[,] Torigin = MM(Tacc, Tz(r.d * SCALE));
+                        string jOriginXYZ, jOriginRPY; PoseFromT(Torigin, out jOriginXYZ, out jOriginRPY);
+
+                        string child = "link_" + (++linkIdx).ToString();
+                        if (!links.ContainsKey(child)) links[child] = new LinkBuf(child);
+                        AppendNode(links[child]);
+
+                        string jname = "T" + r.motor.ToString();
+                        motorIdToJointName[r.motor] = jname;
+
+                        var jr = new JointRec();
+                        jr.name = jname; jr.type = "revolute";
+                        jr.parent = parent; jr.child = child;
+                        jr.origin_xyz = jOriginXYZ; jr.origin_rpy = jOriginRPY;
+                        jr.axis = (r.dir == 1) ? "0 0 -1" : "0 0 1";
+                        joints.Add(jr);
+
+                        parent = child;
+                        Tacc = MM(Tx(r.a * SCALE), Rx(Deg2Rad(r.al)));
+                        if (!followerCount.ContainsKey(r.motor)) followerCount[r.motor] = 0;
+                    }
+                    else
+                    {
+                        // follower (mimic)
+                        double[,] Torigin = MM(Tacc, Tz(r.d * SCALE));
+                        string jOriginXYZ, jOriginRPY; PoseFromT(Torigin, out jOriginXYZ, out jOriginRPY);
+
+                        string child = "link_" + (++linkIdx).ToString();
+                        if (!links.ContainsKey(child)) links[child] = new LinkBuf(child);
+                        AppendNode(links[child]);
+
+                        int idx = followerCount.ContainsKey(r.motor) ? followerCount[r.motor] : 0;
+                        string jname = "t" + r.motor.ToString() + "_" + idx.ToString();
+                        followerCount[r.motor] = idx + 1;
+
+                        var jr = new JointRec();
+                        jr.name = jname; jr.type = "revolute";
+                        jr.parent = parent; jr.child = child;
+                        jr.origin_xyz = jOriginXYZ; jr.origin_rpy = jOriginRPY;
+                        jr.axis = (r.dir == 1) ? "0 0 -1" : "0 0 1";
+                        jr.mimicOf = motorIdToJointName.ContainsKey(r.motor) ? motorIdToJointName[r.motor] : null;
+                        jr.mimicMul = "1"; jr.mimicOff = "0";
+                        joints.Add(jr);
+
+                        parent = child;
+                        Tacc = MM(Tx(r.a * SCALE), Rx(Deg2Rad(r.al)));
+                    }
+                }
+
+                // ── URDF 출력
+                var sb = new StringBuilder();
+                sb.AppendLine("<robot name=\"" + Xml(robotName) + "\">");
+
+                foreach (KeyValuePair<string, LinkBuf> kv in links)
+                {
+                    sb.AppendLine("  <link name=\"" + kv.Value.name + "\">");
+                    if (kv.Value.name != "world")
+                    {
+                        sb.AppendLine("    <inertial>");
+                        sb.AppendLine("      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>");
+                        sb.AppendLine("      <mass value=\"" + Str(MASS) + "\"/>");
+                        sb.AppendLine("      <inertia ixx=\"1e-6\" ixy=\"0\" ixz=\"0\" iyy=\"1e-6\" iyz=\"0\" izz=\"1e-6\"/>");
+                        sb.AppendLine("    </inertial>");
+                    }
+                    sb.Append(kv.Value.body.ToString());
+                    sb.AppendLine("  </link>");
+                }
+
+                foreach (JointRec j in joints)
+                {
+                    sb.AppendLine("  <joint name=\"" + j.name + "\" type=\"" + j.type + "\">");
+                    sb.AppendLine("    <parent link=\"" + j.parent + "\"/>");
+                    sb.AppendLine("    <child link=\"" + j.child + "\"/>");
+                    sb.AppendLine("    <origin xyz=\"" + j.origin_xyz + "\" rpy=\"" + j.origin_rpy + "\"/>");
+                    if (!string.IsNullOrEmpty(j.axis)) sb.AppendLine("    <axis xyz=\"" + j.axis + "\"/>");
+                    if (!string.IsNullOrEmpty(j.mimicOf))
+                        sb.AppendLine("    <mimic joint=\"" + j.mimicOf + "\" multiplier=\"" + j.mimicMul + "\" offset=\"" + j.mimicOff + "\"/>");
+                    if (j.type == "revolute")
+                        sb.AppendLine("    <limit lower=\"-3.1415926535\" upper=\"3.1415926535\" effort=\"100\" velocity=\"5\"/>");
+                    sb.AppendLine("  </joint>");
+                }
+
+                sb.AppendLine("</robot>");
+                return sb.ToString();
+            }
+
+            // ──────────────────────────────────────────────────────────────────────
+            // STL 라인 파싱: @[file,color,scale],[g0,g1],[x,y,z],[r,p,y]
+            private static bool TryParseStlLine(string line, out StlRow o)
+            {
+                o = null;
+                if (!line.StartsWith("@[")) return false;
+
+                int cpos = line.IndexOf("//");
+                if (cpos >= 0) line = line.Substring(0, cpos);
+                line = line.Trim();
+
+                List<string> blocks = new List<string>();
+                int i = 0;
+                while (i < line.Length)
+                {
+                    int s = line.IndexOf('[', i);
+                    if (s < 0) break;
+                    int e = line.IndexOf(']', s + 1);
+                    if (e < 0) break;
+                    blocks.Add(line.Substring(s + 1, e - s - 1));
+                    i = e + 1;
+                }
+                if (blocks.Count < 4) return false;
+
+                string b0 = blocks[0]; // file,color,scale
+                string[] t0 = b0.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (t0.Length < 3) return false;
+                string file = t0[0].Trim();
+                int color = 0; double scale = 1.0;
+                int.TryParse(t0[1].Trim(), out color);
+                double.TryParse(t0[2].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out scale);
+
+                string[] t1 = blocks[1].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                int g0 = 0, g1 = 0;
+                if (t1.Length >= 1) int.TryParse(t1[0].Trim(), out g0);
+                if (t1.Length >= 2) int.TryParse(t1[1].Trim(), out g1);
+
+                string[] t2 = blocks[2].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (t2.Length < 3) return false;
+                double px = D(t2[0].Trim());
+                double py = D(t2[1].Trim());
+                double pz = D(t2[2].Trim());
+
+                string[] t3 = blocks[3].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (t3.Length < 3) return false;
+                double rr = D(t3[0].Trim());
+                double pp = D(t3[1].Trim());
+                double yy = D(t3[2].Trim());
+
+                o = new StlRow { file = file, color = color, scale = scale, grp0 = g0, grp1 = g1, px = px, py = py, pz = pz, rr = rr, pp = pp, yy = yy };
+                return true;
+            }
+
+#if false
+            // STL 추가: “최종 보정 Toff(PTS 순서)”를 뒤에 곱해 적용: Tfinal = T * Toff
+            private void AppendStl_WithFinalOffset_PTS(LinkBuf lb, StlRow s, bool isStlInMM)
+            {
+                // (1) 원래 포즈 T 구성 (mm→m, deg→rad)
+                double px = s.px * SCALE, py = s.py * SCALE, pz = s.pz * SCALE;
+                //double rr = Deg2Rad(s.rr), pp = Deg2Rad(s.pp), yy = Deg2Rad(s.yy);
+                double rr = Deg2Rad(s.rr + STL_ORG_SWING_OFFSET_DEG), pp = Deg2Rad(s.pp + STL_ORG_TILT_OFFSET_DEG), yy = Deg2Rad(s.yy + STL_ORG_PAN_OFFSET_DEG);
+
+                // 원래 회전행렬: R = Rz(yaw) * Ry(pitch) * Rx(roll)
+                double[,] R = new double[3, 3];
+                R_Standard_ZYX(rr, pp, yy, R);
+
+                double[,] T = I();
+                SetRtoT(R, T);
+                T[0, 3] = px; T[1, 3] = py; T[2, 3] = pz;
+
+                // (2) 공통 보정 Toff (Pan→Tilt→Swing, 위치 오프셋 포함)
+                double pan = Deg2Rad(STL_PAN_OFFSET_DEG);
+                double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);
+                double swing = Deg2Rad(STL_SWING_OFFSET_DEG);
+
+                double[,] Roff = new double[3, 3];
+                R_PanTiltSwing(pan, tilt, swing, Roff); // ⬅ 순서: Y → X → Z
+
+                double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+
+                double[,] Toff = I();
+                SetRtoT(Roff, Toff);
+                Toff[0, 3] = dx; Toff[1, 3] = dy; Toff[2, 3] = dz;
+
+                // (3) 최종: Tfinal = T * Toff  (연산 끝난 후 오프셋 덧씌움)
+                double[,] Tfinal = MM(T, Toff);
+
+                // (4) xyz/rpy 추출
+                string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+                // (5) mesh scale: (입력 스케일) × (STL이 mm라면 0.001, m라면 1)
+                double k = isStlInMM ? 0.001 : 1.0;
+                double uni = s.scale * k;
+                string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+
+                string matName = Xml(s.file) + "_mat";
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 1\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+#else
+            //// STL 추가: "최종 보정 Toff(PTS 순서)"를 뒤에 곱해 적용: Tfinal = T * Toff
+            //private void AppendStl_WithFinalOffset_PTS(LinkBuf lb, StlRow s, bool isStlInMM)
+            //{
+            //    // (1) 원래 포즈 T 구성 (mm→m, deg→rad) - 이동 먼저, 회전 나중
+            //    double px = s.px * SCALE, py = s.py * SCALE, pz = s.pz * SCALE;
+            //    double rr = Deg2Rad(s.rr + STL_ORG_SWING_OFFSET_DEG), pp = Deg2Rad(s.pp + STL_ORG_TILT_OFFSET_DEG), yy = Deg2Rad(s.yy + STL_ORG_PAN_OFFSET_DEG);
+
+            //    // 이동 행렬 생성
+            //    double[,] Tt = I();
+            //    Tt[0, 3] = px; Tt[1, 3] = py; Tt[2, 3] = pz;
+
+            //    // 회전 행렬 생성
+            //    double[,] R = new double[3, 3];
+            //    R_Standard_ZYX(rr, pp, yy, R);
+            //    double[,] Tr = I();
+            //    SetRtoT(R, Tr);
+
+            //    // 최종 T = Tr * Tt (이동 먼저, 회전 나중)
+            //    double[,] T = MM(Tr, Tt);
+
+            //    // (2) 공통 보정 Toff (Pan→Tilt→Swing, 위치 오프셋 포함) - 이동 먼저, 회전 나중
+            //    double pan = Deg2Rad(STL_PAN_OFFSET_DEG);
+            //    double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);
+            //    double swing = Deg2Rad(STL_SWING_OFFSET_DEG);
+
+            //    // 오프셋 이동 행렬
+            //    double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+            //    double[,] Toff_t = I();
+            //    Toff_t[0, 3] = dx; Toff_t[1, 3] = dy; Toff_t[2, 3] = dz;
+
+            //    // 오프셋 회전 행렬
+            //    double[,] Roff = new double[3, 3];
+            //    R_PanTiltSwing(pan, tilt, swing, Roff);
+            //    double[,] Toff_r = I();
+            //    SetRtoT(Roff, Toff_r);
+
+            //    // 최종 Toff = Toff_r * Toff_t (이동 먼저, 회전 나중)
+            //    double[,] Toff = MM(Toff_r, Toff_t);
+
+            //    // (3) 최종: Tfinal = T * Toff  (연산 끝난 후 오프셋 덧씌움)
+            //    double[,] Tfinal = MM(T, Toff);
+
+            //    // (4) xyz/rpy 추출
+            //    string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+            //    // (5) mesh scale: (입력 스케일) × (STL이 mm라면 0.001, m라면 1)
+            //    double k = isStlInMM ? 0.001 : 1.0;
+            //    double uni = s.scale * k;
+            //    string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+
+            //    string matName = Xml(s.file) + "_mat";
+            //    lb.body.AppendLine("    <visual>");
+            //    lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+            //    lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+            //    lb.body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 1\"/></material>");
+            //    lb.body.AppendLine("    </visual>");
+            //    lb.body.AppendLine("    <collision>");
+            //    lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+            //    lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+            //    lb.body.AppendLine("    </collision>");
+            //}
+            // 외적 XYZ: R = Rx(roll) * Ry(pitch) * Rz(yaw)
+            private static void R_Extrinsic_XYZ(double roll, double pitch, double yaw, double[,] R)
+            {
+                double[,] Rxm = new double[3, 3], Rym = new double[3, 3], Rzm = new double[3, 3], tmp = new double[3, 3];
+                R3x_Rx(roll, Rxm);
+                R3x_Ry(pitch, Rym);
+                R3x_Rz(yaw, Rzm);
+                MatMul(Rxm, Rym, tmp);
+                MatMul(tmp, Rzm, R);
+            }
+
+            private void AppendStl_WithFinalOffset_PTS(LinkBuf lb, StlRow s, bool isStlInMM, double[,] Tacc)
+            {
+                // (0) 입력 각도 조정 (roll↔pitch 스왑/부호 보정) — 필요 시 유지
+                double rrDeg = s.rr, ppDeg = s.pp, yyDeg = s.yy;
+                //if (STL_SWAP_ROLL_PITCH) { double t = rrDeg; rrDeg = ppDeg; ppDeg = t; }
+                //rrDeg = STL_SIGN_ROLL * rrDeg;
+                //ppDeg = STL_SIGN_PITCH * ppDeg;
+                //yyDeg = STL_SIGN_YAW * yyDeg;
+                double t = rrDeg; rrDeg = ppDeg; ppDeg = t; // Swap 하자...
+
+                // (1) 입력 포즈 T (mm→m, deg→rad)
+                double px = s.px * SCALE, py = s.py * SCALE, pz = s.pz * SCALE;
+                double rr = Deg2Rad(rrDeg), pp = Deg2Rad(ppDeg), yy = Deg2Rad(yyDeg);
+
+                double[,] R = new double[3, 3];
+                //R_Standard_ZYX(rr, pp, yy, R);   // R = Rz(yaw)*Ry(pitch)*Rx(roll)
+
+                // STL 각도 해석 모드: true면 외적 XYZ (Rx * Ry * Rz), false면 내적 ZYX (Rz * Ry * Rx)
+                bool STL_EXTRINSIC_XYZ = true; // ← C# OpenGL과 맞추려면 true 권장
+                if (STL_EXTRINSIC_XYZ)
+                {
+                    // C# OpenGL과 동일한 해석: R = Rx * Ry * Rz
+                    R_Extrinsic_XYZ(rr, pp, yy, R);
+                }
+                else
+                {
+                    // 표준 내적 ZYX: R = Rz * Ry * Rx
+                    R_Standard_ZYX(rr, pp, yy, R);
+                }
+
+                double[,] T = I();
+                SetRtoT(R, T);
+                T[0, 3] = px; T[1, 3] = py; T[2, 3] = pz;
+
+                // (2) 오프셋 Toff — 표준 ZYX로 환원 (yaw=pan, pitch=tilt, roll=swing)
+                double pan = Deg2Rad(STL_PAN_OFFSET_DEG);   // Z
+                double tilt = Deg2Rad(STL_TILT_OFFSET_DEG);  // Y
+                double swing = Deg2Rad(STL_SWING_OFFSET_DEG); // X
+
+                double[,] Roff = new double[3, 3];
+                R_Standard_ZYX(swing, tilt, pan, Roff); // roll←swing, pitch←tilt, yaw←pan
+
+                double dx = STL_DX_MM * SCALE, dy = STL_DY_MM * SCALE, dz = STL_DZ_MM * SCALE;
+
+                double[,] Toff = I();
+                SetRtoT(Roff, Toff);
+                Toff[0, 3] = dx; Toff[1, 3] = dy; Toff[2, 3] = dz;
+
+                // (3) 최종 = 부모누적 * (입력 * 오프셋)
+                double[,] Ttmp = MM(T, Toff);
+                double[,] Tfinal = MM(Tacc, Ttmp);
+
+                // (4) xyz/rpy
+                string xyz, rpy; PoseFromT(Tfinal, out xyz, out rpy);
+
+                // (5) mesh scale
+                double k = isStlInMM ? 0.001 : 1.0;
+                double uni = s.scale * k;
+                string sscale = Str(uni) + " " + Str(uni) + " " + Str(uni);
+
+                string strAlpha = (m_nMode != 0) ? ((s.file.Length > 4) ? "1" : "0") : "0";
+                string matName = Xml(s.file) + "_mat";
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"" + matName + "\"><color rgba=\"1 1 1 " + strAlpha + "\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><mesh filename=\"" + Xml(s.file) + "\" scale=\"" + sscale + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+
+
+
+#endif
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 프리미티브: 링크 원점 구 추가(표시용)
+            private void AppendNode(LinkBuf lb)
+            {
+
+                string strAlpha = (m_nMode != 1) ? "1" : "0";
+
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>");
+                lb.body.AppendLine("      <geometry><sphere radius=\"" + Str(NODE_R) + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"node\"><color rgba=\"0.3 0.7 1 " + strAlpha + "\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>");
+                lb.body.AppendLine("      <geometry><sphere radius=\"" + Str(NODE_R) + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+
+            // 실린더(막대) 추가 (부모원점 → 다음 관절 원점)
+            private void AddSegmentBarToParent(LinkBuf parentLb, double[,] Tacc, double a_m, double d_m, double radius)
+            {
+                if (Math.Abs(a_m) < EPS && Math.Abs(d_m) < EPS) return;
+
+                double r00, r01, r02, r10, r11, r12, r20, r21, r22, px, py, pz;
+                Decompose(Tacc, out r00, out r01, out r02,
+                                out r10, out r11, out r12,
+                                out r20, out r21, out r22,
+                                out px, out py, out pz);
+
+                double vx = r00 * a_m + r02 * d_m;
+                double vy = r10 * a_m + r12 * d_m;
+                double vz = r20 * a_m + r22 * d_m;
+
+                double length = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                if (length < EPS) return;
+
+                double cx = px + 0.5 * vx;
+                double cy = py + 0.5 * vy;
+                double cz = pz + 0.5 * vz;
+
+                double roll, pitch, yaw;
+                RpyFromZDir(vx, vy, vz, out roll, out pitch, out yaw);
+
+                string xyz = Str(cx) + " " + Str(cy) + " " + Str(cz);
+                string rpy = Str(roll) + " " + Str(pitch) + " " + Str(yaw);
+                AppendCyl(parentLb, length, radius, xyz, rpy, "segbar");
+            }
+
+            // 시각화/충돌 실린더 공통
+            private void AppendCyl(LinkBuf lb, double length, double radius, string xyz, string rpy, string mat)
+            {
+                string strAlpha = (m_nMode != 1) ? "1" : "0";
+                lb.body.AppendLine("    <visual>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><cylinder length=\"" + Str(length) + "\" radius=\"" + Str(radius) + "\"/></geometry>");
+                lb.body.AppendLine("      <material name=\"" + mat + "\"><color rgba=\"0.2 0.6 0.9 " + strAlpha + "\"/></material>");
+                lb.body.AppendLine("    </visual>");
+                lb.body.AppendLine("    <collision>");
+                lb.body.AppendLine("      <origin xyz=\"" + xyz + "\" rpy=\"" + rpy + "\"/>");
+                lb.body.AppendLine("      <geometry><cylinder length=\"" + Str(length) + "\" radius=\"" + Str(radius) + "\"/></geometry>");
+                lb.body.AppendLine("    </collision>");
+            }
+
+            // ──────────────────────────────────────────────────────────────────────
+            // 행렬/수학 유틸
+
+            private static double[,] I()
+            {
+                return new double[4, 4] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
+            }
+
+            private static double[,] MM(double[,] A, double[,] B)
+            {
+                double[,] C = I();
+                for (int i = 0; i < 4; i++)
+                    for (int k = 0; k < 4; k++)
+                    {
+                        double s = 0;
+                        for (int j = 0; j < 4; j++) s += A[i, j] * B[j, k];
+                        C[i, k] = s;
+                    }
+                return C;
+            }
+
+            private static double[,] Tz(double z) { double[,] T = I(); T[2, 3] = z; return T; }
+            private static double[,] Tx(double x) { double[,] T = I(); T[0, 3] = x; return T; }
+            private static double[,] Rx(double r)
+            {
+                double c = Math.Cos(r);
+                double s = Math.Sin(r);
+                double[,] T = I();
+                T[1, 1] = c; T[1, 2] = -s; T[2, 1] = s; T[2, 2] = c; return T;
+            }
+            private static double[,] Ry(double r)
+            {
+                double c = Math.Cos(r);
+                double s = Math.Sin(r);
+                double[,] T = I();
+                T[0, 0] = c; T[0, 2] = s; T[2, 0] = -s; T[2, 2] = c; return T;
+            }
+
+
+            // 표준 DH 전체: Rz(θ)*Tz(d)*Tx(a)*Rx(α)  (θ,α는 deg 입력)
+            private static double[,] DHfull(double a, double d, double th, double al)
+            {
+                double rth = Deg2Rad(th), ral = Deg2Rad(al);
+                double cth = Math.Cos(rth), sth = Math.Sin(rth);
+                double cal = Math.Cos(ral), sal = Math.Sin(ral);
+
+                double[,] T = I();
+                T[0, 0] = cth; T[0, 1] = -sth * cal; T[0, 2] = sth * sal;
+                T[1, 0] = sth; T[1, 1] = cth * cal; T[1, 2] = -cth * sal;
+                T[2, 0] = 0; T[2, 1] = sal; T[2, 2] = cal;
+                T[0, 3] = cth * a; T[1, 3] = sth * a; T[2, 3] = d;
+                return T;
+            }
+
+            private static void Decompose(double[,] T, out double r00, out double r01, out double r02,
+                                                      out double r10, out double r11, out double r12,
+                                                      out double r20, out double r21, out double r22,
+                                                      out double px, out double py, out double pz)
+            {
+                r00 = T[0, 0]; r01 = T[0, 1]; r02 = T[0, 2];
+                r10 = T[1, 0]; r11 = T[1, 1]; r12 = T[1, 2];
+                r20 = T[2, 0]; r21 = T[2, 1]; r22 = T[2, 2];
+                px = T[0, 3]; py = T[1, 3]; pz = T[2, 3];
+            }
+
+            // 4x4 행렬 → rpy (조인트 origin용)
+            private static void RpyFromT(double[,] T, out double roll, out double pitch, out double yaw)
+            {
+                double r11 = T[0, 0], r21 = T[1, 0], r31 = T[2, 0];
+                double r32 = T[2, 1], r33 = T[2, 2];
+                roll = Math.Atan2(r32, r33);
+                pitch = Math.Atan2(-r31, Math.Sqrt(r11 * r11 + r21 * r21));
+                yaw = Math.Atan2(r21, r11);
+            }
+
+            // 3x3 → rpy
+            private static void RpyFromR(double[,] R, out double roll, out double pitch, out double yaw)
+            {
+                double r11 = R[0, 0], r21 = R[1, 0], r31 = R[2, 0];
+                double r32 = R[2, 1], r33 = R[2, 2];
+
+                double xy = r11 * r11 + r21 * r21;
+                pitch = Math.Atan2(-r31, Math.Sqrt(xy));
+
+                if (xy > 1e-12)
+                {
+                    roll = Math.Atan2(r32, r33);
+                    yaw = Math.Atan2(r21, r11);
+                }
+                else
+                {
+                    roll = 0.0;
+                    yaw = Math.Atan2(-R[0, 1], R[1, 1]);
+                }
+            }
+
+            // z축 정렬 회전에서 rpy 추출 (막대 방향 정렬용)
+            private static void RpyFromZDir(double vx, double vy, double vz, out double roll, out double pitch, out double yaw)
+            {
+                double len = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                if (len < 1e-12) { roll = 0; pitch = 0; yaw = 0; return; }
+                vx /= len; vy /= len; vz /= len;
+
+                double ux = 0, uy = 0, uz = 1;
+                if (Math.Abs(vz) > 0.999) { ux = 0; uy = 1; uz = 0; }
+
+                double xx = uy * vz - uz * vy;
+                double xy = uz * vx - ux * vz;
+                double xz = ux * vy - uy * vx;
+                double xlen = Math.Sqrt(xx * xx + xy * xy + xz * xz);
+                if (xlen < 1e-12) { xx = 1; xy = 0; xz = 0; xlen = 1; }
+                xx /= xlen; xy /= xlen; xz /= xlen;
+
+                double yx = vy * xz - vz * xy;
+                double yy = vz * xx - vx * xz;
+                double yz = vx * xy - vy * xx;
+
+                double r00 = xx, r01 = yx, r02 = vx;
+                double r10 = xy, r11 = yy, r12 = vy;
+                double r20 = xz, r21 = yz, r22 = vz;
+
+                roll = Math.Atan2(r21, r22);
+                pitch = Math.Atan2(-r20, Math.Sqrt(r00 * r00 + r10 * r10));
+                yaw = Math.Atan2(r10, r00);
+            }
+
+            private static void PoseFromT(double[,] T, out string xyz, out string rpy)
+            {
+                double roll, pitch, yaw; RpyFromT(T, out roll, out pitch, out yaw);
+                xyz = Str(T[0, 3]) + " " + Str(T[1, 3]) + " " + Str(T[2, 3]);
+                rpy = Str(roll) + " " + Str(pitch) + " " + Str(yaw);
+            }
+
+            // ===== 3x3 회전행렬 유틸 =====
+            private static void MatMul(double[,] A, double[,] B, double[,] C)
+            {
+                for (int r = 0; r < 3; ++r)
+                {
+                    for (int c = 0; c < 3; ++c)
+                    {
+                        C[r, c] = A[r, 0] * B[0, c] + A[r, 1] * B[1, c] + A[r, 2] * B[2, c];
+                    }
+                }
+            }
+            private static void Copy3x3(double[,] S, double[,] Dst)
+            {
+                for (int r = 0; r < 3; ++r)
+                    for (int c = 0; c < 3; ++c)
+                        Dst[r, c] = S[r, c];
+            }
+            private static void SetRtoT(double[,] R, double[,] T)
+            {
+                T[0, 0] = R[0, 0]; T[0, 1] = R[0, 1]; T[0, 2] = R[0, 2];
+                T[1, 0] = R[1, 0]; T[1, 1] = R[1, 1]; T[1, 2] = R[1, 2];
+                T[2, 0] = R[2, 0]; T[2, 1] = R[2, 1]; T[2, 2] = R[2, 2];
+            }
+
+            // 표준 ZYX (yaw→pitch→roll) : R = Rz(yaw)*Ry(pitch)*Rx(roll)
+            private static void R_Standard_ZYX(double roll, double pitch, double yaw, double[,] R)
+            {
+                double[,] Rxm = new double[3, 3], Rym = new double[3, 3], Rzm = new double[3, 3], tmp = new double[3, 3];
+                R3x_Rx(roll, Rxm);
+                R3x_Ry(pitch, Rym);
+                R3x_Rz(yaw, Rzm);
+                MatMul(Rzm, Rym, tmp);
+                MatMul(tmp, Rxm, R);
+            }
+
+            // Pan→Tilt→Swing : R = Rz(swing) * Rx(tilt) * Ry(pan)
+            // (적용 순서를 pan(Y) → tilt(X) → swing(Z) 로 명시)
+            private static void R_PanTiltSwing(double pan, double tilt, double swing, double[,] R)
+            {
+                double[,] Ry = new double[3, 3], Rx = new double[3, 3], Rz = new double[3, 3], tmp = new double[3, 3];
+                R3x_Ry(pan, Ry);
+                R3x_Rx(tilt, Rx);
+                R3x_Rz(swing, Rz);
+                MatMul(Rx, Ry, tmp);      // 먼저 pan(Y), 그 다음 tilt(X)
+                MatMul(Rz, tmp, R);       // 마지막 swing(Z)
+            }
+
+            // 3x3 기본 회전
+            private static void R3x_Rx(double ang, double[,] R)
+            {
+                double c = Math.Cos(ang), s = Math.Sin(ang);
+                R[0, 0] = 1; R[0, 1] = 0; R[0, 2] = 0;
+                R[1, 0] = 0; R[1, 1] = c; R[1, 2] = -s;
+                R[2, 0] = 0; R[2, 1] = s; R[2, 2] = c;
+            }
+            private static void R3x_Ry(double ang, double[,] R)
+            {
+                double c = Math.Cos(ang), s = Math.Sin(ang);
+                R[0, 0] = c; R[0, 1] = 0; R[0, 2] = s;
+                R[1, 0] = 0; R[1, 1] = 1; R[1, 2] = 0;
+                R[2, 0] = -s; R[2, 1] = 0; R[2, 2] = c;
+            }
+            private static void R3x_Rz(double ang, double[,] R)
+            {
+                double c = Math.Cos(ang), s = Math.Sin(ang);
+                R[0, 0] = c; R[0, 1] = -s; R[0, 2] = 0;
+                R[1, 0] = s; R[1, 1] = c; R[1, 2] = 0;
+                R[2, 0] = 0; R[2, 1] = 0; R[2, 2] = 1;
+            }
+
+            // ── 숫자/문자 유틸
+            private static double D(string s) { return double.Parse(s, CultureInfo.InvariantCulture); }
+            private static double Deg2Rad(double v) { return v * Math.PI / 180.0; }
+            private static string Str(double v) { return v.ToString("0.########", CultureInfo.InvariantCulture); }
+            private static string Xml(string s)
+            {
+                if (s == null) return "";
+                return s.Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
+            }
+        }
+
+
+#endif
+#endif
     }
 }

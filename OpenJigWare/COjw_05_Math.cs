@@ -558,8 +558,8 @@ namespace OpenJigWare
                 i = 3; adCalcY[i, 0] = 0.0; adCalcY[i, 1] = 0.0; adCalcY[i, 2] = 0.0; adCalcY[i, 3] = 1.0;
 
                 // rotation by axis(z)
-                i = 0; adCalcZ[i, 0] = (double)Cos(dAngleY); adCalcZ[i, 1] = -(double)Sin(dAngleY); adCalcZ[i, 2] = 0.0; adCalcZ[i, 3] = 0.0;
-                i = 1; adCalcZ[i, 0] = (double)Sin(dAngleY); adCalcZ[i, 1] = (double)Cos(dAngleY); adCalcZ[i, 2] = 0.0; adCalcZ[i, 3] = 0.0;
+                i = 0; adCalcZ[i, 0] = (double)Cos(dAngleZ); adCalcZ[i, 1] = -(double)Sin(dAngleZ); adCalcZ[i, 2] = 0.0; adCalcZ[i, 3] = 0.0;
+                i = 1; adCalcZ[i, 0] = (double)Sin(dAngleZ); adCalcZ[i, 1] = (double)Cos(dAngleZ); adCalcZ[i, 2] = 0.0; adCalcZ[i, 3] = 0.0;
                 i = 2; adCalcZ[i, 0] = 0.0; adCalcZ[i, 1] = 0.0; adCalcZ[i, 2] = 1.0; adCalcZ[i, 3] = 0.0;
                 i = 3; adCalcZ[i, 0] = 0.0; adCalcZ[i, 1] = 0.0; adCalcZ[i, 2] = 0.0; adCalcZ[i, 3] = 1.0;
 
@@ -615,9 +615,9 @@ namespace OpenJigWare
 
                 if (dAngleZ != 0)
                 {
-                    // rotation by axis(Z)
-                    i = 0; adCalc[i, 0] = (double)Cos(dAngleY); adCalc[i, 1] = -(double)Sin(dAngleY); adCalc[i, 2] = 0.0; adCalc[i, 3] = 0.0;
-                    i = 1; adCalc[i, 0] = (double)Sin(dAngleY); adCalc[i, 1] = (double)Cos(dAngleY); adCalc[i, 2] = 0.0; adCalc[i, 3] = 0.0;
+                    // rotation by axis(Z) — 이전 버그: dAngleY를 사용하여 Z 회전이 무효화되었음
+                    i = 0; adCalc[i, 0] = (double)Cos(dAngleZ); adCalc[i, 1] = -(double)Sin(dAngleZ); adCalc[i, 2] = 0.0; adCalc[i, 3] = 0.0;
+                    i = 1; adCalc[i, 0] = (double)Sin(dAngleZ); adCalc[i, 1] = (double)Cos(dAngleZ); adCalc[i, 2] = 0.0; adCalc[i, 3] = 0.0;
                     i = 2; adCalc[i, 0] = 0.0; adCalc[i, 1] = 0.0; adCalc[i, 2] = 1.0; adCalc[i, 3] = 0.0;
                     i = 3; adCalc[i, 0] = 0.0; adCalc[i, 1] = 0.0; adCalc[i, 2] = 0.0; adCalc[i, 3] = 1.0;
                     CalcMatrix(4, adCalc, adSrc, out adSrc);
@@ -1206,12 +1206,19 @@ namespace OpenJigWare
             private const float _GYROSCOPE_SENSITIVITY = 65.536f;
             public static void ComplementaryFilter(short[] asAcc, short[] gyrData, ref float fRoll, ref float fPitch)
             {
-                float fAcc_Pitch, fAcc_Roll;               
-                float fDt = 0.01f;
+                // 기존 호환용: dt=0.01s(100Hz), 자이로 가중치 0.98 고정
+                ComplementaryFilter(asAcc, gyrData, ref fRoll, ref fPitch, 0.01f, 0.98f);
+            }
+
+            // fDt: 샘플 간격(초) — 수신 주기가 100Hz가 아닌 경우 실측값을 넘길 것 (dt가 틀리면 자이로 적분이 틀어짐)
+            // fAlpha: 자이로 가중치 (가속도 가중치 = 1-fAlpha)
+            public static void ComplementaryFilter(short[] asAcc, short[] gyrData, ref float fRoll, ref float fPitch, float fDt, float fAlpha)
+            {
+                float fAcc_Pitch, fAcc_Roll;
                 // Integrate the gyroscope data -> int(angularSpeed) = angle
                 fPitch += ((float)gyrData[0] / _GYROSCOPE_SENSITIVITY) * fDt; // Angle around the X-axis
                 fRoll -= ((float)gyrData[1] / _GYROSCOPE_SENSITIVITY) * fDt;    // Angle around the Y-axis
- 
+
                 // Compensate for drift with accelerometer data if !bullshit
                 // Sensitivity = -2 to 2 G at 16Bit -> 2G = 32768 && 0.5G = 8192
                 int forceMagnitudeApprox = (int)Math.Round((float)Math.Abs(asAcc[0]) + (float)Math.Abs(asAcc[1]) + (float)Math.Abs(asAcc[2]));
@@ -1219,11 +1226,11 @@ namespace OpenJigWare
                 {
 	                // Turning around the X axis results in a vector on the Y-axis
                     fAcc_Pitch = (float)Math.Atan2((float)asAcc[1], (float)asAcc[2]) * 180.0f / (float)Math.PI;
-                    fPitch = fPitch * 0.98f + fAcc_Pitch * 0.02f;
- 
+                    fPitch = fPitch * fAlpha + fAcc_Pitch * (1.0f - fAlpha);
+
 	            // Turning around the Y axis results in a vector on the X-axis
                     fAcc_Roll = (float)Math.Atan2((float)asAcc[0], (float)asAcc[2]) * 180 / (float)Math.PI;
-                    fRoll = fRoll * 0.98f + fAcc_Roll * 0.02f;
+                    fRoll = fRoll * fAlpha + fAcc_Roll * (1.0f - fAlpha);
                 }
             }
             //public static void ComplementaryFilter(short[] asAcc, short[] gyrData, ref float fRoll, ref float fPitch, ref float fYaw)
@@ -1418,7 +1425,9 @@ namespace OpenJigWare
                  float b = (y1-y0)/z0;
                  // discriminant
                  float d = -(a+b*y1)*(a+b*y1)+rf*(b*b*rf+rf);
-                 if (d < 0)
+                 // NaN 방어: 입력에 NaN 이 섞이면 d=NaN 이 되고 (NaN<0)==false 라 sqrt(NaN)=NaN 각도가
+                 // "성공"으로 새어 나간다 → 모터값 오염 (2026-08-14 실사고). NaN 도 실패로 처리.
+                 if ((d < 0) || float.IsNaN(d))
                  {
                      theta = 0.0f;
                      return -1; // non-existing point
@@ -1891,7 +1900,7 @@ namespace OpenJigWare
                 // discriminant
                 double d = b * b - 4.0 * a * c;
 
-                if (d < 0)
+                if ((d < 0) || double.IsNaN(d)) // NaN 방어 (NaN<0 은 false — IK 쪽과 동일한 실사고 예방)
                 {
                     dX = dY = dZ = 0;
                     return false; // non-existing point
@@ -1901,8 +1910,60 @@ namespace OpenJigWare
                 dX = (a1 * dHeight + b1) / dnm;
                 dY = (a2 * dHeight + b2) / dnm;
                 dZ = -dHeight;
-                
+                if (double.IsNaN(dX) || double.IsInfinity(dX) ||
+                    double.IsNaN(dY) || double.IsInfinity(dY) ||
+                    double.IsNaN(dZ) || double.IsInfinity(dZ)) // dnm=0 등 퇴화 기하
+                {
+                    dX = dY = dZ = 0;
+                    return false;
+                }
+
 #endif
+                return true;
+            }
+
+            /// <summary>
+            /// 델타 패시브(종동) 관절각 계산 — 3D 스켈레톤 표시용 (2026-08-14).
+            /// 모터각 3개(deg, IK 반환 규약과 동일: z+ = 베이스판→이펙터, 음의 각 = 상완이 이펙터쪽)로
+            /// 지정한 팔(nArm 0~2)의 무릎 스패리컬 조인트를 2각으로 분해해 돌려준다.
+            ///   dBeta  : 팔 평면 내 굽힘각 (상완 기준 추가 회전, 무릎의 모터축 평행 회전)
+            ///   dGamma : 팔 평면 밖 벌어짐각 (+γ = 체인 -Y 쪽)
+            /// 좌표 규약: 팔 체인 프레임 = X 바깥(어깨 방향), Z 위(이펙터쪽). 팔 방위각(ψ) =
+            ///   arm0: -90° (월드 -Y), arm1: +30°, arm2: +150° — delta_calcInverse 의 ±120° 회전과 일치.
+            /// 파라미터 해석은 기존 IK/FK 와 동일 (Rad = Trossen 삼각형 변 길이 규약, 피벗거리 = 0.28868×Rad).
+            /// FK 실패(작업공간 밖)시 false.
+            /// </summary>
+            public static bool Delta_Parallel_CalcPassive(int nArm, double dM0, double dM1, double dM2, out double dBeta, out double dGamma)
+            {
+                dBeta = dGamma = 0.0;
+                double dX, dY, dZ;
+                if (Delta_Parallel_ForwardKinematics(dM0, dM1, dM2, out dX, out dY, out dZ) == false) return false;
+
+                double dPsi = (nArm == 1) ? 30.0 : ((nArm == 2) ? 150.0 : -90.0);
+                double dT   = (nArm == 1) ? dM1  : ((nArm == 2) ? dM2   : dM0);
+                double dRad = Math.PI / 180.0;
+                double c = Math.Cos(dPsi * dRad);
+                double s = Math.Sin(dPsi * dRad);
+                // 이펙터 중심을 팔 체인 프레임으로: p_c = Rz(ψ)ᵀ·p
+                double px = dX * c + dY * s;
+                double py = -dX * s + dY * c;
+                double pz = dZ;
+
+                double aF = 0.5 * 0.57735 * m_dRad0; // 어깨 피벗 수평거리
+                double aE = 0.5 * 0.57735 * m_dRad1; // 이펙터 볼조인트 수평거리
+                // 무릎: 상완 앙각 = -모터각 (양의 모터각 = 상완이 이펙터 반대쪽)
+                double tr = dT * dRad;
+                double kx = aF + m_dL0 * Math.Cos(tr);
+                double kz = -m_dL0 * Math.Sin(tr);
+                // 하완 벡터 v = (이펙터 모서리) - (무릎)
+                double vx = (px + aE) - kx;
+                double vy = py;
+                double vz = pz - kz;
+                double vLen = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                if (vLen < 1e-9) return false;
+
+                dGamma = -Math.Asin(vy / vLen) / dRad;                  // 평면 밖 성분
+                dBeta = -dT - (Math.Atan2(vz, vx) / dRad);              // 평면 내: 앙각(-t-β) = atan2(vz,vx)
                 return true;
             }
             #endregion Delta Parallel 3 dof - 제작 : 이동현 차장(동부로봇)
@@ -1911,9 +1972,396 @@ namespace OpenJigWare
             // 테스트 : https://www.marginallyclever.com/other/samples/fk-ik-test.html
 
             #endregion Delta 2번째
+
+            #region Curve / Trajectory Interpolation (꼭짓점 → 웨이포인트 샘플링)
+            // 3D 꼭짓점 리스트(List<float[]{x,y,z}>)를 궤적 웨이포인트로 샘플링하는 곡선 유틸.
+            //   · SampleCornersLinear : 직선 연결(현 길이 비례 균등)
+            //   · SampleCornersBlend  : 직선 + 코너 2차 베지어 라운드(도형 유지, 모서리 통과)
+            //   · SampleCornersSpline : 매개변수 자연 3차 스플라인(누적 현 길이 s 기준)
+            // ojwSimul 등 앱은 이 함수들을 '사용만' 한다 (알고리즘은 라이브러리에 존재).
+
+            /// <summary>코너 블렌드 비율 — 모서리 앞뒤로 인접 변 길이의 이 비율만큼 잘라 라운드.</summary>
+            public const float TRAJ_BLEND_RATIO = 0.25f;
+
+            public static double Dist3(float[] a, float[] b)
+            {
+                double dx = a[0] - b[0], dy = a[1] - b[1], dz = a[2] - b[2];
+                return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            }
+
+            public static float[] Lerp3(float[] a, float[] b, float u)
+            {
+                return new float[] {
+                    a[0] + (b[0] - a[0]) * u,
+                    a[1] + (b[1] - a[1]) * u,
+                    a[2] + (b[2] - a[2]) * u };
+            }
+
+            /// <summary>2차 베지어: P0 → (제어점 C 방향으로 휘며) → P2. 코너 라운드용.</summary>
+            public static float[] Bez2(float[] p0, float[] c, float[] p2, float u)
+            {
+                float w0 = (1 - u) * (1 - u), w1 = 2 * (1 - u) * u, w2 = u * u;
+                return new float[] {
+                    w0 * p0[0] + w1 * c[0] + w2 * p2[0],
+                    w0 * p0[1] + w1 * c[1] + w2 * p2[1],
+                    w0 * p0[2] + w1 * c[2] + w2 * p2[2] };
+            }
+
+            /// <summary>꼭짓점들을 직선 연결로 균등 샘플링 (세그먼트 길이 비례 배분).</summary>
+            public static List<float[]> SampleCornersLinear(List<float[]> pts, int nTotal)
+            {
+                List<float[]> res = new List<float[]>();
+                int nSeg = pts.Count - 1;
+                double[] adLen = new double[nSeg];
+                double dTotal = 0;
+                for (int i = 0; i < nSeg; i++)
+                {
+                    double dx = pts[i + 1][0] - pts[i][0];
+                    double dy = pts[i + 1][1] - pts[i][1];
+                    double dz = pts[i + 1][2] - pts[i][2];
+                    adLen[i] = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                    dTotal += adLen[i];
+                }
+                if (dTotal <= 0) { res.Add(pts[0]); return res; }
+
+                res.Add(pts[0]);
+                for (int i = 0; i < nSeg; i++)
+                {
+                    int cnt = Math.Max(1, (int)Math.Round(nTotal * adLen[i] / dTotal));
+                    for (int k = 1; k <= cnt; k++)
+                    {
+                        float u = (float)k / cnt;
+                        res.Add(new float[] {
+                            pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u,
+                            pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u,
+                            pts[i][2] + (pts[i + 1][2] - pts[i][2]) * u });
+                    }
+                }
+                return res;
+            }
+
+            /// <summary>
+            /// "직선 + 코너 블렌드" 샘플링 (본딩 로봇 방식).
+            /// 직선 구간은 직선 그대로 유지하고, 각 코너는 앞뒤를 b(인접 변의 TRAJ_BLEND_RATIO)만큼
+            /// 잘라 2차 베지어(제어점=코너)로 안쪽 라운드 — 도형이 유지되면서 모서리를 멈추지
+            /// 않고 지나간다. 첫 점==끝 점이면 닫힌 도형으로 보고 시작 코너까지 블렌드.
+            /// </summary>
+            public static List<float[]> SampleCornersBlend(List<float[]> pts, int nTotal)
+            {
+                int n = pts.Count;
+                if (n < 3) return SampleCornersLinear(pts, nTotal);
+
+                bool bClosed = Dist3(pts[0], pts[n - 1]) < 0.001;
+                int m = bClosed ? n - 1 : n;   // 실제 코너 수 (닫힘이면 중복된 끝점 제외)
+                if (bClosed && m < 3) return SampleCornersLinear(pts, nTotal);
+
+                // 코너별 컷 포인트 계산: cutIn[i] = 코너 i 로 들어오는 변 위의 점,
+                //                        cutOut[i] = 코너 i 에서 나가는 변 위의 점
+                float[][] cutIn = new float[m][];
+                float[][] cutOut = new float[m][];
+                for (int i = 0; i < m; i++)
+                {
+                    bool bInterior = bClosed || (i > 0 && i < m - 1);
+                    if (!bInterior) continue;   // 열린 도형의 양 끝점은 블렌드 없음
+                    float[] prev = pts[(i - 1 + m) % m];
+                    float[] next = pts[(i + 1) % m];
+                    double lenIn = Dist3(prev, pts[i]);
+                    double lenOut = Dist3(pts[i], next);
+                    double b = TRAJ_BLEND_RATIO * Math.Min(lenIn, lenOut);
+                    if (lenIn > 0) cutIn[i] = Lerp3(pts[i], prev, (float)(b / lenIn));
+                    if (lenOut > 0) cutOut[i] = Lerp3(pts[i], next, (float)(b / lenOut));
+                }
+
+                // 조각(piece) 목록: 직선(line)과 코너 라운드(bezier)의 교대
+                //   piece = { type(0=line,1=bez), p0, p1(bez: 끝점), c(bez: 제어점=코너) }
+                List<object[]> pieces = new List<object[]>();
+                if (bClosed)
+                {
+                    // 시작점 = 코너0의 나가는 컷 포인트 → 한 바퀴 돌아 코너0 라운드로 닫음
+                    for (int k = 1; k <= m; k++)
+                    {
+                        int i = k % m;
+                        float[] from = cutOut[(k - 1) % m];
+                        pieces.Add(new object[] { 0, from, cutIn[i], null });
+                        pieces.Add(new object[] { 1, cutIn[i], cutOut[i], pts[i] });
+                    }
+                }
+                else
+                {
+                    float[] cur = pts[0];
+                    for (int i = 1; i < m - 1; i++)
+                    {
+                        pieces.Add(new object[] { 0, cur, cutIn[i], null });
+                        pieces.Add(new object[] { 1, cutIn[i], cutOut[i], pts[i] });
+                        cur = cutOut[i];
+                    }
+                    pieces.Add(new object[] { 0, cur, pts[m - 1], null });
+                }
+
+                // 조각 길이 계산 (베지어는 8분할 근사)
+                double dTotal = 0;
+                double[] adLen = new double[pieces.Count];
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    float[] p0 = (float[])pieces[p][1];
+                    float[] p1 = (float[])pieces[p][2];
+                    if ((int)pieces[p][0] == 0)
+                        adLen[p] = Dist3(p0, p1);
+                    else
+                    {
+                        float[] c = (float[])pieces[p][3];
+                        float[] prevPt = p0;
+                        for (int k = 1; k <= 8; k++)
+                        {
+                            float[] q = Bez2(p0, c, p1, k / 8.0f);
+                            adLen[p] += Dist3(prevPt, q);
+                            prevPt = q;
+                        }
+                    }
+                    dTotal += adLen[p];
+                }
+                if (dTotal <= 0) return SampleCornersLinear(pts, nTotal);
+
+                // 전체 길이 기준 간격으로 각 조각을 샘플링 (베지어는 최소 4분할)
+                double dSpacing = dTotal / Math.Max(8, nTotal);
+                List<float[]> res = new List<float[]>();
+                res.Add((float[])pieces[0][1]);
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    bool bLine = ((int)pieces[p][0] == 0);
+                    float[] p0 = (float[])pieces[p][1];
+                    float[] p1 = (float[])pieces[p][2];
+                    int cnt = (int)Math.Round(adLen[p] / dSpacing);
+                    cnt = Math.Max(bLine ? 1 : 4, cnt);
+                    for (int k = 1; k <= cnt; k++)
+                    {
+                        float u = (float)k / cnt;
+                        res.Add(bLine ? Lerp3(p0, p1, u)
+                                      : Bez2(p0, (float[])pieces[p][3], p1, u));
+                    }
+                }
+                return res;
+            }
+
+            // ── 산업용 코너 스무딩 신형 2종 (2026-08-30) ──
+            // 기존 SampleCornersBlend(고정 비율 25%)는 그대로 두고, 산업 현장 방식의
+            // "코너 시작점 명시 지정"을 추가한다:
+            //   · 퍼센트형: 변의 p% 지점까지 직선 → 거기서 다음 변의 (100-p)% 지점까지 베지어
+            //   · 거리형(mm): 코너 도착 b(mm) 전에서 직선 종료 → 코너 지나 b(mm) 지점까지 베지어
+            // bClosed = true 면 폐루프 — 마지막 변에서 시작 코너까지도 블렌드한다
+            // (끝점이 반복되어 있으면 자동으로 정리). false 면 열린 경로 — 양 끝점은 정확히 통과.
+
+            /// <summary>퍼센트형 코너 스무딩 — fLinePercent(예: 90)% 지점까지 직선으로 가고,
+            /// 남은 (100-p)% 와 다음 변의 (100-p)% 구간을 2차 베지어로 잇는다</summary>
+            public static List<float[]> SampleCornersBlendPercent(List<float[]> pts, int nTotal, float fLinePercent, bool bClosed)
+            {
+                double dFrac = 1.0 - fLinePercent / 100.0;
+                if (dFrac < 0) dFrac = 0;
+                if (dFrac > 0.5) dFrac = 0.5;   // 50% 미만 지정은 이웃 코너와 겹치므로 절반까지만
+                return SampleCornersBlendCore(pts, nTotal, bClosed, dFrac, -1.0);
+            }
+
+            /// <summary>거리형(mm) 코너 스무딩 — 코너 도착 fBlendMm 전에서 직선을 멈추고
+            /// 코너를 지나 다음 변의 fBlendMm 지점까지 2차 베지어로 돈다 (변 절반으로 자동 제한)</summary>
+            public static List<float[]> SampleCornersBlendMm(List<float[]> pts, int nTotal, float fBlendMm, bool bClosed)
+            {
+                return SampleCornersBlendCore(pts, nTotal, bClosed, -1.0, Math.Max(0.0, fBlendMm));
+            }
+
+            /// <summary>문자열 지정형 — "90%" 또는 "30mm" (파이썬 예제 표기용). 단위 없으면 mm 해석</summary>
+            public static List<float[]> SampleCornersSmooth(List<float[]> pts, int nTotal, string strBlend, bool bClosed)
+            {
+                string s = (strBlend == null ? "" : strBlend).Trim().ToLower();
+                var inv = System.Globalization.CultureInfo.InvariantCulture;
+                if (s.EndsWith("%"))
+                    return SampleCornersBlendPercent(pts, nTotal, float.Parse(s.Substring(0, s.Length - 1), inv), bClosed);
+                if (s.EndsWith("mm"))
+                    return SampleCornersBlendMm(pts, nTotal, float.Parse(s.Substring(0, s.Length - 2), inv), bClosed);
+                return SampleCornersBlendMm(pts, nTotal, float.Parse(s, inv), bClosed);
+            }
+
+            /// <summary>신형 스무딩 공용 코어 — dFrac(비율형, 0~0.5) 또는 dMm(거리형, ≥0) 중
+            /// 하나로 코너 앞뒤 컷 거리를 정한다 (다른 쪽은 음수로 비활성)</summary>
+            private static List<float[]> SampleCornersBlendCore(List<float[]> ptsIn, int nTotal, bool bClosed, double dFrac, double dMm)
+            {
+                List<float[]> pts = new List<float[]>(ptsIn);
+                int n = pts.Count;
+                if (n >= 2 && Dist3(pts[0], pts[n - 1]) < 0.001) { pts.RemoveAt(n - 1); n--; bClosed = true; }   // 반복 끝점 정리
+                if (n < 3) return SampleCornersLinear(ptsIn, nTotal);
+                int m = n;
+
+                float[][] cutIn = new float[m][];
+                float[][] cutOut = new float[m][];
+                for (int i = 0; i < m; i++)
+                {
+                    bool bInterior = bClosed || (i > 0 && i < m - 1);
+                    if (!bInterior) continue;   // 열린 경로의 양 끝점은 블렌드 없음
+                    float[] prev = pts[(i - 1 + m) % m];
+                    float[] next = pts[(i + 1) % m];
+                    double lenIn = Dist3(prev, pts[i]);
+                    double lenOut = Dist3(pts[i], next);
+                    double dIn = (dMm >= 0) ? Math.Min(dMm, lenIn * 0.5) : lenIn * dFrac;
+                    double dOut = (dMm >= 0) ? Math.Min(dMm, lenOut * 0.5) : lenOut * dFrac;
+                    if (lenIn > 0) cutIn[i] = Lerp3(pts[i], prev, (float)(dIn / lenIn));
+                    if (lenOut > 0) cutOut[i] = Lerp3(pts[i], next, (float)(dOut / lenOut));
+                }
+
+                List<object[]> pieces = new List<object[]>();
+                if (bClosed)
+                {
+                    for (int k = 1; k <= m; k++)
+                    {
+                        int i = k % m;
+                        float[] from = cutOut[(k - 1) % m];
+                        pieces.Add(new object[] { 0, from, cutIn[i], null });
+                        pieces.Add(new object[] { 1, cutIn[i], cutOut[i], pts[i] });
+                    }
+                }
+                else
+                {
+                    float[] cur = pts[0];
+                    for (int i = 1; i < m - 1; i++)
+                    {
+                        pieces.Add(new object[] { 0, cur, cutIn[i], null });
+                        pieces.Add(new object[] { 1, cutIn[i], cutOut[i], pts[i] });
+                        cur = cutOut[i];
+                    }
+                    pieces.Add(new object[] { 0, cur, pts[m - 1], null });
+                }
+
+                double dTotal = 0;
+                double[] adLen = new double[pieces.Count];
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    float[] p0 = (float[])pieces[p][1];
+                    float[] p1 = (float[])pieces[p][2];
+                    if ((int)pieces[p][0] == 0)
+                        adLen[p] = Dist3(p0, p1);
+                    else
+                    {
+                        float[] c = (float[])pieces[p][3];
+                        float[] prevPt = p0;
+                        for (int k = 1; k <= 8; k++)
+                        {
+                            float[] q = Bez2(p0, c, p1, k / 8.0f);
+                            adLen[p] += Dist3(prevPt, q);
+                            prevPt = q;
+                        }
+                    }
+                    dTotal += adLen[p];
+                }
+                if (dTotal <= 0) return SampleCornersLinear(ptsIn, nTotal);
+
+                double dSpacing = dTotal / Math.Max(8, nTotal);
+                List<float[]> res = new List<float[]>();
+                res.Add((float[])pieces[0][1]);
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    bool bLine = ((int)pieces[p][0] == 0);
+                    float[] p0 = (float[])pieces[p][1];
+                    float[] p1 = (float[])pieces[p][2];
+                    int cnt = (int)Math.Round(adLen[p] / dSpacing);
+                    cnt = Math.Max(bLine ? 1 : 4, cnt);
+                    for (int k = 1; k <= cnt; k++)
+                    {
+                        float u = (float)k / cnt;
+                        res.Add(bLine ? Lerp3(p0, p1, u)
+                                      : Bez2(p0, (float[])pieces[p][3], p1, u));
+                    }
+                }
+                return res;
+            }
+
+            /// <summary>
+            /// 꼭짓점들을 매개변수 자연 3차 스플라인으로 샘플링.
+            /// 누적 현 길이 s를 매개변수로 x(s), y(s), z(s)를 각각 자연 스플라인 보간
+            /// (표준 자연 스플라인의 매개변수 버전 — y=f(x) 형태는 x가 되돌아오는 닫힌 도형을 못 그림).
+            /// </summary>
+            public static List<float[]> SampleCornersSpline(List<float[]> pts, int nTotal)
+            {
+                int n = pts.Count;
+                if (n < 3) return SampleCornersLinear(pts, nTotal);
+
+                double[] s = new double[n];
+                double[] xs = new double[n], ys = new double[n], zs = new double[n];
+                xs[0] = pts[0][0]; ys[0] = pts[0][1]; zs[0] = pts[0][2];
+                for (int i = 1; i < n; i++)
+                {
+                    double dx = pts[i][0] - pts[i - 1][0];
+                    double dy = pts[i][1] - pts[i - 1][1];
+                    double dz = pts[i][2] - pts[i - 1][2];
+                    s[i] = s[i - 1] + Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                    xs[i] = pts[i][0]; ys[i] = pts[i][1]; zs[i] = pts[i][2];
+                }
+                if (s[n - 1] <= 0) return SampleCornersLinear(pts, nTotal);
+
+                double[] Mx = NaturalCubicSecondDerivs(s, xs);
+                double[] My = NaturalCubicSecondDerivs(s, ys);
+                double[] Mz = NaturalCubicSecondDerivs(s, zs);
+
+                List<float[]> res = new List<float[]>();
+                for (int k = 0; k <= nTotal; k++)
+                {
+                    double t = s[n - 1] * k / nTotal;
+                    res.Add(new float[] {
+                        (float)EvalNaturalCubic(s, xs, Mx, t),
+                        (float)EvalNaturalCubic(s, ys, My, t),
+                        (float)EvalNaturalCubic(s, zs, Mz, t) });
+                }
+                return res;
+            }
+
+            /// <summary>자연 3차 스플라인의 2차 도함수(M) — 삼대각(Thomas) 풀이. 경계 M=0.</summary>
+            public static double[] NaturalCubicSecondDerivs(double[] s, double[] v)
+            {
+                int n = s.Length;
+                double[] M = new double[n];
+                if (n < 3) return M;
+
+                double[] a = new double[n], b = new double[n], c = new double[n], d = new double[n];
+                b[0] = 1.0; c[0] = 0.0; d[0] = 0.0;               // 자연 경계: M0 = 0
+                b[n - 1] = 1.0; a[n - 1] = 0.0; d[n - 1] = 0.0;   // 자연 경계: Mn-1 = 0
+                for (int i = 1; i < n - 1; i++)
+                {
+                    double h0 = s[i] - s[i - 1], h1 = s[i + 1] - s[i];
+                    a[i] = h0;
+                    b[i] = 2.0 * (h0 + h1);
+                    c[i] = h1;
+                    d[i] = 6.0 * ((v[i + 1] - v[i]) / h1 - (v[i] - v[i - 1]) / h0);
+                }
+                // Thomas 알고리즘 (전진 소거 → 후진 대입)
+                for (int i = 1; i < n; i++)
+                {
+                    double m = a[i] / b[i - 1];
+                    b[i] -= m * c[i - 1];
+                    d[i] -= m * d[i - 1];
+                }
+                M[n - 1] = d[n - 1] / b[n - 1];
+                for (int i = n - 2; i >= 0; i--)
+                    M[i] = (d[i] - c[i] * M[i + 1]) / b[i];
+                return M;
+            }
+
+            /// <summary>자연 3차 스플라인 평가 (구간 탐색 + 표준 공식).</summary>
+            public static double EvalNaturalCubic(double[] s, double[] v, double[] M, double t)
+            {
+                int n = s.Length;
+                if (t <= s[0]) return v[0];
+                if (t >= s[n - 1]) return v[n - 1];
+                int i = n - 2;
+                for (int k = 0; k < n - 1; k++)
+                    if (t <= s[k + 1]) { i = k; break; }
+                double h = s[i + 1] - s[i];
+                if (h <= 0) return v[i];
+                double A = (s[i + 1] - t) / h;
+                double B = (t - s[i]) / h;
+                return A * v[i] + B * v[i + 1]
+                     + ((A * A * A - A) * M[i] + (B * B * B - B) * M[i + 1]) * h * h / 6.0;
+            }
+            #endregion Curve / Trajectory Interpolation
         }
         /// <summary>
-        /// made by Dongjune Chang, 
+        /// made by Dongjune Chang,
         /// reference : 책 - "칼만필터의 이해" in Korea,
         /// </summary>
         #region Kalman Filter - made by Dongjune Chang from the book - "MATLAB 활용 칼만필터의 이해(저자 김성필)"
@@ -1933,7 +2381,9 @@ namespace OpenJigWare
 
                 public override void Init()
                 {
-                    k = 0;
+                    // 리셋 후 재사용 시 k=0 이면 alpha=(k-1)/k 가 0으로 나누기가 되어
+                    // NaN이 전파되므로 첫 샘플 상태(k=1)로 초기화한다.
+                    k = 1;
                     prevAvg = 0.0;
                 }
 
@@ -1976,6 +2426,40 @@ namespace OpenJigWare
                     this.dt = dt;
                 }
 
+                bool bUserConfigured = false;
+
+                // 교재("MATLAB 활용 칼만필터의 이해") 예제 기본값
+                private void SetDefaults()
+                {
+                    A = new double[,] { { 1, dt }, { 0, 1 } };
+                    H = new double[,] { { 1, 0 } };
+                    Q = new double[,] { { 1, 0 }, { 0, 3 } };
+                    R = new double[,] { { 10 } };
+
+                    x = new double[] { 0, 20 };
+                    P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
+                }
+
+                // Q/R/초기상태를 직접 지정한다. 지정하면 첫 Do() 호출에서 교재 기본값으로 덮어써지지 않는다.
+                // null 인자는 기본값 유지.
+                public void SetParameters(double[,] Q, double[,] R, double[] x0, double[,] P0)
+                {
+                    SetDefaults();
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                    if (x0 != null) this.x = (double[])x0.Clone();
+                    if (P0 != null) this.P = (double[,])P0.Clone();
+                    bUserConfigured = true;
+                    bFirstRun = false;
+                }
+
+                // 실행 중 Q/R만 변경한다(상태 x, P는 유지) — 실시간 튜닝용. null 인자는 유지.
+                public void SetNoise(double[,] Q, double[,] R)
+                {
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                }
+
                 public override void Init()
                 {
                     A = new double[nDim, nDim];
@@ -2000,14 +2484,7 @@ namespace OpenJigWare
 
                     if (bFirstRun)
                     {
-                        A = new double[,] { { 1, dt }, { 0, 1 } };
-                        H = new double[,] { { 1, 0 } };
-                        Q = new double[,] { { 1, 0 }, { 0, 3 } };
-                        R = new double[,] { { 10 } };
-
-                        x = new double[] { 0, 20 };
-                        P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
-
+                        if (!bUserConfigured) SetDefaults();
                         bFirstRun = false;
                     }
                     double[] xp = CMatrix.Multiply(A, x);
@@ -2049,6 +2526,40 @@ namespace OpenJigWare
                     this.dt = dt;
                 }
 
+                bool bUserConfigured = false;
+
+                // 교재("MATLAB 활용 칼만필터의 이해") 예제 기본값
+                private void SetDefaults()
+                {
+                    A = new double[,] { { 1, dt }, { 0, 1 } };
+                    H = new double[,] { { 1, 0 } };
+                    Q = new double[,] { { 1, 0 }, { 0, 3 } };
+                    R = new double[,] { { 10 } };
+
+                    x = new double[] { 0, 20 };
+                    P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
+                }
+
+                // Q/R/초기상태를 직접 지정한다. 지정하면 첫 Do() 호출에서 교재 기본값으로 덮어써지지 않는다.
+                // null 인자는 기본값 유지.
+                public void SetParameters(double[,] Q, double[,] R, double[] x0, double[,] P0)
+                {
+                    SetDefaults();
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                    if (x0 != null) this.x = (double[])x0.Clone();
+                    if (P0 != null) this.P = (double[,])P0.Clone();
+                    bUserConfigured = true;
+                    bFirstRun = false;
+                }
+
+                // 실행 중 Q/R만 변경한다(상태 x, P는 유지) — 실시간 튜닝용. null 인자는 유지.
+                public void SetNoise(double[,] Q, double[,] R)
+                {
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                }
+
                 public override void Init()
                 {
                     A = new double[nDim, nDim];
@@ -2073,14 +2584,7 @@ namespace OpenJigWare
 
                     if (bFirstRun)
                     {
-                        A = new double[,] { { 1, dt }, { 0, 1 } };
-                        H = new double[,] { { 1, 0 } };
-                        Q = new double[,] { { 1, 0 }, { 0, 3 } };
-                        R = new double[,] { { 10 } };
-
-                        x = new double[] { 0, 20 };
-                        P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
-
+                        if (!bUserConfigured) SetDefaults();
                         bFirstRun = false;
                     }
                     double[] xp = CMatrix.Multiply(A, x);
@@ -2250,6 +2754,40 @@ namespace OpenJigWare
                     this.dt = dt;
                 }
 
+                bool bUserConfigured = false;
+
+                // 교재("MATLAB 활용 칼만필터의 이해") 예제 기본값.
+                // A(상태전이)는 자이로 값에 따라 매 스텝 SetMatrix_A()로 외부에서 주입한다.
+                private void SetDefaults()
+                {
+                    H = CMatrix.eye(4);
+                    Q = CMatrix.ScalarMultiply(0.0001, CMatrix.eye(4));
+                    R = CMatrix.ScalarMultiply(10, CMatrix.eye(4));
+
+                    x = new double[] { 1, 0, 0, 0 };
+                    P = CMatrix.eye(4);
+                }
+
+                // Q/R/초기상태(쿼터니언 x0)를 직접 지정한다. 지정하면 첫 Do() 호출에서 교재 기본값으로 덮어써지지 않는다.
+                // null 인자는 기본값 유지.
+                public void SetParameters(double[,] Q, double[,] R, double[] x0, double[,] P0)
+                {
+                    SetDefaults();
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                    if (x0 != null) this.x = (double[])x0.Clone();
+                    if (P0 != null) this.P = (double[,])P0.Clone();
+                    bUserConfigured = true;
+                    bFirstRun = false;
+                }
+
+                // 실행 중 Q/R만 변경한다(상태 x, P는 유지) — 실시간 튜닝용. null 인자는 유지.
+                public void SetNoise(double[,] Q, double[,] R)
+                {
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                }
+
                 public override void Init()
                 {
                     A = new double[nDim, nDim];
@@ -2286,13 +2824,7 @@ namespace OpenJigWare
 
                     if (bFirstRun)
                     {
-                        H = CMatrix.eye(4);
-                        Q = CMatrix.ScalarMultiply(0.0001, CMatrix.eye(4));
-                        R = CMatrix.ScalarMultiply(10, CMatrix.eye(4));
-
-                        x = new double[] { 1, 0, 0, 0 };
-                        P = CMatrix.eye(4);
-
+                        if (!bUserConfigured) SetDefaults();
                         bFirstRun = false;
                     }
                     double[] xp = CMatrix.Multiply(A, x);
@@ -2336,6 +2868,40 @@ namespace OpenJigWare
                     this.dt = dt;
                 }
 
+                bool bUserConfigured = false;
+
+                // 교재("MATLAB 활용 칼만필터의 이해") 예제 기본값 (H=[0,1]: 속도를 측정해 위치를 추정)
+                private void SetDefaults()
+                {
+                    A = new double[,] { { 1, dt }, { 0, 1 } };
+                    H = new double[,] { { 0, 1 } };
+                    Q = new double[,] { { 1, 0 }, { 0, 3 } };
+                    R = new double[,] { { 10 } };
+
+                    x = new double[] { 0, 20 };
+                    P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
+                }
+
+                // Q/R/초기상태를 직접 지정한다. 지정하면 첫 Do() 호출에서 교재 기본값으로 덮어써지지 않는다.
+                // null 인자는 기본값 유지.
+                public void SetParameters(double[,] Q, double[,] R, double[] x0, double[,] P0)
+                {
+                    SetDefaults();
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                    if (x0 != null) this.x = (double[])x0.Clone();
+                    if (P0 != null) this.P = (double[,])P0.Clone();
+                    bUserConfigured = true;
+                    bFirstRun = false;
+                }
+
+                // 실행 중 Q/R만 변경한다(상태 x, P는 유지) — 실시간 튜닝용. null 인자는 유지.
+                public void SetNoise(double[,] Q, double[,] R)
+                {
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                }
+
                 public override void Init()
                 {
                     A = new double[nDim, nDim];
@@ -2360,14 +2926,7 @@ namespace OpenJigWare
 
                     if (bFirstRun)
                     {
-                        A = new double[,] { { 1, dt }, { 0, 1 } };
-                        H = new double[,] { { 0, 1 } };
-                        Q = new double[,] { { 1, 0 }, { 0, 3 } };
-                        R = new double[,] { { 10 } };
-
-                        x = new double[] { 0, 20 };
-                        P = CMatrix.ScalarMultiply(5.0, new double[,] { { 1, 0 }, { 0, 1 } });
-
+                        if (!bUserConfigured) SetDefaults();
                         bFirstRun = false;
                     }
                     double[] xp = CMatrix.Multiply(A, x);
@@ -2428,6 +2987,57 @@ namespace OpenJigWare
                 }
 
             }
+            // 미디언 필터: 창(window) 내 중앙값을 출력. 스파이크성 이상치(충격, 반사 오측정)에
+            // 로패스보다 강하다 — 로패스는 스파이크를 "번지게" 하지만 미디언은 잘라낸다.
+            public class MedianFilter : FilterBase<double>
+            {
+                int n = 5;
+                double[] xBuf = null;
+                int nCount = 0; // 현재 채워진 표본 수 (창이 다 차기 전에는 받은 표본만으로 중앙값 계산)
+                int nPos = 0;   // 다음 쓰기 위치 (원형 버퍼)
+
+                public MedianFilter(int nBuf)
+                {
+                    if (nBuf < 1) nBuf = 1;
+                    n = nBuf;
+                }
+
+                public override void Init()
+                {
+                    nCount = 0;
+                    nPos = 0;
+                }
+
+                public override void DeInit()
+                {
+                    xBuf = null;
+                }
+
+                public override bool Do(double input, ref double output)
+                {
+                    if (xBuf == null || xBuf.Length != n)
+                    {
+                        xBuf = new double[n];
+                        nCount = 0;
+                        nPos = 0;
+                    }
+
+                    xBuf[nPos] = input;
+                    nPos = (nPos + 1) % n;
+                    if (nCount < n) nCount++;
+
+                    // 유효 표본만 복사해 정렬 (원형 버퍼라 순서는 무관 — 중앙값만 필요)
+                    double[] adSorted = new double[nCount];
+                    for (int i = 0; i < nCount; i++) adSorted[i] = xBuf[i];
+                    Array.Sort(adSorted);
+
+                    output = (nCount % 2 == 1)
+                        ? adSorted[nCount / 2]
+                        : 0.5 * (adSorted[nCount / 2 - 1] + adSorted[nCount / 2]);
+
+                    return true;
+                }
+            }
             public class MovingAvgFilter : FilterBase<double>
             {
                 //double prevAvg = 0.0;
@@ -2442,6 +3052,11 @@ namespace OpenJigWare
 
                 public override void Init()
                 {
+                    // 리셋 후 재사용 시 이전 데이터가 남아 평균을 오염시키지 않도록 버퍼를 비운다
+                    if (xMABuf != null)
+                    {
+                        Array.Clear(xMABuf, 0, xMABuf.Length);
+                    }
                     //prevAvg = 0.0;
                 }
 
@@ -2457,7 +3072,8 @@ namespace OpenJigWare
                 {
                     double x = input;
 
-                    if (bFirstRun)
+                    // DeInit() 후 재사용되어도 버퍼가 없으면 다시 할당한다
+                    if (bFirstRun || xMABuf == null)
                     {
                         if (xMABuf == null)
                         {
@@ -2510,6 +3126,46 @@ namespace OpenJigWare
                     this.nDim = nDim;
                 }
 
+                bool bUserConfigured = false;
+
+                // 교재("MATLAB 활용 칼만필터의 이해") 예제 기본값 (상수 추정: A=I, H=I, Q=0)
+                private void SetDefaults()
+                {
+                    // 기반 클래스 생성자가 nDim 설정 전에 Init()을 호출하므로,
+                    // 생성자 인자 nDim과 배열 크기가 다르면 여기서 재할당한다.
+                    if (A == null || A.GetLength(0) != nDim) Init();
+                    for (int i = 0; i < nDim; i++)
+                    {
+                        A[i, i] = 1;
+                        H[i, i] = 1;
+
+                        R[i, i] = 4;
+
+                        x[i] = 14;
+                        P[i, i] = 6;
+                    }
+                }
+
+                // Q/R/초기상태를 직접 지정한다. 지정하면 첫 Do() 호출에서 교재 기본값으로 덮어써지지 않는다.
+                // null 인자는 기본값 유지.
+                public void SetParameters(double[,] Q, double[,] R, double[] x0, double[,] P0)
+                {
+                    SetDefaults();
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                    if (x0 != null) this.x = (double[])x0.Clone();
+                    if (P0 != null) this.P = (double[,])P0.Clone();
+                    bUserConfigured = true;
+                    bFirstRun = false;
+                }
+
+                // 실행 중 Q/R만 변경한다(상태 x, P는 유지) — 실시간 튜닝용. null 인자는 유지.
+                public void SetNoise(double[,] Q, double[,] R)
+                {
+                    if (Q != null) this.Q = (double[,])Q.Clone();
+                    if (R != null) this.R = (double[,])R.Clone();
+                }
+
                 public override void Init()
                 {
                     A = new double[nDim, nDim];
@@ -2534,16 +3190,7 @@ namespace OpenJigWare
 
                     if (bFirstRun)
                     {
-                        for (int i = 0; i < nDim; i++)
-                        {
-                            A[i, i] = 1;
-                            H[i, i] = 1;
-
-                            R[i, i] = 4;
-
-                            x[i] = 14;
-                            P[i, i] = 6;
-                        }
+                        if (!bUserConfigured) SetDefaults();
                         bFirstRun = false;
                     }
                     double[] xp = CMatrix.Multiply(A, x);
@@ -3427,7 +4074,7 @@ namespace OpenJigWare
             }
             public void test()
             {
-                
+
             }
         }
         public class FilterBase<T>
