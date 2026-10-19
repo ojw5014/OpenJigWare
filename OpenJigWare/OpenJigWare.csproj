@@ -158,6 +158,7 @@
     <Compile Include="COjw_41_Protocol.cs" />
     <Compile Include="COjw_42_Sim2Real.cs" />
     <Compile Include="COjw_43_SimBridge.cs" />
+    <Compile Include="COjw_44_ArmMotor.cs" />
     <Compile Include="Docking\AxisSetting.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -249,6 +250,11 @@
     <Compile Include="COjw_12_3D_DhBuilder.cs" />
     <Compile Include="COjw_12_3D_Html.cs" />
     <Compile Include="COjw_12_3D_SagComp.cs" />
+    <Compile Include="COjw_12_3D_SagTwin.cs" />
+    <Compile Include="COjw_12_3D_SagFc.cs" />
+    <Compile Include="COjw_12_3D_SagRun.cs" />
+    <Compile Include="COjw_12_3D_SagDef.cs" />
+    <Compile Include="COjw_12_3D_SagPractice.cs" />
     <Compile Include="COjw_12_3D_EdhValidator.cs" />
     <Compile Include="COjw_12_3D_StlParser.cs" />
     <Compile Include="COjw_14_Socket.cs" />

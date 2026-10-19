@@ -89,6 +89,8 @@ namespace OpenJigWare
                 public int[] PosIDs = new int[] { 11, 12, 13 };
                 public int WristID = 14;
                 public float PitchDeg = 90f;
+                public float DownSumDeg = 90f;                     // 이 모델을 만든 로봇 정의의 수직 관절 합 (posids[1]+posids[2]+wrist, 파일 downsum= — 없으면 90 = OMX)
+                public string KinSig = "";                         // 이 모델을 만든 기구학 표시 (계획 기구학의 그 수식 DH, 파일 kinsig= — 빈 값 = 내장 OMX). 쓰기·대조는 COjw_12_3D_SagRun.cs
                 public List<CSagSample> Samples = new List<CSagSample>();
 
                 public int Degree = 0;                             // 0 = 미학습, 1 = [1,r], 2 = [1,r,r²,z,rz]
@@ -100,6 +102,10 @@ namespace OpenJigWare
                 public float DynRmseBefore = 0, DynRmseAfter = 0;  // 주행: 정지모델만 뺀 잔차 / 주행항까지 뺀 잔차
                 public float MaxAbsDelta = 40f;                    // 보상량 안전 상한 (mm)
                 public bool Enabled = true;
+                public string Note = null;                         // 저장 때 머리 주석(# 줄)으로 — 만든 과정 기록 (학습 시각·바탕 파일·데이터셋 등). 읽을 때는 무시한다
+                public string MotorMap = null;                     // 학습 때 모터 매핑 키 (축:방향:영점:틱/회전:각/회전|…) — 파일 motormap= 줄, 없으면 null (= 기본 매핑으로 본다)
+                public string SourcePath = null;                   // 읽은 파일 (Load 가 채운다 — 전체 경로, 메모리에서 만든 모델은 null). 저장하지 않는다.
+                                                                   //   측정 계획이 '계획을 만든 첫닿음 모델' 로 적어 둔다 (측정 때 그 모델로 창을 다시 확인)
 
                 // ── 관절 모델 (2026-09-28 실측 분석으로 추가) ──
                 // 실측 표본을 관절별로 보면 오차가 두 성분으로 깔끔하게 갈린다:
@@ -144,6 +150,7 @@ namespace OpenJigWare
                 //   · 켜기  : 모델 파일에 floorr= / floordz= / flooron=1 세 줄 (SagComp_FitFloorMap 뒤 Save 가 쓴다). 출력 훅(SendPose → SagComp_JointOut)이 자동 적용.
                 //   · 끄기  : flooron=0 (표는 남김) 또는 floor 세 줄을 지우면 **원래(관절 모델만) 그대로** 동작. 코드에선 FloorMapEnabled = false.
                 //   · 만들기: ① SagComp_FloorPress(scene, cfg, 활성모델, …) 로 반경별 바닥 접촉 (ID11~16 토크 ON, 그리퍼 고정)
+                //             측정하는 동안 손목(14번)을 엔코더 FK 기준 지면에 수직으로 붙잡는다 (cfg.WristHold, 기본 켬 — 10-02, 측정 때만)
                 //             또는 ① ′ SagComp_FloorContactsFromTrace(SagComp_GetFloorTraceCsv(), cfg) 로 궤적 재분석
                 //             ② SagComp_FitFloorMap(contacts, model, double.NaN, 2.0, out rep) ③ model.Save(경로).
                 //   · 주의  : 180~190mm 에 약 30mm 계단(처짐 방향이 뒤집히는 자세) — 계단 안은 보간 오차 ±11~14mm. 바닥 높이 밖에선 근사.
@@ -154,16 +161,31 @@ namespace OpenJigWare
                 // 바닥 접촉 GP (09-29) — 있으면 반경 보정표 대신 이것을 쓴다(자세 기반, 데이터에서 멀면 저절로 0). flooron=0 이면 둘 다 끈다.
                 public CSagGp Gp = null;
                 public bool HasGp { get { return Gp != null && Gp.IsReady; } }
+                // 첫닿음 바닥 모델 (10-02, COjw_12_3D_SagFc.cs) — fcon=1 이면 GP·반경 보정표보다 먼저 쓴다. flooron=0 이면 이것도 끈다. 모델 파일 fc* 키
+                //   쓰고 있는 모델의 Fc 를 손으로 바꿔 끼우면 크로스페이드 없이 다음 출력 틱부터 바뀐다 — 사본 모델에 넣고 SagComp_Set 하거나 SagComp_FitFloorFc 를 쓸 것
+                public CSagFc Fc = null;
+                public bool HasFc { get { return Fc != null && Fc.HasData; } }
+                public bool FcDropped = false;                       // 불러올 때 fc* 줄이 있었지만 버렸다 (꼭 있어야 하는 줄이 없거나 잘못된 줄 — CSagFc.EndLoad). Summary 에 표시
+                /// <summary>관절 모델만 쓰는 사본 (10-03) — 얕은 복사 (표본·계수 배열·바닥 모델 객체는 함께 쓴다 — 사본으로 바꾸지 말 것), 바닥 보정 끔(FloorMapEnabled = false),
+                /// 켬(Enabled = true). 로봇팔 작업이 옮기는 동안 거는 보정 (실물 끝이 관절 처짐만큼 낮게 지나가지 않게). 관절 모델이 없으면 null</summary>
+                public CSagComp JointOnlyCopy()
+                {
+                    if (!HasJoint) return null;
+                    var c = (CSagComp)MemberwiseClone();
+                    c.FloorMapEnabled = false; c.Enabled = true;
+                    return c;
+                }
                 /// <summary>다른 모델의 바닥 보정표를 복사 — FK 기준 표는 엔코더 밖 오차라 관절 모델을 다시 학습해도 그대로 유효하다.
                 /// 명령 기준 표(FloorFromCmd)는 bForce 가 아니면 복사하지 않는다. 반환 = 복사했는가.</summary>
                 public bool CopyFloorMapFrom(CSagComp other, bool bForce = false)
                 {
-                    if (other == null || (!other.HasFloorMap && !other.HasGp)) return false;
-                    if (!other.HasFloorMap) { Gp = other.Gp; FloorMapEnabled = other.FloorMapEnabled; return true; }
+                    if (other == null || (!other.HasFloorMap && !other.HasGp && !other.HasFc)) return false;
+                    if (!other.HasFloorMap) { if (other.HasGp) Gp = other.Gp; if (other.HasFc) Fc = other.Fc; FloorMapEnabled = other.FloorMapEnabled; return true; }
                     if (other.FloorFromCmd && !bForce) return false;
                     FloorR = (float[])other.FloorR.Clone(); FloorDz = (float[])other.FloorDz.Clone();
                     FloorRef = other.FloorRef; FloorFromCmd = other.FloorFromCmd; FloorMapEnabled = other.FloorMapEnabled;
                     if (other.HasGp) Gp = other.Gp;                // GP 도 FK(엔코더 밖) 기준 — 관절 모델과 무관
+                    if (other.HasFc) Fc = other.Fc;                // 첫닿음 모델도 FK 기준
                     return true;
                 }
                 public bool HasFloorMap { get { return FloorR != null && FloorDz != null && FloorR.Length >= 2 && FloorR.Length == FloorDz.Length; } }
@@ -508,10 +530,16 @@ namespace OpenJigWare
                     var sb = new StringBuilder();
                     var ci = CultureInfo.InvariantCulture;
                     sb.AppendLine("# OpenJigWare SagComp v" + FORMAT_VERSION + " — 처짐(중력)+주행 보상 모델 (측정: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm") + ")");
+                    if (!string.IsNullOrEmpty(Note))
+                        foreach (string ln in Note.Replace("\r", "").Split('\n')) sb.AppendLine("# " + ln);   // 만든 과정 기록 — Load 는 # 줄을 건너뛴다
                     sb.AppendLine("robot=" + Robot);
+                    if (!string.IsNullOrEmpty(MotorMap)) sb.AppendLine("motormap=" + MotorMap.Replace("\r", "").Replace("\n", "").Replace("#", "") + "   # 학습 때 모터 매핑 (축:방향:영점:틱/회전:각/회전) — 지금 매핑과 다르면 경고, 없으면 기본 매핑");
                     sb.AppendLine("func=" + FuncNumber);
                     sb.AppendLine("posids=" + string.Join(",", Array.ConvertAll(PosIDs, v => v.ToString(ci))));
                     sb.AppendLine("wrist=" + WristID);
+                    // 로봇 정의 (10-04) — 기구학 표시가 있거나 수직 관절 합이 90 이 아니면 두 줄을 적는다 (표시 없는 옛 OMX 모델은 다시 저장해도 줄이 그대로 — 없으면 90 · 내장 OMX 로 읽힌다)
+                    if (!string.IsNullOrEmpty(KinSig) || DownSumDeg != 90f) sb.AppendLine("downsum=" + DownSumDeg.ToString("0.###", ci) + "   # 로봇 정의의 수직 관절 합 (posids2+posids3+wrist)");
+                    if (!string.IsNullOrEmpty(KinSig)) sb.AppendLine("kinsig=" + KinSig.Replace("\r", "").Replace("\n", "").Replace("#", "") + "   # 이 모델을 만든 기구학 (DH) 표시");
                     sb.AppendLine("pitch=" + PitchDeg.ToString(ci));
                     sb.AppendLine("maxdelta=" + MaxAbsDelta.ToString(ci));
                     sb.AppendLine("degree=" + Degree);
@@ -554,6 +582,11 @@ namespace OpenJigWare
                         sb.AppendLine("gpdom=" + Gp.DomainDeg.ToString("0.##", ci) + "   # 가장 가까운 학습 자세와 이만큼(°) 넘게 떨어지면 줄이고 2배에서 0");
                         for (int gi = 0; gi < Gp.X.Length; gi++)
                             sb.AppendLine("gpx=" + string.Join(",", Array.ConvertAll(Gp.X[gi], v => v.ToString("0.###", ci))) + "," + Gp.Y[gi].ToString("0.###", ci));
+                    }
+                    if (HasFc)
+                    {
+                        if (!HasFloorMap && !HasGp) sb.AppendLine("flooron=" + (FloorMapEnabled ? "1" : "0") + "   # 0 이면 바닥 보정(첫닿음 모델) 끔 — 관절 모델만");
+                        Fc.Save(sb);
                     }
                     var lstEx = new List<string>();
                     for (int i = 0; i < Samples.Count; i++) if (Samples[i].Excluded) lstEx.Add(i.ToString(ci));
@@ -608,9 +641,12 @@ namespace OpenJigWare
                             switch (key)
                             {
                                 case "robot": m.Robot = val; break;
+                                case "motormap": { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); v = v.Trim(); m.MotorMap = v.Length > 0 ? v : null; break; }
                                 case "func": m.FuncNumber = int.Parse(val, ci); break;
                                 case "posids": m.PosIDs = Array.ConvertAll(val.Split(','), v => int.Parse(v.Trim(), ci)); break;
                                 case "wrist": m.WristID = int.Parse(val, ci); break;
+                                case "downsum": { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.DownSumDeg = float.Parse(v.Trim(), NumberStyles.Float, ci); break; }
+                                case "kinsig": { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.KinSig = v.Trim(); break; }
                                 case "pitch": m.PitchDeg = float.Parse(val, ci); break;
                                 case "maxdelta": m.MaxAbsDelta = float.Parse(val, ci); break;
                                 case "degree": m.Degree = int.Parse(val, ci); break;
@@ -674,6 +710,13 @@ namespace OpenJigWare
                                         }
                                         break;
                                     }
+                                case "fcon": case "fcbeta": case "fcbnd": case "fcprior": case "fccov": case "fcell": case "fcsig": case "fccap": case "fcenv": case "fcref": case "fcx":
+                                    {
+                                        string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash);
+                                        if (m.Fc == null) m.Fc = new CSagFc();
+                                        m.Fc.ParseKey(key, v.Trim());                                  // 학습점의 특징·잔차 GP 는 C3d 가 준비한다 (SagComp_FcPrepare)
+                                        break;
+                                    }
                                 case "excl":
                                     {
                                         string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash);
@@ -728,6 +771,8 @@ namespace OpenJigWare
                     if ((m.Jc != null || m.Jh != null) && !m.HasJoint) m.Jc = m.Jh = null;   // 길이 어긋난 관절 계수 = 버린다 (자동 재학습은 안 한다 — 명시 호출만)
                     if ((m.Jtau != null || m.Jkap != null) && !m.HasJointLag) m.Jtau = m.Jkap = null;
                     if (m.Gp != null && (m.Gp.X.Length == 0 || !m.Gp.Solve())) m.Gp = null;       // 학습점으로 촐레스키 다시 풀기
+                    if (m.Fc != null && !m.Fc.EndLoad()) { m.Fc = null; m.FcDropped = true; }    // fcbeta·fcell·fcsig·fcx 가 없거나 fc* 줄이 하나라도 잘못되면 통째로 버린다 → 바닥 GP·보정표
+                    try { m.SourcePath = Path.GetFullPath(strPath); } catch { m.SourcePath = strPath; }
                     return m;
                 }
 
@@ -744,10 +789,12 @@ namespace OpenJigWare
                             sj, Samples.Count, JRmseBefore, JRmseAfter, Enabled ? "" : " [꺼짐]", HasJointLag && LagEnabled ? "+지연" : "",
                             HasJointLag ? string.Format(CultureInfo.InvariantCulture, ", 지연 τ 학습됨({0}, 주행 설명 Δz {1:F2}→{2:F2}mm)",
                                 LagEnabled ? "켜짐" : "꺼짐 — LagEnabled", JLagRmseBefore, JLagRmseAfter) : "")
-                            + (HasGp ? string.Format(CultureInfo.InvariantCulture, ", 바닥 GP {0}점 (길이 척도 팔 {1:F0}°, 두 상태 반경 {3}곳){2}", Gp.Count, Gp.Ell.Length > 1 ? Gp.Ell[1] : 0,
+                            + (HasFc ? Fc.SummaryText(FloorMapEnabled) : "")                    // 첫닿음 모델 (fcon=1 이면 GP·보정표는 안 쓰므로 생략)
+                            + (HasFc && Fc.Enabled ? "" : HasGp ? string.Format(CultureInfo.InvariantCulture, ", 바닥 GP {0}점 (길이 척도 팔 {1:F0}°, 두 상태 반경 {3}곳){2}", Gp.Count, Gp.Ell.Length > 1 ? Gp.Ell[1] : 0,
                                 FloorMapEnabled && Gp.Enabled ? "" : " [꺼짐]", Gp.BadR == null ? 0 : Gp.BadR.Length)
                                : HasFloorMap ? string.Format(CultureInfo.InvariantCulture, ", 바닥 보정표 {0}점 r {1:F0}~{2:F0}mm Δz {3:+0.0;-0.0}~{4:+0.0;-0.0}mm{5}",
-                                FloorR.Length, FloorR[0], FloorR[FloorR.Length - 1], FloorDzMin(), FloorDzMax(), FloorMapEnabled ? "" : " [꺼짐 — flooron=0]") : "");
+                                FloorR.Length, FloorR[0], FloorR[FloorR.Length - 1], FloorDzMin(), FloorDzMax(), FloorMapEnabled ? "" : " [꺼짐 — flooron=0]") : "")
+                            + (FcDropped ? ", 첫닿음 모델 버림 (파일의 fc* 줄이 모자라거나 잘못됨 — fcbeta·fcell·fcsig·fcx 확인)" : "");
                     }
                     if (!IsFitted) return string.Format("처짐 보상: 미학습 (표본 {0})", Samples.Count);
                     double dR0, dZ0, dR1, dZ1;
@@ -807,13 +854,18 @@ namespace OpenJigWare
                 CSagComp m = CSagComp.Load(strPath);
                 if (m == null || !m.IsUsable) return false;
                 SagComp_Switch(m);
+                SagTwin_SetModel(m);                                // 처짐 쌍둥이도 같은 모델로 (보정을 꺼도 남는다)
                 return true;
             }
-            public void SagComp_Set(CSagComp model) { SagComp_Switch(model); }
+            public void SagComp_Set(CSagComp model) { SagComp_Switch(model); if (model != null) SagTwin_SetModel(model); }
             public void SagComp_Clear() { SagComp_Switch(null); }
             public bool SagComp_IsLoaded { get { return m_SagComp != null && m_SagComp.IsUsable; } }
             public CSagComp SagComp_Get() { return m_SagComp; }
-            public void SagComp_Enable(bool bOn) { if (m_SagComp != null) m_SagComp.Enabled = bOn; SagComp_Switch(m_SagComp); }
+            public void SagComp_Enable(bool bOn)
+            {
+                SagFc_EnsureReady(m_SagComp);
+                lock (m_dicSagDir) { CSagComp m = m_SagComp; if (m != null) m.Enabled = bOn; SagComp_SwitchLocked(m); }   // 켬·끔 플래그도 전환과 같은 lock 안에서 (SagComp_SwitchLocked)
+            }
             /// <summary>직전 IK 호출에 적용된 보상 (Δx,Δy,Δz mm) — 진단용 (직교 모델)</summary>
             public float[] SagComp_LastDelta { get { return (float[])m_afSagLastDelta.Clone(); } }
             /// <summary>직전 출력 틱에 얹은 관절 보정 (deg, 관절 모델 JointIDs 순) — 진단용</summary>
@@ -827,18 +879,54 @@ namespace OpenJigWare
             private readonly Dictionary<int, int> m_dicSagDir = new Dictionary<int, int>();          // 관절별 마지막 이동 방향
             private readonly Dictionary<int, float> m_dicSagSigma = new Dictionary<int, float>();    // 보상용 매끈한 방향 (−1..+1)
             private readonly Dictionary<int, float> m_dicSagPrev = new Dictionary<int, float>();
-            private System.Diagnostics.Stopwatch m_swSagBlend = null;                       // 보정 전환 시계 — 전환 뒤 첫 출력 틱에 시작
             private readonly Dictionary<int, float> m_dicSagApplied = new Dictionary<int, float>();  // 직전 출력 틱에 실제로 얹은 보정 (관절 ID → deg, 전환 포함)
-            private Dictionary<int, float> m_dicSagFrom = null;                                      // 전환 순간 걸려 있던 보정 — 여기서 새 보정으로 1초에 걸쳐 넘어간다
+            private Dictionary<int, float> m_dicSagFrom = null;                                      // 전환 순간 걸려 있던 보정 — 여기서 새 보정으로 1초에 걸쳐 넘어간다 (관절마다)
+            private int m_nSagSwitchGen = 0;                                                         // 전환 세대 — 전환·초기화마다 1 증가 (출력 틱이 사이에 들어온 전환을 지우지 않게)
+            // 전환 진행 = 출력 틱이 흐른 시간 (10-03) — 벽시계가 아니다. 첫 틱은 전환 순간 값 그대로(w 0), 그다음 틱마다 직전 출력 틱과의 간격만큼
+            //   나아가되 한 틱에 SAG_BLEND_TICK_MAX_MS 까지만. ★10-02 검토: 벽시계로 재면 토크 ON → 짧은 조그(300ms) → 1.5초 쉼 → 다음 조그의 첫 틱에
+            //   남은 전환(보정의 70%, 12/13/14 3~4°)이 한 번에 들어갔다. 쉬는 동안(출력 틱 없음)은 전환이 멈춰 있어 실물로 가는 보정도 그대로다.
+            //   40ms 스트리밍이면 예전과 같다 (틱 간격 ≤ 60ms 는 그대로 더한다).
+            private const double SAG_BLEND_MS = 1000.0;                                              // 전환에 드는 출력 틱 시간 (ms)
+            private const int SAG_BLEND_TICK_MAX_MS = 60;                                            // 출력 틱 하나가 전환을 밀어 주는 최대 시간 (ms)
+            private bool m_bSagBlendRun = false;                                                     // 이 전환의 첫 출력 틱을 지났다
+            private double m_dSagBlendMs = 0;                                                        // 전환 뒤 출력 틱이 쌓은 시간 (ms)
+            private int m_nSagOutLastMs = int.MinValue;                                              // 직전 출력 틱 시각 (모션 시계) — 틱 간격용
+            // ── 쌍둥이 그림자 출력 단 (10-03) — 실물 출력 단 상태를 바꾸지 않는다 ──
+            //   시뮬만(싱크 없음·3D 만 작업의 빈 싱크·토크 꺼짐)일 때 쌍둥이는 출력 단을 그림자로 돌려 "보냈을 명령" 을 만든다 (SagTwin_Update).
+            //   ★10-03 검토: 예전에는 그림자가 실물 출력 단의 상태(직전 틱 보정·전환 기준·전환 시계·세대·방향/속도 추적·손목 유지·진단값)를 그대로 바꿔,
+            //   토크를 붙잡은 실물 옆에서 3D 만 작업(쌍둥이 보기)을 돌린 뒤 다음 조그 첫 틱에 그 잔재(1.5~6°)가 얹힐 수 있었다.
+            //   이제 그림자는 제 상태 사본으로 돈다 (SagComp_JointOutShadow) — lock (m_dicSagDir) 안에서 실물 상태를 잠깐 바꿔 끼우고 같은 계산을 한 뒤 되돌린다.
+            //   그림자 사본은 실물 상태가 통째로 바뀌면(방향 추적 초기화·전환 씨앗·상태 되돌림) 또는 실물 출력 틱이 돌았으면 실물 상태에서 다시 시작하고,
+            //   모델 전환만 있었으면 그림자에도 같은 전환(기준 = 그림자가 직전에 얹은 보정, 진행 0)을 건다 — 1초 넘어가기가 쌍둥이에도 그대로 보인다
+            private CSagOutState m_SagShadowState = null;                                            // 그림자 출력 단의 상태 사본 (null = 다음 그림자 틱에 실물 상태에서 시작)
+            private int m_nSagShadowGen = -1, m_nSagShadowHard = -1, m_nSagShadowReal = -1;         // 그림자 사본을 맞춘 때의 실물 전환 세대·통째 바뀜 세대·실물 출력 틱 수
+            private int m_nSagHardGen = 0;                                                           // 실물 출력 단 상태를 통째로 바꾼 횟수 (방향 추적 초기화·전환 씨앗·상태 되돌림)
+            private int m_nSagRealTicks = 0;                                                         // 실물 출력 틱 수 (그림자 틱은 세지 않는다)
+            private bool m_bSagShadowTick = false;                                                   // 그림자 출력 틱이 도는 중 (lock (m_dicSagDir) 안에서만 true)
 
             /// <summary>보정 모델 전환 — 즉시 0 으로 떨어뜨리지 않고, 전환 순간 실물에 걸려 있던 보정에서 새 모델의 보정으로 1초에 걸쳐 넘어간다.
             /// ★09-28 버그: 전환마다 페이드를 0 부터 다시 시작해, 먼 곳(보정이 끝을 20~30mm 올리던 곳)에서 다음 동작 첫 틱에 끝이 뚝 떨어져
-            /// 바닥을 내려찍었다(사용자 목격 3회 — 먼 3점 뒤 전환마다). null(끄기)도 같은 방식으로 1초에 걸쳐 빠진다.</summary>
+            /// 바닥을 내려찍었다(사용자 목격 3회 — 먼 3점 뒤 전환마다). null(끄기)도 같은 방식으로 1초에 걸쳐 빠진다.
+            /// 1초는 출력 틱이 흐른 시간이다 (틱 하나에 최대 60ms — 멈춰 있는 동안은 나아가지 않는다).
+            /// 모션·실물 스트리밍 중에 다른 스레드에서 불러도 된다 (SagComp_SwitchLocked).</summary>
             private void SagComp_Switch(CSagComp m)
             {
-                lock (m_dicSagDir) m_dicSagFrom = new Dictionary<int, float>(m_dicSagApplied);
+                SagFc_EnsureReady(m);                               // 첫닿음 모델(fc* 키)은 학습점 특징·잔차 GP 를 전환할 때 준비 (~15ms — 출력 틱에서 하지 않게).
+                                                                    //   관절값 사본으로 계산해 3D 관절값·CalcF 를 건드리지 않는다 — 어느 스레드에서 전환해도 모션 스레드가 보내는 명령에 섞이지 않는다
+                lock (m_dicSagDir) SagComp_SwitchLocked(m);
+            }
+            // 전환의 본체 — lock (m_dicSagDir) 안에서만 부른다. 전환 기준(직전 출력 틱에 얹은 보정)·모델·시계·세대를 함께 바꾼다.
+            //   출력 틱(SagComp_JointOutModel)은 틱 시작 때 같은 lock 안에서 모델·첫닿음 모델·기준·시계·세대를 한 번에 읽어 그 틱 끝까지 쓰고,
+            //   틱 끝에서는 세대가 그대로일 때만 기준을 지운다. 켬·끔 플래그(SagComp_Enable)나 쓰고 있는 모델의 첫닿음 모델(SagComp_FitFloorFc)도
+            //   같은 lock 안에서 바꾼다 — 어느 틱도 새 값을 이전 보정 그대로(w=1) 쓰지 않는다.
+            //   ★10-02 검증: 기준·모델·시계를 따로 바꾸던 때는 w=1 출력 틱이 그 사이에 들어온 전환 기준을 지워, 다른 스레드에서 전환하면
+            //   보정 전체(관절 모델 + 바닥 dz)가 한 틱에 0 으로 빠졌다가 1초에 걸쳐 돌아왔다 (빠른 틱 4/4, 30ms 틱 60번 중 10번 — 09-28 과 같은 모양).
+            private void SagComp_SwitchLocked(CSagComp m)
+            {
+                m_dicSagFrom = new Dictionary<int, float>(m_dicSagApplied);
                 m_SagComp = m;
-                m_swSagBlend = null;
+                m_bSagBlendRun = false; m_dSagBlendMs = 0;
+                m_nSagSwitchGen++;
             }
             private float[] m_afSagLastJoint = new float[0];
             // 관절 명령 속도·가속도 추정 — 출력 틱마다 (이번 각 − 지난 각) / 모션 시계 간격. 명령이 시간의 매끈한 함수(smoothstep)라
@@ -849,7 +937,8 @@ namespace OpenJigWare
             private readonly Dictionary<int, float> m_dicSagOmega = new Dictionary<int, float>();    // deg/s
             private readonly Dictionary<int, float> m_dicSagAlpha = new Dictionary<int, float>();    // deg/s²
 
-            /// <summary>방향 추적 초기화 — 토크 ON 직후(CScene_t) 처럼 실물 자세를 새로 잡았을 때 부른다.</summary>
+            /// <summary>방향 추적 초기화 — 토크 ON 직후(CScene_t) 처럼 실물 자세를 새로 잡았을 때 부른다. 걸린 보정이 없음에서 시작하므로
+            /// 직전 틱 보정 진단값(SagComp_LastJointCorr·LastFloorDz)도 비운다 (10-03 — 낡은 진단값을 이어받기 판단이 '보정이 걸려 있음' 으로 보지 않게)</summary>
             public void SagComp_JointReset()
             {
                 lock (m_dicSagDir)
@@ -857,8 +946,39 @@ namespace OpenJigWare
                     m_dicSagAnchor.Clear(); m_dicSagDir.Clear(); m_dicSagSigma.Clear(); m_dicSagPrev.Clear();
                     m_dicSagVelDeg.Clear(); m_dicSagVelT.Clear(); m_dicSagOmega.Clear(); m_dicSagAlpha.Clear();
                     m_dicSagApplied.Clear(); m_dicSagFrom = null;    // 실물 자세를 새로 잡았다 — 걸려 있는 보정 없음에서 시작
+                    m_bSagBlendRun = false; m_dSagBlendMs = 0; m_nSagSwitchGen++; m_nSagHardGen++;
+                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null;
                 }
-                m_swSagBlend = null;
+                lock (m_oWristHold) { m_nWristHoldID = -1; m_fWristHold = 0; m_bWristHoldFading = false; m_dWristHoldFadeMs = 0; m_bWristHoldFadeTicked = false; m_fWristHoldLast = 0; }
+            }
+
+            /// <summary>처짐 보정을 페이드 없이 끈다 (10-03 이어받기 — CArmConn_t 가 서보가 이미 붙잡은 목표를 3D 로 그대로 이어받을 때만 부른다).
+            /// 적용 중 모델의 켬 플래그를 끄고(SagComp_Enable(false) 와 같은 결과 — 앱의 '처짐 보정 켬' 이 따라온다), 출력 단에 걸린 보정·전환 기준·전환 진행·
+            /// 방향/속도 추적·손목 유지·진단값(직전 틱 관절 보정·바닥 dz·첫닿음)을 비운다 → 전환은 끝난 상태, 다음 출력 틱 = 3D 그대로.
+            /// 3D = 서보 목표일 때만 쓴다 — 그러면 첫 틱 변화가 0 이다 (3D 가 목표가 아닌 채 부르면 걸려 있던 보정만큼 한 틱에 빠진다).
+            /// 다시 켜면(SagComp_Enable(true)) 다음 동작의 출력 틱 1초에 걸쳐 0 에서 들어온다 (전환 기준 = 걸린 보정 0).
+            /// 반환 = 꺼진 것이 있었다 (모델이 켜져 있었거나 출력 단에 보정·손목 유지가 걸려 있었다). 모션 중에 불러도 된다 (출력 틱과 같은 lock). 예외 없음</summary>
+            internal bool SagComp_OffForAdopt()
+            {
+                bool bWas = false;
+                lock (m_dicSagDir)
+                {
+                    CSagComp m = m_SagComp;
+                    if (m != null && m.Enabled) { bWas = true; m.Enabled = false; }
+                    foreach (float v in m_dicSagApplied.Values) if (v != 0f) bWas = true;
+                    if (m_dicSagFrom != null) foreach (float v in m_dicSagFrom.Values) if (v != 0f) bWas = true;
+                    m_dicSagAnchor.Clear(); m_dicSagDir.Clear(); m_dicSagSigma.Clear(); m_dicSagPrev.Clear();
+                    m_dicSagVelDeg.Clear(); m_dicSagVelT.Clear(); m_dicSagOmega.Clear(); m_dicSagAlpha.Clear();
+                    m_dicSagApplied.Clear(); m_dicSagFrom = null;            // 걸린 보정 0, 빠질 보정도 없음 — 전환은 끝난 것 (SagComp_BlendProgress = 1)
+                    m_bSagBlendRun = false; m_dSagBlendMs = 0; m_nSagSwitchGen++; m_nSagHardGen++;
+                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null;
+                    lock (m_oWristHold)
+                    {
+                        if (m_fWristHoldLast != 0f || (m_nWristHoldID >= 0 && WristHoldCurrent() != 0f)) bWas = true;
+                        m_nWristHoldID = -1; m_fWristHold = 0; m_bWristHoldFading = false; m_dWristHoldFadeMs = 0; m_bWristHoldFadeTicked = false; m_fWristHoldLast = 0;
+                    }
+                }
+                return bWas;
             }
 
             private void SagComp_TrackVel(int id, float deg, int nNowMs)
@@ -926,23 +1046,82 @@ namespace OpenJigWare
             public void SagComp_JointOut(int[] ids, float[] afDeg)
             {
                 if (ids == null || afDeg == null) return;
-                int nNow = MotionTick_ms();
+                float[] ideal = SagTwin_Wanted ? (float[])afDeg.Clone() : null;   // 처짐 쌍둥이용 — 보정 전 이상각
+                SagComp_JointOutModel(ids, afDeg);
+                SagComp_WristHoldOut(ids, afDeg);   // 측정 중에만(SagComp_FloorPress) — 손목 수직 유지. 방향 추적·모델 전환과 별개
+                if (ideal != null) SagTwin_NoteCommand(ids, ideal, afDeg);   // 실제로 보낸 명령 기록 (COjw_12_3D_SagTwin.cs)
+            }
+            // 쌍둥이 그림자 출력 틱 (SagTwin_Update — 실물로 나가지 않을 때) — SagComp_JointOut 과 같은 계산(관절·바닥 보정 + 전환 + 손목 유지)을
+            //   그림자 상태 사본(m_SagShadowState)으로 한다. 실물 출력 단의 상태는 이 틱 전후로 똑같다 (부작용 없음 — 위 설명).
+            //   omega·alpha·dir = 그림자 틱이 끝난 순간의 그림자 쪽 방향·속도 추적 (ids 순) — 쌍둥이의 지연·방향 예측이 실물 추적 대신 쓴다
+            private void SagComp_JointOutShadow(int[] ids, float[] afDeg, out float[] omega, out float[] alpha, out float[] dir)
+            {
+                omega = alpha = dir = null;
+                if (ids == null || afDeg == null) return;
+                float[] ideal = SagTwin_Wanted ? (float[])afDeg.Clone() : null;
                 lock (m_dicSagDir)
-                    for (int i = 0; i < ids.Length && i < afDeg.Length; i++) { SagComp_TrackDir(ids[i], afDeg[i]); SagComp_TrackVel(ids[i], afDeg[i], nNow); }
-                CSagComp m = m_SagComp;
-                bool bModel = m != null && m.Enabled && m.HasJoint;
-                Dictionary<int, float> from = m_dicSagFrom;
-                if (!bModel && (from == null || from.Count == 0))
                 {
-                    lock (m_dicSagDir) { m_dicSagApplied.Clear(); m_dicSagFrom = null; }
-                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_swSagBlend = null;
-                    return;
+                    CSagOutState real = SagComp_CaptureOutStateLocked();
+                    CSagOutState sh = m_SagShadowState;
+                    if (sh == null || m_nSagShadowHard != m_nSagHardGen || m_nSagShadowReal != m_nSagRealTicks) sh = real;   // 실물 상태에서 (다시) 시작 — 사본이라 그대로 써도 된다
+                    else if (m_nSagShadowGen != m_nSagSwitchGen)
+                    {
+                        // 그사이 모델 전환만 있었다 — 그림자에도 같은 전환 (기준 = 그림자가 직전 틱에 얹은 보정, 진행 0 에서)
+                        sh.From = new Dictionary<int, float>(sh.Applied); sh.BlendRun = false; sh.BlendMs = 0;
+                    }
+                    SagComp_InstallOutStateLocked(sh);
+                    m_bSagShadowTick = true;
+                    try
+                    {
+                        SagComp_JointOutModel(ids, afDeg);
+                        SagComp_WristHoldOut(ids, afDeg);
+                        omega = new float[ids.Length]; alpha = new float[ids.Length]; dir = new float[ids.Length];
+                        for (int i = 0; i < ids.Length; i++)
+                        {
+                            float v; int d;
+                            if (m_dicSagOmega.TryGetValue(ids[i], out v)) omega[i] = v;
+                            if (m_dicSagAlpha.TryGetValue(ids[i], out v)) alpha[i] = v;
+                            if (m_dicSagDir.TryGetValue(ids[i], out d)) dir[i] = d;
+                        }
+                    }
+                    finally
+                    {
+                        m_bSagShadowTick = false;
+                        m_SagShadowState = SagComp_CaptureOutStateLocked();
+                        SagComp_InstallOutStateLocked(real);                             // 실물 상태 그대로 되돌림 (세대는 올리지 않는다 — 실물에는 아무 일도 없었다)
+                        m_nSagShadowGen = m_nSagSwitchGen; m_nSagShadowHard = m_nSagHardGen; m_nSagShadowReal = m_nSagRealTicks;
+                    }
                 }
-                if (m_swSagBlend == null) m_swSagBlend = System.Diagnostics.Stopwatch.StartNew();
-                double w = Math.Min(1.0, m_swSagBlend.ElapsedMilliseconds / 1000.0);
+                if (ideal != null) SagTwin_NoteCommand(ids, ideal, afDeg);   // 그림자가 만든 "보냈을 명령" (lock 밖에서 — 쌍둥이 lock 과 순서가 엇갈리지 않게)
+            }
+            private void SagComp_JointOutModel(int[] ids, float[] afDeg)
+            {
+                int nNow = MotionTick_ms();
+                CSagComp m; CSagFc fc; Dictionary<int, float> from; double w; int nGen; bool bModel;
+                lock (m_dicSagDir)
+                {
+                    if (!m_bSagShadowTick) m_nSagRealTicks++;                                         // 실물 출력 틱 — 그림자 사본은 다음 그림자 틱에 실물 상태에서 다시 시작한다
+                    int nGap = (m_nSagOutLastMs == int.MinValue) ? 0 : unchecked(nNow - m_nSagOutLastMs);   // 직전 출력 틱과의 간격 (ms)
+                    m_nSagOutLastMs = nNow;
+                    for (int i = 0; i < ids.Length && i < afDeg.Length; i++) { SagComp_TrackDir(ids[i], afDeg[i]); SagComp_TrackVel(ids[i], afDeg[i], nNow); }
+                    // 모델·첫닿음 모델·전환 기준·진행·세대를 한 번에 읽고 이 틱 끝까지 쓴다 — 전환(SagComp_SwitchLocked)이 같은 lock 안에서 함께 바꾼다
+                    m = m_SagComp; fc = m == null ? null : m.Fc; from = m_dicSagFrom; nGen = m_nSagSwitchGen;
+                    bModel = m != null && m.Enabled && m.HasJoint;
+                    if (!bModel && (from == null || from.Count == 0))
+                    {
+                        m_dicSagApplied.Clear(); m_dicSagFrom = null; m_bSagBlendRun = false; m_dSagBlendMs = 0;
+                        m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null;
+                        return;
+                    }
+                    // 전환은 출력 틱이 흐를 때만 나아간다 — 첫 틱은 전환 순간 값 그대로, 그다음은 틱 간격만큼 (한 틱에 SAG_BLEND_TICK_MAX_MS 까지)
+                    if (!m_bSagBlendRun) { m_bSagBlendRun = true; m_dSagBlendMs = 0; }
+                    else m_dSagBlendMs += Math.Max(0, Math.Min(SAG_BLEND_TICK_MAX_MS, nGap));
+                    w = Math.Min(1.0, m_dSagBlendMs / SAG_BLEND_MS);
+                }
 
                 var target = new Dictionary<int, float>();                               // 새 모델의 보정 (전환 전 값, 관절 ID → deg)
                 float dzMap = 0;
+                m_afSagLastFc = null;                                                     // 첫닿음 모델 진단 — 이번 틱에 쓰면 SagComp_FcOut 이 채운다
                 if (bModel)
                 {
                     int nj = m.JointIDs.Length;
@@ -973,7 +1152,9 @@ namespace OpenJigWare
                             target[id] = (float)c;
                         }
                     // 바닥 보정표 — 이상 자세(보정 전)의 TCP 반경에서 Δz 를 읽어 관절 12·13·14 로 바꾼다
-                    if ((m.HasGp ? m.Gp.Enabled : m.HasFloorMap) && m.FloorMapEnabled && m.PosIDs != null && m.PosIDs.Length >= 3)
+                    //   우선순위: fcon=1 → 첫닿음 모델 (COjw_12_3D_SagFc.cs), 아니면 바닥 GP, 그것도 없으면 반경 보정표. flooron=0 이면 전부 끈다
+                    bool bFc = fc != null && fc.HasData && fc.Enabled;                   // = m.HasFc && m.Fc.Enabled — 틱 시작 때 읽은 첫닿음 모델
+                    if ((bFc || (m.HasGp ? m.Gp.Enabled : m.HasFloorMap)) && m.FloorMapEnabled && m.PosIDs != null && m.PosIDs.Length >= 3)
                     {
                         int[] fid = { m.PosIDs[1], m.PosIDs[2], m.WristID };
                         float[] fq = new float[3];
@@ -984,7 +1165,13 @@ namespace OpenJigWare
                             fq[k] = jm >= 0 ? pose[jm] : (fi >= 0 ? afDeg[fi] : GetData(fid[k]));
                         }
                         double r0, z0, dz;
-                        if (m.HasGp)
+                        if (bFc)
+                        {
+                            // 첫닿음 모델: dz = (물리 + clip(잔차, ±2) − Ref)·w_env, |dz| ≤ 15 — 범위 안에는 띠·데이터 거리 감쇠 없음. 표준편차는 진단값만
+                            SagComp_TcpRZ(m.FuncNumber, fid, fq, out r0, out z0);
+                            double fsd; dz = SagComp_FcOut(m, fc, ids, afDeg, pose, lev, fq, r0, z0, out fsd); m_fSagLastGpStd = (float)fsd;
+                        }
+                        else if (m.HasGp)
                         {
                             double[] gx = new double[m.Gp.FeatIDs.Length];
                             for (int k = 0; k < gx.Length; k++)
@@ -1022,7 +1209,7 @@ namespace OpenJigWare
                         afDeg[i] += o;
                         m_dicSagApplied[ids[i]] = o;
                     }
-                    if (w >= 1.0) m_dicSagFrom = null;
+                    if (w >= 1.0 && nGen == m_nSagSwitchGen) m_dicSagFrom = null;      // 넘어가기 끝 — 이 틱 사이에 들어온 전환(새 기준)은 지우지 않는다
                 }
                 if (bModel)
                 {
@@ -1039,6 +1226,767 @@ namespace OpenJigWare
             public float SagComp_LastGpStd { get { return m_fSagLastGpStd; } }
             /// <summary>직전 출력 틱에 바닥 보정표로 얹은 끝 높이 보정 (mm) — 진단용</summary>
             public float SagComp_LastFloorDz { get { return m_fSagLastFloorDz; } }
+
+            /// <summary>출력 단에 보정이 걸려 있거나 다음 출력 틱에 걸린다 — 직전 틱에 얹은 보정, 전환 기준(SagComp_SeedFrom 으로 심은 값 포함),
+            /// 손목 유지 중 하나라도 0 이 아니다. 모델 켬 여부는 보지 않는다 (CScene_t.SagCompInPlay 가 함께 본다). 버스·3D 를 건드리지 않는다</summary>
+            public bool SagComp_HasOffsets
+            {
+                get
+                {
+                    lock (m_dicSagDir)
+                    {
+                        foreach (float v in m_dicSagApplied.Values) if (v != 0f) return true;
+                        if (m_dicSagFrom != null) foreach (float v in m_dicSagFrom.Values) if (v != 0f) return true;
+                    }
+                    return SagComp_WristHoldValue() != 0f;
+                }
+            }
+            /// <summary>직전 출력 틱에 실물 명령에 얹은 관절 보정 (deg, ids 순 — 전환 중 값·SagComp_SeedFrom 으로 심은 값 포함, 손목 유지는 빼고). 없는 축은 0.
+            /// 로봇팔 작업이 시작·끝의 서보 목표에 든 보정을 비교할 때 (원위치 확인). 부작용 없음</summary>
+            public float[] SagComp_AppliedNow(int[] ids)
+            {
+                float[] r = new float[ids == null ? 0 : ids.Length];
+                lock (m_dicSagDir) for (int i = 0; i < r.Length; i++) { float v; if (m_dicSagApplied.TryGetValue(ids[i], out v)) r[i] = v; }
+                return r;
+            }
+            /// <summary>보정 전환 진행 (0..1) — 출력 단이 다음 틱에 쓸 전환 무게 w 와 같은 값. 1 = 걸린 전환이 없거나 끝났다
+            /// (모델이 꺼져 있고 빠질 보정도 없으면 1). 전환·켬끔·방향 추적 초기화(SagComp_JointReset — 보정이 0 에서 다시 들어온다) 뒤
+            /// 첫 출력 틱 전에는 0. 출력 틱이 흘러야 나아간다 (멈춰 있으면 그대로) — 모델을 바꾼 뒤 실물에 새 보정이 다 들어갔는지 볼 때
+            /// (틈 재기는 이것이 1 이 될 때까지 자세를 보내며 붙잡는다)</summary>
+            public double SagComp_BlendProgress
+            {
+                get
+                {
+                    lock (m_dicSagDir)
+                    {
+                        CSagComp m = m_SagComp;
+                        bool bModel = m != null && m.Enabled && m.HasJoint;
+                        if (!bModel && (m_dicSagFrom == null || m_dicSagFrom.Count == 0)) return 1.0;   // 들어올 보정도 빠질 보정도 없다
+                        if (!m_bSagBlendRun) return 0.0;                                                 // 전환 뒤 첫 출력 틱 전
+                        return Math.Min(1.0, m_dSagBlendMs / SAG_BLEND_MS);
+                    }
+                }
+            }
+
+            // ────────────────────────────────────────────────────────────
+            // 출력 단 예측·되짚기·전환 씨앗 (10-03) — 공용 도구. 서보 목표에서 3D 자세 h 를 h + C(h) = 목표 로 되짚고(SagComp_InvertGoal) 전환 기준을
+            //   관절마다 목표 − h 로 심으면(SagComp_SeedFrom) 다음 출력 틱 = 목표, 그 뒤에도 C(h) = 목표 − h 라 보정이 두 번 얹히지 않는다.
+            //   이어받기(CArmConn_t: 연결 때·토크 켤 때·움직이기 전 확인)는 이것을 쓰지 않는다 (10-03 설계 바꿈): 바닥 보정은 엔코더로 보이지 않는
+            //   휨을 메우므로 실물 지금 위치로는 해가 여럿일 때 어느 해인지 가릴 수 없다 — 이어받기는 서보 목표를 그대로 3D 로 삼고 걸린 보정을
+            //   페이드 없이 끈다 (SagComp_OffForAdopt).
+            //   예측·되짚기는 부작용이 없다 — 방향·속도 추적, 전환 진행·기준, 쌍둥이, 진단값을 건드리지 않고 관절값 사본으로 계산한다
+            //   (모션 스레드의 출력 틱과 겹쳐 불러도 된다). 첫닿음 모델이 아직 준비 전이면 준비한다 (전환 때와 같은 일 — 결과가 같다).
+            // ────────────────────────────────────────────────────────────
+            /// <summary>정지 자세에서 출력 단이 전환을 마친 뒤(w = 1) 얹을 관절 보정 (deg, ids 순, 부호 = 명령에 더할 값) — 적용 중 모델로.
+            /// = 관절 모델(중력·데드밴드, MaxAbsJointDeg 로 자름) + 바닥 보정(첫닿음 모델 / GP / 반경 보정표 → 관절 12·13·14, 축마다 MaxAbsJointDeg 로 자름).
+            /// 앞서 보내기(속도·가속도)와 손목 유지는 넣지 않는다. afIdeal = ids 순 이상(3D) 관절각, afSigma = ids 순 이동 방향 σ (−1..+1, null·NaN = 0).
+            /// ids 밖 관절은 지금 3D 값. 모델이 없거나 꺼져 있으면 0 배열, 입력이 틀리면 null. 부작용 없음 — 어느 스레드에서 불러도 된다. 예외 없음.</summary>
+            public float[] SagComp_PredictJointCorr(int[] ids, float[] afIdeal, float[] afSigma)
+            {
+                CSagComp m = m_SagComp;
+                if (ids == null || afIdeal == null || afIdeal.Length != ids.Length) return null;
+                if (m == null || !m.Enabled || !m.HasJoint) return new float[ids.Length];
+                return SagComp_PredictJointCorr(m, ids, afIdeal, afSigma);
+            }
+            /// <summary>SagComp_PredictJointCorr 와 같고 모델을 준다 — 그 모델을 켜서 적용하면 얹을 보정 (Enabled 플래그는 보지 않는다,
+            /// 바닥 부분은 그 모델의 FloorMapEnabled·첫닿음 fcon 을 따른다). 관절 모델이 없으면 0 배열. 부작용 없음. 예외 없음.</summary>
+            public float[] SagComp_PredictJointCorr(CSagComp m, int[] ids, float[] afIdeal, float[] afSigma)
+            {
+                try
+                {
+                    if (ids == null || afIdeal == null || afIdeal.Length != ids.Length) return null;
+                    float[] r = new float[ids.Length];
+                    if (m == null || !m.HasJoint) return r;
+                    Dictionary<int, float> t = SagComp_PredictCore(m, m.Fc, ids, afIdeal, afSigma);
+                    for (int i = 0; i < ids.Length; i++) { float v; if (t.TryGetValue(ids[i], out v)) r[i] = v; }
+                    return r;
+                }
+                catch { return null; }
+            }
+            /// <summary>서보가 붙잡은 목표 → 3D 이상 자세 h: h + C(h) = 목표 (C = SagComp_PredictJointCorr, 적용 중 모델, σ = afSigma) 를
+            /// 고정점 반복 h ← 목표 − C(h) 로 푼다 (최대 10번, 앞뒤 차가 0.01° 안이면 끝 — 수렴하지 않으면 차가 잘 줄지 않을 때 반씩 가며 한 번 더 10번,
+            /// 그래도 안 되면 뉴턴 — 수치 야코비안, 걸음 2° 까지, 같은 0.01° 기준 (10-03: C 의 기울기가 1 을 넘는 바닥 안쪽 자세)).
+            /// 모델이 없거나 꺼져 있으면, 그래도 수렴하지 않으면(C 가 끊기는 곳을 건너야 닿는 목표) null. 부작용 없음. 예외 없음.</summary>
+            public float[] SagComp_InvertGoal(int[] ids, float[] afGoal, float[] afSigma) { return SagComp_InvertGoal(ids, afGoal, afSigma, null); }
+            /// <summary>SagComp_InvertGoal 과 같고 abFixed[i] 가 true 인 축은 h = 목표 그대로 둔다 (보정 없이 붙잡은 축 — 토크가 꺼져 있다 켠 축의
+            /// 지금 위치 등. 다른 축의 보정 계산에는 그 값이 들어간다)</summary>
+            public float[] SagComp_InvertGoal(int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed)
+            {
+                return SagComp_InvertGoal(ids, afGoal, afSigma, abFixed, null);
+            }
+            /// <summary>SagComp_InvertGoal 과 같고 반복을 시작할 자세를 준다 (ids 순 — null 이거나 길이가 다르면 목표에서). 보정이 자세에 따라 끊기는
+            /// 모델(작업 범위·학습점 밖에서 빠지는 바닥 보정 등)은 h + C(h) = 목표 의 해가 여럿일 수 있다 — 실물의 지금 위치(처짐을 보정이 메우므로 원래
+            /// 3D 자세 근처)에서 찾은 해 가운데 시작 자세에 가장 가까운 해를 고른다: 시작 자세에서 뉴턴·그대로 → (0.5° 안의 해가 없으면) 내려가기(기울기 없이
+            /// 잔차 제곱합을 줄여 가는 축별 탐색)·반씩 → 목표에서 그대로·반씩·뉴턴 → 그래도 0.5° 안의 해가 없으면 둘레 훑기 (바닥 보정 축 셋을 시작 자세 둘레
+            /// 0.5° 간격으로 — 그때까지 찾은 가장 가까운 해까지의 거리 안, 3° 까지). 10-03 검토: 바닥 GP 가 학습 자세 둘레에만 보정을 내는 먼 바닥 자세
+            /// r250~260 z60 에서 고정점은 시작 자세 0.1~1.5° 옆에서도 바닥 보정이 빠지는 둘째 해(약 6° 떨어짐, TCP 15~19mm 위)로 갔다.
+            /// 어느 해든 다음 틱 = 목표, 보정은 두 번 얹히지 않는다</summary>
+            public float[] SagComp_InvertGoal(int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed, float[] afStart)
+            {
+                try
+                {
+                    CSagComp m = m_SagComp;
+                    if (ids == null || afGoal == null || afGoal.Length != ids.Length) return null;
+                    if (m == null || !m.Enabled || !m.HasJoint) return null;
+                    CSagFc fc = m.Fc;                                           // 한 번만 읽는다 (다시 학습이 다른 스레드에서 바꿔 끼울 수 있다)
+                    bool bStart = afStart != null && afStart.Length == ids.Length;
+                    if (!bStart)
+                    {
+                        // 시작 자세가 없으면 목표에서 그대로 → 반씩 → 뉴턴 (앞의 것이 수렴하지 않을 때만 다음 — 예전과 같은 풀이)
+                        float[] h0 = SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, afGoal, false);
+                        if (h0 == null) h0 = SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, afGoal, true);
+                        if (h0 == null) h0 = SagComp_InvertNewton(m, fc, ids, afGoal, afSigma, abFixed, afGoal);
+                        return h0;
+                    }
+                    bool[] mask = SagComp_InvertMask(m, ids, abFixed);   // 거리를 재는 축 = 보정에 관여하는 축 중 고정 아닌 것 (그리퍼처럼 보정 없는 축은 해가 늘 목표라 뺀다)
+                    float[] best = null;
+                    double dBest = double.MaxValue;
+                    // 1) 시작 자세에서 뉴턴(가까운 해로 한두 걸음 — 실물 r230 z40: 한 걸음에 잔차 0.001°)·그대로
+                    var cands = new List<float[]>();
+                    cands.Add(SagComp_InvertNewton(m, fc, ids, afGoal, afSigma, abFixed, afStart));
+                    cands.Add(SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, afStart, false));
+                    SagComp_InvertPick(cands, afStart, mask, ref best, ref dBest);
+                    if (best != null && dBest <= 0.5) return best;
+                    // 2) 내려가기·반씩 — 바닥 보정이 축마다 MaxAbsJointDeg 로 잘린 곳의 가장자리 바로 밖에서 시작하면 뉴턴의 야코비안이 반대쪽
+                    //    기울기를 보고, 고정점은 바닥 보정이 빠지는 먼 해로 미끄러진다
+                    cands.Clear();
+                    cands.Add(SagComp_InvertDescend(m, fc, ids, afGoal, afSigma, abFixed, afStart, 1200));
+                    cands.Add(SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, afStart, true));
+                    SagComp_InvertPick(cands, afStart, mask, ref best, ref dBest);
+                    if (best != null && dBest <= 0.5) return best;
+                    // 3) 목표에서 (그대로 → 반씩 → 뉴턴)
+                    float[] h = SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, afGoal, false);
+                    if (h == null) h = SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, afGoal, true);
+                    if (h == null) h = SagComp_InvertNewton(m, fc, ids, afGoal, afSigma, abFixed, afGoal);
+                    cands.Clear(); cands.Add(h);
+                    SagComp_InvertPick(cands, afStart, mask, ref best, ref dBest);
+                    if (best != null && dBest <= 0.5) return best;
+                    // 4) 둘레 훑기 — 보정이 좁은 곳에만 있으면(학습 자세 둘레의 바닥 GP) 그 안의 해는 밖에서 내려가도·고정점으로도 닿지 않는다.
+                    //    더 가까운 해는 지금 가장 가까운 해까지의 거리 안에만 있다 (없으면 3°)
+                    double fHalf = Math.Min(3.0, best != null ? dBest : 3.0);
+                    SagComp_InvertPick(SagComp_InvertScan(m, fc, ids, afGoal, afSigma, abFixed, afStart, fHalf), afStart, mask, ref best, ref dBest);
+                    return best;
+                }
+                catch { return null; }
+            }
+            // 보정에 관여하는 축 ID — 관절 모델 축 + 바닥 보정 축(위치 셋·손목)
+            private static List<int> SagComp_InvertCorrIds(CSagComp m)
+            {
+                var l = new List<int>(m.JointIDs);
+                if (m.PosIDs != null && m.PosIDs.Length >= 3) { l.Add(m.PosIDs[0]); l.Add(m.PosIDs[1]); l.Add(m.PosIDs[2]); l.Add(m.WristID); }
+                return l;
+            }
+            // 되짚기가 움직이는 축 (ids 색인 마스크) — 보정에 관여하는 축 중 고정 아닌 것 (나머지 축의 해는 늘 목표)
+            private static bool[] SagComp_InvertMask(CSagComp m, int[] ids, bool[] abFixed)
+            {
+                List<int> corr = SagComp_InvertCorrIds(m);
+                bool[] mask = new bool[ids.Length];
+                for (int i = 0; i < ids.Length; i++) mask[i] = corr.Contains(ids[i]) && !(abFixed != null && i < abFixed.Length && abFixed[i]);
+                return mask;
+            }
+            // 두 자세의 거리 (deg) — 축마다 차의 최대 (mask 가 있으면 그 축만, 수가 아닌 값의 축은 뺀다)
+            private static double SagComp_InvertDist(float[] h, float[] afStart, bool[] mask)
+            {
+                double d = 0;
+                for (int i = 0; i < h.Length && i < afStart.Length; i++)
+                {
+                    if (mask != null && (i >= mask.Length || !mask[i])) continue;
+                    if (float.IsNaN(afStart[i]) || float.IsInfinity(afStart[i]) || float.IsNaN(h[i]) || float.IsInfinity(h[i])) continue;
+                    d = Math.Max(d, Math.Abs((double)h[i] - afStart[i]));
+                }
+                return d;
+            }
+            // 후보 해 중 시작 자세에 가장 가까운 것을 best 로 (수렴하지 않은 후보 = null 은 뺀다)
+            private static void SagComp_InvertPick(List<float[]> cands, float[] afStart, bool[] mask, ref float[] best, ref double dBest)
+            {
+                if (cands == null) return;
+                foreach (float[] c in cands)
+                {
+                    if (c == null) continue;
+                    double d = SagComp_InvertDist(c, afStart, mask);
+                    if (d < dBest) { dBest = d; best = c; }
+                }
+            }
+            // 내려가기 되짚기 (보정이 잘리거나 끊겨 기울기가 갑자기 바뀌는 곳에서 뉴턴·고정점이 엉뚱한 쪽으로 갈 때) — 기울기를 쓰지 않는 무늬 탐색:
+            //   바닥 보정 축 셋(위치 둘째·셋째·손목)은 {−1, 0, +1} 조합 방향(셋이면 26 — 축끼리 엮인 비스듬한 골짜기도 따라간다), 다른 보정 축은 하나씩 ±로
+            //   지금 걸음만큼 가 보고 잔차 제곱합 Σ F² 이 가장 많이 주는 쪽으로 간다. 어느 쪽도 줄지 않으면 걸음을 반으로 (0.5° → 0.0005°).
+            //   시작 자세에서 내려가 닿는 해(가까운 해)를 찾는다. max|F| < 0.01° 면 끝 (같은 기준), 평가 nMaxEval 번까지 — 못 닿으면 null
+            private float[] SagComp_InvertDescend(CSagComp m, CSagFc fc, int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed, float[] afStart, int nMaxEval)
+            {
+                int n = ids.Length;
+                float[] h = (float[])afStart.Clone();
+                List<int> corrIds = SagComp_InvertCorrIds(m);
+                int[] flIds = (m.PosIDs != null && m.PosIDs.Length >= 3) ? new int[] { m.PosIDs[1], m.PosIDs[2], m.WristID } : new int[0];
+                var fl = new List<int>(); var other = new List<int>();
+                for (int i = 0; i < n; i++)
+                {
+                    bool bFix = abFixed != null && i < abFixed.Length && abFixed[i];
+                    if (bFix || float.IsNaN(h[i]) || float.IsInfinity(h[i]) || !corrIds.Contains(ids[i])) h[i] = afGoal[i];
+                    if (bFix || !corrIds.Contains(ids[i])) continue;
+                    if (Array.IndexOf(flIds, ids[i]) >= 0 && fl.Count < 3) fl.Add(i); else other.Add(i);
+                }
+                var dirs = new List<int[]>();                                   // 방향마다 ids 길이의 −1/0/+1
+                int nComb = 1;
+                for (int a = 0; a < fl.Count; a++) nComb *= 3;
+                for (int code = 0; code < nComb; code++)
+                {
+                    int[] d = new int[n];
+                    int c = code; bool bAny = false;
+                    for (int a = 0; a < fl.Count; a++) { d[fl[a]] = (c % 3) - 1; if (d[fl[a]] != 0) bAny = true; c /= 3; }
+                    if (bAny) dirs.Add(d);
+                }
+                foreach (int a in other) { int[] dp = new int[n]; dp[a] = 1; dirs.Add(dp); int[] dm = new int[n]; dm[a] = -1; dirs.Add(dm); }
+                double[] F = SagComp_InvertResidual(m, fc, ids, afGoal, afSigma, abFixed, h);
+                if (F == null) return null;
+                if (dirs.Count == 0) return SagComp_MaxAbs(F) < 0.01 ? h : null;
+                double S = 0; foreach (double v in F) S += v * v;
+                double step = 0.5;
+                int nEval = 1;
+                while (SagComp_MaxAbs(F) >= 0.01 && step >= 0.0005 && nEval < nMaxEval)
+                {
+                    float[] hBest = null; double[] FBest = null; double SBest = S;
+                    foreach (int[] d in dirs)
+                    {
+                        float[] hn = (float[])h.Clone();
+                        for (int i = 0; i < n; i++) if (d[i] != 0) hn[i] = (float)(h[i] + d[i] * step);
+                        double[] Fn = SagComp_InvertResidual(m, fc, ids, afGoal, afSigma, abFixed, hn);
+                        nEval++;
+                        if (Fn == null) continue;
+                        double Sn = 0; foreach (double v in Fn) Sn += v * v;
+                        if (Sn < SBest) { SBest = Sn; hBest = hn; FBest = Fn; }
+                    }
+                    if (hBest != null) { h = hBest; F = FBest; S = SBest; }
+                    else step *= 0.5;
+                }
+                return SagComp_MaxAbs(F) < 0.01 ? h : null;
+            }
+            // 둘레 훑기 되짚기 (시작 자세 둘레에서 다른 풀이가 가까운 해를 못 찾을 때) — 바닥 보정 축 셋(위치 둘째·셋째·손목, 고정 아닌 것)을
+            //   시작 자세 ± fHalf 안에서 0.5° 이하 간격으로 훑는다 (다른 보정 축은 시작 자세, 보정 없는 축·고정 축은 목표). 점마다
+            //   ① 고정점 한 걸음의 상 = 목표 − C(점) — 보정이 거의 일정한 구역(잘린 평평한 곳·보정이 없는 곳) 안의 점은 상이 그 구역의 해다:
+            //      서로 다른 상(0.05° 넘게 다른 것, 최대 40개)마다 고정점(안 되면 뉴턴)으로 다듬는다
+            //   ② 잔차 제곱합 Σ F² — 훑은 격자에서 이웃보다 작은 점(골짜기, 작은 것부터 3개)에서 내려가기 (보정이 가파른 구역 안의 해 — 고정점·상으로는 안 닿는다).
+            //   보정이 학습 자세 둘레의 좁은 곳에만 있어도 그 안에 든 격자점이 하나면 된다. 수렴한 해들을 돌려준다 (평가 최대 약 2200 + 다듬기)
+            private List<float[]> SagComp_InvertScan(CSagComp m, CSagFc fc, int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed, float[] afStart, double fHalf)
+            {
+                var roots = new List<float[]>();
+                int n = ids.Length;
+                List<int> corrIds = SagComp_InvertCorrIds(m);
+                float[] b = (float[])afStart.Clone();
+                for (int i = 0; i < n; i++)
+                {
+                    bool bFix = abFixed != null && i < abFixed.Length && abFixed[i];
+                    if (bFix || float.IsNaN(b[i]) || float.IsInfinity(b[i]) || !corrIds.Contains(ids[i])) b[i] = afGoal[i];
+                }
+                var ax = new List<int>();                                              // 훑을 축 (ids 색인) — 바닥 보정이 움직이는 셋
+                if (m.PosIDs != null && m.PosIDs.Length >= 3)
+                    foreach (int id in new int[] { m.PosIDs[1], m.PosIDs[2], m.WristID })
+                    {
+                        int k = Array.IndexOf(ids, id);
+                        if (k >= 0 && !(abFixed != null && k < abFixed.Length && abFixed[k]) && !ax.Contains(k)) ax.Add(k);
+                    }
+                if (ax.Count == 0 || !(fHalf > 0)) return roots;
+                int nStep = (int)Math.Ceiling(fHalf / 0.5 - 1e-6);
+                double dStep = fHalf / Math.Max(1, nStep);
+                int nSide = 2 * nStep + 1, nAll = 1;
+                for (int a = 0; a < ax.Count; a++) nAll *= nSide;
+                var imgs = new List<float[]>();
+                double[] sg = new double[nAll];
+                for (int code = 0; code < nAll; code++)
+                {
+                    float[] g = SagComp_ScanPoint(b, ax, code, nSide, nStep, dStep);
+                    Dictionary<int, float> cr = SagComp_PredictCore(m, fc, ids, g, afSigma);
+                    float[] img = new float[n];
+                    bool bOk = true;
+                    double s = 0;
+                    for (int i = 0; i < n; i++)
+                    {
+                        bool bFix = abFixed != null && i < abFixed.Length && abFixed[i];
+                        float v; if (!cr.TryGetValue(ids[i], out v)) v = 0;
+                        img[i] = bFix ? afGoal[i] : afGoal[i] - v;
+                        if (float.IsNaN(img[i]) || float.IsInfinity(img[i])) bOk = false;
+                        if (!bFix) { double f = (double)g[i] + v - afGoal[i]; s += f * f; }
+                    }
+                    sg[code] = (bOk && !double.IsNaN(s) && !double.IsInfinity(s)) ? s : double.NaN;
+                    if (!bOk) continue;
+                    bool bSeen = false;
+                    foreach (float[] o in imgs) if (SagComp_InvertDist(img, o, null) < 0.05) { bSeen = true; break; }
+                    if (!bSeen && imgs.Count < 40) imgs.Add(img);
+                }
+                foreach (float[] img in imgs)
+                {
+                    float[] r = SagComp_InvertCore(m, fc, ids, afGoal, afSigma, abFixed, img, false);
+                    if (r == null) r = SagComp_InvertNewton(m, fc, ids, afGoal, afSigma, abFixed, img);
+                    SagComp_AddRoot(roots, r);
+                }
+                // 골짜기 — 이웃(축마다 −1·0·+1 칸) 어느 것보다도 Σ F² 이 작은 격자점, 작은 것부터 3개에서 내려가기
+                var mins = new List<KeyValuePair<double, int>>();
+                for (int code = 0; code < nAll; code++)
+                {
+                    if (double.IsNaN(sg[code])) continue;
+                    bool bMin = true;
+                    int nNb = 1; for (int a = 0; a < ax.Count; a++) nNb *= 3;
+                    for (int nb = 0; nb < nNb && bMin; nb++)
+                    {
+                        int c = code, t = nb, code2 = 0, mul = 1; bool bIn = true, bSelf = true;
+                        for (int a = 0; a < ax.Count; a++)
+                        {
+                            int dg = (c % nSide) + (t % 3) - 1;
+                            if ((t % 3) != 1) bSelf = false;
+                            if (dg < 0 || dg >= nSide) bIn = false;
+                            code2 += dg * mul; mul *= nSide; c /= nSide; t /= 3;
+                        }
+                        if (!bIn || bSelf || double.IsNaN(sg[code2])) continue;
+                        if (sg[code2] < sg[code]) bMin = false;
+                    }
+                    if (bMin) mins.Add(new KeyValuePair<double, int>(sg[code], code));
+                }
+                mins.Sort(delegate(KeyValuePair<double, int> x, KeyValuePair<double, int> y) { return x.Key.CompareTo(y.Key); });
+                for (int i = 0; i < mins.Count && i < 3; i++)
+                    SagComp_AddRoot(roots, SagComp_InvertDescend(m, fc, ids, afGoal, afSigma, abFixed, SagComp_ScanPoint(b, ax, mins[i].Value, nSide, nStep, dStep), 800));
+                return roots;
+            }
+            // 훑기 격자점 — 기준 자세 b 의 축 ax 를 code(nSide 진법 자리)만큼 옮긴 자세
+            private static float[] SagComp_ScanPoint(float[] b, List<int> ax, int code, int nSide, int nStep, double dStep)
+            {
+                float[] g = (float[])b.Clone();
+                int c = code;
+                for (int a = 0; a < ax.Count; a++) { g[ax[a]] = (float)(b[ax[a]] + ((c % nSide) - nStep) * dStep); c /= nSide; }
+                return g;
+            }
+            // 해 목록에 더한다 (null·이미 있는 해 — 0.02° 안 — 는 빼고)
+            private static void SagComp_AddRoot(List<float[]> roots, float[] r)
+            {
+                if (r == null) return;
+                foreach (float[] o in roots) if (SagComp_InvertDist(r, o, null) < 0.02) return;
+                roots.Add(r);
+            }
+            // 고정점 반복 h ← 목표 − C(h) (최대 10번, 앞뒤 차가 0.01° 안이면 끝) — 시작 = afStart (고정 축·수가 아닌 값은 목표). 수렴하지 않으면 null.
+            //   bDamp: 차가 잘 줄지 않으면 (바닥 보정이 자세에 가파르게 따라 바뀌는 곳 — C 의 기울기가 −1 가까이라 해 둘레를 오락가락) 반만 간다
+            //   (h ← h + ½·(목표 − C(h) − h)). 그대로 반복해 수렴하는 곳은 그대로가 빠르다 (부른 쪽이 그대로 → 반씩 순서로 부른다)
+            private float[] SagComp_InvertCore(CSagComp m, CSagFc fc, int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed, float[] afStart, bool bDamp)
+            {
+                float[] h = (float[])afStart.Clone();
+                for (int i = 0; i < ids.Length; i++)
+                    if ((abFixed != null && i < abFixed.Length && abFixed[i]) || float.IsNaN(h[i]) || float.IsInfinity(h[i])) h[i] = afGoal[i];
+                double dStep = 1.0, errPrev = double.MaxValue;
+                for (int it = 0; it < 10; it++)
+                {
+                    Dictionary<int, float> c = SagComp_PredictCore(m, fc, ids, h, afSigma);
+                    double err = 0;
+                    float[] hn = new float[h.Length];                                   // 목표 − C(h)
+                    for (int i = 0; i < ids.Length; i++)
+                    {
+                        float v; if (!c.TryGetValue(ids[i], out v)) v = 0;
+                        hn[i] = (abFixed != null && i < abFixed.Length && abFixed[i]) ? afGoal[i] : afGoal[i] - v;
+                        if (float.IsNaN(hn[i]) || float.IsInfinity(hn[i])) return null;
+                        err = Math.Max(err, Math.Abs(hn[i] - h[i]));
+                    }
+                    if (err < 0.01) return hn;
+                    if (bDamp && err > 0.7 * errPrev) dStep = 0.5;                        // 차가 잘 줄지 않는다 — 반만 간다
+                    errPrev = err;
+                    for (int i = 0; i < h.Length; i++) h[i] = (float)(h[i] + dStep * (hn[i] - h[i]));
+                }
+                return null;
+            }
+            // 뉴턴 되짚기 (시작 자세가 있으면 먼저 — 그 가까운 해, 없으면 고정점·반씩이 안 될 때) — F(h) = h + C(h) − 목표 = 0 을 보정에 관여하는 축(관절 모델 축·바닥 보정 축 12·13·14·첫닿음 축 중 고정 아닌 것)으로 푼다.
+            //   나머지 축은 h = 목표 (보정이 없다 — 그 값은 다른 축의 보정 계산에 그대로 들어간다). 야코비안 = 축마다 0.05° 앞쪽 차분 (C 를 다시 계산),
+            //   한 걸음은 축마다 2° 까지로 자르고 max|F| 가 줄지 않으면 반씩 (최대 6번). 최대 20걸음, max|F| < 0.01° 면 끝 (고정점과 같은 기준).
+            //   C 가 끊기는 곳(바닥 GP 두 상태 띠 경계 등)을 건너야만 닿는 목표면 수렴하지 않는다 → null (부른 쪽이 정한다 — 공용 도구.
+            //   서보 목표 이어받기(CArmConn_t)는 이 되짚기를 쓰지 않는다: 3D = 서보 목표, 걸려 있던 보정은 페이드 없이 끔)
+            private float[] SagComp_InvertNewton(CSagComp m, CSagFc fc, int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed, float[] afStart)
+            {
+                int n = ids.Length;
+                float[] h = (float[])afStart.Clone();
+                var rel = new List<int>();                                              // 풀 축 (ids 색인)
+                var corrIds = new List<int>(m.JointIDs);
+                if (m.PosIDs != null && m.PosIDs.Length >= 3) { corrIds.Add(m.PosIDs[0]); corrIds.Add(m.PosIDs[1]); corrIds.Add(m.PosIDs[2]); corrIds.Add(m.WristID); }
+                for (int i = 0; i < n; i++)
+                {
+                    bool bFix = abFixed != null && i < abFixed.Length && abFixed[i];
+                    if (bFix || float.IsNaN(h[i]) || float.IsInfinity(h[i]) || !corrIds.Contains(ids[i])) h[i] = afGoal[i];
+                    if (!bFix && corrIds.Contains(ids[i])) rel.Add(i);
+                }
+                double[] F = SagComp_InvertResidual(m, fc, ids, afGoal, afSigma, abFixed, h);
+                if (F == null) return null;
+                if (rel.Count == 0) return SagComp_MaxAbs(F) < 0.01 ? h : null;
+                const float EPS = 0.05f;
+                const double STEP_MAX = 2.0;
+                int k = rel.Count;
+                for (int it = 0; it < 20; it++)
+                {
+                    double err = SagComp_MaxAbs(F);
+                    if (err < 0.01) return h;
+                    var J = new double[k, k];
+                    for (int b = 0; b < k; b++)
+                    {
+                        float[] hp = (float[])h.Clone(); hp[rel[b]] += EPS;
+                        double[] Fp = SagComp_InvertResidual(m, fc, ids, afGoal, afSigma, abFixed, hp);
+                        if (Fp == null) return null;
+                        for (int a = 0; a < k; a++) J[a, b] = (Fp[rel[a]] - F[rel[a]]) / EPS;
+                    }
+                    var rhs = new double[k];
+                    for (int a = 0; a < k; a++) rhs[a] = -F[rel[a]];
+                    double[] d = SagComp_SolveDense(J, rhs);
+                    if (d == null) return null;
+                    double dm = 0; foreach (double v in d) dm = Math.Max(dm, Math.Abs(v));
+                    double sc = dm > STEP_MAX ? STEP_MAX / dm : 1.0;
+                    bool bTook = false;
+                    for (int ls = 0; ls < 6 && !bTook; ls++, sc *= 0.5)
+                    {
+                        float[] hn = (float[])h.Clone();
+                        for (int a = 0; a < k; a++) hn[rel[a]] = (float)(h[rel[a]] + sc * d[a]);
+                        double[] Fn = SagComp_InvertResidual(m, fc, ids, afGoal, afSigma, abFixed, hn);
+                        if (Fn == null) return null;
+                        if (SagComp_MaxAbs(Fn) < err) { h = hn; F = Fn; bTook = true; }
+                    }
+                    if (!bTook) return null;                                            // 어느 걸음도 잔차를 줄이지 못함 — 끊긴 곳
+                }
+                return SagComp_MaxAbs(F) < 0.01 ? h : null;
+            }
+            // 되짚기 잔차 F_i = h_i + C_i(h) − 목표_i (고정 축 0) — 수가 아니면 null
+            private double[] SagComp_InvertResidual(CSagComp m, CSagFc fc, int[] ids, float[] afGoal, float[] afSigma, bool[] abFixed, float[] h)
+            {
+                Dictionary<int, float> c = SagComp_PredictCore(m, fc, ids, h, afSigma);
+                var F = new double[ids.Length];
+                for (int i = 0; i < ids.Length; i++)
+                {
+                    if (abFixed != null && i < abFixed.Length && abFixed[i]) continue;
+                    float v; if (!c.TryGetValue(ids[i], out v)) v = 0;
+                    double f = (double)h[i] + v - afGoal[i];
+                    if (double.IsNaN(f) || double.IsInfinity(f)) return null;
+                    F[i] = f;
+                }
+                return F;
+            }
+            private static double SagComp_MaxAbs(double[] v)
+            {
+                double m = 0; foreach (double x in v) m = Math.Max(m, Math.Abs(x));
+                return m;
+            }
+            // 작은 연립방정식 A x = b (부분 피벗 가우스 소거) — 특이하면 null
+            private static double[] SagComp_SolveDense(double[,] A0, double[] b0)
+            {
+                int n = b0.Length;
+                var A = (double[,])A0.Clone(); var b = (double[])b0.Clone();
+                for (int c = 0; c < n; c++)
+                {
+                    int p = c; double best = Math.Abs(A[c, c]);
+                    for (int r = c + 1; r < n; r++) if (Math.Abs(A[r, c]) > best) { best = Math.Abs(A[r, c]); p = r; }
+                    if (!(best > 1e-9)) return null;
+                    if (p != c) { for (int j = 0; j < n; j++) { double t = A[c, j]; A[c, j] = A[p, j]; A[p, j] = t; } double tb = b[c]; b[c] = b[p]; b[p] = tb; }
+                    for (int r = c + 1; r < n; r++)
+                    {
+                        double f = A[r, c] / A[c, c];
+                        if (f == 0) continue;
+                        for (int j = c; j < n; j++) A[r, j] -= f * A[c, j];
+                        b[r] -= f * b[c];
+                    }
+                }
+                var x = new double[n];
+                for (int r = n - 1; r >= 0; r--)
+                {
+                    double s = b[r];
+                    for (int j = r + 1; j < n; j++) s -= A[r, j] * x[j];
+                    x[r] = s / A[r, r];
+                }
+                return x;
+            }
+            /// <summary>전환 씨앗 — 다음 출력 틱이 이 값에서 시작하게 전환을 다시 건다 (관절마다):
+            /// 전환 기준(from) = 지금 걸려 있는 보정(직전 출력 틱 값 — 그대로 이어 간다), 단 ids 의 축은 afFrom[i] (NaN = 그 축도 걸려 있는 값 그대로).
+            /// afHold[i] 가 수이면 그 축의 방향 추적을 그 자세에서 σ = afSigma[i] (null·NaN = 0) 로 새로 시작하고 속도 추적을 비운다 (NaN = 그 축의 추적 그대로).
+            /// 전환 진행은 0 에서 다시 — 출력 틱이 흐르며 1초에 걸쳐 지금 모델의 보정으로 넘어간다. 세대 + 1. 손목 유지는 건드리지 않는다.
+            /// 쓰임 (공용 도구): h = SagComp_InvertGoal(목표) 로 3D·붙잡은 자세를 맞추고 afFrom = 목표 − h 로 심으면 다음 틱 = 목표,
+            /// 그 뒤에도 C(h) = 목표 − h 라 움직이지 않는다 (보정이 두 번 얹히지 않음). 토크가 꺼졌다 켠 축은 afFrom = 0 (보정이 0 부터 들어온다).
+            /// 서보 목표 이어받기(CArmConn_t)는 이것을 쓰지 않는다 — 보정을 페이드 없이 끄고 목표를 그대로 3D 로 삼는다 (SagComp_OffForAdopt, 10-03).
+            /// SagComp_JointReset 뒤에 부른다 (초기화가 기준을 지운다). 모션 중에 불러도 된다 (출력 틱과 같은 lock). 예외 없음.</summary>
+            public void SagComp_SeedFrom(int[] ids, float[] afHold, float[] afFrom, float[] afSigma)
+            {
+                if (ids == null) return;
+                lock (m_dicSagDir)
+                {
+                    var from = new Dictionary<int, float>(m_dicSagApplied);
+                    for (int i = 0; i < ids.Length; i++)
+                    {
+                        int id = ids[i];
+                        if (afFrom != null && i < afFrom.Length && !float.IsNaN(afFrom[i]) && !float.IsInfinity(afFrom[i]))
+                        { if (afFrom[i] == 0f) from.Remove(id); else from[id] = afFrom[i]; }
+                        if (afHold != null && i < afHold.Length && !float.IsNaN(afHold[i]) && !float.IsInfinity(afHold[i]))
+                        {
+                            float sg = (afSigma != null && i < afSigma.Length && !float.IsNaN(afSigma[i])) ? Math.Max(-1f, Math.Min(1f, afSigma[i])) : 0f;
+                            m_dicSagAnchor[id] = afHold[i]; m_dicSagPrev[id] = afHold[i]; m_dicSagSigma[id] = sg;
+                            m_dicSagDir[id] = sg > 0.5f ? 1 : (sg < -0.5f ? -1 : 0);
+                            m_dicSagVelDeg.Remove(id); m_dicSagVelT.Remove(id); m_dicSagOmega.Remove(id); m_dicSagAlpha.Remove(id);
+                        }
+                    }
+                    m_dicSagFrom = from;
+                    m_dicSagApplied.Clear();
+                    foreach (KeyValuePair<int, float> kv in from) m_dicSagApplied[kv.Key] = kv.Value;   // 실물에 걸린 보정 = 심은 값 (다음 전환도 여기서)
+                    m_bSagBlendRun = false; m_dSagBlendMs = 0;
+                    m_nSagSwitchGen++; m_nSagHardGen++;
+                }
+            }
+            // 출력 단 목표 보정의 사본 계산 — SagComp_JointOutModel 의 target 과 같은 식 (앞서 보내기 없음, σ 는 주어진 값).
+            //   관절값 사본(지금 3D)에 ids = afIdeal 을 넣어 계산한다 — 지레(SagFc_Levers)·TCP(SagFc_TcpRZ)·∂z/∂q 는 출력 단의 SetData 방식과 같은 값.
+            //   반환 = 관절 ID → 보정 (deg)
+            private Dictionary<int, float> SagComp_PredictCore(CSagComp m, CSagFc fc, int[] ids, float[] afIdeal, float[] afSigma)
+            {
+                var target = new Dictionary<int, float>();
+                double[] ad = SagFc_MotCopy();
+                for (int i = 0; i < ids.Length; i++) SagFc_Set(ad, ids[i], afIdeal[i]);
+                int nj = m.JointIDs.Length;
+                float[] pose = new float[nj];
+                for (int j = 0; j < nj; j++) { int k = Array.IndexOf(ids, m.JointIDs[j]); pose[j] = k >= 0 ? afIdeal[k] : SagFc_Get(ad, m.JointIDs[j]); }
+                float[] lev = SagFc_Levers(m.FuncNumber, m.JointIDs, pose, ad);
+                for (int j = 0; j < nj; j++)
+                {
+                    int k = Array.IndexOf(ids, m.JointIDs[j]);
+                    float sg = (afSigma != null && k >= 0 && k < afSigma.Length && !float.IsNaN(afSigma[k])) ? afSigma[k] : 0f;
+                    if (sg > 1f) sg = 1f; if (sg < -1f) sg = -1f;
+                    double c = m.JointCorrStatic(j, lev[j], sg);
+                    if (c > m.MaxAbsJointDeg) c = m.MaxAbsJointDeg; if (c < -m.MaxAbsJointDeg) c = -m.MaxAbsJointDeg;
+                    target[m.JointIDs[j]] = (float)c;
+                }
+                bool bFc = fc != null && fc.HasData && fc.Enabled;
+                if ((bFc || (m.HasGp ? m.Gp.Enabled : m.HasFloorMap)) && m.FloorMapEnabled && m.PosIDs != null && m.PosIDs.Length >= 3)
+                {
+                    int[] fid = { m.PosIDs[1], m.PosIDs[2], m.WristID };
+                    float[] fq = new float[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        int fi = Array.IndexOf(ids, fid[k]), jm = Array.IndexOf(m.JointIDs, fid[k]);
+                        fq[k] = jm >= 0 ? pose[jm] : (fi >= 0 ? afIdeal[fi] : SagFc_Get(ad, fid[k]));
+                    }
+                    double r0, z0, dz = 0;
+                    SagFc_TcpRZ(m.FuncNumber, ad, fid, fq, out r0, out z0);
+                    if (bFc)
+                    {
+                        CSagFc f = SagFc_Ready(m, fc);
+                        if (f != null)
+                        {
+                            int[] fcIds = SagFc_Ids(m);
+                            float[] q4 = new float[4];
+                            bool bSame = nj == 4 && lev.Length == 4;
+                            for (int k = 0; k < 4; k++)
+                            {
+                                int jm = Array.IndexOf(m.JointIDs, fcIds[k]), fi = Array.IndexOf(ids, fcIds[k]);
+                                q4[k] = jm >= 0 ? pose[jm] : (fi >= 0 ? afIdeal[fi] : SagFc_Get(ad, fcIds[k]));
+                                if (bSame && m.JointIDs[k] != fcIds[k]) bSame = false;
+                            }
+                            float[] l4 = bSame ? lev : SagFc_Levers(m.FuncNumber, fcIds, q4, ad);
+                            double[] jz = SagFc_TcpZJac(m.FuncNumber, ad, new int[] { fcIds[1], fcIds[2], fcIds[3] }, fq);
+                            double std;
+                            dz = f.Correction(l4[1], l4[2], l4[3], q4[0], jz, r0, z0, fq[0] + fq[1] + fq[2], out std);
+                        }
+                    }
+                    else if (m.HasGp)
+                    {
+                        double[] gx = new double[m.Gp.FeatIDs.Length];
+                        for (int k = 0; k < gx.Length; k++)
+                        {
+                            int jm = Array.IndexOf(m.JointIDs, m.Gp.FeatIDs[k]), fi = Array.IndexOf(ids, m.Gp.FeatIDs[k]);
+                            gx[k] = jm >= 0 ? pose[jm] : (fi >= 0 ? afIdeal[fi] : SagFc_Get(ad, m.Gp.FeatIDs[k]));
+                        }
+                        double gsd; dz = m.Gp.Correction(gx, r0, out gsd);
+                    }
+                    else dz = m.FloorDzAt(r0);
+                    double[] dq;
+                    if (Math.Abs(dz) > 1e-3 && SagComp_FloorJointDeltaCopy(m.FuncNumber, ad, fid, fq, dz, out dq))
+                        for (int k = 0; k < 3; k++)
+                        {
+                            float t0; target.TryGetValue(fid[k], out t0);
+                            target[fid[k]] = t0 + (float)Math.Max(-m.MaxAbsJointDeg, Math.Min(m.MaxAbsJointDeg, dq[k]));
+                        }
+                }
+                return target;
+            }
+            // SagComp_FloorJointDelta 와 같은 풀이 — 관절값 사본으로 (3D 관절값을 바꾸지 않는다, 어느 스레드에서도 된다)
+            private bool SagComp_FloorJointDeltaCopy(int nFunc, double[] adBase, int[] fid, float[] q, double dz, out double[] dq)
+            {
+                dq = null;
+                const float D = 0.5f;
+                double r0, z0, ra, za, rb, zb;
+                SagFc_TcpRZ(nFunc, adBase, fid, q, out r0, out z0);
+                SagFc_TcpRZ(nFunc, adBase, fid, new float[] { q[0] + D, q[1], q[2] - D }, out ra, out za);
+                SagFc_TcpRZ(nFunc, adBase, fid, new float[] { q[0], q[1] + D, q[2] - D }, out rb, out zb);
+                double j11 = (ra - r0) / D, j12 = (rb - r0) / D, j21 = (za - z0) / D, j22 = (zb - z0) / D;
+                double det = j11 * j22 - j12 * j21;
+                if (Math.Abs(det) < 1e-6) return false;
+                double a = (-j12 * dz) / det, b = (j11 * dz) / det;
+                double r1, z1;
+                SagFc_TcpRZ(nFunc, adBase, fid, new float[] { q[0] + (float)a, q[1] + (float)b, q[2] - (float)(a + b) }, out r1, out z1);
+                double er = r0 - r1, ez = (z0 + dz) - z1;
+                a += (j22 * er - j12 * ez) / det; b += (j11 * ez - j21 * er) / det;
+                dq = new double[] { a, b, -a - b };
+                return true;
+            }
+
+            // 출력 단 상태 사본 — 3D 만 작업(SagRun)이 시작 때 떠 두고 끝에 되돌린다 (그사이 작업이 건 모델 전환의 기준·시계까지 시작 때로),
+            //   쌍둥이 그림자 출력 단(SagComp_JointOutShadow)은 틱마다 실물 상태를 떠 두고 그림자 사본을 바꿔 끼웠다가 되돌린다 (그림자가 실물 상태를 바꾸지 않게).
+            //   방향·속도 추적, 직전 틱 보정, 전환 기준·시계, 손목 유지, 진단값(직전 틱 관절 보정·바닥 dz·첫닿음·GP 표준편차) 전부
+            private sealed class CSagOutState
+            {
+                public Dictionary<int, float> Anchor, Sigma, Prev, VelDeg, Omega, Alpha, Applied, From;
+                public Dictionary<int, int> Dir, VelT;
+                public bool BlendRun; public double BlendMs; public int OutLastMs;
+                public float[] LastJoint; public float LastFloorDz; public float[] LastFc; public float LastGpStd;
+                public int WhID, WhLastOutMs; public float Wh, WhFadeFrom, WhLast; public bool WhFading, WhFadeTicked; public double WhFadeMs;
+            }
+            private object SagComp_SaveOutState()
+            {
+                lock (m_dicSagDir) return SagComp_CaptureOutStateLocked();
+            }
+            // 상태 되돌림 (3D 만 작업 끝) — 통째로 바뀐 것으로 친다 (전환 세대·통째 바뀜 세대 + 1 — 도는 출력 틱이 사이에 들어온 기준을 지우지 않게, 그림자는 다시 시작)
+            private void SagComp_RestoreOutState(object o)
+            {
+                CSagOutState s = o as CSagOutState;
+                if (s == null) return;
+                lock (m_dicSagDir)
+                {
+                    SagComp_InstallOutStateLocked(s);
+                    m_nSagSwitchGen++; m_nSagHardGen++;
+                }
+            }
+            // 지금 출력 단 상태의 사본 — lock (m_dicSagDir) 안에서 부른다 (손목 유지는 그 안에서 m_oWristHold 로 — 잠금 순서 m_dicSagDir → m_oWristHold)
+            private CSagOutState SagComp_CaptureOutStateLocked()
+            {
+                var s = new CSagOutState();
+                s.Anchor = new Dictionary<int, float>(m_dicSagAnchor); s.Sigma = new Dictionary<int, float>(m_dicSagSigma); s.Prev = new Dictionary<int, float>(m_dicSagPrev);
+                s.VelDeg = new Dictionary<int, float>(m_dicSagVelDeg); s.Omega = new Dictionary<int, float>(m_dicSagOmega); s.Alpha = new Dictionary<int, float>(m_dicSagAlpha);
+                s.Applied = new Dictionary<int, float>(m_dicSagApplied); s.From = m_dicSagFrom == null ? null : new Dictionary<int, float>(m_dicSagFrom);
+                s.Dir = new Dictionary<int, int>(m_dicSagDir); s.VelT = new Dictionary<int, int>(m_dicSagVelT);
+                s.BlendRun = m_bSagBlendRun; s.BlendMs = m_dSagBlendMs; s.OutLastMs = m_nSagOutLastMs;
+                s.LastJoint = m_afSagLastJoint; s.LastFloorDz = m_fSagLastFloorDz; s.LastFc = m_afSagLastFc; s.LastGpStd = m_fSagLastGpStd;
+                lock (m_oWristHold)
+                {
+                    s.WhID = m_nWristHoldID; s.Wh = m_fWristHold; s.WhFading = m_bWristHoldFading; s.WhFadeFrom = m_fWristHoldFadeFrom; s.WhFadeMs = m_dWristHoldFadeMs;
+                    s.WhFadeTicked = m_bWristHoldFadeTicked; s.WhLastOutMs = m_nWristHoldLastOutMs; s.WhLast = m_fWristHoldLast;
+                }
+                return s;
+            }
+            // 사본을 출력 단 상태로 (값을 복사해 넣는다 — 사본은 그대로) — lock (m_dicSagDir) 안에서 부른다. 세대는 건드리지 않는다
+            private void SagComp_InstallOutStateLocked(CSagOutState s)
+            {
+                SagComp_CopyInto(m_dicSagAnchor, s.Anchor); SagComp_CopyInto(m_dicSagSigma, s.Sigma); SagComp_CopyInto(m_dicSagPrev, s.Prev);
+                SagComp_CopyInto(m_dicSagVelDeg, s.VelDeg); SagComp_CopyInto(m_dicSagOmega, s.Omega); SagComp_CopyInto(m_dicSagAlpha, s.Alpha);
+                SagComp_CopyInto(m_dicSagApplied, s.Applied);
+                m_dicSagFrom = s.From == null ? null : new Dictionary<int, float>(s.From);
+                m_dicSagDir.Clear(); if (s.Dir != null) foreach (KeyValuePair<int, int> kv in s.Dir) m_dicSagDir[kv.Key] = kv.Value;
+                m_dicSagVelT.Clear(); if (s.VelT != null) foreach (KeyValuePair<int, int> kv in s.VelT) m_dicSagVelT[kv.Key] = kv.Value;
+                m_bSagBlendRun = s.BlendRun; m_dSagBlendMs = s.BlendMs; m_nSagOutLastMs = s.OutLastMs;
+                m_afSagLastJoint = s.LastJoint; m_fSagLastFloorDz = s.LastFloorDz; m_afSagLastFc = s.LastFc; m_fSagLastGpStd = s.LastGpStd;
+                lock (m_oWristHold)
+                {
+                    m_nWristHoldID = s.WhID; m_fWristHold = s.Wh; m_bWristHoldFading = s.WhFading; m_fWristHoldFadeFrom = s.WhFadeFrom; m_dWristHoldFadeMs = s.WhFadeMs;
+                    m_bWristHoldFadeTicked = s.WhFadeTicked; m_nWristHoldLastOutMs = s.WhLastOutMs; m_fWristHoldLast = s.WhLast;
+                }
+            }
+            private static void SagComp_CopyInto(Dictionary<int, float> dst, Dictionary<int, float> src)
+            {
+                dst.Clear();
+                if (src != null) foreach (KeyValuePair<int, float> kv in src) dst[kv.Key] = kv.Value;
+            }
+
+            // ────────────────────────────────────────────────────────────
+            // 측정 때만: 손목 수직 유지 (10-02 사용자 제안)
+            //   바닥을 찍는 동안 그리퍼 기울기가 자세·이동 방향마다 달라지면(손목 데드밴드, 12·13 잔차) 닿는 높이가 흔들린다.
+            //   공구 피치 = 12+13+14 세 관절 합(SagComp_FloorJointDelta 와 같은 규약)이므로, 엔코더로 읽은 합이 이상 각의 합
+            //   (= 명령 피치, 보통 90° = 지면에 수직)과 같아지도록 **14번 명령에만** 각을 더한다.
+            //   SagComp_FloorPress 안에서만 켜지고, 끝나면 다음 출력 틱부터 1초에 걸쳐 빠진다 — 평소 동작(PlayXyz·재생)에는 얹히지 않는다.
+            //   엔코더 밖(14번 브래킷 휨)은 FK 로 보이지 않으므로 이것으로 잡지 못한다.
+            // ────────────────────────────────────────────────────────────
+            private readonly object m_oWristHold = new object();
+            private int m_nWristHoldID = -1;                       // 손목 유지를 얹는 관절 (−1 = 없음)
+            private float m_fWristHold = 0;                        // 그 관절 명령에 더하는 각 (deg)
+            private bool m_bWristHoldFading = false;               // 놓는 중 — 출력 틱이 흐르는 동안 1초에 걸쳐 0 으로
+            private float m_fWristHoldFadeFrom = 0;
+            private double m_dWristHoldFadeMs = 0;                 // 페이드 진행 시간 — 출력 틱 사이 간격을 틱당 50ms 까지만 더한다 (멈춰 있는 동안은 안 흐른다)
+            private bool m_bWristHoldFadeTicked = false;           // 놓은 뒤 첫 출력 틱을 지났는가 (첫 틱은 그대로 보낸다)
+            private int m_nWristHoldLastOutMs = int.MinValue;      // 직전 출력 틱 시각 (모션 시계)
+            private float m_fWristHoldLast = 0;                    // 직전 출력 틱에 실제로 얹은 값
+            private const double SAG_WRIST_DP_SANE = 10.0;         // 피치 오차가 이보다 크면 읽기 이상으로 보고 무시 (공중 실측 −0.4~+1.2°)
+
+            /// <summary>직전 출력 틱에 손목에 얹은 수직 유지 각 (deg) — 바닥 측정 중에만 0 이 아니다. 진단용</summary>
+            public float SagComp_WristHoldNow { get { lock (m_oWristHold) return m_fWristHoldLast; } }
+
+            // 지금 걸려 있는 값 (놓는 중이면 페이드 값) — lock 안에서 부를 것
+            private float WristHoldCurrent()
+            {
+                if (m_nWristHoldID < 0) return 0;
+                if (!m_bWristHoldFading) return m_fWristHold;
+                double w = Math.Min(1.0, m_dWristHoldFadeMs / 1000.0);
+                return (float)(m_fWristHoldFadeFrom * (1 - w));
+            }
+            private float SagComp_WristHoldValue() { lock (m_oWristHold) return WristHoldCurrent(); }
+
+            // 측정 시작 — 놓는 중이었으면 실물이 지금 들고 있는 값(직전 출력 틱 값)에서 이어받는다 (튀지 않게)
+            private void SagComp_WristHoldBegin(int nID)
+            {
+                lock (m_oWristHold)
+                {
+                    float cur = (m_nWristHoldID == nID) ? (m_bWristHoldFading ? m_fWristHoldLast : m_fWristHold) : 0;
+                    m_nWristHoldID = nID; m_fWristHold = cur; m_bWristHoldFading = false; m_dWristHoldFadeMs = 0;
+                }
+            }
+
+            // 한 걸음 — 피치 오차 dP(실측 − 이상, deg)를 줄이는 쪽으로 gain·dP (한 걸음 상한 maxStep, 전체 상한 maxAbs).
+            //   |dP| ≤ tol 이면 그대로. 반환 = 실제로 바꾼 양 (0 = 안 바꿈: 허용 안 / 상한 / 읽기 이상 / 꺼짐)
+            private float SagComp_WristHoldStep(double dP, double gain, double tol, double maxStep, double maxAbs)
+            {
+                if (double.IsNaN(dP) || Math.Abs(dP) <= tol || Math.Abs(dP) > SAG_WRIST_DP_SANE) return 0;
+                double s = -gain * dP;
+                if (s > maxStep) s = maxStep; if (s < -maxStep) s = -maxStep;
+                lock (m_oWristHold)
+                {
+                    if (m_nWristHoldID < 0 || m_bWristHoldFading) return 0;
+                    float old = m_fWristHold;
+                    double v = old + s;
+                    if (v > maxAbs) v = maxAbs; if (v < -maxAbs) v = -maxAbs;
+                    m_fWristHold = (float)v;
+                    return m_fWristHold - old;
+                }
+            }
+
+            // 측정 끝 — 다음 동작의 출력 틱이 흐르는 동안 1초에 걸쳐 0 으로. 멈춰 있는 동안은 그대로라 실물이 튀지 않는다
+            private void SagComp_WristHoldRelease()
+            {
+                lock (m_oWristHold)
+                {
+                    if (m_nWristHoldID < 0 || m_bWristHoldFading) return;
+                    m_fWristHoldFadeFrom = m_fWristHold; m_bWristHoldFading = true; m_dWristHoldFadeMs = 0; m_bWristHoldFadeTicked = false;
+                }
+            }
+
+            // 출력 훅 (SagComp_JointOut 끝) — 관절 보정 위에 더한다
+            private void SagComp_WristHoldOut(int[] ids, float[] afDeg)
+            {
+                lock (m_oWristHold)
+                {
+                    int nNow = MotionTick_ms();
+                    int dt = m_nWristHoldLastOutMs == int.MinValue ? 0 : nNow - m_nWristHoldLastOutMs;
+                    m_nWristHoldLastOutMs = nNow;
+                    m_fWristHoldLast = 0;
+                    if (m_nWristHoldID < 0) return;
+                    // 놓은 뒤 첫 틱은 그대로, 그다음부터 틱 간격만큼 — 한 틱에 50ms 넘게는 안 더한다(쉬었다 다시 움직여도 남은 값이 한 번에 빠지지 않게)
+                    if (m_bWristHoldFading)
+                    {
+                        if (m_bWristHoldFadeTicked) m_dWristHoldFadeMs += Math.Max(0, Math.Min(50, dt));
+                        else m_bWristHoldFadeTicked = true;
+                    }
+                    float v = WristHoldCurrent();
+                    int i = Array.IndexOf(ids, m_nWristHoldID);
+                    if (m_bWristHoldFading && m_dWristHoldFadeMs >= 1000)
+                    { m_nWristHoldID = -1; m_bWristHoldFading = false; m_fWristHold = 0; v = 0; }
+                    if (i >= 0 && i < afDeg.Length && v != 0) afDeg[i] += v;
+                    m_fWristHoldLast = v;
+                }
+            }
+
+            // 공구 피치 오차 (deg) = 실측 합 − 이상 합. q·a = PosIDs 3 + Wrist 순 — 피치 관절 = PosIDs[1]·PosIDs[2]·Wrist
+            private static double SagComp_PitchErr(float[] q, float[] a)
+            {
+                if (q == null || a == null || q.Length < 4 || a.Length < 4) return double.NaN;
+                return (a[1] + a[2] + a[3]) - (q[1] + q[2] + q[3]);
+            }
 
             // 관절 (12,13,14) 자세 q 에서의 TCP 수평 반경·높이 — 3D 관절값은 잠깐 바꿨다가 원복
             private void SagComp_TcpRZ(int nFunc, int[] fid, float[] q, out double r, out double z)
@@ -1211,7 +2159,7 @@ namespace OpenJigWare
             /// <summary>바닥 접촉 의심 표본 검출 — 한 점씩 빼고 학습해 그 점의 TCP z 를 예측하고, 실측이 예측보다
             /// 두드러지게 **들려** 있으면(바닥이 팔을 받쳐 덜 처짐) 접촉으로 보고 Excluded 로 표시한다.
             /// 문턱 = max(2mm, 2.5 × 강건 척도(1.4826·중앙값|들림|)). 한 번에 최대 표본의 1/5.
-            /// ★09-28 실측: r=260 멀리(→) 가 두 세션 모두 깨끗한 모델보다 +2.9mm 들리고 2.6~3.1mm 덜 뻗었다
+            /// ★09-28 실측: r=260 멀리(→) 가 두 측정 모두 깨끗한 모델보다 +2.9mm 들리고 2.6~3.1mm 덜 뻗었다
             /// (사용자가 그리퍼가 바닥에 닿는 것을 목격). 반환 = 로그 문장 (뺀 게 없으면 "").</summary>
             public string SagComp_ExcludeContact(CSagComp m)
             {
@@ -1223,7 +2171,7 @@ namespace OpenJigWare
                 var lift = new double[use.Count];
                 for (int i = 0; i < use.Count; i++)
                 {
-                    // 같은 지점·같은 접근 방향 표본은 함께 뺀다 — 여러 세션을 합치면 접촉 표본끼리 서로를 "정상" 으로 받쳐 준다
+                    // 같은 지점·같은 접근 방향 표본은 함께 뺀다 — 여러 측정을 합치면 접촉 표본끼리 서로를 "정상" 으로 받쳐 준다
                     var t = new CSagComp { FuncNumber = m.FuncNumber, PosIDs = m.PosIDs, WristID = m.WristID, JointIDs = m.JointIDs, MaxAbsJointDeg = m.MaxAbsJointDeg };
                     for (int k = 0; k < use.Count; k++)
                     {
@@ -1408,27 +2356,62 @@ namespace OpenJigWare
                 public int SampleEveryTicks = 4;                        // 주행 중 엔코더 표본 간격 (틱)
                 public float MaxAbsDelta = 40f;
                 public string Robot = "OMX follower";
+                public float DownSumDeg = float.NaN;                    // 로봇 정의의 수직 관절 합 (NaN = 3D 에서 잰 값 — 정의 확인 V7 생략). 앱은 ID 가 정의와 같으면 정의 값으로 채운다
             }
 
-            /// <summary>정지 처짐 표본 수집 + 정지 학습. 진행은 log, 중단은 stop. 실패/중단 시 null.</summary>
+            // 처짐 측정(Survey)이 이어받은 바닥 보정 로그 한 줄 — 보정표가 없고 GP·첫닿음 모델만 있으면 FloorR 이 null 이라
+            //   보정표 문장을 만들면 측정 전에 NullReferenceException 으로 죽었다 (지금 활성 파일 = GP 만). 있는 것만 적는다
+            private static string SagComp_InheritText(CSagComp model)
+            {
+                var ci = CultureInfo.InvariantCulture;
+                if (model == null) return "";
+                if (model.HasFloorMap)
+                    return string.Format(ci, "바닥 보정표 이어받음: {0}점 r {1:F0}~{2:F0}mm (FK 기준 — 관절 모델과 무관, 끄려면 파일의 flooron=0)",
+                        model.FloorR.Length, model.FloorR[0], model.FloorR[model.FloorR.Length - 1]);
+                var parts = new List<string>();
+                if (model.HasFc) parts.Add(string.Format(ci, "첫닿음 모델 {0}점", model.Fc.Count));
+                if (model.HasGp) parts.Add(string.Format(ci, "GP {0}점", model.Gp.Count));
+                return "바닥 보정 이어받음: " + (parts.Count > 0 ? string.Join(" + ", parts.ToArray()) : "없음") + " (FK 기준 — 관절 모델과 무관, 끄려면 파일의 flooron=0)";
+            }
+
+            // ⑨ 입구 로봇 정의 확인 (10-04) — SagDef_CheckSurvey (cfg 의 func·posids·wrist·downsum, 공구 피치 규칙). 안 되면 report "★로봇 정의: …" (로그에도) 와 false.
+            //   예전 경로 경고(기운 공구 — 손목 갈래는 시드가 정함)는 로그 ★ 한 줄
+            private bool SagComp_SurveyDefOk(CSagSurveyCfg cfg, CSim2Real.DLog log, out CSagDefCheck chk, out string report)
+            {
+                report = "";
+                chk = SagDef_CheckSurvey(cfg);
+                if (!chk.Ok)
+                {
+                    report = "★로봇 정의: " + chk.Why;
+                    if (log != null) { try { log(report); } catch { } }
+                    return false;
+                }
+                foreach (string it in chk.Items)
+                    if (it.StartsWith("Ry ★", StringComparison.Ordinal) && log != null) { try { log(it.Substring(3)); } catch { } }
+                return true;
+            }
+
+            /// <summary>정지 처짐 표본 수집 + 정지 학습. 진행은 log, 중단은 stop. 실패/중단 시 null. 입구에서 로봇 정의를 확인한다 (SagDef_CheckSurvey — 안 되면 null + report).</summary>
             public CSagComp SagComp_Survey(CScene_t scene, CSagSurveyCfg cfg,
                                            CSim2Real.DLog log, CSim2Real.DIsStopped stop, out string report)
             {
                 report = "";
                 var sb = new StringBuilder();
+                CSagDefCheck chkDef;
+                if (!SagComp_SurveyDefOk(cfg, log, out chkDef, out report)) return null;   // 로봇 정의 (10-04) — 움직이기 전에
                 if (scene == null || !scene.IsConnected || !scene.IsTorqueOn)
                 { report = "실물 미연결 또는 토크 OFF — 측정 불가"; return null; }
 
                 var model = new CSagComp
                 {
                     Robot = cfg.Robot, FuncNumber = cfg.FuncNumber, PosIDs = (int[])cfg.PosIDs.Clone(),
-                    WristID = cfg.WristID, PitchDeg = cfg.RyDeg, MaxAbsDelta = cfg.MaxAbsDelta
+                    WristID = cfg.WristID, PitchDeg = cfg.RyDeg, MaxAbsDelta = cfg.MaxAbsDelta,
+                    DownSumDeg = float.IsNaN(cfg.DownSumDeg) ? (float)Math.Round(chkDef.DownSumMeasDeg, 3) : cfg.DownSumDeg, KinSig = chkDef.KinSig
                 };
                 CSagComp prev = m_SagComp;
                 // 바닥 보정표는 이어받는다 — FK 기준 표는 엔코더 밖 오차(14번 브래킷 처짐)라 관절 모델을 다시 학습해도 그대로 유효 (09-29)
                 if (model.CopyFloorMapFrom(prev) && log != null)
-                    log(string.Format(CultureInfo.InvariantCulture, "바닥 보정표 이어받음: {0}점 r {1:F0}~{2:F0}mm (FK 기준 — 관절 모델과 무관, 끄려면 파일의 flooron=0)",
-                        model.FloorR.Length, model.FloorR[0], model.FloorR[model.FloorR.Length - 1]));
+                    log(SagComp_InheritText(model));
                 else if (prev != null && prev.HasFloorMap && prev.FloorFromCmd && log != null)
                     log("바닥 보정표(명령 높이 기준)는 관절 모델에 묶여 있어 이어받지 않음 — 다시 재야 한다");
                 SagComp_Switch(null);                               // 측정 중엔 보상 끔 — 원시 처짐을 재야 한다 (1초에 걸쳐 빠진다)
@@ -1501,6 +2484,8 @@ namespace OpenJigWare
                                               CSim2Real.DLog log, CSim2Real.DIsStopped stop, out string report)
             {
                 report = "";
+                CSagDefCheck chkDef;
+                if (!SagComp_SurveyDefOk(cfg, log, out chkDef, out report)) return false;   // 로봇 정의 (10-04) — 움직이기 전에
                 if (scene == null || !scene.IsConnected || !scene.IsTorqueOn || model == null || !model.IsFitted) return false;
                 CSagComp prev = m_SagComp;
                 SagComp_Switch(null);                               // 원시 주행 오차를 잰다 (1초에 걸쳐 빠진다)
@@ -1606,6 +2591,8 @@ namespace OpenJigWare
                                         CSim2Real.DLog log, CSim2Real.DIsStopped stop, out string report)
             {
                 report = "";
+                CSagDefCheck chkDef;
+                if (!SagComp_SurveyDefOk(cfg, log, out chkDef, out report)) return -1f;   // 로봇 정의 (10-04) — 움직이기 전에
                 if (scene == null || !scene.IsConnected || !scene.IsTorqueOn || model == null || !model.IsUsable) return -1f;
                 CSagComp prev = m_SagComp;
                 // 엔코더 기준 평가(FK vs 명령) — 바닥 보정표는 일부러 FK 를 Δz 만큼 옮기므로 이 동안만 끈다 (09-29)
@@ -1671,6 +2658,8 @@ namespace OpenJigWare
                                                CSim2Real.DLog log, CSim2Real.DIsStopped stop, out string report)
             {
                 report = "";
+                CSagDefCheck chkDef;
+                if (!SagComp_SurveyDefOk(cfg, log, out chkDef, out report)) return -1f;   // 로봇 정의 (10-04) — 움직이기 전에
                 if (scene == null || !scene.IsConnected || !scene.IsTorqueOn || model == null || !model.IsUsable) return -1f;
                 CSagComp prev = m_SagComp;
                 // 엔코더 기준 평가(FK vs 명령) — 바닥 보정표는 일부러 FK 를 Δz 만큼 옮기므로 이 동안만 끈다 (09-29)
@@ -1808,9 +2797,9 @@ namespace OpenJigWare
                                         sb.AppendFormat(ci, ",{0:F3},{1:F3}", GetData(ids[i]), sent != null && i < sent.Length ? sent[i] : 0f);
                                         if (blk != null)
                                         {
-                                            int sg = scene.SignOf(i); int[] b = blk[i];
+                                            int[] b = blk[i];   // 틱·속도 → 3D 각은 장면의 세팅으로 (모터 세팅이 없으면 예전 식 Deg(틱) × 부호와 같다). 속도 한도 b[0] 은 부호 없는 상한이라 그대로
                                             sb.AppendFormat(ci, ",{0:F3},{1:F2},{2:F3},{3:F2},{4:F1},{5:F1},{6}",
-                                                CSim2Real.Deg(b[1]) * sg, b[0] * 0.229f * 6f, CSim2Real.Deg(b[7]) * sg, b[6] * 0.229f * 6f * sg,
+                                                scene.RawToSim(i, b[1]), b[0] * 0.229f * 6f, scene.RawToSim(i, b[7]), scene.RawVelToSim(i, b[6]),
                                                 b[4] * 0.113f, b[5] * 0.1f, b[3]);
                                         }
                                         else sb.Append(",,,,,,,");
@@ -1989,23 +2978,32 @@ namespace OpenJigWare
                 }
             }
 
-            /// <summary>바닥 접촉 데이터셋 한 줄씩 (누적 파일용) — 머리줄: session,group,x,y,pitch,r,fkz,cmdz,a1,a2,a3,a4,q1,q2,q3,q4.
-            /// 접촉 자세(JointAct)가 있는 유효 접촉만.</summary>
+            /// <summary>바닥 접촉 데이터셋 한 줄씩 (누적 파일용) — 머리줄: session,group,x,y,pitch,r,fkz,cmdz,a1,a2,a3,a4,q1,q2,q3,q4,kind,fc,fccmdz,hold.
+            /// 접촉 자세(JointAct)가 있는 유효 접촉만. 앞 16칸은 예전 그대로(꺾임점 — 옛 GP 학습 호환), 뒤 4칸은 첫닿음(10-02):
+            /// kind = F(저장된 꺾임이 곧 첫닿음 — 첫닿음 모델 학습에 쓰는 것은 이 행뿐) / H(저장된 꺾임은 단단한 정지, 첫닿음은 위에서 따로 찾음 — fc 칸) /
+            /// C(단단한 정지, 첫닿음 못 찾음 — 검열) / X(저장된 꺾임을 쓸 수 없음 — fc 가 차 있으면 F1 이 위를 다시 훑어 찾은 첫닿음이다:
+            /// 교차 확인용일 뿐 학습에는 쓰지 않는다) / 빈칸(판정 안 함 — 궤적을 cfg.FirstTouch 로 다시 읽으면 채워진다).
+            /// fc·fccmdz = 첫닿음 FK·명령 높이, hold = 손목 수직 유지 켬. cmdz·fccmdz 는 이상 명령 높이다 — 바닥 보정을 켠 채 잰 하강(궤적 fd 칸)도
+            /// 꺾임은 유효 명령(cz + fd)으로 맞추고 이상 명령 높이로 되돌려 적는다.
+            /// pitch 칸·group 이름(p{피치}y{요})은 접촉의 Pitch = 공구 피치 Ry 다. 첫닿음 데이터셋(floor_dataset_fc.csv)의 pitch 칸은 관절 합(12+13+14) 규약이라
+            /// (Ry 70 = 110) 그 파일에 덧붙일 행은 SagRun_DatasetRows (pitch 칸만 관절 합으로 바꿈)로 만든다.</summary>
             public static string SagComp_FloorDatasetRows(List<CFloorContact> contacts, string session, bool bHeader)
             {
                 var ci = CultureInfo.InvariantCulture;
                 var sb = new StringBuilder();
-                if (bHeader) sb.Append("session,group,x,y,pitch,r,fkz,cmdz,a1,a2,a3,a4,q1,q2,q3,q4\r\n");
+                if (bHeader) sb.Append("session,group,x,y,pitch,r,fkz,cmdz,a1,a2,a3,a4,q1,q2,q3,q4,kind,fc,fccmdz,hold\r\n");
                 if (contacts == null) return sb.ToString();
                 foreach (var c in contacts)
                 {
                     if (!c.Detected || c.JointAct == null || c.JointAct.Length < 4) continue;
                     double yaw = Math.Atan2(c.Y, c.X) * 180 / Math.PI;
                     string grp = string.Format(ci, "p{0:F0}y{1:F0}", c.Pitch, Math.Round(yaw / 5) * 5);
-                    sb.AppendFormat(ci, "{0},{1},{2:F2},{3:F2},{4:F1},{5:F1},{6:F3},{7:F3},{8:F3},{9:F3},{10:F3},{11:F3},{12},{13},{14},{15}\r\n",
+                    sb.AppendFormat(ci, "{0},{1},{2:F2},{3:F2},{4:F1},{5:F1},{6:F3},{7:F3},{8:F3},{9:F3},{10:F3},{11:F3},{12},{13},{14},{15}",
                         session, grp, c.X, c.Y, c.Pitch, c.R, c.FkZ, c.CmdZ, c.JointAct[0], c.JointAct[1], c.JointAct[2], c.JointAct[3],
                         c.JointCmd != null ? c.JointCmd[0].ToString("F3", ci) : "", c.JointCmd != null ? c.JointCmd[1].ToString("F3", ci) : "",
                         c.JointCmd != null ? c.JointCmd[2].ToString("F3", ci) : "", c.JointCmd != null ? c.JointCmd[3].ToString("F3", ci) : "");
+                    sb.AppendFormat(ci, ",{0},{1},{2},{3}\r\n", c.Kind ?? "", float.IsNaN(c.FcZ) ? "" : c.FcZ.ToString("F3", ci),
+                        float.IsNaN(c.FcCmdZ) ? "" : c.FcCmdZ.ToString("F3", ci), (c.Hold || !float.IsNaN(c.WristHoldDeg)) ? 1 : 0);
                 }
                 return sb.ToString();
             }
@@ -2076,6 +3074,7 @@ namespace OpenJigWare
                 public int FuncNumber = 0;
                 public int[] PosIDs = new int[] { 11, 12, 13 };
                 public int WristID = 14;
+                public float DownSumDeg = 90f;         // 로봇 정의의 수직 관절 합 (Ry 90 의 관절 합 — 작업이 누를 때마다 정의에서 채운다, 입구 정의 확인 SagDef_Check)
                 public float RxDeg = 0, RyDeg = 90, RzDeg = 0;
                 public float[] Radii = new float[] { 120, 155, 190, 225, 260 };
                 public float YawDeg = 0;
@@ -2115,6 +3114,60 @@ namespace OpenJigWare
                 public float RetractAboveKneeMm = 40f;
                 public int RetractMs = 2500;
                 public float LiftMmPerSec = 2f;            // 들어 올리는 속도
+                // ── 움직임 (10-03, SagComp_FloorPress 만) — 시작점·하강·들어 올림·복귀 모두 끝 자세를 관절 합(12+13+14 = 90, Ry < 90 이면 180 − Ry)을 정한 IK 로
+                //   미리 풀고 그 사이를 관절 보간한다 (SagComp_PressMove). ★10-03 검토: 공구 피치를 90 에서 접히는 값으로 맞추는 IK(PlayXyz·PlayXyzPath →
+                //   CalcInv_Tool)는 수직(Ry 90)에서 접힌 양쪽 해(관절 합 89.9 ↔ 90.5)를 오가, 하강 시작 0.3초쯤 뒤 한 틱에 12·13·14 가 0.8~3.6° 튀었다
+                //   (버스 흉내 기본 측정 22번 중 7번 한 틱 관절 변화 막이로 멈춤, 막이 아래 2° 안팎은 그대로 서보로 나감). false = 예전 방식 (PlayXyz·PlayXyzPath)
+                public bool SumIk = true;
+                public float SumIkDevMm = 2f;              // 수직 다리(하강·들어 올림·복귀)의 관절 보간 경로가 수직선에서 벗어나도 되는 거리 (mm) — 넘으면 가운데 점으로 나눈다
+                                                           //   (조각마다 멈췄다 가므로 하강은 한 조각이 좋다: 32mm 하강 r120 0.96, r250 0.5mm, 닿기 시험 창 41mm r125 ≈ 1.6mm.
+                                                           //    공구 기울기(관절 합)는 보간 내내 그대로, 높이는 한쪽으로만)
+                // ── 손목 수직 유지 (10-02 사용자 제안, SagComp_FloorPress 만) — 측정하는 동안만 공구를 지면에 수직으로 붙잡는다 ──
+                //   엔코더 FK 공구 피치(12+13+14 실측 합)가 명령 피치(이상 각 합, 보통 90°)와 같아지도록 14번 명령에만 각을 더한다.
+                //   ① 시작점 자리 잡기: 재고 → 고치고 → WristSettleWaitMs 기다려 다시 재기, |오차| ≤ WristHoldTolDeg 면 끝 (최대 WristSettleIter 번)
+                //   ② 하강 중 실시간 따라가기 (팔은 그대로 내려가고 손목만): 틱마다 WristTrackGain·오차 (한 틱 상한 WristTrackMaxStepDeg).
+                //      무장 뒤 벌어짐이 WristFreezeLagMm 이면(닿음) 그 값으로 고정, 누름·들어 올림 동안 그대로.
+                //      피치 오차가 WristFreezeDpDeg 를 넘으면 무장과 무관하게 고정 — 이상 상황 막이.
+                //   측정이 끝나면 다음 동작의 출력 틱이 흐르는 1초에 걸쳐 빠진다. 평소 동작에는 얹히지 않는다. 엔코더 밖(브래킷 휨)은 FK 로 안 보여 못 잡는다.
+                //   09-29 궤적(공중): 피치 오차 반경 120~230 −0.35~+0.27°, 240~260 +0.9~+1.2° — 방향(요)과 무관.
+                //   10-02 실기 A/B (반경 260·240·160·130 × 끔·켬 2회씩, 사용자 결정: 측정 때만 쓴다):
+                //     · 먼 쪽(260·240)은 꺾임점 피치 오차 끔 +0.35~+1.67° → 켬 −0.59~0.00°.
+                //     · 가까운 쪽(160·130)은 손목 서보(XL330)가 하강 중 공중에서 3.6~5.1° 뒤처지는데(틱의 60~80% 멈춤 — 정지 마찰),
+                //       그때 "피치 오차 1° = 닿기 시작" 고정이 공중(꺾임점 9~12mm 위)에서 걸려 따라가기가 멈췄다 → 꺾임점 +2.8~+3.7° 로 끔과 같음.
+                //       ⇒ 고정은 진짜 닿음(무장 뒤 벌어짐 WristFreezeLagMm)으로만, 피치 오차 한도는 이상 상황 막이(WristFreezeDpDeg)로.
+                //     · 고정 규칙을 바꾼 재실험(14:52, r=160·130 × 끔·켬 2회): 꺾임점 피치 오차 끔 +3.08~+4.57° → 켬 −0.53~−1.49° (|평균| 3.80 → 1.06°).
+                //       서보 목표 위치(g4)를 기록해 보니 손목 서보가 목표와 4~8° 떨어진 채 멈춰 있다(먼 쪽 0.6°) — 서보 위치 게인 부족. 유지는 그만큼 목표를 더 민다.
+                //     · r=240 은 켜면 FK 바닥 50.0/50.3, 끄면 58.4/60.2. 다만 r=240 은 공중에서도 FK 가 명령을 0.6~0.85 로만 따라가 꺾임 맞춤이 불확실하다.
+                //       켜고 모은 데이터는 끄고 모은 데이터(09-28·29)와 섞지 말 것.
+                public bool WristHold = true;
+                public float WristHoldTolDeg = 0.25f;      // 허용 오차 (엔코더 0.088°/틱 — 세 관절 합의 양자화 ±0.13°)
+                public float WristHoldMaxDeg = 8f;         // 손목에 더하는 각 전체 상한 — 10-02 재실험: r=130 에서 손목 서보가 목표와 4~8° 떨어져 5° 상한에 닿음
+                public int WristSettleIter = 6;            // 자리 잡기 반복 상한
+                public int WristSettleWaitMs = 150;        // 고친 뒤 서보가 자리 잡을 시간
+                public float WristSettleGain = 0.8f;       // 자리 잡기 한 번에 고치는 비율 — 데드밴드(h≈0.47°)를 넘어 과보정하지 않게 1 보다 작게
+                public float WristSettleMaxStepDeg = 2f;
+                public bool WristTrack = true;             // 하강 중 따라가기
+                public float WristTrackGain = 0.25f;       // 틱당 비율 — 서보 응답이 1~2틱 늦게 읽혀도 진동하지 않게 작게
+                public float WristTrackMaxStepDeg = 0.1f;  // 한 틱 상한
+                public float WristFreezeLagMm = 2.0f;      // 무장 뒤 벌어짐이 이만큼이면 닿음 → 고정 (공중 요동 ±1mm, 닿은 뒤 누름 기울기 0.3~0.7 → 3~6mm 누른 뒤)
+                public float WristFreezeDpDeg = 4.0f;      // 피치 오차가 이만큼이면 무장과 무관하게 고정 — 이상 상황 막이 (따라가는 중 공중 최대 ~2°, 바닥에 끼면 +5~9°)
+                // ── 첫닿음 (10-02 판정, SagComp_FloorContactsFromTrace 만) ──
+                //   꺾임점 결과(Detected·FkZ·CmdZ·JointCmd·JointAct)는 그대로 두고 Kind·FcStage·FcZ·FcCmdZ·FcJointCmd/Act 를 더 채운다 (COjw_12_3D_SagFc.cs).
+                //   새 측정은 SagComp_FcPlan 의 시작·한도로 재면 꺾임점이 곧 첫닿음(F0)이다 — 그 궤적도 이것으로 다시 읽어 kind 를 붙인다.
+                public bool FirstTouch = false;
+                // ── 첫닿음에서 멈춤 (10-04, 처짐 보정 실습 — SagComp_FloorPress 만) ──
+                //   켜면 하강 중 틱마다 실시간 첫닿음 검출기(CSagFtLive — 손목 잔차 d14 = a14 − q14 가 명령 하강 1mm 에 꾸준히 커짐, 보조: 공중 기준보다
+                //   명령−FK 차가 줄고 어깨 부하가 풀림)를 돌려 걸리는 그 틱에 누름 끝으로 멈춘다 — 얕게 (단단한 정지까지 누르지 않는다:
+                //   첫닿음 뒤에도 베이스가 기울며 FK 가 명령을 따라 내려가 꺾임은 첫닿음보다 15~23mm 아래에 생긴다). 끄면(기본) 예전과 같다
+                public bool StopAtFirstTouch = false;
+                /// <summary>복사본 — 점마다 반경·창을 바꿔 쓸 때 (배열도 새로)</summary>
+                public CFloorProbeCfg Clone()
+                {
+                    var c = (CFloorProbeCfg)MemberwiseClone();
+                    if (PosIDs != null) c.PosIDs = (int[])PosIDs.Clone();
+                    if (Radii != null) c.Radii = (float[])Radii.Clone();
+                    return c;
+                }
             }
             public class CFloorContact
             {
@@ -2134,6 +3187,31 @@ namespace OpenJigWare
                 public float LagAtPress, LoadDeltaAtPress;    // 누름 판정 순간의 벌어짐(mm)·부하 변화(%)
                 public bool FromPress;                 // SagComp_FloorPress 결과 — FitFlex 가 FkZ(꺾임점) 로 κ 를 절대값으로 맞춘다
                 public float Pitch = 90;               // 공구 피치(deg) — 궤적 재분석 때 채운다
+                // 공구 피치 / 손목 수직 유지 (cfg.WristHold)
+                public float PitchErrDeg = float.NaN;      // 공중 마지막(닿기 시작 판정 직전) 공구 피치 오차 — 엔코더 FK, 실측 − 명령 (deg). 손목 유지를 꺼도 채운다
+                public float PitchErrKnee = float.NaN;     // 꺾임점(닿는 순간) 공구 피치 오차 — 하강 표본 중 꺾임점 명령 높이에 가장 가까운 것. 손목 유지를 꺼도 채운다
+                public float WristHoldDeg = float.NaN;     // 고정 순간 14번에 더한 각 (deg) — 손목 유지 끔이면 NaN
+                public float PitchErrStart = float.NaN;    // 시작점 자리 잡기 전 피치 오차 — 손목 유지 끔이면 NaN
+                public float PitchErrSettled = float.NaN;  // 자리 잡기 뒤 피치 오차 — 손목 유지 끔이면 NaN
+                public int WristSettleFix;                 // 자리 잡기에서 고친 횟수
+                // 바닥 보정을 켠 채 잰 하강 (10-02) — 꺾임은 유효 명령(이상 명령 cz + 그 틱에 바닥 보정이 끝을 올린 양 fd)으로 맞춘다.
+                //   CmdZ 는 이상 명령 높이로 되돌린 값 (사용자가 명령하는 높이), CmdZEff − FdAtKnee = CmdZ
+                public float CmdZEff = float.NaN;          // 꺾임점의 유효 명령 높이 (이상 명령 + 바닥 보정) — 보정이 꺼져 있으면 CmdZ 와 같다, 꺾임이 없으면 NaN
+                public float FdAtKnee = 0;                 // 꺾임점에서 바닥 보정이 끝을 올린 양 (mm)
+                public bool Hold;                          // 손목 수직 유지 켬으로 잰 하강 (궤적 재분석: wh 칸이 찬 무장 표본이 있음)
+                public bool UserStop;                      // 하강 중 중단 요청으로 끊긴 누름 (SagComp_FloorPress) — 끝까지 누르지 않았다: 판정·데이터셋에서 뺀다
+                // 첫닿음 (궤적 재분석 cfg.FirstTouch 가 채운다 — COjw_12_3D_SagFc.cs). 데이터셋 kind,fc,fccmdz 칸
+                public string Kind = "";                   // F = 꺾임점이 곧 첫닿음 (학습은 이것만), H = 꺾임점은 단단한 정지·첫닿음은 위에서 찾음, C = 단단한 정지·첫닿음 못 찾음(검열),
+                                                           //   X = 저장된 꺾임을 쓸 수 없음 (FcZ 가 차 있으면 F1 이 위에서 찾은 첫닿음 — 교차 확인용, 학습 안 함), "" = 판정 안 함
+                public string FcStage = "";                // 추출 단계 F0 (저장된 꺾임) / F1 (위를 다시 훑음) / C / X
+                public float FcZ = float.NaN, FcCmdZ = float.NaN;   // 첫닿음 FK 높이 / 명령 높이 (mm)
+                public float[] FcJointCmd, FcJointAct;     // 첫닿음 순간 이상 / 실측 관절각 (PosIDs + Wrist)
+                public bool KneeHard;                      // 저장된 꺾임점이 단단한 정지 (피치 오차 증가 > 2°)
+                public bool SafetyStop;                    // 안전 정지로 끝난 하강 — 출발 따라잡기 기준이 8 → 15mm
+                public int ArmedN;                         // 무장 뒤 하강 표본 수 (15개 미만이면 판정 안 함 → X)
+                public string FcWhy = "";                  // 판정 이유 (진단용)
+                public bool LiveTouch;                     // StopAtFirstTouch — 실시간 첫닿음 검출기가 걸려 그 틱에 멈췄다
+                public string LiveWhy = "";                // 그때 검출기의 까닭 (d14 기울기·e 감소 …)
             }
 
             // 하강 궤적 진단 — 매 틱 (명령·FK 높이, 차이, 무장, 어깨·팔꿈치 부하·PWM). SagComp_GetFloorTraceCsv 로 꺼낸다.
@@ -2144,18 +3222,32 @@ namespace OpenJigWare
                                                float load12, float pwm12, float load13, float pwm13)
             { SagComp_FloorTraceRow(r, seg, tick, armed, cz, fz, e, d, lag, load12, pwm12, load13, pwm13, float.NaN, float.NaN, float.NaN, null, null); }
             // 09-29: x·y·피치와 매 틱 이상(q)·실측(a) 관절각(PosIDs + Wrist 순)까지 — 궤적 재분석이 접촉 순간 자세를 그대로 얻는다 (GP 학습 입력)
+            // 10-02: wh = 그 틱에 14번에 얹은 손목 수직 유지 각(손목 유지 끔이면 빈칸), dp = 공구 피치 오차(실측 − 이상, deg — FloorPress 는 늘 채움),
+            //        g1..g4 = 서보가 받아 둔 목표 위치(Goal Position, 보정 포함, deg) — g − a = 서보가 못 따라간 양 (손목 정지 마찰 진단)
+            //        fd = 그 틱에 바닥 보정(첫닿음 모델·GP·보정표)이 끝을 올린 양 (mm, 보정이 꺼져 있으면 0, FloorProbe 는 빈칸) — cz 는 이상 명령 그대로,
+            //             유효 명령 = cz + fd (FloorPress 의 벌어짐·꺾임과 궤적 재분석은 이 값으로). e·lag 도 유효 명령 기준. fd 칸이 없는 옛 궤적은 fd = 0.
+            //             칸 자리는 a4 뒤 (wh·dp·g1..g4 는 끝 여섯 칸 그대로) — 읽는 쪽은 머리줄 이름으로 찾는다
+            private const string SAG_FLOOR_TRACE_HEAD = "r,seg,tick,armed,cz,fz,e,d,lag,load12,pwm12,load13,pwm13,x,y,pitch,q1,q2,q3,q4,a1,a2,a3,a4,fd,wh,dp,g1,g2,g3,g4";
             private void SagComp_FloorTraceRow(float r, int seg, int tick, bool armed, float cz, float fz, double e, double d, double lag,
-                                               float load12, float pwm12, float load13, float pwm13, float x, float y, float pitch, float[] q, float[] a)
+                                               float load12, float pwm12, float load13, float pwm13, float x, float y, float pitch, float[] q, float[] a,
+                                               float wh = float.NaN, double dp = double.NaN, float[] g = null)
+            { SagComp_FloorTraceRow(r, seg, tick, armed, cz, fz, e, d, lag, load12, pwm12, load13, pwm13, x, y, pitch, q, a, wh, dp, g, float.NaN); }
+            // fd 까지 (SagComp_FloorPress)
+            private void SagComp_FloorTraceRow(float r, int seg, int tick, bool armed, float cz, float fz, double e, double d, double lag,
+                                               float load12, float pwm12, float load13, float pwm13, float x, float y, float pitch, float[] q, float[] a,
+                                               float wh, double dp, float[] g, float fd)
             {
                 var ci = CultureInfo.InvariantCulture;
                 Func<float[], int, string> J = (v, i) => (v != null && i < v.Length) ? v[i].ToString("F3", ci) : "";
                 lock (m_sbSagFloor)
                 {
-                    if (m_sbSagFloor.Length == 0) m_sbSagFloor.Append("r,seg,tick,armed,cz,fz,e,d,lag,load12,pwm12,load13,pwm13,x,y,pitch,q1,q2,q3,q4,a1,a2,a3,a4\r\n");
-                    m_sbSagFloor.AppendFormat(ci, "{0:F0},{1},{2},{3},{4:F3},{5:F3},{6:F3},{7:F3},{8:F3},{9:F1},{10:F1},{11:F1},{12:F1},{13},{14},{15},{16},{17},{18},{19},{20},{21},{22},{23}\r\n",
+                    if (m_sbSagFloor.Length == 0) m_sbSagFloor.Append(SAG_FLOOR_TRACE_HEAD + "\r\n");
+                    m_sbSagFloor.AppendFormat(ci, "{0:F0},{1},{2},{3},{4:F3},{5:F3},{6:F3},{7:F3},{8:F3},{9:F1},{10:F1},{11:F1},{12:F1},{13},{14},{15},{16},{17},{18},{19},{20},{21},{22},{23},{24},{25},{26},{27},{28},{29},{30}\r\n",
                         r, seg, tick, armed ? 1 : 0, cz, fz, e, d, lag, load12, pwm12, load13, pwm13,
                         float.IsNaN(x) ? "" : x.ToString("F2", ci), float.IsNaN(y) ? "" : y.ToString("F2", ci), float.IsNaN(pitch) ? "" : pitch.ToString("F1", ci),
-                        J(q, 0), J(q, 1), J(q, 2), J(q, 3), J(a, 0), J(a, 1), J(a, 2), J(a, 3));
+                        J(q, 0), J(q, 1), J(q, 2), J(q, 3), J(a, 0), J(a, 1), J(a, 2), J(a, 3), float.IsNaN(fd) ? "" : fd.ToString("F3", ci),
+                        float.IsNaN(wh) ? "" : wh.ToString("F3", ci), double.IsNaN(dp) ? "" : dp.ToString("F3", ci),
+                        J(g, 0), J(g, 1), J(g, 2), J(g, 3));
                 }
             }
 
@@ -2167,6 +3259,8 @@ namespace OpenJigWare
             {
                 report = "";
                 var res = new List<CFloorContact>();
+                string whyDef;
+                if (!SagDef_ProbeGate(cfg, true, log, out whyDef)) { report = "★로봇 정의: " + whyDef; if (log != null) log(report); return res; }   // 로봇 정의 (10-04) — 예전 경로(PlayXyz) 공구 피치 규칙 포함
                 if (scene == null || !scene.IsConnected || !scene.IsTorqueOn) { report = "실물 미연결 또는 토크 OFF"; return res; }
                 CSagComp prev = m_SagComp;
                 if (model != null) model.Enabled = true; SagComp_Switch(model);
@@ -2221,7 +3315,7 @@ namespace OpenJigWare
                                     for (int i = 0; i < ids.Length; i++)
                                     {
                                         keep[i] = GetData(ids[i]);
-                                        act[i] = CSim2Real.Deg(b[map[i]][7]) * scene.SignOf(map[i]);
+                                        act[i] = scene.RawToSim(map[i], b[map[i]][7]);                      // 틱 → 3D 각 (장면의 모터 세팅 — 없으면 예전 식)
                                         SetData(ids[i], act[i]);
                                     }
                                     CalcF(cfg.FuncNumber, -1, false, out fx, out fy, out fz);                  // 엔코더 FK TCP
@@ -2317,12 +3411,18 @@ namespace OpenJigWare
             /// 접촉 높이 = 누름 끝 위 FitWindowMm 구간에 꺾임(공중 기울기 1 고정 / 누름 기울기 자유)을 맞춘 꺾임점의 FK — 한 틱 문턱이 아니라 선으로 잡는다.
             /// ★반복되는 양은 FK 바닥이다(09-28 3차: r=260 51.1/51.7, r=155 18.4/18.7) — 명령 높이는 이동 이력(데드밴드)에 따라 수 mm 흔들린다.
             /// 들어 올릴 때의 꺾임도 따로 맞춘다(정지 마찰만큼 늦게 떨어진다 — 그 차이가 마찰의 크기).
-            /// 안전: 무장과 무관한 PressSafetyMm 벌어짐·PressSafetyLoadPct 부하 즉시 정지, 반경마다 직전 접촉 기준 시작·한도, 스테일 첫 응답 버림.</summary>
+            /// 안전: 무장과 무관한 PressSafetyMm 벌어짐·PressSafetyLoadPct 부하 즉시 정지, 반경마다 직전 접촉 기준 시작·한도, 스테일 첫 응답 버림.
+            /// 움직임 (10-03, cfg.SumIk): 시작점·하강·들어 올림·복귀 모두 끝 자세를 관절 합을 정한 IK 로 미리 풀고 관절 보간 (SagComp_PressMove) — 틱마다 IK 를
+            /// 풀지 않아 공구 피치가 90 에서 접히는 해를 오가지 않는다. 못 가는 시작점은 움직이지 않고 건너뛴다. 장면의 한 틱 관절 변화 막이(작업 중)가 걸리면
+            /// 그 자리에서 누르지 않고 위로 복귀한 뒤 멈춘다 (걸린 채 들어오면 누르지 않는다 — 부른 쪽이 StepGuardTrip 을 보고 멈춘다).
+            /// 매 틱 FK(이상·실측)는 관절값 사본으로 계산한다 (3D 관절값을 바꾸지 않는다).</summary>
             public List<CFloorContact> SagComp_FloorPress(CScene_t scene, CFloorProbeCfg cfg, CSagComp model,
                                                          CSim2Real.DLog log, CSim2Real.DIsStopped stop, out string report)
             {
                 report = "";
                 var res = new List<CFloorContact>();
+                string whyDef;
+                if (!SagDef_ProbeGate(cfg, cfg != null && !cfg.SumIk, log, out whyDef)) { report = "★로봇 정의: " + whyDef; if (log != null) log(report); return res; }   // 로봇 정의 (10-04, 캐시) — 공개 함수라 작업 입구를 거치지 않고 불러도 (SumIk=false 예전 경로는 공구 피치 규칙도)
                 if (scene == null || !scene.IsConnected || !scene.IsTorqueOn) { report = "실물 미연결 또는 토크 OFF"; return res; }
                 CSagComp prev = m_SagComp;
                 if (model != null) model.Enabled = true; SagComp_Switch(model);
@@ -2334,11 +3434,20 @@ namespace OpenJigWare
                 var sb = new StringBuilder();
                 double a0 = cfg.YawDeg * Math.PI / 180.0;
                 float lastCmd = float.NaN;   // 직전 접촉의 명령 높이 — 창은 명령 기준 (FK 는 자세에 따라 명령과 10mm 가까이 다를 수 있다, 09-28 r=260)
+                bool bHold = cfg.WristHold;   // 손목 수직 유지 (측정 동안만)
                 try
                 {
                     if (Array.IndexOf(map, -1) >= 0) { report = "장면에 없는 관절 ID"; return res; }
+                    string whyG0;
+                    if (SagComp_PressGuardWhy(scene, out whyG0)) { report = whyG0 + " — 걸린 채라 누르지 않음"; if (log != null) log("★" + report); return res; }   // 작업이 걸림을 보고 멈춰야 한다
                     if (log != null) log(string.Format(ci, "바닥 접촉(누르고 들어 올리기): 반경 {0}, 반경마다 {1}회, 하강 {2:F1} mm/s, 누름 판정 벌어짐 {3:F1}mm + 부하 {4:F0}%",
                         string.Join("/", Array.ConvertAll(cfg.Radii, v => v.ToString("F0", ci))), cfg.Repeats, cfg.PressDescentMmPerSec, cfg.PressLagMm, cfg.PressLoadPct));
+                    if (bHold)
+                    {
+                        SagComp_WristHoldBegin(cfg.WristID);
+                        if (log != null) log(string.Format(ci, "  손목 수직 유지: 엔코더 FK 공구 피치를 명령 피치에 맞춤 (허용 ±{0:F2}°, 상한 ±{1:F1}°, 하강 중 {2}) — 측정 동안만",
+                            cfg.WristHoldTolDeg, cfg.WristHoldMaxDeg, cfg.WristTrack ? "따라가기, 닿기 시작하면 고정" : "고정"));
+                    }
                     foreach (float r in cfg.Radii)
                         for (int rep = 0; rep < cfg.Repeats; rep++)
                         {
@@ -2346,40 +3455,103 @@ namespace OpenJigWare
                             float x = (float)(r * Math.Cos(a0)), y = (float)(r * Math.Sin(a0));
                             float zS = float.IsNaN(lastCmd) ? cfg.ZStart : Math.Min(cfg.ZStart, lastCmd + cfg.Margin);
                             float zMin = float.IsNaN(lastCmd) ? cfg.ZMin : Math.Max(cfg.ZMin, lastCmd - cfg.Margin);
-                            if (!PlayXyz(cfg.MoveMs, 300, cfg.FuncNumber, x, y, zS + 8, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs) ||
-                                !PlayXyz(1500, 500, cfg.FuncNumber, x, y, zS, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs))
-                            { if (log != null) log(string.Format(ci, "  r={0:F0}: 시작점 이동 실패 — 건너뜀", r)); continue; }
+                            // 시작점 — 위(+8)로 갔다가 수직으로 내려와 자리 잡는다 (관절 합을 정한 IK 끝 자세로 관절 보간 — SagComp_PressMove).
+                            //   중단 요청은 하강과 같이 출력 틱마다 본다 (10-03 검토: 두 다리 — 옮기는 높이에서 시작점까지 첫 행 약 44mm·4초 — 동안 중단을 보지 않아
+                            //   다 내려간 뒤에야 원위치를 시작했다). 중단이면 그 틱에서 모션을 멈추고(MoveJoints_Stop) 남은 조각·둘째 다리로 가지 않는다 —
+                            //   누르지 않고 돌아가 부른 쪽(작업)이 그 자리에서 원위치한다 (SagArm_Close — 지금 피치 그대로 수직으로 들어 올림).
+                            //   중단 확인 싱크는 지금 걸린 모션 싱크를 감싼다 (명령이 가는 곳은 예전 다리와 같다 — 작업 중이면 장면의 SendPose) — 끝나면 그 싱크 그대로
+                            string whyMv;
+                            bool bApprStop = false;
+                            Action<int> sinkPrev = MoveJoints_GetMotionSink();
+                            Action<int> sinkAppr = delegate(int nHint)
+                            {
+                                if (sinkPrev != null) sinkPrev(nHint);
+                                if (bApprStop) return;
+                                bool bReq = false;
+                                try { bReq = stop != null && stop(); } catch { }
+                                if (bReq) { bApprStop = true; MoveJoints_Stop(); }                      // 이 틱까지 — 다음 틱은 없다
+                            };
+                            Func<bool> apprStopped = delegate() { return bApprStop; };
+                            int nMv;
+                            MoveJoints_SetMotionSink(sinkAppr);
+                            try
+                            {
+                                nMv = SagComp_PressMove(scene, cfg, x, y, zS + 8, cfg.MoveMs, 300, false, false, apprStopped, out whyMv);
+                                if (nMv == 0 && !bApprStop && !(stop != null && stop()))
+                                    nMv = SagComp_PressMove(scene, cfg, x, y, zS, 1500, 500, true, false, apprStopped, out whyMv);
+                            }
+                            finally { if (MoveJoints_GetMotionSink() == sinkAppr) MoveJoints_SetMotionSink(sinkPrev); }
+                            if (bApprStop || (stop != null && stop()))
+                            {
+                                if (log != null) log(string.Format(ci, "  r={0:F0}: 시작점으로 가다 중단 요청 — 그 자리에서 멈춤 (누르지 않음)", r));
+                                report = sb.ToString(); return res;
+                            }
+                            if (nMv == 2) { if (log != null) log(string.Format(ci, "  r={0:F0}: ★시작점으로 가다 {1} — 누름 멈춤", r, whyMv)); report = sb.ToString(); return res; }   // 부른 쪽(작업)이 걸림을 보고 멈춘다
+                            if (nMv != 0) { if (log != null) log(string.Format(ci, "  r={0:F0}: 시작점 이동 실패 ({1}) — 건너뜀", r, whyMv)); continue; }
+                            float[] qStart = new float[ids.Length];                  // 시작점 자세 — 들어 올림·복귀 IK 가 안 되면 여기로 되돌아간다 (지나온 길, 바닥 위)
+                            for (int i = 0; i < ids.Length; i++) qStart[i] = GetData(ids[i]);
                             var c = new CFloorContact { R = r, X = x, Y = y, FromPress = true };
-                            var dX = new List<double>(); var dY = new List<double>();   // 하강: (명령 높이, FK 높이)
+                            var dX = new List<double>(); var dY = new List<double>();   // 하강: (유효 명령 높이, FK 높이)
                             var uX = new List<double>(); var uY = new List<double>();   // 들어 올림
+                            // 유효 명령 = 이상 명령 cz + 그 틱에 바닥 보정이 끝을 올린 양 fd (10-02) — 보정을 켠 모델로 누르면 fd 가 자세(높이)에 따라 변해
+                            //   이상 명령 기준으로는 공중 기울기 1 이 깨지고 공중에서도 벌어짐이 10mm 넘게 쌓여 "무장 전 벌어짐" 안전 정지가 걸린다.
+                            //   벌어짐·꺾임·손목 고정은 모두 유효 명령으로 보고, 꺾임점·복귀 높이는 이상 명령 높이로 되돌린다. fd = 0 (보정 끔)이면 예전과 같다
+                            var dRaw = new List<double>(); var uRaw = new List<double>();   // dX·uX 와 같은 순서의 이상 명령 높이
+                            bool bUserStop = false;                                       // 하강 중 중단 요청
                             float[] pressCmd = null, pressAct = null, lastCmdQ = null, lastActQ = null;
                             float rr = r;
+                            // 손목 수직 자리 잡기 — 하강 전에, 멈춘 채로
+                            if (bHold)
+                            {
+                                float dpS0, dpS1; int nFix;
+                                SagComp_WristSettle(scene, ids, cfg, stop, out dpS0, out dpS1, out nFix);
+                                c.PitchErrStart = dpS0; c.PitchErrSettled = dpS1; c.WristSettleFix = nFix;
+                                if (stop != null && stop()) return res;            // 자리 잡기 중 멈춤 요청 — 바닥으로 내려가지 않는다 (finally 가 손목 유지를 놓는다)
+                            }
+                            var dDp = new List<double>();                          // 하강 표본(dX 와 같은 순서)의 공구 피치 오차 — 꺾임점 값을 뽑는다
+                            // 공중 구간 끝(닿기 시작) — 손목 유지는 이때 고정(누름·들어 올림 동안 그대로). 피치 오차는 손목 유지를 꺼도 여기까지 기록한다(켬·끔 비교용)
+                            bool bFrozen = false;
+                            float holdAtFreeze = float.NaN; double dpAir = double.NaN;
 
-                            // 한 틱 읽기: zz = (명령 z, FK z, 어깨·팔꿈치 부하 %, 어깨·팔꿈치 PWM %), q = 이상 관절, a = 실측 관절. 실패하면 false
-                            Func<float[], float[], float[], bool> readTick = delegate(float[] zz, float[] q, float[] a)
+                            // 한 틱 읽기: zz = (명령 z, FK z, 어깨·팔꿈치 부하 %, 어깨·팔꿈치 PWM %), q = 이상 관절, a = 실측 관절, g = 서보 목표 위치. 실패하면 false
+                            //   FK 는 관절값 사본으로 (10-03) — 3D 관절값을 잠깐 실측으로 바꿨다 되돌리지 않는다 (CalcF 정적 상태·다른 스레드가 보는 3D 와 섞이지 않게).
+                            //   사본도 SetData 와 같은 관절 한계 규칙 (SagFc_Set) 이라 값은 예전과 같다
+                            Func<float[], float[], float[], float[], bool> readTick = delegate(float[] zz, float[] q, float[] a, float[] g)
                             {
                                 string w; int[][] b = scene.ReadServoBlock(6, out w);
                                 if (b == null) return false;
+                                double[] adQ = SagFc_MotCopy(), adA = (double[])adQ.Clone();
+                                for (int i = 0; i < ids.Length; i++)
+                                {
+                                    q[i] = SagFc_Get(adQ, ids[i]);
+                                    a[i] = scene.RawToSim(map[i], b[map[i]][7]); g[i] = scene.RawToSim(map[i], b[map[i]][1]);   // 틱 → 3D 각은 장면의 모터 세팅으로
+                                    SagFc_Set(adA, ids[i], a[i]);
+                                }
                                 float cx, cy, cz, fx, fy, fz;
-                                CalcF(cfg.FuncNumber, -1, false, out cx, out cy, out cz);
-                                for (int i = 0; i < ids.Length; i++) { q[i] = GetData(ids[i]); a[i] = CSim2Real.Deg(b[map[i]][7]) * scene.SignOf(map[i]); SetData(ids[i], a[i]); }
-                                CalcF(cfg.FuncNumber, -1, false, out fx, out fy, out fz);
-                                for (int i = 0; i < ids.Length; i++) SetData(ids[i], q[i]);
+                                SagFc_Fk(cfg.FuncNumber, adQ, -1, out cx, out cy, out cz);                 // 이상(명령) TCP
+                                SagFc_Fk(cfg.FuncNumber, adA, -1, out fx, out fy, out fz);                 // 엔코더 FK TCP
                                 zz[0] = cz; zz[1] = fz; zz[2] = b[map[1]][5] * 0.1f; zz[3] = b[map[2]][5] * 0.1f;
                                 zz[4] = b[map[1]][4] * 0.113f; zz[5] = b[map[2]][4] * 0.113f;
                                 return true;
                             };
 
                             // ── ① 누르러 내려가기 ──
+                            CSagFtLive ftLive = cfg.StopAtFirstTouch ? new CSagFtLive() : null;      // 첫닿음에서 멈춤 (켰을 때만)
+                            string ftWhy = null;
                             int nTick = 0; bool bPressed = false, bSafety = false, bArmed = false;
                             float czStart = float.NaN, fzStart = float.NaN, lagArm = 0, base12 = 0, base13 = 0, start12 = 0, start13 = 0;
                             string why = "";
                             Action<int> sinkDown = delegate(int nHint)
                             {
                                 scene.SendPose(nHint);
-                                if (bPressed) return;
-                                float[] zz = new float[6], q = new float[ids.Length], a = new float[ids.Length];
-                                if (!readTick(zz, q, a)) return;
+                                if (bPressed || bUserStop) return;
+                                bool bStopReq = false;
+                                try { bStopReq = stop != null && stop(); } catch { }
+                                if (bStopReq) { bUserStop = true; MoveJoints_Stop(); return; }              // 하강 중 중단 — 누르지 않고 아래 복귀(꺾임점 위)로 이어진다
+                                float fd = m_fSagLastFloorDz;                                                // 이 틱에 바닥 보정이 끝을 올린 양 (mm) — 보정이 꺼져 있으면 0 (SagComp_JointOutModel)
+                                float[] zz = new float[6], q = new float[ids.Length], a = new float[ids.Length], g = new float[ids.Length];
+                                if (!readTick(zz, q, a, g)) return;
+                                float czRaw = zz[0]; zz[0] = czRaw + fd;                                    // 유효 명령 — 아래 벌어짐·꺾임은 모두 이 값으로
                                 nTick++;
                                 if (nTick <= cfg.StaleTicks) return;                                        // 스테일 응답 버림
                                 lastCmdQ = q; lastActQ = a;
@@ -2387,7 +3559,20 @@ namespace OpenJigWare
                                 float lag = (czStart - zz[0]) - (fzStart - zz[1]);
                                 float dl = bArmed ? Math.Max(Math.Abs(zz[2] - base12), Math.Abs(zz[3] - base13))
                                                   : Math.Max(Math.Abs(zz[2] - start12), Math.Abs(zz[3] - start13));
-                                SagComp_FloorTraceRow(rr, 1, nTick, bArmed, zz[0], zz[1], zz[0] - zz[1], dl, lag, zz[2], zz[4], zz[3], zz[5], x, y, cfg.RyDeg, q, a);
+                                double dP = SagComp_PitchErr(q, a);
+                                SagComp_FloorTraceRow(rr, 1, nTick, bArmed, czRaw, zz[1], zz[0] - zz[1], dl, lag, zz[2], zz[4], zz[3], zz[5], x, y, cfg.RyDeg, q, a,
+                                                      bHold ? SagComp_WristHoldNow : float.NaN, dP, g, fd);
+                                // 무장 뒤 닿으면(벌어짐) 공중 구간 끝 — 손목 유지는 고정, 그 전에는 따라간다. 피치 오차가 한도를 넘으면 무장과 무관하게 고정(이상 상황)
+                                if (!bFrozen)
+                                {
+                                    if ((bArmed && (lag - lagArm) >= cfg.WristFreezeLagMm) || Math.Abs(dP) >= cfg.WristFreezeDpDeg)
+                                    { bFrozen = true; if (bHold) holdAtFreeze = SagComp_WristHoldValue(); }
+                                    else
+                                    {
+                                        if (!double.IsNaN(dP) && Math.Abs(dP) <= SAG_WRIST_DP_SANE) dpAir = dP;
+                                        if (bHold && cfg.WristTrack) SagComp_WristHoldStep(dP, cfg.WristTrackGain, cfg.WristHoldTolDeg, cfg.WristTrackMaxStepDeg, cfg.WristHoldMaxDeg);
+                                    }
+                                }
                                 bool bStop = false;
                                 if (dl >= cfg.PressSafetyLoadPct) { bSafety = true; bStop = true; why = "부하"; }
                                 else if (!bArmed)
@@ -2410,47 +3595,71 @@ namespace OpenJigWare
                                     else if (lagRel < cfg.PressLagMm * 0.4f) { base12 = 0.8f * base12 + 0.2f * zz[2]; base13 = 0.8f * base13 + 0.2f * zz[3]; }
                                 }
                                 // 꺾임 맞춤 표본은 무장 뒤부터 — 출발 정지 마찰(FK 가 늦게 출발)이 위쪽에 거꾸로 된 꺾임을 만든다
-                                if (bArmed) { dX.Add(zz[0]); dY.Add(zz[1]); }
+                                if (bArmed) { dX.Add(zz[0]); dY.Add(zz[1]); dDp.Add(dP); dRaw.Add(czRaw); }
+                                if (!bStop && ftLive != null && ftLive.Add(zz[0], zz[1], zz[2], (q.Length > 3 && a.Length > 3) ? a[3] - q[3] : float.NaN))
+                                { bStop = true; ftWhy = ftLive.Why; }                                   // 첫닿음 — 이 틱에 멈춘다 (얕게)
                                 if (bStop)
                                 {
                                     bPressed = true; c.LagAtPress = lag - lagArm; c.LoadDeltaAtPress = dl; c.Ticks = nTick;
                                     pressCmd = q; pressAct = a;
+                                    if (!bFrozen) { bFrozen = true; if (bHold) holdAtFreeze = SagComp_WristHoldValue(); }
                                     MoveJoints_Stop();
                                 }
                             };
                             MoveJoints_SetMotionSink(sinkDown);
                             int msDown = (int)Math.Max(300, (zS - zMin) / Math.Max(0.5f, cfg.PressDescentMmPerSec) * 1000f);
-                            try { PlayXyzPath(msDown, 100, cfg.FuncNumber, new float[] { x, y, zMin }, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs); }
+                            string whyDn = "", whyTrip = "";
+                            int nDn;
+                            try { nDn = SagComp_PressMove(scene, cfg, x, y, zMin, msDown, 100, true, true, delegate() { return bPressed || bUserStop; }, out whyDn); }
                             finally { MoveJoints_SetMotionSink(scene.SendPose); }
+                            if (nDn == 2) whyTrip = whyDn;
+                            else if (nDn == 1 && log != null) log(string.Format(ci, "  r={0:F0}: 하강하지 못함 ({1}) — 복귀", r, whyDn));
 
-                            if (bPressed)
+                            if (bPressed && whyTrip.Length == 0)
                             {
                                 // ── ② 누른 채 유지 → ③ 천천히 들어 올리기 ──
                                 System.Threading.Thread.Sleep(cfg.PressHoldMs);
-                                float hx, hy, hz; CalcF(cfg.FuncNumber, -1, false, out hx, out hy, out hz);
+                                float hx, hy, hz; SagFc_Fk(cfg.FuncNumber, SagFc_MotCopy(), -1, out hx, out hy, out hz);   // 멈춘 명령(이상) 높이 — 관절값 사본 FK
                                 int nUp = 0;
                                 Action<int> sinkUp = delegate(int nHint)
                                 {
                                     scene.SendPose(nHint);
-                                    float[] zz = new float[6], q = new float[ids.Length], a = new float[ids.Length];
-                                    if (!readTick(zz, q, a)) return;
+                                    float fdU = m_fSagLastFloorDz;                                           // 하강과 같이 유효 명령으로
+                                    float[] zz = new float[6], q = new float[ids.Length], a = new float[ids.Length], g = new float[ids.Length];
+                                    if (!readTick(zz, q, a, g)) return;
+                                    float czRawU = zz[0]; zz[0] = czRawU + fdU;
                                     nUp++;
                                     if (nUp <= cfg.StaleTicks) return;
-                                    uX.Add(zz[0]); uY.Add(zz[1]);
-                                    SagComp_FloorTraceRow(rr, 3, nUp, true, zz[0], zz[1], zz[0] - zz[1], 0, 0, zz[2], zz[4], zz[3], zz[5], x, y, cfg.RyDeg, q, a);
+                                    uX.Add(zz[0]); uY.Add(zz[1]); uRaw.Add(czRawU);
+                                    SagComp_FloorTraceRow(rr, 3, nUp, true, czRawU, zz[1], zz[0] - zz[1], 0, 0, zz[2], zz[4], zz[3], zz[5], x, y, cfg.RyDeg, q, a,
+                                                          bHold ? SagComp_WristHoldNow : float.NaN, SagComp_PitchErr(q, a), g, fdU);
                                 };
                                 MoveJoints_SetMotionSink(sinkUp);
                                 int msUp = (int)Math.Max(300, cfg.LiftMm / Math.Max(0.5f, cfg.LiftMmPerSec) * 1000f);
-                                try { PlayXyzPath(msUp, 100, cfg.FuncNumber, new float[] { x, y, hz + cfg.LiftMm }, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs); }
+                                string whyUp = "";
+                                int nLift;
+                                try { nLift = SagComp_PressMove(scene, cfg, x, y, hz + cfg.LiftMm, msUp, 100, true, true, null, out whyUp); }
                                 finally { MoveJoints_SetMotionSink(scene.SendPose); }
+                                if (nLift == 2) whyTrip = whyUp;
+                                else if (nLift == 1 && log != null) log(string.Format(ci, "  r={0:F0}: 들어 올리지 못함 ({1}) — 바로 복귀", r, whyUp));
                             }
                             // 복귀 — 시작 높이 위, 그리고 꺾임점 위 RetractAboveKneeMm 이상 (유격이 한 번에 떨어져도 바닥에 닿지 않게) 천천히
+                            //   꺾임은 유효 명령으로 맞췄으니 이상 명령 높이로 되돌려 쓴다 (복귀 목표는 이상 명령).
+                            //   한 틱 관절 변화 막이가 걸렸어도 복귀는 한다 (막이가 3D 를 붙잡은 자세로 되돌려 놓았다 — 거기서 위로 간다. 걸림 표시는 그대로 남아
+                            //   부른 쪽(작업)이 보고 멈춘다). 복귀 IK 가 안 되면 시작점 자세로 (지나온 길 — 바닥 위)
                             {
                                 var tmpK = new CFloorContact();
                                 float zBack = zS + 5;
-                                if (SagComp_PressKnee(dX, dY, cfg, tmpK)) zBack = Math.Max(zBack, tmpK.CmdZ + cfg.RetractAboveKneeMm);
-                                else if (dX.Count > 0) { double lo = double.MaxValue; foreach (double v in dX) lo = Math.Min(lo, v); zBack = Math.Max(zBack, (float)lo + cfg.RetractAboveKneeMm); }
-                                PlayXyz(Math.Max(1500, cfg.RetractMs), 200, cfg.FuncNumber, x, y, zBack, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs);
+                                if (SagComp_PressKnee(dX, dY, cfg, tmpK)) zBack = Math.Max(zBack, (float)SagComp_EffToRaw(dX, dRaw, tmpK.CmdZ) + cfg.RetractAboveKneeMm);
+                                else if (dRaw.Count > 0) { double lo = double.MaxValue; foreach (double v in dRaw) lo = Math.Min(lo, v); zBack = Math.Max(zBack, (float)lo + cfg.RetractAboveKneeMm); }
+                                string whyBk;
+                                int nBk = SagComp_PressMove(scene, cfg, x, y, zBack, Math.Max(1500, cfg.RetractMs), 200, true, false, null, out whyBk);
+                                if (nBk == 1)
+                                {
+                                    if (log != null) log(string.Format(ci, "  r={0:F0}: 복귀 경로 안 됨 ({1}) — 시작점 자세로 되돌아감", r, whyBk));
+                                    if (cfg.SumIk) SagComp_PlayQ4(ids, qStart, Math.Max(1500, cfg.RetractMs), 200);
+                                }
+                                else if (nBk == 2 && whyTrip.Length == 0) whyTrip = whyBk;
                             }
 
                             // ── 꺾임 맞춤 ──
@@ -2458,20 +3667,42 @@ namespace OpenJigWare
                             {
                                 double k, y0, sL, sH, rms;
                                 SagComp_PressKnee(dX, dY, cfg, c);
+                                if (c.FitOk) { c.CmdZEff = c.CmdZ; c.CmdZ = (float)SagComp_EffToRaw(dX, dRaw, c.CmdZEff); c.FdAtKnee = c.CmdZEff - c.CmdZ; }   // 꺾임점 = 이상 명령 높이 (+ 그때 바닥 보정)
+                                if (c.FitOk && dDp.Count == dX.Count)
+                                {
+                                    int best = -1; double bd = double.MaxValue;               // 꺾임점(유효 명령 높이)에 가장 가까운 하강 표본 = 닿는 순간
+                                    for (int i = 0; i < dX.Count; i++) { double dd = Math.Abs(dX[i] - c.CmdZEff); if (dd < bd) { bd = dd; best = i; } }
+                                    if (best >= 0) c.PitchErrKnee = (float)dDp[best];
+                                }
                                 if (SagComp_FitHinge(uX.ToArray(), uY.ToArray(), 4, out k, out y0, out sL, out sH, out rms))
-                                { c.KneeCmdLift = (float)k; c.FkLift = (float)y0; }
+                                { c.KneeCmdLift = (float)SagComp_EffToRaw(uX, uRaw, k); c.FkLift = (float)y0; }
                                 c.JointCmd = pressCmd ?? lastCmdQ; c.JointAct = pressAct ?? lastActQ;
                                 c.Detected = c.FitOk;
-                                if (!bPressed) c.Note = c.FitOk ? "누름 판정 없이 한도 도달 — 꺾임 맞춤으로 접촉" : "한도까지 내려가도 누름·꺾임 없음";
+                                c.UserStop = bUserStop;
+                                if (ftWhy != null) { c.LiveTouch = true; c.LiveWhy = ftWhy; }
+                                if (bUserStop) c.Note = c.FitOk ? "하강 중 중단 요청 — 그때까지의 꺾임 맞춤으로 접촉" : "하강 중 중단 요청 — 꺾임 없음";
+                                else if (!bPressed) c.Note = c.FitOk ? "누름 판정 없이 한도 도달 — 꺾임 맞춤으로 접촉" : "한도까지 내려가도 누름·꺾임 없음";
                                 else if (!c.FitOk) c.Note = "꺾임 맞춤이 물리적으로 맞지 않음 — 제외";
                                 if (bSafety) c.Note += (c.Note.Length > 0 ? ", " : "") + "안전 정지(" + why + ")";
+                                if (nDn == 1) c.Note += (c.Note.Length > 0 ? ", " : "") + "하강하지 못함 (" + whyDn + ")";
+                                if (whyTrip.Length > 0) { c.Detected = false; c.Note += (c.Note.Length > 0 ? ", " : "") + "★" + whyTrip + " — 제외"; }   // 걸린 누름은 쓰지 않는다
+                                if (ftWhy != null) c.Note = "첫닿음에서 멈춤 (" + ftWhy + ")" + (c.Note.Length > 0 ? " — " + c.Note : "");
                             }
+                            c.PitchErrDeg = (float)dpAir;
+                            if (bHold) c.WristHoldDeg = float.IsNaN(holdAtFreeze) ? SagComp_WristHoldValue() : holdAtFreeze;
                             if (c.Detected) lastCmd = c.CmdZ;
                             res.Add(c);
                             string row = string.Format(ci, "  r={0,3:F0} #{1}: {2}  FK 바닥 {3,6:F2}mm (명령 {4,6:F2})  누름 기울기 {6:F2} 잔차 {7:F2}  | 들어올림 FK {8,6:F2} (명령 {9,6:F2})  | 판정 벌어짐 {10:F1}mm 부하 {11:F1}%{12}",
                                 r, rep + 1, c.Detected ? "접촉" : "제외", c.FkZ, c.CmdZ, c.SlopeFree, c.SlopePress, c.FitRms, c.FkLift, c.KneeCmdLift,
                                 c.LagAtPress, c.LoadDeltaAtPress, c.Note.Length > 0 ? " — " + c.Note : "");
+                            if (c.FitOk && Math.Abs(c.FdAtKnee) > 0.05f)
+                                row += string.Format(ci, "  | 바닥 보정 {0:+0.0;-0.0}mm (유효 명령 {1:F2})", c.FdAtKnee, c.CmdZEff);
+                            if (bHold)
+                                row += string.Format(ci, "  | 손목 {0:+0.00;-0.00}° (피치 오차 {1:+0.00;-0.00} → 자리 잡기 {2:+0.00;-0.00}° {3}회, 공중 마지막 {4:+0.00;-0.00}°, 꺾임점 {5:+0.00;-0.00}°)",
+                                    c.WristHoldDeg, c.PitchErrStart, c.PitchErrSettled, c.WristSettleFix, c.PitchErrDeg, c.PitchErrKnee);
+                            else row += string.Format(ci, "  | 피치 오차 공중 마지막 {0:+0.00;-0.00}°, 꺾임점 {1:+0.00;-0.00}° (손목 유지 끔)", c.PitchErrDeg, c.PitchErrKnee);
                             if (log != null) log(row); sb.AppendLine(row);
+                            if (whyTrip.Length > 0) { report = sb.ToString(); return res; }   // 한 틱 관절 변화 막이 — 다음 반경으로 가지 않는다 (복귀는 했다)
                         }
                     var ok = res.FindAll(q => q.Detected && !q.Safety);
                     if (ok.Count >= 2)
@@ -2482,10 +3713,169 @@ namespace OpenJigWare
                             ok.Count, fmx - fmn, fmn, fmx, cmx - cmn, cmn, cmx);
                         if (log != null) log(sum); sb.AppendLine(sum);
                     }
+                    {
+                        // 공구 피치 요약 — 꺾임점(닿는 순간) 피치 오차 (|평균|·최대). 손목 유지를 켰으면 자리 잡기 전 오차·더한 각도 함께
+                        double s0 = 0, s1 = 0, m0 = 0, m1 = 0, hMin = double.MaxValue, hMax = double.MinValue; int n0 = 0, n1 = 0;
+                        foreach (var q in res)
+                        {
+                            if (!float.IsNaN(q.PitchErrStart)) { s0 += Math.Abs(q.PitchErrStart); m0 = Math.Max(m0, Math.Abs(q.PitchErrStart)); n0++; }
+                            if (!float.IsNaN(q.PitchErrKnee)) { s1 += Math.Abs(q.PitchErrKnee); m1 = Math.Max(m1, Math.Abs(q.PitchErrKnee)); n1++; }
+                            if (!float.IsNaN(q.WristHoldDeg)) { hMin = Math.Min(hMin, q.WristHoldDeg); hMax = Math.Max(hMax, q.WristHoldDeg); }
+                        }
+                        string sumW = null;
+                        if (bHold && (n0 > 0 || n1 > 0))
+                            sumW = string.Format(ci, "손목 수직 유지: 시작점 피치 오차 |평균| {0:F2}° (최대 {1:F2}°) → 꺾임점 {2:F2}° (최대 {3:F2}°), 손목에 더한 각 {4:+0.00;-0.00}~{5:+0.00;-0.00}°",
+                                n0 > 0 ? s0 / n0 : double.NaN, m0, n1 > 0 ? s1 / n1 : double.NaN, m1,
+                                hMin == double.MaxValue ? double.NaN : hMin, hMax == double.MinValue ? double.NaN : hMax);
+                        else if (!bHold && n1 > 0)
+                            sumW = string.Format(ci, "공구 피치(손목 유지 끔): 꺾임점 피치 오차 |평균| {0:F2}° (최대 {1:F2}°)", s1 / n1, m1);
+                        if (sumW != null) { if (log != null) log(sumW); sb.AppendLine(sumW); }
+                    }
                     report = sb.ToString();
                     return res;
                 }
-                finally { SagComp_Switch(prev); }
+                finally
+                {
+                    SagComp_Switch(prev);
+                    if (bHold) SagComp_WristHoldRelease();   // 다음 동작의 첫 1초에 걸쳐 빠진다 (이어서 측정하면 그 값에서 이어받는다)
+                }
+            }
+
+            // ── 누름 동작 (10-03) — SagComp_FloorPress·3D 만 누름(SagRun_DryPress) ──
+            //   끝 자세 = 관절 합을 정한 IK (SagArm_IkSum — 지금 3D 자세 시드, 관절 합 = SagArm_SumFor(Ry): downsum 또는 downsum + (90 − Ry) — OMX 90 또는 180 − Ry. 손목 원점이 하나로 정해져 공구 피치가
+            //   90 에서 접히는 해 고르기가 없다. 관절 한계·TCP 0.5mm 확인) → 그 관절 보간 경로를 관절값 사본 FK 로 미리 훑는다 (SagArm_PlanSplit: TCP 가 두 끝 중
+            //   낮은 쪽 아래로 가지 않음, 반경 띠 ±15mm, 수직 다리(bVert)면 수평 벗어남 SumIkDevMm 안 — 넘으면 TCP 가운데 점으로 나눈다) → 조각마다 Play (관절 보간,
+            //   시간은 조각의 TCP 거리 비례, 합 = nMs). 틱마다 IK 를 풀지 않으므로 해가 건너뛰지 않고, 관절 합(공구 기울기)은 보간 내내 그대로다.
+            //   stopNow 가 true 면 (싱크가 누름·중단을 알림 — 그 싱크가 MoveJoints_Stop 으로 지금 조각을 멈췄다) 남은 조각을 가지 않는다.
+            //   cfg.SumIk 가 false 면 예전 방식 (bPathOld ? PlayXyzPath : PlayXyz).
+            //   반환: 0 = 끝까지 (또는 stopNow 로 멈춤), 1 = 움직이기 전에 거절 (IK·경로 확인 — why, 3D·실물 그대로), 2 = 움직이는 동안 장면의 한 틱 관절 변화 막이가
+            //   새로 걸림 (why — 모션은 막이가 멈췄고 3D 는 붙잡은 자세로 돌아가 있다). scene 이 null(3D 만)이면 막이를 보지 않는다
+            private int SagComp_PressMove(CScene_t scene, CFloorProbeCfg cfg, float x, float y, float z, int nMs, int nDelay, bool bVert, bool bPathOld,
+                                          Func<bool> stopNow, out string why)
+            {
+                why = "";
+                var ci = CultureInfo.InvariantCulture;
+                string t0 = null;
+                try { if (scene != null) t0 = scene.StepGuardTrip; } catch { }
+                if (!cfg.SumIk)
+                {
+                    bool bOk = bPathOld ? PlayXyzPath(nMs, nDelay, cfg.FuncNumber, new float[] { x, y, z }, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs)
+                                        : PlayXyz(nMs, nDelay, cfg.FuncNumber, x, y, z, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs);
+                    if (SagComp_PressNewTrip(scene, t0, out why)) return 2;
+                    if (!bOk) { why = "이동 실패"; return 1; }
+                    return 0;
+                }
+                var c = new CSagArmCfg { FuncNumber = cfg.FuncNumber, PosIDs = cfg.PosIDs == null ? null : (int[])cfg.PosIDs.Clone(), WristID = cfg.WristID, HoldIDs = new int[0], DownSumDeg = cfg.DownSumDeg };
+                if (!c.IdsOk) { why = "관절 ID 가 맞지 않음 (위치 3개 + 손목)"; return 1; }
+                int[] ids = c.MoveIDs;
+                double[] ad = SagFc_MotCopy();
+                float[] qA = new float[4];
+                for (int k = 0; k < 4; k++) qA[k] = SagFc_Get(ad, ids[k]);
+                float xa, ya, za;
+                SagFc_Fk(c.FuncNumber, ad, -1, out xa, out ya, out za);
+                float sumA = qA[1] + qA[2] + qA[3], sumB = SagArm_SumFor(c, cfg.RyDeg), bend;
+                float[] qB = SagArm_IkSum(this, c, ad, x, y, z, sumB, out bend);
+                if (qB == null) { why = string.Format(ci, "IK 로 못 감 ({0:F1}, {1:F1}, {2:F1}) 관절 합 {3:0.#}", x, y, z, sumB); return 1; }
+                float[] pA = { xa, ya, za }, pB = { x, y, z };
+                double rA = Math.Sqrt((double)xa * xa + (double)ya * ya), rB = Math.Sqrt((double)x * x + (double)y * y);
+                float rLo = (float)Math.Min(rA, rB) - SAGARM_BAND_MM, rHi = (float)Math.Max(rA, rB) + SAGARM_BAND_MM;
+                var lq = new List<float[]>(); var lp = new List<float[]>();
+                string w;
+                if (!SagArm_PlanSplit(this, c, ad, qA, pA, qB, pB, sumA, sumB, Math.Min(za, z), rLo, rHi, bVert ? Math.Max(0.1f, cfg.SumIkDevMm) : 0f, 0, lq, lp, out w))
+                { why = "관절 보간 경로 확인 실패 — " + w; return 1; }
+                double[] dist = new double[lq.Count];
+                double sum = 0, dqMax = 0;
+                float[] pp = pA, qp = qA;
+                for (int i = 0; i < lq.Count; i++)
+                {
+                    dist[i] = Math.Sqrt((double)(lp[i][0] - pp[0]) * (lp[i][0] - pp[0]) + (double)(lp[i][1] - pp[1]) * (lp[i][1] - pp[1]) + (double)(lp[i][2] - pp[2]) * (lp[i][2] - pp[2]));
+                    sum += dist[i]; pp = lp[i];
+                    for (int k = 0; k < 4; k++) dqMax = Math.Max(dqMax, Math.Abs(lq[i][k] - qp[k]));
+                    qp = lq[i];
+                }
+                // 관절 최고 속도 상한 — smoothstep 최고 = 평균의 1.5 배가 SAGARM_JOINT_DEG_PER_SEC 를 넘지 않게 시간을 늘린다 (계획의 이웃 점은 몇 도라 그대로,
+                //   멀리 떨어진 다음 점으로 가는 시작점 이동만 늘어난다 — 출력 틱마다 0.3~0.9° 안)
+                nMs = Math.Max(nMs, (int)(1.5 * dqMax / SAGARM_JOINT_DEG_PER_SEC * 1000.0));
+                for (int i = 0; i < lq.Count; i++)
+                {
+                    if (stopNow != null && stopNow()) return 0;
+                    int t = lq.Count == 1 || sum < 1e-6 ? Math.Max(1, nMs) : Math.Max(1, (int)Math.Round(nMs * dist[i] / sum));
+                    SagComp_PlayQ4(ids, lq[i], t, i == lq.Count - 1 ? nDelay : 0);
+                    if (SagComp_PressNewTrip(scene, t0, out why)) return 2;
+                }
+                return 0;
+            }
+            // 장면의 한 틱 관절 변화 막이가 이 동작 동안 새로 걸렸나 (t0 = 동작 전 걸림 글 — 걸림마다 새 글이 들어간다). 막이가 꺼져 있으면 false
+            private static bool SagComp_PressNewTrip(CScene_t scene, string t0, out string why)
+            {
+                why = "";
+                try
+                {
+                    if (scene == null || !scene.StepGuardOn) return false;
+                    string t = scene.StepGuardTrip;
+                    if (t == null || ReferenceEquals(t, t0)) return false;
+                    why = t; return true;
+                }
+                catch { return false; }
+            }
+            // 장면의 한 틱 관절 변화 막이가 걸려 있나 (작업 중에만 켜진다 — CScene_t.StepGuard)
+            private static bool SagComp_PressGuardWhy(CScene_t scene, out string why)
+            {
+                why = "";
+                try { if (scene != null && scene.StepGuardOn && scene.StepGuardTrip != null) { why = scene.StepGuardTrip; return true; } }
+                catch { }
+                return false;
+            }
+            // 관절 보간 (위치 3개 + 손목) — Play (블로킹)
+            private void SagComp_PlayQ4(int[] ids, float[] q, int nMs, int nDelay)
+            {
+                Play(nMs, nDelay, new float[] { ids[0], q[0], ids[1], q[1], ids[2], q[2], ids[3], q[3] });
+            }
+
+            /// <summary>시작점에서 손목 수직 자리 잡기 (멈춘 채) — 재고(정착 확인 읽기) → 14번 고치고 → WristSettleWaitMs 기다려 다시 재기.
+            /// |피치 오차| ≤ WristHoldTolDeg 이면 끝, 최대 WristSettleIter 번. dp0 = 처음 잰 오차, dpEnd = 마지막으로 잰 오차, nFix = 고친 횟수.
+            /// 바뀌는 것은 14번 명령뿐 — 다른 관절은 같은 목표를 다시 보낸다.</summary>
+            private void SagComp_WristSettle(CScene_t scene, int[] ids, CFloorProbeCfg cfg, CSim2Real.DIsStopped stop,
+                                             out float dp0, out float dpEnd, out int nFix)
+            {
+                Func<double> read = delegate()
+                {
+                    string why;
+                    Dictionary<int, float> d = scene.ReadDeg(out why);           // 두 번 이상 읽어 정착 확인 — 첫 응답 스테일 문제 없음
+                    if (d == null) return double.NaN;
+                    float[] q = new float[ids.Length], a = new float[ids.Length];
+                    for (int i = 0; i < ids.Length; i++) { q[i] = GetData(ids[i]); float v; a[i] = d.TryGetValue(ids[i], out v) ? v : float.NaN; }
+                    return SagComp_PitchErr(q, a);
+                };
+                SagComp_WristSettleCore(read, delegate() { scene.SendPose(100); }, delegate() { return stop != null && stop(); }, cfg, out dp0, out dpEnd, out nFix);
+            }
+            // 자리 잡기 반복 — 읽기·보내기를 받아서 (헤드리스 시험에서 가짜 서보로 돌린다)
+            private void SagComp_WristSettleCore(Func<double> readPitchErr, Action send, Func<bool> isStopped, CFloorProbeCfg cfg,
+                                                 out float dp0, out float dpEnd, out int nFix)
+            {
+                dp0 = dpEnd = float.NaN; nFix = 0;
+                for (int it = 0; it <= cfg.WristSettleIter; it++)
+                {
+                    if (isStopped != null && isStopped()) return;
+                    double dP = readPitchErr();
+                    if (double.IsNaN(dP) || Math.Abs(dP) > SAG_WRIST_DP_SANE) return;
+                    dpEnd = (float)dP; if (it == 0) dp0 = dpEnd;
+                    if (Math.Abs(dP) <= cfg.WristHoldTolDeg || it == cfg.WristSettleIter) return;
+                    if (SagComp_WristHoldStep(dP, cfg.WristSettleGain, cfg.WristHoldTolDeg, cfg.WristSettleMaxStepDeg, cfg.WristHoldMaxDeg) == 0) return;   // 상한에 닿음
+                    nFix++;
+                    send();
+                    System.Threading.Thread.Sleep(Math.Max(50, cfg.WristSettleWaitMs));
+                }
+            }
+
+            /// <summary>유효 명령(이상 명령 + 바닥 보정 fd) 높이 k 를 이상 명령 높이로 — k 에 가장 가까운 표본의 fd 를 뺀다 (fd 는 틱 사이에 매끈하다).
+            /// eff·raw = 같은 순서의 유효·이상 명령 높이. 표본이 없거나 길이가 다르면 k 그대로 (fd = 0 이면 늘 k).</summary>
+            private static double SagComp_EffToRaw(List<double> eff, List<double> raw, double k)
+            {
+                if (eff == null || raw == null || eff.Count == 0 || eff.Count != raw.Count || double.IsNaN(k)) return k;
+                int best = 0; double bd = double.MaxValue;
+                for (int i = 0; i < eff.Count; i++) { double d = Math.Abs(eff[i] - k); if (d < bd) { bd = d; best = i; } }
+                return k - (eff[best] - raw[best]);
             }
 
             /// <summary>하강 표본(무장 뒤, 명령 z → FK z)에서 접촉 꺾임을 찾아 c 에 채운다 — FloorPress 와 궤적 재분석이 같이 쓴다.
@@ -2515,7 +3905,11 @@ namespace OpenJigWare
 
             /// <summary>바닥 접촉 궤적(SagComp_GetFloorTraceCsv 형식: r,seg,tick,armed,cz,fz,...)을 다시 분석해 접촉을 뽑는다.
             /// 하강 구간(seg 1)마다 무장 뒤 표본으로 SagComp_PressKnee — 실기 중 판정 문턱을 못 넘은 물렁한 접촉도 꺾임으로 건진다.
-            /// 관절 자세는 궤적에 없어 JointCmd/JointAct = null (보정표용, κ 맞춤에는 못 씀).</summary>
+            /// x·y·피치·q·a 칸이 있으면(09-29 부터) 접촉 순간 자세(JointCmd/JointAct)를 채운다 (GP·첫닿음 학습 입력). 옛 궤적은 null.
+            /// fd 칸이 있으면(10-02 부터, 바닥 보정을 켠 채 잰 하강) 유효 명령(cz + fd)으로 꺾임을 맞추고 CmdZ 는 이상 명령 높이로 되돌린다
+            /// (CmdZEff·FdAtKnee). fd 칸이 없거나 비면 fd = 0 — 예전과 같은 결과.
+            /// 여러 궤적을 이어 붙인 파일도 읽는다: 중간의 머리줄은 칸 위치를 다시 읽고(옛 30칸 ↔ fd 칸 31칸이 섞여도), 칸이 모자라거나 숫자가 깨진 줄은 건너뛴다.
+            /// cfg.FirstTouch 면 하강마다 첫닿음도 판정한다 (F0/F1/C/X, 어깨 부하·피치 오차·손목 잔차·안전 정지 — COjw_12_3D_SagFc.cs).</summary>
             public static List<CFloorContact> SagComp_FloorContactsFromTrace(string csv, CFloorProbeCfg cfg)
             {
                 var res = new List<CFloorContact>();
@@ -2531,9 +3925,16 @@ namespace OpenJigWare
                 int iX = Array.IndexOf(hd, "x"), iY = Array.IndexOf(hd, "y"), iP = Array.IndexOf(hd, "pitch");
                 int[] iQ = { Array.IndexOf(hd, "q1"), Array.IndexOf(hd, "q2"), Array.IndexOf(hd, "q3"), Array.IndexOf(hd, "q4") };
                 int[] iAj = { Array.IndexOf(hd, "a1"), Array.IndexOf(hd, "a2"), Array.IndexOf(hd, "a3"), Array.IndexOf(hd, "a4") };
-                Func<string[], int, float> F = (ff, k) => (k >= 0 && k < ff.Length && ff[k].Trim().Length > 0) ? float.Parse(ff[k], ci) : float.NaN;
+                int iLd = Array.IndexOf(hd, "load12"), iDl = Array.IndexOf(hd, "d"), iLag = Array.IndexOf(hd, "lag"), iWh = Array.IndexOf(hd, "wh");   // 첫닿음 판정·손목 유지 표시
+                int iFd = Array.IndexOf(hd, "fd");                                                    // 바닥 보정이 끝을 올린 양 (없으면 0)
+                const NumberStyles NS = NumberStyles.Float | NumberStyles.AllowThousands;              // float.Parse 기본과 같은 규칙
+                Func<string[], int, float> F = (ff, k) => { float v; return (k >= 0 && k < ff.Length && ff[k].Trim().Length > 0 && float.TryParse(ff[k], NS, ci, out v)) ? v : float.NaN; };
+                Func<string[], int, double> Dv = (ff, k) => { double v; return (k >= 0 && k < ff.Length && double.TryParse(ff[k], NumberStyles.Float, ci, out v)) ? v : double.NaN; };
                 float curR = float.NaN, curX = float.NaN, curY = float.NaN, curP = float.NaN; int curSeg = -1, prevT = int.MaxValue;
                 var dX = new List<double>(); var dY = new List<double>(); var dQ = new List<float[]>(); var dA = new List<float[]>();
+                var dRaw = new List<double>();                                                        // dX 와 같은 순서의 이상 명령 높이 (dX = 유효 명령 = cz + fd)
+                var dL = new List<double>(); var dPe = new List<double>(); var dW = new List<double>();   // 첫닿음: 어깨 부하(%), 공구 피치 오차·손목 잔차 (deg)
+                bool bHoldSeg = false, bLastArmed = false; double lastD = double.NaN, lastLag = double.NaN;   // 하강 마지막 줄 — 안전 정지(부하·무장 전 벌어짐)로 끝났는가
                 Action flush = delegate()
                 {
                     if (curSeg == 1 && !float.IsNaN(curR))
@@ -2541,31 +3942,71 @@ namespace OpenJigWare
                         var c = new CFloorContact { R = curR, X = float.IsNaN(curX) ? curR : curX, Y = float.IsNaN(curY) ? 0 : curY,
                                                     Pitch = float.IsNaN(curP) ? 90 : curP, FromPress = true };
                         c.Detected = SagComp_PressKnee(dX, dY, cfg, c);
+                        if (c.Detected) { c.CmdZEff = c.CmdZ; c.CmdZ = (float)SagComp_EffToRaw(dX, dRaw, c.CmdZEff); c.FdAtKnee = c.CmdZEff - c.CmdZ; }   // 꺾임점 = 이상 명령 높이 (+ 그때 바닥 보정)
                         if (c.Detected && dQ.Count == dX.Count)
                         {
-                            int best = 0; double bd = double.MaxValue;                   // 꺾임점(명령 높이)에 가장 가까운 표본 = 접촉 순간 자세
-                            for (int i = 0; i < dX.Count; i++) { double dd = Math.Abs(dX[i] - c.CmdZ); if (dd < bd) { bd = dd; best = i; } }
+                            int best = 0; double bd = double.MaxValue;                   // 꺾임점(유효 명령 높이)에 가장 가까운 표본 = 접촉 순간 자세
+                            for (int i = 0; i < dX.Count; i++) { double dd = Math.Abs(dX[i] - c.CmdZEff); if (dd < bd) { bd = dd; best = i; } }
                             if (dA[best] != null && !float.IsNaN(dA[best][0])) { c.JointAct = dA[best]; c.JointCmd = dQ[best]; }
                         }
                         c.Note = c.Detected ? "궤적 재분석" : "궤적 재분석 — 꺾임 없음";
+                        c.Hold = bHoldSeg;
+                        if (cfg.FirstTouch)
+                        {
+                            SagFc_FirstTouch(c, dX, dY, dL, dPe, dW, dQ, dA,
+                                             lastD >= cfg.PressSafetyLoadPct || (!bLastArmed && lastLag >= cfg.PressSafetyMm + cfg.PreArmExtraMm), cfg);
+                            if (!float.IsNaN(c.FcCmdZ)) c.FcCmdZ = (float)SagComp_EffToRaw(dX, dRaw, c.FcCmdZ);   // 첫닿음 명령 높이도 이상 명령으로
+                        }
                         res.Add(c);
                     }
-                    dX = new List<double>(); dY = new List<double>(); dQ = new List<float[]>(); dA = new List<float[]>();
+                    dX = new List<double>(); dY = new List<double>(); dQ = new List<float[]>(); dA = new List<float[]>(); dRaw = new List<double>();
+                    dL = new List<double>(); dPe = new List<double>(); dW = new List<double>();
+                    bHoldSeg = false; bLastArmed = false; lastD = lastLag = double.NaN;
                 };
                 for (int li = 1; li < lines.Length; li++)
                 {
                     string[] f = lines[li].Split(',');
-                    if (f.Length < hd.Length) continue;
-                    float r = float.Parse(f[iR], ci); int seg = int.Parse(f[iSeg], ci), t = int.Parse(f[iT], ci);
+                    if (f.Length > 1 && f[0].Trim() == "r" && Array.IndexOf(f, "seg") >= 0 && Array.IndexOf(f, "cz") >= 0)
+                    {
+                        // 이어 붙인 파일의 머리줄 — 지금 하강을 끝내고 칸 위치를 다시 읽는다 (옛 30칸·fd 31칸이 섞여도)
+                        flush(); curSeg = -1; prevT = int.MaxValue;
+                        string[] h2 = new string[f.Length]; for (int k = 0; k < f.Length; k++) h2[k] = f[k].Trim();
+                        int r2 = Array.IndexOf(h2, "r"), s2 = Array.IndexOf(h2, "seg"), t2 = Array.IndexOf(h2, "tick"), a2 = Array.IndexOf(h2, "armed"),
+                            c2 = Array.IndexOf(h2, "cz"), z2 = Array.IndexOf(h2, "fz");
+                        if (r2 < 0 || s2 < 0 || t2 < 0 || a2 < 0 || c2 < 0 || z2 < 0) continue;              // 모르는 머리줄 — 앞 머리줄 그대로
+                        hd = h2; iR = r2; iSeg = s2; iT = t2; iA = a2; iCz = c2; iFz = z2;
+                        iX = Array.IndexOf(hd, "x"); iY = Array.IndexOf(hd, "y"); iP = Array.IndexOf(hd, "pitch");
+                        iQ = new int[] { Array.IndexOf(hd, "q1"), Array.IndexOf(hd, "q2"), Array.IndexOf(hd, "q3"), Array.IndexOf(hd, "q4") };
+                        iAj = new int[] { Array.IndexOf(hd, "a1"), Array.IndexOf(hd, "a2"), Array.IndexOf(hd, "a3"), Array.IndexOf(hd, "a4") };
+                        iLd = Array.IndexOf(hd, "load12"); iDl = Array.IndexOf(hd, "d"); iLag = Array.IndexOf(hd, "lag"); iWh = Array.IndexOf(hd, "wh"); iFd = Array.IndexOf(hd, "fd");
+                        continue;
+                    }
+                    if (f.Length < hd.Length) continue;                                                  // 칸이 모자란 줄 (끊긴 줄)
+                    float r; int seg, t; double cz, fz;
+                    if (!float.TryParse(f[iR], NS, ci, out r) || !int.TryParse(f[iSeg], NumberStyles.Integer, ci, out seg) || !int.TryParse(f[iT], NumberStyles.Integer, ci, out t) ||
+                        !double.TryParse(f[iCz], NS, ci, out cz) || !double.TryParse(f[iFz], NS, ci, out fz)) continue;   // 깨진 줄 (하강 경계도 바꾸지 않는다)
                     float fx = F(f, iX), fy = F(f, iY), fp = F(f, iP);
                     bool bNewPt = !(float.IsNaN(fx) && float.IsNaN(curX)) && (fx != curX || fy != curY || fp != curP);
                     if (seg != curSeg || r != curR || t <= prevT || bNewPt) { flush(); curR = r; curSeg = seg; curX = fx; curY = fy; curP = fp; }
                     prevT = t;
-                    if (seg == 1 && f[iA].Trim() == "1")
+                    if (seg == 1)
                     {
-                        dX.Add(double.Parse(f[iCz], ci)); dY.Add(double.Parse(f[iFz], ci));
-                        dQ.Add(new float[] { F(f, iQ[0]), F(f, iQ[1]), F(f, iQ[2]), F(f, iQ[3]) });
-                        dA.Add(new float[] { F(f, iAj[0]), F(f, iAj[1]), F(f, iAj[2]), F(f, iAj[3]) });
+                        bool bArm = f[iA].Trim() == "1";
+                        bLastArmed = bArm; lastD = Dv(f, iDl); lastLag = Dv(f, iLag);
+                        if (bArm)
+                        {
+                            double fdv = Dv(f, iFd); if (double.IsNaN(fdv)) fdv = 0;
+                            dX.Add(cz + fdv); dY.Add(fz); dRaw.Add(cz);
+                            dQ.Add(new float[] { F(f, iQ[0]), F(f, iQ[1]), F(f, iQ[2]), F(f, iQ[3]) });
+                            dA.Add(new float[] { F(f, iAj[0]), F(f, iAj[1]), F(f, iAj[2]), F(f, iAj[3]) });
+                            if (iWh >= 0 && iWh < f.Length && f[iWh].Trim().Length > 0 && f[iWh].Trim() != "NaN") bHoldSeg = true;
+                            if (cfg.FirstTouch)
+                            {
+                                dL.Add(Dv(f, iLd));
+                                dPe.Add((Dv(f, iAj[1]) + Dv(f, iAj[2]) + Dv(f, iAj[3])) - (Dv(f, iQ[1]) + Dv(f, iQ[2]) + Dv(f, iQ[3])));   // 실측 합 − 이상 합 (deg)
+                                dW.Add(Dv(f, iAj[3]) - Dv(f, iQ[3]));                                                                     // 손목 잔차 a14 − q14
+                            }
+                        }
                     }
                 }
                 flush();

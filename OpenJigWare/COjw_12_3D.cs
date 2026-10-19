@@ -9050,27 +9050,61 @@ namespace OpenJigWare
             private float[] m_afTrack = new float[_SIZE_MAX_MOT];
             // EDH $jointrange 유래 limit 적용 모터 추적 — 재적용 시 이전 것만 리셋 (UI/수동 설정 보존)
             private List<int> m_lstEdhLimitMotors = new List<int>();
+            // $jointrange 원래 값 (축 → {하한, 상한}, 0 보정 전) — 모터 세팅의 리밋 교집합용 (EdhLimit_Get)
+            private Dictionary<int, float[]> m_dicEdhLimit = new Dictionary<int, float[]>();
+            // 헤더 리밋 쓰기 + $jointrange 기록을 한 덩어리로 (EdhLimit_SyncRoot) — 실물 연결의 헤더 투영도 같은 잠금을 쓴다
+            private readonly object m_oEdhLimitSync = new object();
+            private DEdhLimitHold m_fnEdhLimitHold = null;       // 헤더 리밋 붙잡기 훅 (null = 예전 그대로)
+
+            /// <summary>헤더 리밋 붙잡기 훅 — 그 축의 리밋을 연결된 실물이 쓰고 있으면 true 와 헤더에 둘 리밋을 돌려준다
+            /// (헤더 규약: 0 = 없음, 0° 경계는 ∓0.001). false 면 ApplyEdhMotorLimits 가 예전처럼 $jointrange 값(되돌릴 때는 0)을 쓴다</summary>
+            public delegate bool DEdhLimitHold(int nMot, out float fLo, out float fHi);
+            /// <summary>헤더 리밋 붙잡기 훅 걸기 (null = 떼기) — 실물 연결(COjw_44_ArmMotor.cs CArmConn_t)이 건다. 걸려 있으면 ApplyEdhMotorLimits 는
+            /// 축의 리밋을 쓸 때마다(이전 $jointrange 축을 0 으로 되돌릴 때 포함) 이 훅에 묻고, 붙잡힌 축에는 $jointrange 대신 훅이 준 리밋
+            /// (지금 적용된 리밋)을 쓴다. $jointrange 원래 값은 그대로 기록한다(EdhLimit_Get) — 새 범위는 연결 쪽이 실물 장면과 함께 반영한다</summary>
+            public void EdhLimit_SetHold(DEdhLimitHold fnHold) { lock (m_oEdhLimitSync) m_fnEdhLimitHold = fnHold; }
+            /// <summary>지금 걸린 헤더 리밋 붙잡기 훅 (없으면 null)</summary>
+            public DEdhLimitHold EdhLimit_GetHold() { return m_fnEdhLimitHold; }
+            /// <summary>헤더 리밋 쓰기 잠금 — ApplyEdhMotorLimits·EdhLimit_Get 이 잡는다. 헤더 리밋을 따로 쓰는 쪽도 이것을 잡으면 DH 해석과 섞이지 않는다
+            /// (Monitor 라 같은 스레드는 다시 잡아도 된다 — 훅 안에서 잡아도 된다). 잡은 채로 UI 스레드를 기다리지 말 것 (Invoke·로그 금지)</summary>
+            public object EdhLimit_SyncRoot { get { return m_oEdhLimitSync; } }
 
             /// <summary>EDH 의 $jointrange 지시자를 OpenJigWare 모터 속성 (pSMotorInfo 의
             /// fLimit_Down/fLimit_Up, deg) 에 반영. MakeDHSkeleton 계열 파싱 시 자동 호출 —
             /// 관절 드래그 (SetData→CalcLimit 클램프)·IK (IkMotorLimit)·3D limit 표시가
             /// URDF export 의 &lt;limit&gt; 와 같은 $jointrange 값을 쓰게 된다.
             /// 멱등: 이전 호출에서 EDH 로 설정한 모터만 0(무제한) 으로 되돌린 뒤 재적용.
-            /// 규약: fLimit 0 = 무제한 → 경계값이 정확히 0 이면 ±0.001° 로 미세 보정해 기록.</summary>
+            /// 규약: fLimit 0 = 무제한 → 경계값이 정확히 0 이면 ±0.001° 로 미세 보정해 기록.
+            /// 헤더 리밋 붙잡기 훅(EdhLimit_SetHold)이 붙잡은 축(연결된 실물이 쓰는 축)은 0 으로 되돌리지도 새 값을 쓰지도 않고
+            /// 지금 적용된 리밋을 그대로 둔다 — 원래 값만 기록한다. 훅이 없거나 false 면 예전과 같은 값을 같은 순서로 쓴다</summary>
             public void ApplyEdhMotorLimits(String strString)
+            {
+                lock (m_oEdhLimitSync) ApplyEdhMotorLimits_Locked(strString);   // 헤더 리밋 쓰기 + 원래 값 기록을 한 덩어리로
+            }
+            private void ApplyEdhMotorLimits_Locked(String strString)
             {
                 try
                 {
                     if (m_CHeader.pSMotorInfo == null) return;
+                    DEdhLimitHold fnHold = m_fnEdhLimitHold;
+                    float fHoldLo, fHoldHi;
                     foreach (int nPrev in m_lstEdhLimitMotors)
                     {
                         if ((nPrev >= 0) && (nPrev < m_CHeader.pSMotorInfo.Length))
                         {
+                            if ((fnHold != null) && fnHold(nPrev, out fHoldLo, out fHoldHi))
+                            {
+                                // 연결된 실물이 쓰는 축 — 0(무제한)으로 풀지 않고 지금 적용된 리밋 그대로
+                                m_CHeader.pSMotorInfo[nPrev].fLimit_Down = fHoldLo;
+                                m_CHeader.pSMotorInfo[nPrev].fLimit_Up = fHoldHi;
+                                continue;
+                            }
                             m_CHeader.pSMotorInfo[nPrev].fLimit_Down = 0.0f;
                             m_CHeader.pSMotorInfo[nPrev].fLimit_Up = 0.0f;
                         }
                     }
                     m_lstEdhLimitMotors.Clear();
+                    m_dicEdhLimit.Clear();
                     if (strString == null) return;
 
                     String[] astrLines = strString.Replace("\r\n", "\n").Split('\n');
@@ -9097,17 +9131,34 @@ namespace OpenJigWare
                             System.Globalization.CultureInfo.InvariantCulture, out fHi)) continue;
                         if ((nMot < 0) || (nMot >= m_CHeader.pSMotorInfo.Length) || (fLo > fHi)) continue;
 
+                        float fLoRaw = fLo, fHiRaw = fHi;   // 0 보정 전 원래 값 — EdhLimit_Get 이 돌려준다
                         if (fLo == 0.0f) fLo = -0.001f;   // 0 = 무제한 규약 회피
                         if (fHi == 0.0f) fHi = 0.001f;
+                        if ((fnHold != null) && fnHold(nMot, out fHoldLo, out fHoldHi)) { fLo = fHoldLo; fHi = fHoldHi; }   // 연결된 실물이 쓰는 축 — 지금 적용된 리밋 그대로 (원래 값은 아래에 기록)
                         m_CHeader.pSMotorInfo[nMot].fLimit_Down = fLo;
                         m_CHeader.pSMotorInfo[nMot].fLimit_Up = fHi;
                         m_lstEdhLimitMotors.Add(nMot);
+                        m_dicEdhLimit[nMot] = new float[] { fLoRaw, fHiRaw };
                     }
                 }
                 catch //(Exception ex)
                 {
                     //CMessage.Write_Error();
                 }
+            }
+            /// <summary>EDH $jointrange 가 그 축에 준 리밋 (도, 0 보정 전 원래 값). 없으면 false 와 NaN —
+            /// 모터 세팅의 리밋 교집합(수동 ∩ EDH, COjw_44_ArmMotor.cs)에 쓴다. 기록은 ApplyEdhMotorLimits 가 한다
+            /// (DH 해석 도중의 반쯤 지운 기록은 보이지 않는다 — 같은 잠금)</summary>
+            public bool EdhLimit_Get(int nMot, out float fLo, out float fHi)
+            {
+                float[] af;
+                lock (m_oEdhLimitSync)
+                {
+                    if (m_dicEdhLimit.TryGetValue(nMot, out af)) { fLo = af[0]; fHi = af[1]; return true; }
+                }
+                fLo = float.NaN;
+                fHi = float.NaN;
+                return false;
             }
             public float CalcLimit(int nMot, float fValue) 
             {
@@ -9653,7 +9704,7 @@ namespace OpenJigWare
                     public float fX0, fY0, fZ0;
                 }
                 private Dictionary<int, CDeltaIkDef> m_dictDeltaIK = new Dictionary<int, CDeltaIkDef>();
-                // ── 이상 상황 전용 로그 (%TEMP%\ojw_deltaik_debug.log, 세션당 400줄 제한) ──
+                // ── 이상 상황 전용 로그 (%TEMP%\ojw_deltaik_debug.log, 실행당 400줄 제한) ──
                 //   평시에는 침묵. $deltaik 기하 이상 등 조용히 실패하는 계열의 사고만 기록 (2026-08-14 사고 추적용 잔류)
                 private static int s_nDeltaIkLogCnt = 0;
                 private static void DeltaIK_Log(string strMsg)
@@ -10871,6 +10922,8 @@ namespace OpenJigWare
                 /// <summary>모션 스텝마다 호출되는 싱크 — CScene_t 가 실물 스트리밍(SendPose)을 등록한다.
                 /// 렌더 틱이 돌리든 자가 펌프가 돌리든 스텝이 곧 전송 시점이라 실물 동작이 동일하다</summary>
                 public void MoveJoints_SetMotionSink(Action<int> cb) { m_MotionSink = cb; }
+                /// <summary>지금 걸린 모션 싱크 (없으면 null) — CScene_t 가 생성 때 앞의 것을 기억하고, Release 때 자기 것인지 비교해 되돌린다</summary>
+                public Action<int> MoveJoints_GetMotionSink() { return m_MotionSink; }
 
                 /// <summary>모션 한 스텝 — 렌더 틱(OjwDraw 직전)에서 호출할 것.
                 /// 시간 기반이라 프레임이 밀려도 지정 시간에 정확히 도착한다</summary>
@@ -11028,6 +11081,7 @@ namespace OpenJigWare
                             SetData(m_anPathPosIDs[2], afPSol[2]);
                             SetData(m_nPathWrist, afPSol[3]);
                             if (m_MotionSink != null) m_MotionSink(40);   // 실물 스트리밍 등
+                            SagTwin_AfterStep();                         // 처짐 쌍둥이 — 보낸(시뮬만이면 보냈을) 명령으로 예측
                         }
                         else if (dTp < 1.0)
                         {
@@ -11061,6 +11115,7 @@ namespace OpenJigWare
                         SetData(m_anMoveJointIDs[i],
                                 (float)(m_afMoveJointFrom[i] + (m_afMoveJointTo[i] - m_afMoveJointFrom[i]) * dS));
                     if (m_MotionSink != null) m_MotionSink(40);   // 실물 스트리밍 등
+                    SagTwin_AfterStep();                         // 처짐 쌍둥이 — 보낸(시뮬만이면 보냈을) 명령으로 예측
                     // 진단 — 관절 보간 중 틱별 TCP (수식 0 기준)
                     if (m_sbPathLog != null && m_sbPathLog.Length < 400000)
                     {
@@ -24174,6 +24229,11 @@ namespace OpenJigWare
                 /// <summary>직전 픽 이벤트에서 **클릭된 부품**의 DH 라인 (-1 = 알 수 없음 → 호출 측이 그룹으로 폴백).
                 /// 그룹(A/B)은 관절 볼·링크 봉 등 여러 부품이 공유하므로 부품 단위 선택은 이 값을 쓴다.</summary>
                 public int GetEvent_Pick_DhLine() { return m_nSelectedDhLine_Event; }
+                private static bool IsDhAxisGuide(COjwDisp item)
+                {
+                    // Reserved XYZ handle IDs stay pickable, but must keep their axis colors.
+                    return item.nPickGroup_A == 255 && item.nPickGroup_C >= 253 && item.nPickGroup_C <= 255;
+                }
                 public void UserDrawing(float[] afData, COjwDesignerHeader CHeader, ref bool bLimit, ref COjwDisp CDisp)
                 {
                     #region User
@@ -24256,10 +24316,13 @@ namespace OpenJigWare
                                 {
                                     if (CDisp.GetDhLine() == m_nUser_SelectedIndex)
                                     {
-                                        CDispSelected = CDisp.Clone();
-                                        CDispSelected.cColor = m_cUser_PickColor;
-                                        CDispSelected.fAlpha = m_fUser_PickAlpha;
-                                        bSelected = true;
+                                        if (!IsDhAxisGuide(CDisp))
+                                        {
+                                            CDispSelected = CDisp.Clone();
+                                            CDispSelected.cColor = m_cUser_PickColor;
+                                            CDispSelected.fAlpha = m_fUser_PickAlpha;
+                                            bSelected = true;
+                                        }
 
                                         if (CDisp_Next != null)
                                         {
@@ -24389,6 +24452,8 @@ namespace OpenJigWare
                                 }
                             }
                             #endregion Pre-Checking the function control
+
+                            SagTwin_IdleUpdate();   // 처짐 쌍둥이 — 멈춰 있을 때(싱크·모션 없음)만 여기서 갱신 (COjw_12_3D_SagTwin.cs)
 
                             glDraw_Ready();
 
@@ -24579,6 +24644,8 @@ namespace OpenJigWare
                             #endregion Main Drawing
 
                             if (m_nFirst_0_nLast_1 != 0) UserDrawing(afData, CHeader, ref bLimit, ref CDisp);
+
+                            SagTwin_DrawGhost(afData);   // 처짐 쌍둥이(실물이 있을 자세) 반투명 팔 — 픽 프레임에서는 안 그림
 
                             #region Test Drawing
                             if (IsTestCircle() == true)
@@ -26546,6 +26613,7 @@ namespace OpenJigWare
                     }
                     //float fAlpha = (m_bAlpha) ? m_fAlpha : OjwDisp.fAlpha;
                     bool bPicked = false;
+                    bool bAxisGuide = IsDhAxisGuide(OjwDisp);
                     //if (m_bPickColor == true)
                     //{
                     
@@ -26571,7 +26639,7 @@ namespace OpenJigWare
                         }
                     }
 
-                        if(
+                        if (!bAxisGuide && (
                         //    (((nGroupA + nGroupB) > 0) &&
                         //(OjwDisp.nPickGroup_A == nGroupA) &&
                         //(OjwDisp.nPickGroup_B == nGroupB)
@@ -26583,7 +26651,7 @@ namespace OpenJigWare
                             ((m_nSelectedInverseKinematics < 0) && ((m_nSelectedMotor >= 0) && (OjwDisp.nPickGroup_B == m_nSelectedMotor)) && (OjwDisp.nPickGroup_A > 0)) // 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결
                             ||
                             ((m_nSelectedInverseKinematics >= 0) && (OjwDisp.nInverseKinematicsNumber == m_nSelectedInverseKinematics) && (OjwDisp.nPickGroup_A > 0))     // 20160420 - 0 번 모터를 선택시 전체 그룹이 선택되는 문제 해결                        
-                        )
+                        ))
                         {
                             if (m_bPickColor) cColor = m_cPickColor;// Color.FromArgb(50, 50, 255);// Color.FromArgb(100, 0, 0);
                             if (m_bPickAlpha) fAlpha = m_fPickAlpha;
@@ -26597,11 +26665,11 @@ namespace OpenJigWare
                             
 
                             // ojw5014
-                            m_nSelectedItem = m_nDrawClass_Pos; // 이거 한번 추가해 보자. 클릭해도 선택 되게...
+                            if (!m_bSagTwinPass) m_nSelectedItem = m_nDrawClass_Pos; // 이거 한번 추가해 보자. 클릭해도 선택 되게... (처짐 쌍둥이 패스는 선택을 바꾸지 않는다)
                         }                        
                     //}
 
-                    for (int i = 0; i < _CNT_SECOND_COLOR; i++)
+                    for (int i = 0; !bAxisGuide && i < _CNT_SECOND_COLOR; i++)
                     {
                         if (m_abSecondColor[i] == true)
                         {
@@ -26618,6 +26686,7 @@ namespace OpenJigWare
                             }
                         }
                     }
+                    if (m_bSagTwinPass) { cColor = SagTwin_Color; fAlpha = SagTwin_Alpha; }   // 처짐 쌍둥이 패스 — 고정 색·투명도 (선택·픽 색 무시)
 
                     if (OjwDisp.bInit == true)
                     {
@@ -26654,7 +26723,7 @@ namespace OpenJigWare
                         m_afCalcPos[2] += fCalcZ;
                     }
 
-                    if (m_bSelPivotArm)   // 선택 오브젝트의 변환 완료 시점 — 부품 원점 행렬 캡처 (orbit 피벗용)
+                    if (m_bSelPivotArm && !m_bSagTwinPass)   // 선택 오브젝트의 변환 완료 시점 — 부품 원점 행렬 캡처 (orbit 피벗용)
                     {
                         lock (m_oPivotLock)
                         {
@@ -27613,7 +27682,7 @@ namespace OpenJigWare
                     {
                         if (m_bSkeleton == true)
                         {
-                            float fSkeletonAlpha = 1.0f;
+                            float fSkeletonAlpha = m_bSagTwinPass ? fAlpha : 1.0f;
                             OjwCircle_Outside(bFilled, cColor, fSkeletonAlpha, OjwDisp.fWidth_Or_Radius, OjwDisp.fHeight_Or_Depth, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
                         }
                     }
@@ -27621,7 +27690,7 @@ namespace OpenJigWare
                     {
                         if (m_bSkeleton == true)
                         {
-                            float fSkeletonAlpha = 1.0f;
+                            float fSkeletonAlpha = m_bSagTwinPass ? fAlpha : 1.0f;
                             OjwBall_Outside(bFilled, cColor, fSkeletonAlpha, OjwDisp.fWidth_Or_Radius, (int)Math.Round(OjwDisp.fDepth_Or_Cnt), OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, OjwDisp.SOffset_Trans.x, OjwDisp.SOffset_Trans.y, OjwDisp.SOffset_Trans.z);
                         }
                     }
@@ -28552,7 +28621,7 @@ namespace OpenJigWare
                 /// 버퍼 = 히트마다 [이름수][zMin][zMax][이름...] 반복.
                 /// 이름 스택은 [0(초기), 부품 식별자(DhLine+1), 그룹 이름] 이라
                 /// **마지막 이름 = 그룹 이름**(기존 규약 유지), 그 앞이 부품 식별자다.
-                /// 깊이가 같으면 나중에 그린 쪽이 이긴다 (자연스러운 z-fighting 처리).
+                /// 깊이가 같으면 나중에 그린 쪽이 이긴다. 같은 그룹의 TCP/복귀 링크가 겹치면 TCP를 우선한다.
                 /// GL 없이 검증할 수 있도록 순수 함수로 분리 (부품 오식별은 조용히 틀리는 종류의 버그).</summary>
                 public static void ParsePickBuffer(uint[] buf, int nHits, out uint unName, out int nDhLine)
                 {
@@ -28571,7 +28640,18 @@ namespace OpenJigWare
                         uint unMin = buf[nPos++];
                         nPos++;                                     // zMax (미사용)
                         if (nSize < 0 || nPos + nSize > buf.Length) break;
-                        if (nSize > 0 && ((bFind == false) || (unObjMin >= unMin)))
+                        bool bReplace = nSize > 0 && (!bFind || unObjMin >= unMin);
+                        if (bReplace && bFind && unObjMin == unMin)
+                        {
+                            uint currentName = buf[nObj];
+                            uint candidateName = buf[nPos + nSize - 1];
+                            // Coincident return links must not hide their own IK endpoint.
+                            bool sameGroup = (currentName & 0xffffff) == (candidateName & 0xffffff);
+                            bool currentIk = (currentName >> 24) != 255;
+                            bool candidateIk = (candidateName >> 24) != 255;
+                            if (sameGroup && currentIk && !candidateIk) bReplace = false;
+                        }
+                        if (bReplace)
                         {
                             unObjMin = unMin;
                             bFind = true;

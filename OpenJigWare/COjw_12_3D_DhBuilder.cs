@@ -78,8 +78,7 @@ namespace OpenJigWare
                 step.Value = value;
                 step.MotorNumber = motorNum;
 
-                int v = (int)Math.Round(value);
-                string sv = v.ToString();
+                string sv = FmtEditVal(value);
 
                 switch (action)
                 {
@@ -883,7 +882,7 @@ namespace OpenJigWare
                 r.NewLines = s.DhLines.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
                 r.CarrierOffset = (r.NewLines.Length >= 3) ? 1 : 0;   // Y축 합성은 가운데가 값 운반
                 r.OldValue = 0;
-                r.NewValue = (float)Math.Round(delta);
+                r.NewValue = delta;
                 r.FieldName = GetAxisName(action);
                 r.Description = s.Description;
                 r.Reason = reason;

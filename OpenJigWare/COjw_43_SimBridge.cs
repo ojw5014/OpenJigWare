@@ -122,6 +122,68 @@ namespace OpenJigWare
             }
 
             // ================================================================
+            // 처짐 쌍둥이 (2026-10-02) — 실물이 있을 자세(C3d.SagTwin_GetDeg)를 뷰어로
+            //   관절 명령 뒤에 같은 연결·같은 payload 로 붙인다 (연결 수 그대로 — TIME_WAIT 규칙 유지):
+            //     "TWIN,timeMs,delay,id1,deg1,...;" = 실물이 있을 자세 — 뷰어가 반투명 팔로 겹쳐 그린다
+            //     "TWIN_OFF;"                       = 쌍둥이 끔 (꺼질 때 한 번)
+            //   모르는 뷰어는 무시한다 (옛 PyBullet/MuJoCo 는 ERROR 회신 — 읽지 않으니 무해, Isaac 은 조용히 무시).
+            //   바꿔 보내기(nTwinMode 1) = 관절 명령 자체를 쌍둥이 자세로 — 뷰어 수정 없이 실물이 있을 자세를 본다 (Isaac 포함).
+            // ================================================================
+            public const string TWIN_OFF = "TWIN_OFF;";
+            private static bool s_bTwinShown = false;      // 직전 전송에 TWIN 이 있었다 — 쌍둥이를 끄면 TWIN_OFF 를 한 번 붙인다
+
+            /// <summary>"TWIN," + 관절 명령 문자열</summary>
+            public static string BuildTwinPayload(int nTimeMs, int nDelayMs, int[] anIds, float[] afDegs)
+            {
+                string s = BuildJointPayload(nTimeMs, nDelayMs, anIds, afDegs);
+                return s.Length == 0 ? "" : "TWIN," + s;
+            }
+
+            /// <summary>C3d 의 관절각을 보낼 payload. nTwinMode: −1 = 쌍둥이 없음, 0 = 겹쳐 보기(이상 자세 + TWIN),
+            /// 1 = 바꿔 보내기(관절 명령 = 쌍둥이 자세). 쌍둥이가 아직 없으면(모델 없음·계산 꺼짐) 이상 자세만.
+            /// bTwin = 이 payload 에 TWIN 이 들어갔는가 — 보낸 뒤 NoteTwinSent(bTwin) 으로 알릴 것 (SendC3d 는 알아서 한다).</summary>
+            public static string BuildC3dPayload(C3d c3d, int nTimeMs, int[] anIds, int nTwinMode, out bool bTwin)
+            {
+                bTwin = false;
+                if (c3d == null || anIds == null || anIds.Length == 0) return "";
+                float[] ideal = new float[anIds.Length];
+                for (int i = 0; i < anIds.Length; i++) ideal[i] = c3d.GetData(anIds[i]);
+                float[] twin = null;
+                if (nTwinMode >= 0)
+                {
+                    twin = new float[anIds.Length];
+                    if (!c3d.SagTwin_GetDeg(anIds, twin)) twin = null;
+                }
+                string s;
+                if (twin != null && nTwinMode == 1) s = BuildJointPayload(nTimeMs, 0, anIds, twin);
+                else
+                {
+                    s = BuildJointPayload(nTimeMs, 0, anIds, ideal);
+                    if (twin != null && s.Length > 0) { s += BuildTwinPayload(nTimeMs, 0, anIds, twin); bTwin = true; }
+                }
+                if (!bTwin && s_bTwinShown && s.Length > 0) s += TWIN_OFF;
+                return s;
+            }
+            /// <summary>BuildC3dPayload 로 만든 payload 를 보낸 뒤 결과 알림 — 다음 TWIN_OFF 판단용</summary>
+            public static void NoteTwinSent(bool bTwin) { s_bTwinShown = bTwin; }
+
+            /// <summary>C3d 의 관절각(+쌍둥이)을 1회 전송 (connect-send-close). strPayload = 보낸 문자열. 실패 시 false (LastError).</summary>
+            public static bool SendC3d(string strIp, int nPort, C3d c3d, int nTimeMs, int[] anIds, int nTwinMode, out string strPayload)
+            {
+                bool bTwin;
+                strPayload = BuildC3dPayload(c3d, nTimeMs, anIds, nTwinMode, out bTwin);
+                if (strPayload.Length == 0) { LastError = "no joints"; return false; }
+                bool ok = SendRaw(strIp, nPort, strPayload);
+                if (ok) s_bTwinShown = bTwin;
+                return ok;
+            }
+            public static bool SendC3d(C3d c3d, int nTimeMs, int[] anIds, int nTwinMode)
+            {
+                string s;
+                return SendC3d(DEFAULT_IP, DEFAULT_PORT, c3d, nTimeMs, anIds, nTwinMode, out s);
+            }
+
+            // ================================================================
             // 조회 (요청 =&gt; 응답)
             // ================================================================
 

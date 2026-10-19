@@ -121,6 +121,15 @@ namespace OpenJigWare
             /// <summary>전축 일괄 읽기(SyncRead 한 번). 실패하면 null 과 사유.</summary>
             public static Dictionary<int, float> ReadAll(Ojw.CProtocol com, int[] anIDs, out string strWhy)
             {
+                int[] anTick = ReadAllTicks(com, anIDs, out strWhy);
+                return (anTick != null) ? ToDeg(anIDs, anTick) : null;
+            }
+
+            /// <summary>ReadAll 의 본체 — 틱(서보 위치 값) 그대로, anIDs 순. 연속 두 번이 8틱 안이면 확정(최대 6회),
+            /// 정착은 안 됐어도 값이 정상이면 마지막 정상 값. 전부 실패하면 null 과 사유.
+            /// 틱 0·-1·범위 밖은 무응답으로 본다 (모터 세팅의 리밋을 틱 [1, 4094] 안으로 두는 이유)</summary>
+            public static int[] ReadAllTicks(Ojw.CProtocol com, int[] anIDs, out string strWhy)
+            {
                 const int TOL = 8;                     // 0.7도 — 정지 지터 허용
                 strWhy = "";
                 int[] anPrev = null, anGood = null;
@@ -150,14 +159,14 @@ namespace OpenJigWare
                             int d2 = Math.Abs(anCur[i] - anPrev[i]);
                             if (d2 > nWorst) { nWorst = d2; nWorstId = anIDs[i]; }
                         }
-                        if (nWorst <= TOL) return ToDeg(anIDs, anCur);
+                        if (nWorst <= TOL) return anCur;
                         strWhy = string.Format("아직 정착 안 됨 (T{0} 이 {1}틱 = {2:F1}도 변동)",
                                                nWorstId, nWorst, nWorst * 0.0879f);
                     }
                     anPrev = anCur;
                 }
                 // 정착은 안 됐어도 값 자체가 정상이면 쓴다 (움직이는 중일 수 있다)
-                return (anGood != null) ? ToDeg(anIDs, anGood) : null;
+                return anGood;
             }
 
             private static Dictionary<int, float> ToDeg(int[] anIDs, int[] anTick)
@@ -1425,7 +1434,7 @@ namespace OpenJigWare
                 "max_volt", "min_volt", "pwm_limit", "vel_limit", "max_pos", "min_pos", "shutdown" };
 
             /// <summary>모델번호(addr 0) → 정식 모델명 (ROBOTIS). 미등록이면 null.</summary>
-            private static string ModelNameOf(int nModel)
+            public static string ModelNameOf(int nModel)
             {
                 switch (nModel)
                 {
@@ -1477,7 +1486,7 @@ namespace OpenJigWare
 
             /// <summary>맵에 이미 읽혀 있는 addr 144(전압)·146(온도)로 최저/최고를 갱신한다.
             /// ★추가 통신 없음 — 호출 전의 SyncRead 창이 146 까지 덮고 있어야 한다.
-            /// 저전압 세션(답신 18)에서 "이 트라이얼이 몇 V 에서 났는가"를 사후에 감사하기 위한 것.
+            /// 저전압 작업(답신 18)에서 "이 트라이얼이 몇 V 에서 났는가"를 사후에 감사하기 위한 것.
             /// 공급기가 전류 제한(CC)으로 주저앉거나 배터리가 흐르면 여기서 잡힌다.</summary>
             private static void TrackVT(Ojw.CProtocol com, int id, ref float fVmin, ref int nTmax)
             {
@@ -1571,7 +1580,7 @@ namespace OpenJigWare
                         float[] afV = new float[2];
                         float[] afTgt = { hi, lo };
                         // ★이 축의 전 트라이얼(무부하 vmax + 브레이크어웨이 + 백래시) 통틀어
-                        //   최저 전압·최고 온도. 저전압 세션의 감사 지표 (답신 18 §5).
+                        //   최저 전압·최고 온도. 저전압 작업의 감사 지표 (답신 18 §5).
                         float fVminAx = 99f; int nTmaxAx = 0;
                         for (int d = 0; d < 2; d++)
                         {
@@ -2207,7 +2216,9 @@ namespace OpenJigWare
         /// 묶어 제공한다: 포트 사전 확인 → 프로토콜 2.0 설정 → 토크 실측 확인(스테일 재읽기) →
         /// 정착 재시도 일괄 읽기(CSim2Real.ReadAll) → 3D 동기화 → 모션 스텝마다 스트리밍(SendPose: 렌더 틱 20ms /
         /// 자가 펌프 ≈26ms, 실제 틱 간격을 실측해 Profile Velocity 를 정한다 — CProtocol.Move_Stream).
-        /// ※ 메서드명이 소문자인 이유 = 파이썬 예제 표기(scene.open/torqon/syncread/close) 그대로</summary>
+        /// ※ 메서드명이 소문자인 이유 = 파이썬 예제 표기(scene.open/torqon/syncread/close) 그대로
+        /// ※ 모터 세팅(SetMotors, COjw_44_ArmMotor.cs)을 붙이면 방향·영점·틱/회전·리밋을 그 세팅으로 해석한다 (부호 배열은 무시).
+        ///   붙이지 않으면 예전 경로 그대로 — 버스로 나가는 명령과 읽는 값이 같다 (파이썬 실행기·CreateOmx 사용자)</summary>
         public class CScene_t
         {
             private readonly C3d m_C3d;
@@ -2215,6 +2226,14 @@ namespace OpenJigWare
             private readonly int[] m_anSign;      // 시뮬(DH)각 → 실물 모터각 부호 (현장 보정용)
             private CProtocol m_Com = null;       // null = 시뮬레이션 전용
             private bool m_bTorque = false;
+            // ── 모터 세팅 경로 (2026-10-02) — 세팅을 붙이지 않으면 m_aMot = null 이고 예전 경로를 탄다 ──
+            private volatile CArmMotor_t[] m_aMot = null;   // IDs 순 복제본. null = 예전 경로(부호 배열 + 2048 기준)
+            private float[] m_afHoldSim = null;              // 실물이 붙잡고 있는 3D 자세(보정 얹기 전) — 토크 ON 정렬·SendPose 마다 갱신
+            private float[] m_afGoalSim = null;              // 실물에 걸린 목표(3D 각, 보정·리밋 반영) — 토크 ON 정렬 직후는 정렬 자세
+            private readonly Action<int> m_Sink;             // 생성자가 등록한 싱크 (Release 비교용)
+            private readonly Action<int> m_PrevSink;         // 그 전에 걸려 있던 싱크 — Release 가 되돌린다
+            private bool m_bReleased = false;
+            private bool m_bWarnUnaligned = false;           // "자세를 몰라 보내지 않음" 로그를 한 번만
 
             /// <summary>c3dRef = 화면의 3D, anMotorIDs = 실물 모터 ID 목록, anSign = 관절별 부호(+1/-1)</summary>
             public CScene_t(C3d c3dRef, int[] anMotorIDs, int[] anSign)
@@ -2223,7 +2242,9 @@ namespace OpenJigWare
                 m_anIDs = (int[])anMotorIDs.Clone();
                 m_anSign = (int[])anSign.Clone();
                 // 모션 스텝마다 실물 스트리밍 — 렌더 틱이든 자가 펌프든 스텝 시점에 전송된다
-                m_C3d.MoveJoints_SetMotionSink(SendPose);
+                m_PrevSink = m_C3d.MoveJoints_GetMotionSink();   // Release 가 되돌릴 이전 싱크
+                m_Sink = SendPose;
+                m_C3d.MoveJoints_SetMotionSink(m_Sink);
             }
 
             public C3d c3d { get { return m_C3d; } }
@@ -2305,7 +2326,14 @@ namespace OpenJigWare
                     Log("[COMM] COM{0} 열기 실패(다른 프로그램 사용 중?) — 시뮬레이션만 계속합니다\r\n", nPort);
                     return;
                 }
-                foreach (int id in m_anIDs) { com.SetParam(id); com.SetParam_Protocol(id, 2); }   // XL-430 = 프로토콜 2.0
+                CArmMotor_t[] aMot = m_aMot;
+                for (int i = 0; i < m_anIDs.Length; i++)
+                {
+                    // XL-430 = 프로토콜 2.0. 모터 세팅이 붙어 있으면 그 실물 ID (지금은 축 번호와 같다 — SetMotors 가 확인).
+                    // CProtocol 은 전송층 기본값(X 프리셋·방향 정·리밋 0)으로만 둔다 — 방향·영점·리밋은 CScene_t 가 세팅으로 처리
+                    int id = (aMot != null) ? aMot[i].nMotorID : m_anIDs[i];
+                    com.SetParam(id); com.SetParam_Protocol(id, 2);
+                }
                 if (!float.IsNaN(m_fStreamEarly)) com.Stream_Early = m_fStreamEarly;              // 스트리밍 horizon 배율(설정했으면)
                 m_Com = com;
                 Log("[COMM] COM{0} 연결 ({1} bps) — torqon() 하면 실물이 함께 움직입니다\r\n", nPort, nBaud);
@@ -2324,14 +2352,38 @@ namespace OpenJigWare
             public void torqon() { Torque(true); }
             public void torqoff() { Torque(false); }
 
+            /// <summary>torqon 과 같은데 붙잡은 자세를 모름으로 둔 채 켠다 (CArmConn_t.TorqueOn — 이미 토크를 붙잡은 서보나 토크 상태를 모르는 서보가 있어
+            /// 곧 서보 목표로 이어받거나 움직이기 전 확인이 맞출 때). 3D 는 실물 자세로 정렬하고 그 자세(IDs 순 3D 각)를 돌려준다 (미연결·읽기 실패면 null).
+            /// 켜고 확인 읽기를 마칠 때까지(약 170ms) 붙잡은 자세가 없어 SendPose 가 보내지 않는다 — 그사이 다른 스레드의 3D 모션이 처진 지금 위치를
+            /// 붙잡고 있던 서보로 보내 팔이 처짐만큼 떨어지지 않게 (10-03 검토). 부른 쪽이 AdoptTorqueOnGoal·HoldFromRealGoal 로 붙잡은 자세를 정한다</summary>
+            internal float[] TorqueOnUnheld()
+            {
+                float[] a;
+                TorqueCore(true, true, out a);
+                return a;
+            }
+
             private void Torque(bool bOn)
             {
+                float[] a;
+                TorqueCore(bOn, false, out a);
+            }
+            // 토크 켜기·끄기 본체 — bUnheld 면 켤 때 정렬한 자세를 붙잡은 자세로 삼지 않고 afAligned 로 돌려준다 (TorqueOnUnheld)
+            private void TorqueCore(bool bOn, bool bUnheld, out float[] afAligned)
+            {
+                afAligned = null;
                 if (m_Com == null)
                 {
                     Log("[SIM] 통신 미연결 — 토크 {0} 은 실물 연결(open) 후에 의미가 있습니다\r\n", bOn ? "ON" : "OFF");
                     return;
                 }
-                if (bOn) syncread();   // 켜기 전에 실물 자세로 3D 를 먼저 정렬 — 토크 ON 순간의 점프 방지
+                if (bOn)
+                {
+                    // 켜기 전에 실물 자세로 3D 를 먼저 정렬 — 토크 ON 순간의 점프 방지 (읽기에 실패해도 토크는 켠다 — 예전 그대로)
+                    m_afHoldSim = null; m_afGoalSim = null;          // 정렬에 성공해야 다시 생긴다 (모르면 null)
+                    afAligned = SyncFromReal();
+                    if (afAligned != null && !bUnheld) { m_afHoldSim = afAligned; m_afGoalSim = (float[])afAligned.Clone(); }
+                }
                 if (bOn) m_C3d.SagComp_JointReset();   // 처짐 보상의 관절 이동 방향 추적을 실물 자세에서 새로 시작
                 if (bOn) ProfileAccel_Apply(); else ProfileAccel_Restore();
                 foreach (int id in m_anIDs)
@@ -2352,24 +2404,40 @@ namespace OpenJigWare
                     Log("[COMM] 전 모터 토크 {0} 확인\r\n", bOn ? "ON" : "OFF");
             }
 
-            public void syncread()
+            public void syncread() { SyncFromReal(); }
+
+            /// <summary>syncread 본체 — 실물 자세로 3D 를 맞추고 그 자세(IDs 순 3D 각, 3D 리밋으로 자르기 전)를 돌려준다.
+            /// 미연결·읽기 실패면 null (3D 는 그대로). 모터 세팅이 붙어 있으면 틱을 세팅으로 해석한다</summary>
+            private float[] SyncFromReal()
             {
                 if (m_Com == null)
                 {
                     Log("[SIM] SyncRead(시뮬) — 현재 관절각:\r\n");
                     foreach (int id in m_anIDs) Log("   ID {0}: {1:F1}도\r\n", id, m_C3d.GetData(id));
-                    return;
+                    return null;
                 }
                 string strWhy;
-                var dicDeg = CSim2Real.ReadAll(m_Com, m_anIDs, out strWhy);   // 정착 재시도 포함 일괄 읽기
-                if (dicDeg == null) { Log("[COMM] SyncRead 실패: {0}\r\n", strWhy); return; }
+                float[] afDeg = new float[m_anIDs.Length];
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot == null)
+                {
+                    var dicDeg = CSim2Real.ReadAll(m_Com, m_anIDs, out strWhy);   // 정착 재시도 포함 일괄 읽기
+                    if (dicDeg == null) { Log("[COMM] SyncRead 실패: {0}\r\n", strWhy); return null; }
+                    for (int i = 0; i < m_anIDs.Length; i++) afDeg[i] = dicDeg[m_anIDs[i]] * m_anSign[i];
+                }
+                else
+                {
+                    int[] anTick = ReadTicks(out strWhy);                           // 모터 세팅 경로 — 틱을 세팅으로 해석
+                    if (anTick == null) { Log("[COMM] SyncRead 실패: {0}\r\n", strWhy); return null; }
+                    for (int i = 0; i < m_anIDs.Length; i++) afDeg[i] = aMot[i].TickToSim(anTick[i]);
+                }
                 Log("[COMM] SyncRead — 실물 관절각:\r\n");
                 for (int i = 0; i < m_anIDs.Length; i++)
                 {
-                    float fDeg = dicDeg[m_anIDs[i]] * m_anSign[i];
-                    Log("   ID {0}: {1:F1}도\r\n", m_anIDs[i], fDeg);
-                    m_C3d.SetData(m_anIDs[i], fDeg);   // 3D 를 실물 자세로 동기화
+                    Log("   ID {0}: {1:F1}도\r\n", m_anIDs[i], afDeg[i]);
+                    m_C3d.SetData(m_anIDs[i], afDeg[i]);   // 3D 를 실물 자세로 동기화
                 }
+                return afDeg;
             }
 
             /// <summary>실물 관절각 일괄 읽기 (부호 적용, 정착 재시도 포함) — 3D 는 건드리지 않는다.
@@ -2378,6 +2446,16 @@ namespace OpenJigWare
             {
                 strWhy = "";
                 if (m_Com == null) { strWhy = "통신 미연결"; return null; }
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot != null)
+                {
+                    // 모터 세팅 경로 — 정착 읽은 틱을 세팅으로 해석
+                    int[] anTick = ReadTicks(out strWhy);
+                    if (anTick == null) return null;
+                    var dicSim = new Dictionary<int, float>();
+                    for (int i = 0; i < m_anIDs.Length; i++) dicSim[m_anIDs[i]] = aMot[i].TickToSim(anTick[i]);
+                    return dicSim;
+                }
                 var dicDeg = CSim2Real.ReadAll(m_Com, m_anIDs, out strWhy);
                 if (dicDeg == null) return null;
                 var dicOut = new Dictionary<int, float>();
@@ -2391,6 +2469,21 @@ namespace OpenJigWare
             {
                 strWhy = "";
                 if (m_Com == null) { strWhy = "통신 미연결"; return null; }
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot != null)
+                {
+                    // 모터 세팅 경로 — 응답 없는 ID 의 지난 값을 쓰지 않도록 수신 맵을 -1 로 채우고 읽는다
+                    MarkPosition();
+                    m_Com.SyncRead_With_Address(132, 4, m_anIDs); System.Threading.Thread.Sleep(12);
+                    var dicSim = new Dictionary<int, float>();
+                    for (int i = 0; i < m_anIDs.Length; i++)
+                    {
+                        int t = m_Com.GetMap_Int(m_anIDs[i], 132);
+                        if (t == 0 || t == -1 || t < -8192 || t > 12288) { strWhy = "ID " + m_anIDs[i] + " 이상값"; return null; }
+                        dicSim[m_anIDs[i]] = aMot[i].TickToSim(t);
+                    }
+                    return dicSim;
+                }
                 m_Com.SyncRead_With_Address(132, 4, m_anIDs); System.Threading.Thread.Sleep(12);
                 var dicOut = new Dictionary<int, float>();
                 for (int i = 0; i < m_anIDs.Length; i++)
@@ -2452,7 +2545,7 @@ namespace OpenJigWare
             private float[] m_afLastSent = null;
             /// <summary>모터 ID 목록 (생성 때 준 순서)</summary>
             public int[] IDs { get { return (int[])m_anIDs.Clone(); } }
-            /// <summary>직전 SendPose 가 실제로 보낸 각도 (IDs 순, 처짐 보정 포함, 부호 적용 전). 아직 없으면 null</summary>
+            /// <summary>직전 SendPose 가 실제로 보낸 각도 (IDs 순, 처짐 보정 포함, 부호 적용 전 — 모터 세팅 경로는 리밋까지 반영한 3D 각). 아직 없으면 null</summary>
             public float[] LastSentDeg { get { return m_afLastSent == null ? null : (float[])m_afLastSent.Clone(); } }
             /// <summary>직전 스트리밍 틱의 horizon(ms) — CProtocol.Move_Stream 이 정한 "다음 틱 도착" 시간</summary>
             public float StreamHorizonMs { get { return m_Com == null ? 0f : m_Com.Stream_LastHorizon_ms; } }
@@ -2480,8 +2573,14 @@ namespace OpenJigWare
                 }
                 return res;
             }
-            /// <summary>ReadServoBlock 원시값의 부호(sim→실물) — 위치·속도·목표 변환에 쓴다</summary>
-            public int SignOf(int nIndex) { return (nIndex >= 0 && nIndex < m_anSign.Length) ? m_anSign[nIndex] : 1; }
+            /// <summary>ReadServoBlock 원시값의 부호(sim→실물) — 위치·속도·목표 변환에 쓴다.
+            /// 모터 세팅이 붙어 있으면 그 축의 방향 (부호 배열은 무시) — 틱을 각으로 바꿀 때는 영점까지 보는 RawToSim 을 쓸 것</summary>
+            public int SignOf(int nIndex)
+            {
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot != null) return (nIndex >= 0 && nIndex < aMot.Length) ? aMot[nIndex].DirSign : 1;
+                return (nIndex >= 0 && nIndex < m_anSign.Length) ? m_anSign[nIndex] : 1;
+            }
 
             /// <summary>실물 상태 진단 — 토크·에러·목표틱·현재틱을 버스에서 직접 읽는다</summary>
             public void diag()
@@ -2508,14 +2607,524 @@ namespace OpenJigWare
             public void SendPose(int nTimeMs)
             {
                 if (m_Com == null || !m_bTorque) return;
+                CArmMotor_t[] aMot = m_aMot;                   // 한 번만 읽는다 (세팅 교체와 경합 방지)
+                if (aMot != null)
+                {
+                    // 모터 세팅 경로 — 붙잡은 자세를 모르면(토크 켤 때 자세·토크 상태를 읽지 못함, 처짐 보정 중 꺼진 축만 다시 켬) 보내지 않는다.
+                    // 3D 가 실물과 맞는지 모르는 채 보내면 그 차이만큼 한 틱에 튄다. 움직이기 전 확인(CArmConn_t.EnsureSynced)이 서보 목표로 맞추면 다시 보낸다
+                    if (m_afHoldSim == null)
+                    {
+                        if (!m_bWarnUnaligned) { m_bWarnUnaligned = true; Log("[COMM] 실물이 붙잡은 자세를 몰라 보내지 않음 (토크 켤 때 읽기 실패·토크 상태 모름·처짐 보정 중 꺼진 축만 다시 켬) — 움직이기 전 확인이 서보 목표로 맞추면 보냄\r\n"); }
+                        return;
+                    }
+                    m_bWarnUnaligned = false;
+                }
                 float[] afDeg = new float[m_anIDs.Length];
                 for (int i = 0; i < m_anIDs.Length; i++) afDeg[i] = m_C3d.GetData(m_anIDs[i]);
+                float[] afHold = (float[])afDeg.Clone();       // 보정 얹기 전 = 실물이 붙잡을 3D 자세
+                // 모터 세팅 경로 — 붙잡은 자세도 리밋으로 자른 값 — 3D 가 리밋 밖으로 나가 있어도(3D 리밋이 장면 리밋보다 넓었던 경우) 실물은 리밋에 서 있으니
+                // 그 자세를 기억한다 (움직이기 전 확인이 3D 를 그리로 되돌려 어긋남이 풀린다 — 리밋 밖 자세를 기억하면 영영 거부된다)
+                if (aMot != null) for (int i = 0; i < afHold.Length && i < aMot.Length; i++) afHold[i] = aMot[i].Clamp(afHold[i]);
+                // 한 틱 관절 변화 막이 (작업 중에만) — 3D 자세가 한 틱에 건너뛰었으면 보정을 얹기 전에 멈춘다 (방향 추적·보정 전환을 건드리지 않게)
+                if (m_bStepGuard)
+                {
+                    string strTrip = StepGuard_Over(m_afHoldSim, afHold, "3D 자세");
+                    if (strTrip != null) { StepGuard_Trip(strTrip); return; }
+                }
                 m_C3d.SagComp_JointOut(m_anIDs, afDeg);   // 처짐 보상(관절 모델) — 실물 명령에만 얹는다, 모델 없으면 방향 추적만
-                m_afLastSent = afDeg;                      // 진단용 — 보정까지 얹어 실제로 보낸 각도(부호 적용 전)
+                if (aMot == null)
+                {
+                    if (m_bStepGuard)
+                    {
+                        string strTrip = StepGuard_Over(m_afGoalSim, afDeg, "명령");
+                        if (strTrip != null) { StepGuard_Trip(strTrip); return; }
+                    }
+                    m_afLastSent = afDeg;                      // 진단용 — 보정까지 얹어 실제로 보낸 각도(부호 적용 전)
+                    m_afHoldSim = afHold; m_afGoalSim = afDeg;
+                    m_Com.Command_Clear();
+                    for (int i = 0; i < m_anIDs.Length; i++)
+                        m_Com.Command_Set(m_anIDs[i], afDeg[i] * m_anSign[i]);
+                    m_Com.Move_Stream(nTimeMs);
+                    m_lStepGuardLastTs = System.Diagnostics.Stopwatch.GetTimestamp();
+                    return;
+                }
+                // 모터 세팅 경로 — 보정까지 얹은 최종 명령을 리밋으로 자르고(보정이 리밋 밖으로 밀어내지 못하게) 세팅으로 틱을 만든다.
+                // CProtocol 은 기본 파라미터(전송층)라 CalcEvd2Angle(틱) 을 넘기면 안에서 CalcAngle2Evd 로 같은 틱이 나간다.
+                int[] anTick = ComputeOutTicks(aMot, afDeg);
+                if (m_bStepGuard)
+                {
+                    string strTrip = StepGuard_Over(m_afGoalSim, afDeg, "명령");   // 보정·리밋까지 얹은 최종 명령도 (보정 전환 이상 등)
+                    if (strTrip != null) { StepGuard_Trip(strTrip); return; }
+                }
+                m_afLastSent = afDeg;                          // 보정·리밋까지 반영한 값
+                m_afHoldSim = afHold; m_afGoalSim = afDeg;
                 m_Com.Command_Clear();
                 for (int i = 0; i < m_anIDs.Length; i++)
-                    m_Com.Command_Set(m_anIDs[i], afDeg[i] * m_anSign[i]);
+                    m_Com.Command_Set(m_anIDs[i], m_Com.CalcEvd2Angle(m_anIDs[i], anTick[i]));
                 m_Com.Move_Stream(nTimeMs);
+                m_lStepGuardLastTs = System.Diagnostics.Stopwatch.GetTimestamp();
+            }
+
+            // ── 한 틱 관절 변화 막이 (로봇팔 세팅 작업 동안만, 10-03) ──
+            //   작업(C3d.SagArm_Open … SagArm_Close)이 켜고 끈다. 켜져 있으면 SendPose 가 보내기 전에 이번 틱 3D 자세(보정 전)와 최종 명령(보정·리밋 뒤)을
+            //   직전 전송과 비교해, 어느 축이든 한도 = max(최소 한도, 각속도 한도 × 직전 전송 뒤 시간(최대 0.1초)) 를 넘으면 보내지 않는다:
+            //   모션을 멈추고(MoveJoints_Stop) 3D 를 실물이 붙잡은 자세로 되돌린다 — 3D 와 실물이 어긋난 채 남지 않게 (다음 동작이 거기서 이어진다).
+            //   까닭은 StepGuardTrip 에 남는다 — 작업이 다리·누름마다 보고 멈춘다. 경로 IK 가 리치 경계에서 다른 해로 건너뛰는 것
+            //   (10-03 검토: 버스 흉내에서 한 틱 14~46°) 같은 불연속이 실물로 나가지 않게 하는 마지막 울타리다.
+            //   꺼져 있으면 예전과 같다 (조그·재생·⑨ 등 작업 밖 기능은 이 막이를 쓰지 않는다)
+            private volatile bool m_bStepGuard = false;
+            private float m_fStepGuardMinDeg = 3f, m_fStepGuardDegPerSec = 60f;
+            private long m_lStepGuardLastTs = 0;                 // 직전 전송 시각 (Stopwatch 눈금) — 0 = 모름
+            private volatile string m_strStepGuardTrip = null;
+            /// <summary>한 틱 관절 변화 막이가 걸렸으면 그 까닭 (아니면 null) — 막이를 켤 때·StepGuard_ClearTrip 이 지운다</summary>
+            public string StepGuardTrip { get { return m_strStepGuardTrip; } }
+            /// <summary>한 틱 관절 변화 막이가 켜져 있나 (로봇팔 세팅 작업 중)</summary>
+            public bool StepGuardOn { get { return m_bStepGuard; } }
+            /// <summary>한 틱 관절 변화 막이 켜기 (작업 시작) — fMinDeg = 틱 하나의 최소 한도(°), fDegPerSec = 직전 전송 뒤 시간에 비례하는 한도(°/s, 시간은 0.1초까지)</summary>
+            internal void StepGuard_Begin(float fMinDeg, float fDegPerSec)
+            {
+                m_fStepGuardMinDeg = (fMinDeg > 0) ? fMinDeg : 3f;
+                m_fStepGuardDegPerSec = (fDegPerSec > 0) ? fDegPerSec : 60f;
+                m_strStepGuardTrip = null;
+                m_bStepGuard = true;
+            }
+            /// <summary>한 틱 관절 변화 막이 끄기 (작업 끝)</summary>
+            internal void StepGuard_End() { m_bStepGuard = false; }
+            /// <summary>걸린 까닭 지우기 — 다음 동작(원위치 등)을 그 동작의 결과로 보려고</summary>
+            internal void StepGuard_ClearTrip() { m_strStepGuardTrip = null; }
+            // 직전 값과 이번 값의 축마다 차 — 한도를 넘는 가장 큰 축의 까닭 (넘지 않으면 null). 직전 값을 모르면 보지 않는다
+            private string StepGuard_Over(float[] afPrev, float[] afNow, string strWhat)
+            {
+                if (afPrev == null || afNow == null || afPrev.Length != afNow.Length) return null;
+                double dt = 0.1;
+                long t0 = m_lStepGuardLastTs;
+                if (t0 != 0)
+                {
+                    dt = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) / (double)System.Diagnostics.Stopwatch.Frequency;
+                    if (dt > 0.1) dt = 0.1;
+                    if (dt < 0) dt = 0;
+                }
+                float fLim = Math.Max(m_fStepGuardMinDeg, (float)(m_fStepGuardDegPerSec * dt));
+                int iw = -1; float dw = 0f;
+                for (int i = 0; i < afNow.Length; i++)
+                {
+                    float d = Math.Abs(afNow[i] - afPrev[i]);
+                    if (d > fLim && d > dw) { dw = d; iw = i; }
+                }
+                if (iw < 0) return null;
+                return string.Format(CultureInfo.InvariantCulture, "한 틱 관절 변화 막이: ID {0} {1} {2:F1}° (한도 {3:F1}°)", m_anIDs[iw], strWhat, dw, fLim);
+            }
+            // 걸림 — 보내지 않고 모션을 멈춘 뒤 3D 를 붙잡은 자세로 되돌린다 (모션 스레드에서 — 싱크 안)
+            private void StepGuard_Trip(string strWhy)
+            {
+                m_strStepGuardTrip = strWhy;
+                m_C3d.MoveJoints_Stop();
+                float[] h = m_afHoldSim;
+                if (h != null && h.Length == m_anIDs.Length)
+                    for (int i = 0; i < m_anIDs.Length; i++) m_C3d.SetData(m_anIDs[i], h[i]);
+                Log("[COMM] ★{0} — 보내지 않고 모션을 멈춤, 3D 를 붙잡은 자세로 되돌림\r\n", strWhy);
+            }
+
+            // ── 모터 세팅 경로 (2026-10-02, COjw_44_ArmMotor.cs) ──
+            // 3D 각 ↔ 틱 변환을 세팅(방향·영점·틱/회전·각/회전·리밋)으로 한다. CProtocol 은 전송층(기본 파라미터)으로만 쓴다.
+            // 실물 ID 는 축 번호와 같아야 한다 (SetMotors 가 확인 — 버스 동작은 IDs 를 그대로 쓴다).
+            // 세팅을 붙이지 않은 장면에서는 아래 계산 함수도 예전 식(부호 배열 + 2048 기준, 리밋 없음)을 따른다
+            private const float OUTSIDE_TOL_DEG = 1f;      // 실물 값이 리밋 밖인지 볼 때의 여유 (CArmConn_t.OutsideTolDeg 기본값과 같다) — 이보다 밖이면 늘 거부
+            /// <summary>틱 하나의 각 (각/회전 ÷ 틱/회전) — 세팅이 이상하면 0</summary>
+            private static float TickTolDeg(CArmMotor_t m)
+            {
+                return (m != null && m.nMechMove > 0 && m.fMechAngle > 0f) ? m.fMechAngle / m.nMechMove : 0f;
+            }
+            /// <summary>쓰이는 리밋 밖으로 나간 거리 (도) — 안이면 0</summary>
+            private static float OutsideDeg(CArmMotor_t m, float f)
+            {
+                float fLo = m.LimitLo, fHi = m.LimitHi;
+                if (!float.IsNaN(fLo) && f < fLo) return fLo - f;
+                if (!float.IsNaN(fHi) && f > fHi) return f - fHi;
+                return 0f;
+            }
+            /// <summary>토크 ON 에서 세팅을 바꿀 때 — 실물에 걸린 값(붙잡은 자세·걸린 목표. fOld 는 지금 세팅의 해석, fNew 는 새 세팅의 해석)을
+            /// 새 리밋이 지금 리밋보다 틱 하나 넘게 더 자르거나, 새 리밋 밖으로 OUTSIDE_TOL_DEG 넘게 나가 있으면 true. 그러면 다음 전송(또는 3D 리밋으로
+            /// 잘린 다음 모션의 첫 틱)이 그만큼 한 번에 튄다 — 1° 안쪽이라도 받지 않는다 (DH 를 다시 해석해 리밋을 붙잡은 자세 바로 안쪽으로 좁힌 경우 등).
+            /// 지금 리밋으로도 똑같이 잘리는 값(손으로 리밋 바로 밖에 둔 채 토크를 켠 경우 등)은 이 변경 때문에 튀는 것이 아니라 막지 않는다</summary>
+            private static bool ClampGrows(CArmMotor_t mOld, float fOld, CArmMotor_t mNew, float fNew)
+            {
+                float dNew = OutsideDeg(mNew, fNew);
+                if (dNew > OUTSIDE_TOL_DEG) return true;
+                float dOld = (mOld == null) ? 0f : OutsideDeg(mOld, fOld);
+                return dNew > Math.Max(TickTolDeg(mNew), dOld);
+            }
+
+            /// <summary>모터 세팅이 붙어 있나</summary>
+            public bool HasMotors { get { return m_aMot != null; } }
+
+            /// <summary>모터 세팅 붙이기·바꾸기. IDs 의 축이 모두 세트에 있어야 하고, 프로토콜 2·위치 제어·틱/회전·각/회전 &gt; 0·실물 ID = 축이어야 하며,
+            /// 쓰이는 리밋이 비어 있으면(하한 &gt; 상한 — 수동 리밋과 EDH $jointrange 가 겹치지 않음) 거부한다. 3D 모션 중이면 거부한다. 매핑(방향·영점·틱/회전·각/회전·실물 ID)이 같으면 리밋만 바뀐 것 — 바꿔 끼우고 끝 (버스를 쓰지 않는다).
+            /// 단 토크 ON 이면 새 리밋이 실물이 붙잡은 자세나 걸린 목표(보정 포함)를 지금보다 틱 하나 넘게 더 자르거나 1° 넘게 밖에 두면 거부한다
+            /// (ClampGrows) — 다음 전송이 리밋으로 잘리면서 움직이지 않던 축이 한 틱에 튄다.
+            /// 매핑이 바뀌었고 연결 중이면 실물은 움직이지 않고 3D 를 새 해석으로 옮긴다:
+            ///   토크 OFF — 틱을 읽어 새 해석으로 SetData (읽기 실패면 거부)
+            ///   토크 ON  — 처짐 보정이 켜져 있으면 거부 (보정량만큼 움찔). 아니면 실물에 걸린 목표(마지막으로 보낸 틱 — 보정을 끈 직후라 1초 페이드가
+            ///              아직 안 돌았으면 보정이 남아 있다)를 새 해석으로 다시 써서 3D·붙잡은 자세로 삼는다 → 다음 전송 틱이 지금 목표와 같다.
+            ///              새 각이 리밋 밖이면 거부. 걸린 목표를 모르면(토크 켤 때 정렬 실패 — 그 뒤 보낸 명령 없음) 틱을 읽어 옮긴다
+            ///   끝으로 처짐 보정 방향 추적·페이드와 스트리밍 추정을 리셋한다 (남아 있던 보정은 3D 로 들어갔으니 걸린 보정 없음에서 시작).
+            ///   미연결이면 3D 는 그대로 둔다 (해석할 실물이 없다).
+            /// 받아들였는데 알릴 것이 있으면 true 와 strWhy (남아 있던 보정만큼 3D 가 옮겨짐 등)</summary>
+            public bool SetMotors(CArmMotorSet_t set, out string strWhy)
+            {
+                strWhy = "";
+                if (set == null) { strWhy = "모터 세팅 없음"; return false; }
+                CArmMotor_t[] aNew = new CArmMotor_t[m_anIDs.Length];
+                for (int i = 0; i < m_anIDs.Length; i++)
+                {
+                    CArmMotor_t m = set.Get(m_anIDs[i]);
+                    string strP = "ID " + m_anIDs[i] + ": ";
+                    if (m == null) { strWhy = strP + "모터 세팅이 없음"; return false; }
+                    if (m.nProtocolVersion != 2) { strWhy = strP + "프로토콜 2 만"; return false; }
+                    if (m.nMotorControlType != 0) { strWhy = strP + "위치 제어(0)만"; return false; }
+                    if (m.nMechMove <= 0 || !(m.fMechAngle > 0f)) { strWhy = strP + "틱/회전·각/회전은 0 보다 커야 함"; return false; }
+                    if (m.nMotorDir != 0 && m.nMotorDir != 1) { strWhy = strP + "방향은 0·1 만"; return false; }
+                    if (m.nMotorID != m_anIDs[i]) { strWhy = strP + "실물 ID 가 축 번호와 다름 — 다음 단계 기능"; return false; }
+                    float fLoEff = m.LimitLo, fHiEff = m.LimitHi;   // 수동 ∩ EDH 가 비면 하한 > 상한 — 그대로 쓰면 모든 명령이 상한으로 잘린다
+                    if (!float.IsNaN(fLoEff) && !float.IsNaN(fHiEff) && fLoEff > fHiEff)
+                    { strWhy = strP + "리밋이 비어 있음 (하한 " + CArmMotorSet_t.Fmt(fLoEff) + "° > 상한 " + CArmMotorSet_t.Fmt(fHiEff) + "° — 수동 리밋과 EDH $jointrange 가 겹치지 않음)"; return false; }
+                    aNew[i] = m.Clone();
+                }
+                if (m_C3d.MoveJoints_IsMoving()) { strWhy = "3D 모션 중 — 끝난 뒤 다시"; return false; }
+                CArmMotor_t[] aOld = m_aMot;
+                if (aOld == null) aOld = LegacyMotors();
+                bool bSame = true;
+                for (int i = 0; i < aNew.Length; i++) if (!aNew[i].SameMapping(aOld[i])) { bSame = false; break; }
+                // 실물이 붙잡은 자세(보정 얹기 전)와 걸린 목표(마지막으로 보낸 값 — 보정·리밋 자르기 포함) — 토크 ON 이고 알 때만
+                float[] afHold = m_afHoldSim, afGoal = m_afGoalSim;
+                bool bHeld = m_Com != null && m_bTorque && afHold != null && afHold.Length == m_anIDs.Length;
+                if (bHeld && (afGoal == null || afGoal.Length != m_anIDs.Length)) afGoal = afHold;
+                if (bSame)
+                {
+                    // 리밋·이름 등만 바뀜 — 버스를 쓰지 않는다. 토크 ON 이면 붙잡은 자세·걸린 목표가 새 리밋 안에 있어야 한다
+                    if (bHeld)
+                        for (int i = 0; i < aNew.Length; i++)
+                        {
+                            if (ClampGrows(aOld[i], afHold[i], aNew[i], afHold[i]))
+                            { strWhy = aNew[i].OutsideText(afHold[i]) + " — 실물이 붙잡은 자세가 새 리밋 밖이라 바꾸지 않음 (토크를 끄고 바꾸거나 범위를 넓히십시오)"; return false; }
+                            if (ClampGrows(aOld[i], afGoal[i], aNew[i], afGoal[i]))
+                            { strWhy = aNew[i].OutsideText(afGoal[i]) + " — 실물에 걸린 목표(처짐 보정 포함)가 새 리밋 밖이라 바꾸지 않음 (보정을 끄거나 범위를 넓히십시오)"; return false; }
+                        }
+                    m_aMot = aNew;
+                    return true;
+                }
+                string strNote = "";
+                if (m_Com != null)
+                {
+                    float[] afNew = new float[m_anIDs.Length];
+                    if (!bHeld)
+                    {
+                        int[] anTick = ReadTicks(out strWhy);
+                        if (anTick == null) { strWhy = "읽기 실패 — 세팅을 바꾸지 않음: " + strWhy; return false; }
+                        for (int i = 0; i < afNew.Length; i++) afNew[i] = aNew[i].TickToSim(anTick[i]);
+                    }
+                    else
+                    {
+                        C3d.CSagComp sag = m_C3d.SagComp_Get();
+                        if (sag != null && sag.Enabled)
+                        { strWhy = "처짐 보정이 켜져 있음 — 보정을 끈 뒤 바꾸십시오 (토크 ON 에서 해석이 바뀌면 보정량만큼 움찔한다. 끈 뒤에는 실물을 그대로 두고 3D 만 옮긴다)"; return false; }
+                        var lstLeft = new List<string>();
+                        for (int i = 0; i < afNew.Length; i++)
+                        {
+                            int nGoalTick = aOld[i].SimToTick(afGoal[i]);          // 실물에 걸린 목표 틱 — 다음 전송 틱이 이것과 같게
+                            afNew[i] = aNew[i].TickToSim(nGoalTick);
+                            if (ClampGrows(aOld[i], aOld[i].TickToSim(nGoalTick), aNew[i], afNew[i])) { strWhy = aNew[i].OutsideText(afNew[i]) + " — 새 해석이면 리밋 밖이라 바꾸지 않음"; return false; }
+                            int nHoldTick = aOld[i].SimToTick(afHold[i]);
+                            if (Math.Abs(nGoalTick - nHoldTick) > 1)
+                                lstLeft.Add(string.Format(CultureInfo.InvariantCulture, "ID {0} {1:+0.0;-0.0}°", m_anIDs[i], aOld[i].TickToSim(nGoalTick) - aOld[i].TickToSim(nHoldTick)));
+                        }
+                        if (lstLeft.Count > 0)
+                            strNote = "실물에 아직 걸려 있던 보정(또는 리밋 자르기)만큼 3D 를 옮김 (" + string.Join(", ", lstLeft.ToArray()) + ") — 실물은 그대로";
+                        m_afGoalSim = (float[])afNew.Clone();
+                        m_afLastSent = Remap(aOld, aNew, m_afLastSent);
+                        m_afHoldSim = (float[])afNew.Clone();
+                    }
+                    for (int i = 0; i < afNew.Length; i++) m_C3d.SetData(m_anIDs[i], afNew[i]);
+                    m_C3d.SagComp_JointReset();
+                    m_Com.Stream_Reset();
+                }
+                if (Array.IndexOf(m_anSign, -1) >= 0) Log("[COMM] 부호 배열은 무시 — 방향은 모터 세팅이 정본\r\n");
+                m_aMot = aNew;
+                strWhy = strNote;
+                if (strNote.Length > 0) Log("[COMM] " + strNote + "\r\n");
+                return true;
+            }
+            /// <summary>세트의 매핑(방향·영점·틱/회전·각/회전·실물 ID)이 지금 붙은 세팅과 축마다 같은가 — 같으면 SetMotors 는 리밋만 바꿔 끼우고
+            /// 버스·로그를 쓰지 않는다 (CArmConn_t 가 헤더 잠금 안에서 리밋만 바꿀 때 먼저 본다). 세팅이 없거나 축이 빠졌으면 false</summary>
+            internal bool SameMappingAs(CArmMotorSet_t set)
+            {
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot == null || set == null) return false;
+                for (int i = 0; i < m_anIDs.Length && i < aMot.Length; i++)
+                {
+                    CArmMotor_t m = set.Get(m_anIDs[i]);
+                    if (m == null || !m.SameMapping(aMot[i])) return false;
+                }
+                return true;
+            }
+            /// <summary>예전 경로(부호 배열 + 2048 기준)를 세팅으로 쓴 것 — 세팅을 처음 붙일 때 3D 를 옮기는 비교 기준</summary>
+            private CArmMotor_t[] LegacyMotors()
+            {
+                CArmMotor_t[] a = new CArmMotor_t[m_anIDs.Length];
+                for (int i = 0; i < a.Length; i++)
+                {
+                    a[i] = CArmMotor_t.CreateDefault(m_anIDs[i]);
+                    a[i].nMotorDir = (m_anSign[i] < 0) ? 1 : 0;
+                }
+                return a;
+            }
+            private static float[] Remap(CArmMotor_t[] aOld, CArmMotor_t[] aNew, float[] af)
+            {
+                if (af == null || af.Length != aNew.Length) return null;
+                float[] r = new float[af.Length];
+                for (int i = 0; i < af.Length; i++) r[i] = aNew[i].TickToSim(aOld[i].SimToTick(af[i]));
+                return r;
+            }
+
+            /// <summary>서보 틱 → 3D 각 (IDs 순 색인). 세팅이 있으면 TickToSim, 없으면 예전 식 CSim2Real.Deg(틱) × 부호</summary>
+            public float RawToSim(int nIndex, int nTick)
+            {
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot != null && nIndex >= 0 && nIndex < aMot.Length) return aMot[nIndex].TickToSim(nTick);
+                return CSim2Real.Deg(nTick) * SignOf(nIndex);
+            }
+            /// <summary>서보 속도 raw(Present Velocity, 0.229 rpm 단위) → 3D 각속도(도/s). 예전 식 raw × 0.229 × 6 × 부호 에
+            /// 세팅의 비율 (각/회전 ÷ 틱/회전) ÷ (360 ÷ 4096) 을 곱한다 — 기본값이면 예전 식과 같다</summary>
+            public float RawVelToSim(int nIndex, int nRaw)
+            {
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot == null || nIndex < 0 || nIndex >= aMot.Length) return nRaw * 0.229f * 6f * SignOf(nIndex);
+                CArmMotor_t m = aMot[nIndex];
+                float v = nRaw * 0.229f * 6f * m.DirSign;
+                if (m.nMechMove != 4096 || m.fMechAngle != 360f) v *= (m.fMechAngle / m.nMechMove) / (360f / 4096f);
+                return v;
+            }
+            /// <summary>보낼 틱 (IDs 순) — SendPose 와 같은 본체. 세팅이 있으면 afSimDeg 를 쓰이는 리밋으로 자른 값으로 바꾸고 SimToTick 틱을 돌려준다.
+            /// 세팅이 없으면(예전 경로) 리밋 없이 CProtocol 기본 변환과 같은 틱을 계산만 한다 (afSimDeg 는 그대로). 길이가 다르면 null</summary>
+            public int[] ComputeOutTicks(float[] afSimDeg)
+            {
+                if (afSimDeg == null || afSimDeg.Length != m_anIDs.Length) return null;
+                CArmMotor_t[] aMot = m_aMot;
+                if (aMot != null) return ComputeOutTicks(aMot, afSimDeg);
+                int[] an = new int[afSimDeg.Length];
+                for (int i = 0; i < an.Length; i++) an[i] = (int)Math.Round(((4096f * (afSimDeg[i] * m_anSign[i])) / 360f) * 1f + 2048f);
+                return an;
+            }
+            private static int[] ComputeOutTicks(CArmMotor_t[] aMot, float[] afDeg)
+            {
+                int[] an = new int[aMot.Length];
+                for (int i = 0; i < aMot.Length; i++)
+                {
+                    afDeg[i] = aMot[i].Clamp(afDeg[i]);           // 보정 뒤 최종 리밋
+                    an[i] = aMot[i].SimToTick(afDeg[i]);
+                }
+                return an;
+            }
+            /// <summary>쓰이는 리밋으로 자른 3D 각 — 세팅이 없으면 그대로</summary>
+            public float ClampSim(int nIndex, float fSim)
+            {
+                CArmMotor_t[] aMot = m_aMot;
+                return (aMot != null && nIndex >= 0 && nIndex < aMot.Length) ? aMot[nIndex].Clamp(fSim) : fSim;
+            }
+
+            /// <summary>전 축 틱 정착 읽기 (IDs 순, CSim2Real.ReadAllTicks) — 응답 없는 ID 의 지난 값을 쓰지 않도록 수신 맵을 -1 로 채우고 읽는다.
+            /// 실패하면 null 과 사유</summary>
+            public int[] ReadTicks(out string strWhy)
+            {
+                strWhy = "";
+                if (m_Com == null) { strWhy = "통신 미연결"; return null; }
+                MarkPosition();
+                return CSim2Real.ReadAllTicks(m_Com, m_anIDs, out strWhy);
+            }
+            private void MarkPosition() { foreach (int id in m_anIDs) RegMark(id, 132, 4, -1L); }   // -1 = ReadAll 이 무응답으로 보는 값
+
+            /// <summary>레지스터 하나를 전 ID 에서 읽는다 — ID 마다 두 번 연속 같은 값이 나와야 확정 (쓰기 직후 스테일 대비, 최대 4회).
+            /// 응답 없는 ID 를 알아보도록 읽을 때마다 수신 맵을 표지값(1바이트 0xFF, 2바이트 0xFFFF, 4바이트 0x7FFFFFFF)으로 채운다 —
+            /// 그 값 자체는 무응답으로 본다(읽는 레지스터에서 나오지 않는 값). 값: 1·2바이트는 부호 없는 값, 4바이트는 부호 있는 int.
+            /// 확정 못 한 ID 는 빠지고 strWhy 에 적힌다. 미연결·주소 오류면 null</summary>
+            public Dictionary<int, long> ReadReg(int nAddr, int nLen, out string strWhy) { return ReadReg(nAddr, nLen, 0, out strWhy); }
+            /// <summary>ReadReg 와 같고, 연속 두 번의 차가 nTol 안이면 확정한다 (전압·온도처럼 조금씩 흔들리는 값용 — CSim2Real.Read 의 tol 과 같은 뜻).
+            /// 확정값은 뒤에 읽은 값</summary>
+            public Dictionary<int, long> ReadReg(int nAddr, int nLen, int nTol, out string strWhy)
+            {
+                strWhy = "";
+                if (m_Com == null) { strWhy = "통신 미연결"; return null; }
+                if ((nLen != 1 && nLen != 2 && nLen != 4) || nAddr < 0 || nAddr + nLen > CProtocol._SIZE_MAP) { strWhy = "주소·길이 오류"; return null; }
+                if (nTol < 0) nTol = 0;
+                long lMark = RegSentinel(nLen);
+                var dicOut = new Dictionary<int, long>();
+                var dicPrev = new Dictionary<int, long>();
+                for (int t = 0; t < 4 && dicOut.Count < m_anIDs.Length; t++)
+                {
+                    var lst = new List<int>();
+                    foreach (int id in m_anIDs) if (!dicOut.ContainsKey(id)) lst.Add(id);
+                    foreach (int id in lst) RegMark(id, nAddr, nLen, lMark);
+                    m_Com.SyncRead_With_Address(nAddr, nLen, lst.ToArray()); System.Threading.Thread.Sleep(8);
+                    foreach (int id in lst)
+                    {
+                        long v = RegValue(id, nAddr, nLen);
+                        if (v == lMark) { dicPrev.Remove(id); continue; }   // 이번엔 응답 없음
+                        long p;
+                        if (dicPrev.TryGetValue(id, out p) && Math.Abs(p - v) <= nTol) dicOut[id] = v;
+                        else dicPrev[id] = v;
+                    }
+                }
+                if (dicOut.Count < m_anIDs.Length)
+                {
+                    var lstBad = new List<int>();
+                    foreach (int id in m_anIDs) if (!dicOut.ContainsKey(id)) lstBad.Add(id);
+                    strWhy = "무응답/불안정 ID: " + string.Join(",", lstBad.ConvertAll(x => x.ToString()).ToArray());
+                }
+                return dicOut;
+            }
+            private void RegMark(int nId, int nAddr, int nLen, long lValue)
+            {
+                byte[] map = m_Com.m_abyMap;
+                int nBase = nId * CProtocol._SIZE_MAP + nAddr;
+                if (nId < 0 || nBase < 0 || nBase + nLen > map.Length) return;
+                for (int b = 0; b < nLen; b++) map[nBase + b] = (byte)((lValue >> (8 * b)) & 0xFF);
+            }
+            private long RegValue(int nId, int nAddr, int nLen)
+            {
+                if (nLen == 1) return m_Com.GetMap(nId, nAddr);
+                if (nLen == 2) return m_Com.GetMap_Short(nId, nAddr) & 0xFFFF;
+                return m_Com.GetMap_Int(nId, nAddr);
+            }
+            private static long RegSentinel(int nLen) { return (nLen == 1) ? 0xFFL : ((nLen == 2) ? 0xFFFFL : (long)int.MaxValue); }
+
+            /// <summary>실물이 붙잡고 있는 3D 자세 (IDs 순, 처짐 보정 얹기 전) — 토크 ON 정렬과 SendPose 마다 갱신. 모르면 null (복사본)</summary>
+            public float[] HoldSimDeg { get { float[] a = m_afHoldSim; return (a == null) ? null : (float[])a.Clone(); } }
+            /// <summary>실물에 걸린 목표 (IDs 순 3D 각, 보정·리밋 반영) — 정렬 직후는 정렬 자세, 그 뒤는 SendPose 가 보낸 값. 모르면 null</summary>
+            internal float[] GoalSimDeg { get { float[] a = m_afGoalSim; return (a == null) ? null : (float[])a.Clone(); } }
+            /// <summary>붙잡은 자세를 모름으로 — 실물로 보내지 않고(SendPose), 움직이기 전에 CArmConn_t.EnsureSynced 가 서보 목표(못 읽으면 실측)로 맞춘다
+            /// (토크를 켤 때 어떤 축이 이미 켜져 있었는지 확인하지 못한 경우 — 정렬한 지금 위치는 하중만큼 처져 있을 수 있다)</summary>
+            internal void ForgetHold() { m_afHoldSim = null; m_afGoalSim = null; }
+            /// <summary>토크 ON 인데 정렬을 못 했던 경우 — 아직 명령을 보낸 적이 없으니 실측 자세를 붙잡은 자세·목표로 삼는다 (CArmConn_t.EnsureSynced)</summary>
+            internal void HoldFromReal(float[] afSim) { HoldFromRealGoal(afSim, afSim); }
+            /// <summary>HoldFromReal 과 같고 붙잡은 자세(3D, 보정 얹기 전)와 걸린 목표(서보 목표 — 지난 보정이 들어 있을 수 있다)를 따로 준다
+            /// (목표가 null 이면 붙잡은 자세와 같다). CArmConn_t.EnsureSynced 의 서보 목표 이어받기는 둘 다 서보 목표 (10-03 — 되짚지 않는다)</summary>
+            internal void HoldFromRealGoal(float[] afHold, float[] afGoal)
+            {
+                if (afHold == null || afHold.Length != m_anIDs.Length) return;
+                if (afGoal == null || afGoal.Length != m_anIDs.Length) afGoal = afHold;
+                m_afHoldSim = (float[])afHold.Clone();
+                m_afGoalSim = (float[])afGoal.Clone();
+            }
+            /// <summary>서보가 이미 토크 ON 으로 붙잡고 있을 때(연결 해제 때 토크를 유지했던 경우 등) 그 상태를 이어받는다 — 버스에 쓰지 않는다
+            /// (CArmConn_t.Connect). afHeld = 서보가 붙잡은 목표 (IDs 순 3D 각 — Goal Position 을 세팅으로 해석한 값): 3D·붙잡은 자세·걸린 목표를
+            /// 그것으로 맞추고 토크 ON 으로 표시, 처짐 보정 방향 추적과 스트리밍 추정을 리셋한다 → 다음 전송 틱 = 지금 목표 틱.
+            /// afHeld 가 null 이면 붙잡은 자세 모름 — 보내지 않고(SendPose), 움직이기 전에 EnsureSynced 가 실측으로 맞춘다</summary>
+            internal void AdoptTorqueOn(float[] afHeld) { AdoptTorqueOnGoal(afHeld, afHeld); }
+            /// <summary>AdoptTorqueOn 과 같고 3D·붙잡은 자세(afHold — 보정 얹기 전)와 걸린 목표(afGoal — 서보 목표, 지난 보정이 들어 있을 수 있다)를 따로 준다.
+            /// CArmConn_t 는 둘 다 서보 목표로 준다 (10-03 — 되짚지 않는다). 처짐 보정이 걸려 있었으면 그 전에 보정을 페이드 없이 끈다
+            /// (C3d.SagComp_OffForAdopt) → 다음 전송 틱 = 지금 목표 틱, 그 뒤에도 보정이 얹히지 않는다</summary>
+            internal void AdoptTorqueOnGoal(float[] afHold, float[] afGoal)
+            {
+                if (m_Com == null) return;
+                if (afHold != null && afHold.Length == m_anIDs.Length)
+                {
+                    if (afGoal == null || afGoal.Length != m_anIDs.Length) afGoal = afHold;
+                    for (int i = 0; i < m_anIDs.Length; i++) m_C3d.SetData(m_anIDs[i], afHold[i]);
+                    m_afHoldSim = (float[])afHold.Clone();
+                    m_afGoalSim = (float[])afGoal.Clone();
+                }
+                else { m_afHoldSim = null; m_afGoalSim = null; }
+                m_afLastSent = null;
+                m_C3d.SagComp_JointReset();
+                m_bTorque = true;
+                m_Com.Stream_Reset();
+                Log("[COMM] 서보가 붙잡은 목표를 이어받음 — 다음 전송 틱 = 지금 목표 틱\r\n");
+            }
+            /// <summary>처짐 보정이 실물 명령에 걸려 있거나 다음 출력 틱에 걸린다 — 관절 모델이 켜져 있거나, 직전 출력 틱에 얹은 관절 보정·전환 기준
+            /// (C3d.SagComp_HasOffsets — 끈 뒤 페이드, 전환 씨앗으로 심은 보정 포함)·손목 유지가 있거나, 마지막으로 보낸 목표가 붙잡은 자세와
+            /// 다르다 (보정을 끈 뒤 1초 페이드가 남은 경우 등 — 보정이 없으면 둘은 같은 값이다). 버스를 쓰지 않는다</summary>
+            internal bool SagCompInPlay()
+            {
+                C3d.CSagComp m = m_C3d.SagComp_Get();
+                if (m != null && m.Enabled && m.HasJoint) return true;
+                foreach (float f in m_C3d.SagComp_LastJointCorr) if (f != 0f) return true;
+                if (m_C3d.SagComp_WristHoldNow != 0f) return true;
+                if (m_C3d.SagComp_HasOffsets) return true;
+                float[] h = m_afHoldSim, g = m_afGoalSim;
+                if (h != null && g != null && h.Length == g.Length)
+                    for (int i = 0; i < h.Length; i++) if (Math.Abs(g[i] - h[i]) > 1e-3f) return true;
+                return false;
+            }
+            /// <summary>토크가 꺼진 축만 켠다 (CArmConn_t.TorqueOn — 토크 ON 으로 아는데 꺼진 서보가 섞여 있을 때: 연결 때 일부 축만 토크 ON 이던 상태를
+            /// 이어받았거나, 전원이 잠깐 끊기거나 오류로 서보가 스스로 꺼진 경우). 이미 토크 ON 으로 알고 있는 장면에서 부른다.
+            /// afPose = IDs 순 지금 자세 (3D 각, 정착 읽기를 세팅으로 해석) — 켜는 축의 3D 를 그 값으로 맞추고, 붙잡은 자세·걸린 목표도 그 값으로 한다
+            /// (이미 켜진 축은 붙잡은 자세·걸린 목표 그대로 → 다음 전송 틱 = 켜진 축은 지금 목표, 켜는 축은 지금 위치).
+            /// 처짐 보정이 걸려 있거나 막 걸려 있었으면 (SagCompInPlay, 10-03): 보정 전환을 다시 건다 (C3d.SagComp_SeedFrom) — 켜진 축은 실물에 걸린 보정에서
+            /// 그대로 이어 가고(두 번 얹히지 않는다), 켜는 축은 지금(처진) 위치에서 보정 0 으로 시작해 다음 동작의 출력 틱에 걸쳐 1초 동안 들어온다
+            /// → 다음 전송 틱 = 서보 목표 (전환이 끝나 있었어도 켠 축에 보정이 한 번에 얹히지 않는다).
+            /// afPose 가 null 이거나 붙잡은 자세를 원래 몰랐으면 붙잡은 자세를 모름으로 둔다 — 보내지 않고(SendPose), 움직이기 전에
+            /// CArmConn_t.EnsureSynced 가 전 축을 서보 목표로 맞춘다.
+            /// CArmConn_t.TorqueOnRest 는 처짐 보정이 걸려 있고 켜져 있던 축이 있으면 이것을 부르기 전에 보정을 페이드 없이 끄고 켜져 있던 축을 서보 목표로
+            /// 맞춘다 (10-03 — 그때는 위의 전환 씨앗을 쓰지 않는다: 켜져 있던 축의 다음 틱 = 서보 목표, 켜는 축 = 지금 위치, 보정 없음).
+            /// 전 축이 꺼져 있었으면(붙잡고 있던 서보 없음) 보정을 끄지 않고 위의 전환 씨앗으로 켠다 (토크 켜기와 같다 — 보정은 0 부터)</summary>
+            internal void TorqueOnAxes(int[] anIds, float[] afPose)
+            {
+                if (m_Com == null || anIds == null || anIds.Length == 0) return;
+                bool bPose = afPose != null && afPose.Length == m_anIDs.Length;
+                float[] afHold = m_afHoldSim, afGoal = m_afGoalSim;
+                bool bKeep = bPose && afHold != null && afHold.Length == m_anIDs.Length;
+                bool bComp = bKeep && SagCompInPlay();                // 켜기 전에 본다 (전환 기준을 심을지)
+                float[] h = null, g = null;
+                if (bKeep)
+                {
+                    h = (float[])afHold.Clone();
+                    g = (afGoal != null && afGoal.Length == m_anIDs.Length) ? (float[])afGoal.Clone() : (float[])afHold.Clone();
+                }
+                var lstIdx = new List<int>();
+                for (int i = 0; i < m_anIDs.Length && bPose; i++)
+                {
+                    if (Array.IndexOf(anIds, m_anIDs[i]) < 0) continue;
+                    if (bKeep) { h[i] = afPose[i]; g[i] = afPose[i]; }
+                    m_C3d.SetData(m_anIDs[i], afPose[i]);          // 켜는 축의 3D = 지금 자세 (붙잡은 자세를 모름으로 둘 때도 보여 주기는 맞게 — 보내지는 않는다)
+                    lstIdx.Add(i);
+                }
+                m_afHoldSim = h; m_afGoalSim = g;
+                if (bComp && lstIdx.Count > 0)
+                {
+                    // 켜는 축: 지금 위치에서 보정 0 부터 (방향 추적도 그 자세에서 새로), 켜져 있던 축: 걸린 보정에서 이어서 — 다음 틱 = 서보 목표
+                    int[] sid = new int[lstIdx.Count]; float[] sh = new float[lstIdx.Count], sf = new float[lstIdx.Count], ss = new float[lstIdx.Count];
+                    for (int k = 0; k < lstIdx.Count; k++) { sid[k] = m_anIDs[lstIdx[k]]; sh[k] = afPose[lstIdx[k]]; }
+                    m_C3d.SagComp_SeedFrom(sid, sh, sf, ss);
+                }
+                ProfileAccel_Apply();
+                var lstOn = new List<int>();
+                foreach (int id in anIds)
+                {
+                    if (Array.IndexOf(m_anIDs, id) < 0) continue;
+                    m_Com.Send(id, 3, 64, (byte)1); System.Threading.Thread.Sleep(5);   // addr 64 = Torque Enable — 꺼진 축에만
+                    lstOn.Add(id);
+                }
+                m_bTorque = true;
+                m_Com.Stream_Reset();
+                Log("[COMM] 토크 꺼진 축만 켬: ID {0} — 켜진 축은 붙잡은 목표 그대로\r\n", string.Join(",", lstOn.ConvertAll(x => x.ToString()).ToArray()));
+            }
+
+            /// <summary>연결을 닫고(close — 토크는 그대로), 모션 싱크가 아직 이 장면의 것이면 생성 전에 걸려 있던 싱크로 되돌린다
+            /// (다른 것이 바꿔 놓았으면 건드리지 않는다). 되돌릴 싱크가 이미 Release 된 장면의 것이면 그 장면이 기억한 이전 싱크로 거슬러 올라간다</summary>
+            public void Release()
+            {
+                close();
+                m_bReleased = true;
+                Action<int> cur = m_C3d.MoveJoints_GetMotionSink();
+                if (cur == null || cur != m_Sink) return;
+                Action<int> prev = m_PrevSink;
+                for (int n = 0; n < 64 && prev != null; n++)
+                {
+                    CScene_t sc = prev.Target as CScene_t;
+                    if (sc == null || !sc.m_bReleased) break;
+                    prev = sc.m_PrevSink;
+                }
+                m_C3d.MoveJoints_SetMotionSink(prev);
             }
         }
     }
