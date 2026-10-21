@@ -27,6 +27,8 @@
 //   전환·켬끔·쓰고 있는 모델의 다시 학습은 모델·첫닿음 모델·전환 기준·시계를 한 lock 안에서 함께 바꾸고, 출력 틱은 틱 시작 때 한 번에 읽는다
 //   (SagComp_SwitchLocked) — 다른 스레드에서 해도 1초 크로스페이드가 깨지지 않는다 (보정이 한 틱에 0 으로 빠지거나 새 값으로 튀지 않는다).
 // 학습: SagComp_FitFloorFc(데이터셋 CSV, 모델, out 보고) — kind=F·hold=0 행 (kind 열이 없으면 전부), 묶음 = session_group.
+//   10-15: 학습 선택 CSagFcFit — 이번 회차 (CurSession) 를 주면 이번 회차 행만 (또는 회차마다 절편), 회차 추세에서 벗어난 행 빼기, 높이 기준을 이번 회차의
+//   첫닿음 명령 높이에 맞추기 (CmdLevel), 이번 회차 교차검증 (CvCur). 이번 회차가 없으면 예전 학습 그대로 (처짐 보정 실습 [1. 학습] 이 쓴다).
 // 측정: SagComp_FcPlan 이 점마다 하강 시작 = 예측 FC + 20, 한도 = 예측 FC − 12 를 준다 → 기존 꺾임 맞춤(아래 14mm 창)이 곧 첫닿음.
 //       옛 궤적은 SagComp_FloorContactsFromTrace(csv, cfg{ FirstTouch = true }) — F0 = 저장된 꺾임이 첫닿음, F1 = 저장된 꺾임 위를 다시 훑음.
 //       데이터셋 kind: F = F0 (학습은 이것만), H = 단단한 정지 위에서 F1 이 찾음, C = 단단한 정지·첫닿음 없음,
@@ -62,6 +64,8 @@ namespace OpenJigWare
                 public double ResidCap = 2, DzMax = 15;                 // 잔차 상한, 전체 |dz| 상한 (mm)
                 public double[] Env = { 100, 275, 60, 125, -20, 180, 30, 15 };   // 작업 범위 r(mm)·피치(deg)·z(mm) 하한·상한 + 바깥 감쇠폭 (mm, deg)
                 public bool Enabled = true;                             // fcon — false 면 출력 훅은 GP·반경 보정표로 (있으면)
+                public bool NoPitch = false;                            // 꺾는 손목 없는 팔의 모델 (10-13 — 준비·학습이 모델의 wrist=none 으로 정한다, 저장하지 않음):
+                                                                        //   공구 피치(관절 합)는 자세마다 바뀌어 작업 범위 가중의 피치 축을 보지 않는다 (r·z 만), b14·Jz14 = 0
                 // ── 학습점 ──
                 public double[][] Q = new double[0][];                  // 이상 관절각 (PosIDs 3개 + 손목, deg)
                 public double[] Y = new double[0];                      // 첫닿음 FK 높이 (mm)
@@ -139,6 +143,7 @@ namespace OpenJigWare
                 public double EnvWeight(double r, double pitch, double z)
                 {
                     if (Env == null || Env.Length < 8) return 1;
+                    if (NoPitch) return EnvRamp(r, Env[0], Env[1], Env[6]) * EnvRamp(z, Env[4], Env[5], Env[6]);   // 손목 없음 — 피치 축 없음
                     return EnvRamp(r, Env[0], Env[1], Env[6]) * EnvRamp(pitch, Env[2], Env[3], Env[7]) * EnvRamp(z, Env[4], Env[5], Env[6]);
                 }
                 private static double EnvRamp(double v, double lo, double hi, double w)
@@ -371,7 +376,7 @@ namespace OpenJigWare
             private double SagFc_MeanZ(int nFunc, double[] ad, int[] jids, int j)
             {
                 double s = 0; int n = 0; float x, y, z;
-                for (int k = j + 1; k < jids.Length; k++) { SagFc_Fk(nFunc, ad, jids[k], out x, out y, out z); s += z; n++; }   // 관절 k 원점
+                for (int k = j + 1; k < jids.Length; k++) { if (jids[k] < 0) continue; SagFc_Fk(nFunc, ad, jids[k], out x, out y, out z); s += z; n++; }   // 관절 k 원점 (손목 없음 −1 칸은 관절이 아니다)
                 SagFc_Fk(nFunc, ad, -1, out x, out y, out z); s += z; n++;                                                   // TCP
                 return s / n;
             }
@@ -384,6 +389,12 @@ namespace OpenJigWare
             private float[] SagFc_CalcInvTool(int nFunc, double[] adBase, float fX, float fY, float fZ, float fPitchDeg, int nWristID, int[] anPosMotorIDs)
             {
                 if (anPosMotorIDs == null || anPosMotorIDs.Length != 3) return null;
+                if (nWristID < 0)                                                      // 꺾는 손목 없음 (10-13) — 공구 피치는 정할 수 없다: 위치만 (SagArm_IkPos — 같은 시드 차례, 팔꿈치 위로 굽은 해)
+                {
+                    var cNw = new CSagArmCfg { FuncNumber = nFunc, PosIDs = (int[])anPosMotorIDs.Clone(), WristID = CSagArmCfg.WRIST_NONE, HoldIDs = new int[0] };
+                    float bend;
+                    return SagArm_IkPos(this, cNw, adBase, fX, fY, fZ, out bend);
+                }
                 double[] ad = (double[])adBase.Clone();
                 float fTx, fTy, fTz, fWx, fWy, fWz;
                 SagFc_Fk(nFunc, ad, -1, out fTx, out fTy, out fTz);
@@ -546,6 +557,7 @@ namespace OpenJigWare
                     }
                     var gp = new CSagGp { Ell = (double[])f.Ell.Clone(), SigF = f.SigF, SigN = f.SigN, Ref = 0, X = X, Y = R };
                     if (!gp.Solve()) { if (!f.IsReady) f.SetFailed(); return false; }
+                    f.NoPitch = m.WristID < 0;                                        // 꺾는 손목 없는 팔의 모델 — 작업 범위 가중의 피치 축을 보지 않는다
                     f.SetPrepared(gp);
                     return true;
                 }
@@ -705,12 +717,55 @@ namespace OpenJigWare
             /// 측정이 덧붙일수록 묶음이 늘어 시간(초매개변수 216가지 × 겹 × 촐레스키 점 수³)이 묶음 수에 비례해 더 늘던 것을 막는다 (10-02 검토: 365점 112초).
             /// 묶음이 이 값 이하이면 예전과 같은 겹(묶음 하나씩)이라 결과가 비트까지 같다</summary>
             private const int SAGFC_MAX_FOLDS = 10;
+            /// <summary>높이 기준 (CSagFcFit.CmdLevel) — 이번 회차 (첫닿음 명령 − FK) 의 중앙값에서 이만큼(mm) 넘게 벗어난 행은 δ 평균에서 뺀다 (명령 높이만 튄 행 — 10-15 검토:
+            /// 정상 행은 중앙값 ±1.5mm 안 — 10-15 −2.19 ~ −0.37, 10-04 −1.10 ~ +0.93, 튄 행 12:36 r250 은 +12.4)</summary>
+            public const double SAGFC_CMDLEVEL_OUT_MM = 3.0;
             /// <summary>SagComp_FitFloorFc 와 같고 진행·중단을 받는다 — progress 는 초매개변수 교차검증 10% 마다 "진행 학습: …" 한 줄 (null = 없음),
             /// stop 이 true 를 돌려주면 그 자리에서 멈추고 false (model 은 그대로, report = "중단 요청 …"). 블로킹</summary>
             public bool SagComp_FitFloorFc(string datasetCsv, CSagComp model, bool bUseHold, CSim2Real.DLog progress, CSim2Real.DIsStopped stop, out string report)
             {
+                return SagComp_FitFloorFc(datasetCsv, model, new CSagFcFit { UseHold = bUseHold }, progress, stop, out report);
+            }
+
+            /// <summary>첫닿음 학습 선택 (10-15) — 이번 바닥에 맞춘 학습 ([1. 학습]).
+            /// 데이터셋에는 바닥 높이가 다른 옛 회차가 섞여 있다 (10-15 실측: 옛 회차의 첫닿음 FK 가 오늘 바닥보다 +1.0 ~ +3.0mm — 바닥판·종이·팔 자리).
+            /// 절편 하나로 모두 맞추면 c0·Ref 가 옛 바닥 쪽으로 끌려 보정을 켠 첫닿음이 Ref 보다 낮다 (펜이 PaperZ 에서 뜬다 — 10-15 오전 3단계 실측 −4.0 ~ −4.8mm).
+            /// CurSession 을 주면 이번 회차 행만 (Sessions 2 — 기본) 또는 회차마다 절편 (Sessions 1 — 모양 항 k12·k13·b14·잔차 GP 는 모든 회차가 함께, c0·Ref 는 이번 회차 바닥,
+            /// 옛 행의 학습점(fcx) 은 이번 바닥으로 옮겨 적는다: y − (그 회차 절편 − 이번 절편) — 다시 불러 준비해도 같은 잔차).
+            /// 기본을 고른 실측 (10-15 데이터 사본): 이번 회차 교차검증 (행 하나씩) 10-15 회차 0.83 / 10-04 회차 0.34mm — 회차마다 절편 1.02 / 1.06, 절편 하나 2.56 / 1.54.
+            /// 값이 없는 칸은 예전과 같다</summary>
+            public class CSagFcFit
+            {
+                public bool UseHold = false;            // 손목 유지 켬(hold=1) 행도 학습
+                public string CurSession = null;        // 이번 회차 (데이터셋 session 칸) — 비면 예전처럼 모든 행에 절편 하나
+                public int Sessions = 2;                // 이번 회차가 있을 때 — 2 = 이번 회차 행만 (기본), 1 = 회차마다 절편, 0 = 절편 하나 (예전 학습 — 비교용)
+                public float PlausMm = 0;               // 회차 그럴듯함 — 회차·피치가 같은 행끼리의 반경 추세에서 첫닿음 FK 가 이만큼 (+ 넘겨짚기 여유) 넘게 벗어난 행은 뺀다
+                                                        //   (실습 바닥 데이터와 같은 규칙 — SagPrac_PlausSweep, 0 = 보지 않음)
+                public bool CmdLevel = true;            // 이번 회차가 있을 때 — 높이 기준(c0·Ref)을 이번 회차의 첫닿음 명령 높이(fccmdz, 관절 모델 켬)에 맞춘다 (모양은 FK 그대로)
+                // ── 학습이 채운다 ──
+                public int NCur, NOld, NOut;            // 쓴 이번 회차 행·옛 회차 행, 그럴듯함으로 뺀 행
+                public double CvCur = double.NaN;       // 이번 회차 교차검증 — 이번 회차 행을 하나씩 빼고 나머지로 다시 맞춘 예측의 RMSE (mm, 잔차 포함 — 2행 이상일 때)
+                public int NCvCur;                      //   그 행 수
+                public double CurOffset = double.NaN;   // 회차마다 절편일 때 — 옛 회차 절편 (행 가중 평균) − 이번 회차 절편 (mm): 절편 하나였으면 이쪽으로 끌렸다
+                public string SessionText = "";         // 회차마다 절편 — "0928_203827 +3.02 (17행), …" (이번 회차 기준 차)
+                public List<string> OutRows = new List<string>();   // 그럴듯함으로 뺀 행 (회차 r fc · 추세 · 차)
+                public double CmdShift = double.NaN;    // 높이 기준으로 옮긴 양 δ = 이번 회차 (첫닿음 명령 − FK) 평균 (mm — 중앙값에서 SAGFC_CMDLEVEL_OUT_MM 넘게 벗어난 행은 빼고), 옮기지 않았으면 NaN
+                public int NCmd;                        //   그 행 수
+                public int NCmdOut;                     //   δ 에서 뺀 행 수 (명령 높이만 튄 행 — FK 는 추세 안, 10-15 검토)
+                public List<string> CmdOutRows = new List<string>();   //   그 행 (묶음 r 명령 − FK · 중앙값)
+            }
+
+            /// <summary>SagComp_FitFloorFc 와 같고 학습 선택 opt (CSagFcFit — 이번 회차·회차마다 절편·회차 그럴듯함) 를 받는다. opt 의 결과 칸을 채운다.
+            /// opt.CurSession 이 비면 예전 학습과 같다 (비트까지). 블로킹</summary>
+            public bool SagComp_FitFloorFc(string datasetCsv, CSagComp model, CSagFcFit opt, CSim2Real.DLog progress, CSim2Real.DIsStopped stop, out string report)
+            {
                 report = "";
                 var ci = CultureInfo.InvariantCulture;
+                if (opt == null) opt = new CSagFcFit();
+                bool bUseHold = opt.UseHold;
+                string cur = (opt.CurSession == null || opt.CurSession.Trim().Length == 0) ? null : opt.CurSession.Trim();
+                opt.NCur = opt.NOld = opt.NOut = opt.NCvCur = opt.NCmd = opt.NCmdOut = 0; opt.CvCur = opt.CurOffset = opt.CmdShift = double.NaN; opt.SessionText = ""; opt.OutRows = new List<string>();
+                opt.CmdOutRows = new List<string>();
                 if (model == null || string.IsNullOrEmpty(datasetCsv)) { report = "모델 또는 데이터 없음"; return false; }
                 int[] ids = SagFc_Ids(model);
                 if (ids == null) { report = "모델의 posids·wrist 가 맞지 않음"; return false; }
@@ -734,6 +789,8 @@ namespace OpenJigWare
                 // ── 행 고르기 ──
                 var lq = new List<double[]>(); var ly = new List<double>(); var lg = new List<string>(); var ls = new List<string>();
                 var lpx = new List<double>(); var lpy = new List<double>(); var lpp = new List<double>();
+                var lcz = new List<double>();                                          // 첫닿음 명령 높이 fccmdz (없으면 NaN — 이번 회차의 높이 기준, 10-15)
+                int iFcc = hd.IndexOf("fccmdz");
                 int nKind = 0, nHold = 0, nBad = 0;
                 for (int i = 1; i < lines.Length; i++)
                 {
@@ -755,10 +812,46 @@ namespace OpenJigWare
                     if ((double.IsNaN(px) || double.IsNaN(py)) && !double.IsNaN(rr)) { px = rr * Math.Cos(q[0] * Math.PI / 180); py = rr * Math.Sin(q[0] * Math.PI / 180); }
                     double pp = D(f, iP); if (double.IsNaN(pp)) pp = q[1] + q[2] + q[3];
                     lpx.Add(px); lpy.Add(py); lpp.Add(pp);
+                    lcz.Add(D(f, iFcc));
                 }
                 int n = lq.Count;
                 string skip = string.Format(ci, "{0}{1}{2}", nKind > 0 ? string.Format(ci, ", kind≠F {0}행 제외", nKind) : "",
                     nHold > 0 ? string.Format(ci, ", 손목 유지 켬 {0}행 제외", nHold) : "", nBad > 0 ? string.Format(ci, ", 읽지 못한 {0}행", nBad) : "");
+                // 행 빼기 (나란한 목록 모두 — 뒤에서부터)
+                Action<bool[]> DropRows = dr =>
+                {
+                    for (int i = dr.Length - 1; i >= 0; i--)
+                        if (dr[i]) { lq.RemoveAt(i); ly.RemoveAt(i); lg.RemoveAt(i); ls.RemoveAt(i); lpx.RemoveAt(i); lpy.RemoveAt(i); lpp.RemoveAt(i); lcz.RemoveAt(i); }
+                };
+                // ── 이번 회차 (10-15) — 이번 회차 행만이면 옛 회차 행을 먼저 뺀다 ──
+                int nCurRows = 0;
+                if (cur != null)
+                {
+                    foreach (string s in ls) if (s == cur) nCurRows++;
+                    if (opt.Sessions == 2 && nCurRows > 0 && nCurRows < n)
+                    {
+                        var dr = new bool[n]; for (int i = 0; i < n; i++) dr[i] = ls[i] != cur;
+                        skip += string.Format(ci, ", 옛 회차 {0}행 뺌 (이번 회차만)", n - nCurRows);
+                        DropRows(dr);
+                        n = lq.Count;
+                    }
+                }
+                // ── 회차 그럴듯함 (10-15, opt.PlausMm) — 회차·피치가 같은 행끼리의 반경 추세에서 벗어난 첫닿음 (바닥이 아닌 데서 걸린 행 — 10-15 실측 r245 fc 66.0 = 추세 +17.7mm) ──
+                if (opt.PlausMm > 0 && n > 0)
+                {
+                    List<string> outRows;
+                    bool[] dr = SagFc_PlausDrop(lq, ly, ls, lpx, lpy, lpp, opt.PlausMm, out outRows);
+                    DropRows(dr);
+                    opt.NOut = outRows.Count; opt.OutRows = outRows;
+                    n = lq.Count;
+                    if (opt.NOut > 0) skip += string.Format(ci, ", 회차 추세에서 벗어난 {0}행 제외", opt.NOut);
+                }
+                if (cur != null)
+                {
+                    nCurRows = 0; foreach (string s in ls) if (s == cur) nCurRows++;
+                    if (nCurRows == 0) { report = string.Format(ci, "첫닿음 모델 학습: 이번 회차 {0} 의 첫닿음 행이 없음{1}", cur, skip); return false; }
+                    opt.NCur = nCurRows; opt.NOld = n - nCurRows;
+                }
                 if (n < 6) { report = string.Format(ci, "첫닿음 모델 학습: 쓸 수 있는 행이 {0}개 — 6개 이상 필요{1}", n, skip); return false; }
 
                 // ── 특징 ──
@@ -783,10 +876,81 @@ namespace OpenJigWare
                     l14Min = Math.Min(l14Min, ft[2]); l14Max = Math.Max(l14Max, ft[2]);
                 }
                 double[] y = ly.ToArray();
+                double[] y0 = ly.ToArray();                                            // 잰 그대로 (회차마다 절편이면 y 는 이번 바닥으로 옮긴 값)
+                // 회차마다 절편 (10-15) — 이번 회차가 있고 (Sessions 1) 옛 회차 행도 있으면. HS = 회차 표시 칸 nS 개 + φ12, φ13, Jz14
+                var sessNames = new List<string>();
+                if (cur != null && opt.Sessions == 1) foreach (string s in ls) if (!sessNames.Contains(s)) sessNames.Add(s);
+                sessNames.Sort(string.CompareOrdinal);
+                bool bPerSess = sessNames.Count > 1;
+                int nS = bPerSess ? sessNames.Count : 1, iCurS = bPerSess ? sessNames.IndexOf(cur) : 0;
+                var sIdx = new int[n];
+                double[][] HS = null;
+                if (bPerSess)
+                {
+                    HS = new double[n][];
+                    for (int i = 0; i < n; i++)
+                    {
+                        sIdx[i] = sessNames.IndexOf(ls[i]);
+                        HS[i] = new double[nS + 3];
+                        HS[i][sIdx[i]] = 1.0; HS[i][nS] = H[i][1]; HS[i][nS + 1] = H[i][2]; HS[i][nS + 2] = H[i][3];
+                    }
+                }
 
                 // ── 물리 평균 (한 번만 — 잡음 1mm 고정) ──
                 double[] beta, cov;
-                if (!SagFc_FitMean(H, y, null, fc0.Bounds, fc0.PriorSd, out beta, out cov)) { report = "물리 평균 맞춤 실패 (특이 행렬)" + skip; return false; }
+                if (bPerSess)
+                {
+                    double[] betaS, covS;
+                    if (!SagFc_FitMeanS(HS, y0, null, nS, fc0.Bounds, fc0.PriorSd, out betaS, out covS)) { report = "물리 평균 맞춤 실패 (특이 행렬 — 회차마다 절편)" + skip; return false; }
+                    beta = new double[] { betaS[iCurS], betaS[nS], betaS[nS + 1], betaS[nS + 2] };   // c0 = 이번 회차 절편
+                    int[] ix = { iCurS, nS, nS + 1, nS + 2 };
+                    cov = null;
+                    if (covS != null) { cov = new double[16]; for (int p = 0; p < 4; p++) for (int q = 0; q < 4; q++) cov[p * 4 + q] = covS[ix[p] * (nS + 3) + ix[q]]; }
+                    double so = 0; int no = 0;
+                    var st = new List<string>();
+                    for (int k = 0; k < nS; k++)
+                    {
+                        int nk = 0; foreach (int s in sIdx) if (s == k) nk++;
+                        st.Add(string.Format(ci, "{0} {1:+0.00;-0.00} ({2}행){3}", sessNames[k], betaS[k] - betaS[iCurS], nk, k == iCurS ? " = 이번" : ""));
+                    }
+                    for (int i = 0; i < n; i++)
+                    {
+                        y[i] = y0[i] - (betaS[sIdx[i]] - betaS[iCurS]);                // 학습점을 이번 바닥으로 — 다시 불러 준비해도 같은 잔차
+                        if (sIdx[i] != iCurS) { so += betaS[sIdx[i]] - betaS[iCurS]; no++; }
+                    }
+                    opt.CurOffset = no > 0 ? so / no : double.NaN;
+                    opt.SessionText = string.Join(", ", st.ToArray());
+                }
+                else if (!SagFc_FitMean(H, y, null, fc0.Bounds, fc0.PriorSd, out beta, out cov)) { report = "물리 평균 맞춤 실패 (특이 행렬)" + skip; return false; }
+                // 높이 기준 (10-15, opt.CmdLevel) — 이번 회차 행의 (첫닿음 명령 높이 − 첫닿음 FK) 평균 δ 만큼 c0·학습점을 옮긴다 (모양·잔차는 그대로, Ref 도 따라 옮겨
+                //   보정량 dz = FC − Ref 는 같다 — 펜이 닿는 명령 높이에 Ref 가 온다). 관절 모델을 켠 누름에서도 닿는 순간 끝이 명령보다 δ 만큼 다른 데 있다
+                //   (관절 모델이 닿는 높이에서 남기는 처짐 — 10-15 오전 바닥 데이터 δ −1.02mm, 그 학습으로 켠 3단계 실측의 같은 몫 r160·r190·r220 −0.9·−1.1·−2.8mm).
+                //   FK 기준 그대로면 보정 켬 첫닿음이 Ref 보다 그만큼 낮다 (펜이 PaperZ 에서 뜬다)
+                //   10-15 검토: 평균에 명령 높이만 튄 행 하나 (FK 는 추세 안 — 그 누름의 관절 상태, 12:36 r250 꼴 +12.4) 가 들어가면 Ref 가 1.1~1.4mm 끌린 채 '권장' 이었다
+                //   (회차 그럴듯함은 FK 만 본다). 그래서 이번 회차 (명령 − FK) 의 중앙값에서 SAGFC_CMDLEVEL_OUT_MM 넘게 벗어난 행은 δ 에서 빼고 보고서에 적는다
+                //   (정상 행의 폭 10-15 −2.19 ~ −0.37, 10-04 −1.10 ~ +0.93 — 모두 남으면 예전 평균과 같다)
+                if (cur != null && opt.CmdLevel)
+                {
+                    var di = new List<int>(); var dv = new List<double>();
+                    for (int i = 0; i < n; i++) if (ls[i] == cur && !double.IsNaN(lcz[i]) && !double.IsInfinity(lcz[i])) { di.Add(i); dv.Add(lcz[i] - y0[i]); }
+                    if (dv.Count > 0)
+                    {
+                        double[] sv = dv.ToArray(); Array.Sort(sv);
+                        double med = (sv.Length % 2 == 1) ? sv[sv.Length / 2] : 0.5 * (sv[sv.Length / 2 - 1] + sv[sv.Length / 2]);
+                        double sd = 0; int nd = 0;
+                        for (int k = 0; k < dv.Count; k++)
+                        {
+                            if (Math.Abs(dv[k] - med) <= SAGFC_CMDLEVEL_OUT_MM) { sd += dv[k]; nd++; continue; }
+                            int i = di[k];
+                            double rr = Math.Sqrt(lpx[i] * lpx[i] + lpy[i] * lpy[i]);
+                            opt.CmdOutRows.Add(string.Format(ci, "{0} r{1} 명령 {2:F2} − FK {3:F2} = {4:+0.00;-0.00}mm (중앙값 {5:+0.00;-0.00}, 차 {6:+0.0;-0.0})", lg[i],
+                                double.IsNaN(rr) ? "?" : rr.ToString("0", ci), lcz[i], y0[i], dv[k], med, dv[k] - med));
+                        }
+                        double dl = nd > 0 ? sd / nd : med;
+                        beta[0] += dl; for (int i = 0; i < n; i++) y[i] += dl;
+                        opt.CmdShift = dl; opt.NCmd = nd; opt.NCmdOut = dv.Count - nd;
+                    }
+                }
                 var res = new double[n];
                 for (int i = 0; i < n; i++) res[i] = y[i] - (beta[0] + beta[1] * H[i][1] + beta[2] * H[i][2] + beta[3] * H[i][3]);
 
@@ -805,11 +969,22 @@ namespace OpenJigWare
                     foldTr.Add(tr.ToArray()); foldTe.Add(te.ToArray());
                 }
 
-                // 물리 평균만 — 묶음마다 다시 맞춘 교차검증 (비교용)
+                // 물리 평균만 — 묶음마다 다시 맞춘 교차검증 (비교용). 회차마다 절편이면 절편도 다시 (뺀 묶음의 회차가 남은 행에 없으면 그 행은 예측하지 않는다)
                 double sePhys = 0; int cntPhys = 0;
                 for (int fi = 0; fi < foldTr.Count; fi++)
                 {
                     double[] bf, cf;
+                    if (bPerSess)
+                    {
+                        if (!SagFc_FitMeanS(HS, y0, foldTr[fi], nS, fc0.Bounds, fc0.PriorSd, out bf, out cf)) continue;
+                        foreach (int t in foldTe[fi])
+                        {
+                            if (double.IsNaN(bf[sIdx[t]])) continue;
+                            double e = bf[sIdx[t]] + bf[nS] * H[t][1] + bf[nS + 1] * H[t][2] + bf[nS + 2] * H[t][3] - y0[t];
+                            sePhys += e * e; cntPhys++;
+                        }
+                        continue;
+                    }
                     if (!SagFc_FitMean(H, y, foldTr[fi], fc0.Bounds, fc0.PriorSd, out bf, out cf)) continue;
                     foreach (int t in foldTe[fi])
                     {
@@ -859,12 +1034,46 @@ namespace OpenJigWare
                 var gpF = new CSagGp { Ell = new double[] { bHp[0], bHp[1], bHp[2], 1000 }, SigF = bHp[3], SigN = bHp[4], Ref = 0, X = X, Y = res };
                 if (!gpF.Solve()) { report = "잔차 GP 촐레스키 실패" + skip; return false; }
 
+                // ── 이번 회차 교차검증 (10-15) — 이번 회차 행을 하나씩 빼고 나머지 행으로 물리 평균 (회차마다 절편이면 절편도)·잔차 GP (고른 초매개변수) 를 다시 맞춰
+                //    그 행의 첫닿음 FK 를 예측 — 이번 바닥의 처음 보는 자리를 얼마나 맞히나 (절편 하나면 옛 바닥 쪽 치우침까지 들어간다) ──
+                if (cur != null && nCurRows >= 2)
+                {
+                    double seC = 0; int nC = 0;
+                    for (int t = 0; t < n; t++)
+                    {
+                        if (ls[t] != cur) continue;
+                        var trl = new List<int>(); for (int i = 0; i < n; i++) if (i != t) trl.Add(i);
+                        int[] tra = trl.ToArray();
+                        double[] bf, cf;
+                        var ph = new double[n];
+                        if (bPerSess)
+                        {
+                            if (!SagFc_FitMeanS(HS, y0, tra, nS, fc0.Bounds, fc0.PriorSd, out bf, out cf) || double.IsNaN(bf[iCurS])) continue;
+                            for (int i = 0; i < n; i++) ph[i] = bf[sIdx[i]] + bf[nS] * H[i][1] + bf[nS + 1] * H[i][2] + bf[nS + 2] * H[i][3];
+                        }
+                        else
+                        {
+                            if (!SagFc_FitMean(H, y0, tra, fc0.Bounds, fc0.PriorSd, out bf, out cf)) continue;
+                            for (int i = 0; i < n; i++) ph[i] = bf[0] + bf[1] * H[i][1] + bf[2] * H[i][2] + bf[3] * H[i][3];
+                        }
+                        var tx = new double[tra.Length][]; var ty = new double[tra.Length];
+                        for (int j = 0; j < tra.Length; j++) { tx[j] = X[tra[j]]; ty[j] = y0[tra[j]] - ph[tra[j]]; }
+                        var gpc = new CSagGp { Ell = new double[] { bHp[0], bHp[1], bHp[2], 1000 }, SigF = bHp[3], SigN = bHp[4], Ref = 0, X = tx, Y = ty };
+                        if (!gpc.Solve()) continue;
+                        double mu, sd; gpc.Predict(X[t], out mu, out sd);
+                        double e = ph[t] + Math.Max(-cap, Math.Min(cap, mu)) - y0[t];
+                        seC += e * e; nC++;
+                    }
+                    if (nC > 0) { opt.CvCur = Math.Sqrt(seC / nC); opt.NCvCur = nC; }
+                }
+
                 // ── 모델 ──
                 fc0.Beta = beta; fc0.Cov = cov;
                 fc0.Ell = new double[] { bHp[0], bHp[1], bHp[2], 1000 }; fc0.SigF = bHp[3]; fc0.SigN = bHp[4];
                 if (!fc0.RefFixed) { double s = 0; foreach (double v in y) s += v; fc0.Ref = s / n; }
                 fc0.Q = lq.ToArray(); fc0.Y = y; fc0.Groups = lg.ToArray();
                 fc0.CvRmse = bCv ? best : double.NaN; fc0.CvPhysRmse = cvPhys;
+                fc0.NoPitch = model.WristID < 0;                                       // 꺾는 손목 없는 팔 (10-13) — 피치 축 없는 작업 범위 가중
                 fc0.SetPrepared(gpF);                                                  // 학습 특징 그대로 — 다시 불러와 준비해도 같은 값
 
                 // ── 보고 ──
@@ -872,11 +1081,38 @@ namespace OpenJigWare
                 Func<int, string> B = j => beta[j] <= fc0.Bounds[2 * (j - 1)] + 1e-9 ? " [하한]" : (beta[j] >= fc0.Bounds[2 * (j - 1) + 1] - 1e-9 ? " [상한]" : "");
                 sb.AppendLine(string.Format(ci, "첫닿음 모델 학습: 점 {0} (묶음 {1}){2}{3}", n, names.Count, skip,
                     names.Count > SAGFC_MAX_FOLDS ? string.Format(ci, " — 교차검증은 묶음을 이름 순으로 이어 {0}겹", nFolds) : ""));
-                sb.AppendLine(string.Format(ci, "  물리 평균 β: c0 {0:F3}mm, k12 {1:F4}{2}, k13 {3:F4}{4}, b14 {5:+0.000;-0.000}°{6}  (사전 표준편차 {7}/{8}/{9}, 잡음 1mm)",
-                    beta[0], beta[1], B(1), beta[2], B(2), beta[3], B(3), fc0.PriorSd[0], fc0.PriorSd[1], fc0.PriorSd[2]));
+                if (model.WristID < 0)                                                 // 꺾는 손목 없음 (10-13) — Jz14 = 0 이라 b14 항이 없다 (사전이 0 으로 둔다)
+                    sb.AppendLine(string.Format(ci, "  물리 평균 β: c0 {0:F3}mm, k12 {1:F4}{2}, k13 {3:F4}{4}, b14 — (꺾는 손목 없음: 손목 항 없음 — dz 는 피치 두 관절로만)  (사전 표준편차 {5}/{6}, 잡음 1mm)",
+                        beta[0], beta[1], B(1), beta[2], B(2), fc0.PriorSd[0], fc0.PriorSd[1]));
+                else
+                    sb.AppendLine(string.Format(ci, "  물리 평균 β: c0 {0:F3}mm, k12 {1:F4}{2}, k13 {3:F4}{4}, b14 {5:+0.000;-0.000}°{6}  (사전 표준편차 {7}/{8}/{9}, 잡음 1mm)",
+                        beta[0], beta[1], B(1), beta[2], B(2), beta[3], B(3), fc0.PriorSd[0], fc0.PriorSd[1], fc0.PriorSd[2]));
                 sb.AppendLine(string.Format(ci, "  묶음 교차검증 RMSE: 물리 평균만 {0:F3}mm, 잔차 포함 {1}  — 잔차 GP 길이 척도 L12 {2:G4} L13 {3:G4} L14 {4:G4}, 신호 {5:G4} 잡음 {6:G4}mm, 잔차 ±{7:G3}mm 자름",
                     cvPhys, bCv ? best.ToString("F3", ci) + "mm" : "계산 불가(묶음 부족 — 기존·기본 초매개변수)", bHp[0], bHp[1], bHp[2], bHp[3], bHp[4], cap));
-                sb.AppendLine(string.Format(ci, "  기준 Ref {0:F3}mm ({1}), 출력 |dz| ≤ {2:G3}mm, 작업 범위 밖에서만 감쇠", fc0.Ref, fc0.RefFixed ? "fcref 고정" : "학습 FC 평균", fc0.DzMax));
+                sb.AppendLine(string.Format(ci, "  기준 Ref {0:F3}mm ({1}), 출력 |dz| ≤ {2:G3}mm, 작업 범위 밖에서만 감쇠", fc0.Ref,
+                    fc0.RefFixed ? "fcref 고정" : ((bPerSess ? "학습 FC 평균 — 옛 회차 행은 이번 바닥으로 옮긴 값" : "학습 FC 평균") + (double.IsNaN(opt.CmdShift) ? "" : " + 높이 기준 δ")), fc0.DzMax));
+                if (cur != null)
+                {
+                    sb.AppendLine(string.Format(ci, "  이번 회차 {0}: {1}행 — {2}", cur, opt.NCur,
+                        bPerSess ? string.Format(ci, "회차마다 절편 (옛 회차 {0}행은 모양 k12·k13·b14·잔차만 함께, c0·Ref 는 이번 바닥)", opt.NOld)
+                                 : (opt.Sessions == 2 ? "이번 회차 행만" : (opt.NOld > 0 ? string.Format(ci, "절편 하나 (옛 회차 {0}행과 한 바닥으로 — 비교용)", opt.NOld) : "옛 회차 행 없음"))));
+                    if (bPerSess) sb.AppendLine("  회차 절편 (이번 회차 기준 차): " + opt.SessionText + string.Format(ci, " — 옛 회차 평균 {0:+0.00;-0.00}mm", opt.CurOffset));
+                    sb.AppendLine(!double.IsNaN(opt.CmdShift)
+                        ? string.Format(ci, "  높이 기준: 이번 회차 첫닿음 명령 높이 (관절 모델 켬) − FK 평균 {0:+0.00;-0.00}mm ({1}행) 만큼 c0·학습점을 옮김 — 보정 켬 첫닿음 명령이 Ref 에 오게 (모양은 FK 그대로)", opt.CmdShift, opt.NCmd)
+                        : (opt.CmdLevel ? "  높이 기준: 이번 회차 행에 첫닿음 명령 높이(fccmdz)가 없어 FK 그대로" : "  높이 기준: FK 그대로 (CmdLevel 끔)"));
+                    if (opt.NCmdOut > 0)
+                    {
+                        sb.AppendLine(string.Format(ci, "  높이 기준에서 뺀 행 {0} (명령 − FK 가 이번 회차 중앙값에서 ±{1:0.#}mm 밖 — 명령 높이만 튐: 그 누름의 관절 상태, 학습점은 그대로):", opt.NCmdOut, SAGFC_CMDLEVEL_OUT_MM));
+                        foreach (string o in opt.CmdOutRows) sb.AppendLine("    " + o);
+                    }
+                    sb.AppendLine(!double.IsNaN(opt.CvCur) ? string.Format(ci, "  이번 회차 교차검증 (행 하나씩 빼고 나머지로 다시 맞춤): {0:F3}mm ({1}행)", opt.CvCur, opt.NCvCur)
+                                                           : "  이번 회차 교차검증: 계산 불가 (이번 회차 행 2개 미만)");
+                }
+                if (opt.NOut > 0)
+                {
+                    sb.AppendLine(string.Format(ci, "  회차 추세에서 벗어나 뺀 행 {0} (같은 회차·피치 행의 반경 추세 ± {1:0.#}mm + 넘겨짚기 여유):", opt.NOut, opt.PlausMm));
+                    foreach (string o in opt.OutRows) sb.AppendLine("    " + o);
+                }
                 var conf = new List<string>();
                 for (int i = 0; i < n; i++)
                     for (int j = i + 1; j < n; j++)
@@ -949,6 +1185,107 @@ namespace OpenJigWare
                 double[,] inv = SagFc_Inverse(A);
                 if (inv != null) { cov = new double[16]; for (int p = 0; p < 4; p++) for (int q = 0; q < 4; q++) cov[p * 4 + q] = inv[p, q]; }
                 return true;
+            }
+            // 물리 평균 맞춤 — 회차마다 절편 (10-15). H 의 앞 nS 칸 = 회차 표시 (0/1), 뒤 3칸 = φ12, φ13, Jz14 (SagFc_FitMean 의 H[1..3]).
+            //   사전·상·하한은 뒤 3칸에만, 절편은 자유 (SagFc_FitMean 과 같은 27가지 활성 조합 — 볼록이라 전역 해). rows = 쓸 행 (null = 전부).
+            //   쓸 행이 없는 회차의 절편은 풀지 않고 NaN. beta = 절편 nS 개 + k12·k13·b14, cov = (nS+3)² 행 우선 (푼 칸만 — 나머지 NaN)
+            private static bool SagFc_FitMeanS(double[][] H, double[] y, int[] rows, int nS, double[] bnd, double[] prior, out double[] beta, out double[] cov)
+            {
+                beta = null; cov = null;
+                int nP = nS + 3;
+                var A = new double[nP, nP]; var b = new double[nP];
+                var nPer = new int[nS];
+                int cnt = rows == null ? H.Length : rows.Length;
+                for (int ii = 0; ii < cnt; ii++)
+                {
+                    int i = rows == null ? ii : rows[ii];
+                    for (int p = 0; p < nP; p++) { b[p] += H[i][p] * y[i]; for (int q = 0; q < nP; q++) A[p, q] += H[i][p] * H[i][q]; }
+                    for (int s = 0; s < nS; s++) if (H[i][s] != 0) nPer[s]++;
+                }
+                var act = new List<int>();
+                for (int s = 0; s < nS; s++) if (nPer[s] > 0) act.Add(s);
+                if (act.Count == 0 || cnt < act.Count + 3) return false;
+                for (int j = 0; j < 3; j++) if (prior[j] > 0 && !double.IsInfinity(prior[j])) A[nS + j, nS + j] += 1.0 / (prior[j] * prior[j]);
+                double bestCost = double.MaxValue;
+                for (int st = 0; st < 27; st++)
+                {
+                    int[] s3 = { st % 3, (st / 3) % 3, st / 9 };                       // k12, k13, b14: 0 = 자유, 1 = 하한, 2 = 상한
+                    var bt = new double[nP]; var free = new List<int>(act); var fix = new List<int>();
+                    for (int j = 0; j < 3; j++)
+                    {
+                        if (s3[j] == 0) free.Add(nS + j);
+                        else { bt[nS + j] = s3[j] == 1 ? bnd[2 * j] : bnd[2 * j + 1]; fix.Add(nS + j); }
+                    }
+                    int nf = free.Count;
+                    var Af = new double[nf, nf]; var bf = new double[nf];
+                    for (int p = 0; p < nf; p++)
+                    {
+                        bf[p] = b[free[p]];
+                        foreach (int c in fix) bf[p] -= A[free[p], c] * bt[c];
+                        for (int q = 0; q < nf; q++) Af[p, q] = A[free[p], free[q]];
+                    }
+                    double[] xf = SagFc_Solve(Af, bf);
+                    if (xf == null) continue;
+                    for (int p = 0; p < nf; p++) bt[free[p]] = xf[p];
+                    bool ok = true;
+                    for (int j = 0; j < 3; j++) if (bt[nS + j] < bnd[2 * j] - 1e-12 || bt[nS + j] > bnd[2 * j + 1] + 1e-12) ok = false;
+                    if (!ok) continue;
+                    double cost = 0;                                                    // βᵀAβ − 2bᵀβ (+ 상수) — 행이 없는 회차 칸은 0
+                    for (int p = 0; p < nP; p++) { cost -= 2 * b[p] * bt[p]; for (int q = 0; q < nP; q++) cost += bt[p] * A[p, q] * bt[q]; }
+                    if (cost < bestCost) { bestCost = cost; beta = bt; }
+                }
+                if (beta == null) return false;
+                for (int s = 0; s < nS; s++) if (nPer[s] == 0) beta[s] = double.NaN;
+                var ia = new List<int>(act); for (int j = 0; j < 3; j++) ia.Add(nS + j);
+                var Aa = new double[ia.Count, ia.Count];
+                for (int p = 0; p < ia.Count; p++) for (int q = 0; q < ia.Count; q++) Aa[p, q] = A[ia[p], ia[q]];
+                double[,] inv = SagFc_Inverse(Aa);
+                if (inv != null)
+                {
+                    cov = new double[nP * nP];
+                    for (int k = 0; k < cov.Length; k++) cov[k] = double.NaN;
+                    for (int p = 0; p < ia.Count; p++) for (int q = 0; q < ia.Count; q++) cov[ia[p] * nP + ia[q]] = inv[p, q];
+                }
+                return true;
+            }
+            // 회차 그럴듯함 (10-15) — 회차·피치(반올림 1°)가 같은 행끼리 첫닿음 FK 의 반경 추세에서 벗어난 행 (SagPrac_PlausSweep — 실습 바닥 데이터와 같은 규칙:
+            //   반경이 가까운 점의 Theil–Sen 추세, 문턱 fTolMm + 넘겨짚기 여유, 가장 많이 벗어난 행부터 하나씩 빼고 다시). 묶음이 4행 미만이면 보지 않는다 (추세를 믿을 수 없다).
+            //   반환 = 뺄 행 표시, outRows = 뺀 행 ("회차 r 반경 요 y: fc → 추세 · 차")
+            private static bool[] SagFc_PlausDrop(List<double[]> lq, List<double> ly, List<string> ls, List<double> lpx, List<double> lpy, List<double> lpp, float fTolMm,
+                                                  out List<string> outRows)
+            {
+                var ci = CultureInfo.InvariantCulture;
+                int n = ly.Count;
+                var drop = new bool[n];
+                outRows = new List<string>();
+                var cfg = new CSagPracCfg { PlausFkMm = fTolMm };
+                var keys = new List<string>(); var members = new Dictionary<string, List<int>>();
+                for (int i = 0; i < n; i++)
+                {
+                    double p = double.IsNaN(lpp[i]) ? double.NaN : Math.Round(lpp[i]);
+                    string k = ls[i] + "|" + (double.IsNaN(p) ? "?" : p.ToString("0", ci));
+                    if (!members.ContainsKey(k)) { members[k] = new List<int>(); keys.Add(k); }
+                    members[k].Add(i);
+                }
+                foreach (string k in keys)
+                {
+                    var pts = new List<CSagPracPoint>();
+                    foreach (int i in members[k])
+                    {
+                        double r = Math.Sqrt(lpx[i] * lpx[i] + lpy[i] * lpy[i]);
+                        if (double.IsNaN(r) || double.IsInfinity(r)) continue;
+                        pts.Add(new CSagPracPoint { Idx = i, R = (float)r, Yaw = (float)lq[i][0], X = (float)lpx[i], Y = (float)lpy[i], Touch = (float)ly[i], Fk = (float)ly[i] });
+                    }
+                    if (pts.Count < 4) continue;
+                    foreach (KeyValuePair<CSagPracPoint, CSagPracPlaus> kv in SagPrac_PlausSweep(pts, cfg, false))
+                    {
+                        CSagPracPoint p = kv.Key;
+                        drop[p.Idx] = true;
+                        outRows.Add(string.Format(ci, "{0} r{1:0} 요 {2:0}: fc {3:F1} → 추세 {4:F1} ({5:+0.0;-0.0}mm, 허용 ±{6:0.#} — {7})", ls[p.Idx], p.R, p.Yaw, p.Fk,
+                            kv.Value.PredFk, kv.Value.DFk, kv.Value.TolFk, kv.Value.How));
+                    }
+                }
+                return drop;
             }
             // 작은 정규방정식 — 부분 피벗 가우스 소거. 특이하면 null
             private static double[] SagFc_Solve(double[,] A0, double[] b0)

@@ -30,6 +30,8 @@
 //     (되짚기는 해가 여럿일 때 엉뚱한 해를 골라 3D 가 실물 펜보다 15~25mm 위였다 — 10-03 검토). 그래서 처짐 보정이 걸려 있었으면(모델 켬·걸린 보정·
 //     페이드·손목 유지) 되짚지 않고 보정을 페이드 없이 끄고(C3d.SagComp_OffForAdopt) 알린다 → 다음 전송 틱 = 서보 목표 (튐 0), 그 뒤에도 보정이
 //     얹히지 않는다. 다시 켜면 다음 동작의 출력 틱 1초에 걸쳐 들어온다. 보정이 걸려 있지 않았으면 예전 그대로 (목표 그대로, 바꿀 것 없음).
+//     앱이 포트를 다른 프로그램에 넘겼다가 다시 연결한 경우 (10-15 검토) 넘기기 전에 켜져 있던 보정은 RestoreSagComp 가 보통 켜기 길로 되살린다
+//     (이어받은 자세가 정해진 뒤 — 다음 동작의 출력 틱 1초에 걸쳐 0 에서 들어온다).
 //   · 서보 목표(Goal Position)를 읽지 못한 채 토크 ON 인 축을 맞춰야 하면 움직이는 동작을 막는다 (처진 지금 위치로 맞춰 보내면 하중만큼 떨어진다).
 // ================================================================
 using System;
@@ -806,11 +808,20 @@ namespace OpenJigWare
             /// 헤더의 pSMotorInfo[축] 만 쓴다. 바꾸는 규칙:
             ///   방향 0 이 아니면 1 (역) / 리밋 0 → NaN(없음), ∓0.001 → 0 (헤더 규약을 되돌림) / 미러 -1·-2 는 그대로, 축 번호는 그 짝이 이 세트에 있고
             ///   서로 가리킬 때만 (아니면 -1 — 헤더 기본값 0 이 "축 0 과 짝" 으로 읽히는 함정) / 프로토콜 0 → 2 / 실물 ID 는 축 번호 (지금 규칙) /
-            ///   이름은 첫 널 문자까지. 방향 확인(bChecked)은 .ojw 에 칸이 없어 지금 값을 두되, 방향·영점·틱/회전·각/회전이 바뀐 축은 해제한다.
-            /// 결과는 Validate 규칙으로 검사하고, 통과하지 못하면 가져오지 않는다. 출처 = "디자이너", strSaved = 파일 고친 시각</summary>
+            ///   이름은 첫 널 문자까지. 방향 확인(bChecked)은 확장 구역 armMotors 가 없는 옛 .ojw 면 지금 값을 두되, 방향·영점·틱/회전·각/회전이 바뀐 축은 해제한다.
+            /// 결과는 Validate 규칙으로 검사하고, 통과하지 못하면 가져오지 않는다. 출처 = "디자이너", strSaved = 파일 고친 시각.
+            /// 2026-10-15: 파일에 확장 구역 armMotors 가 있으면 방향 확인·출처를 그 축의 매핑(방향·영점·틱/회전·각/회전)이 저장 때와 같을 때만 되살린다
+            ///   (텍스트·바이너리 형식 모두 — 바이너리는 끝 꼬리 블록). 그 밖의 확장 구역은 겹함수의 ext 로 돌려준다 (앱이 묻고 적용)</summary>
             public int ImportDesignerFile(string strOjwPath, out string strWhy)
             {
+                C3d.COjwFileExt ext;
+                return ImportDesignerFile(strOjwPath, out ext, out strWhy);
+            }
+            /// <summary>ImportDesignerFile 과 같고, 파일의 확장 구역(덧붙임 — CArmOjwExtras.From 으로 읽는다)을 ext 로 돌려준다 (못 읽으면 빈 것)</summary>
+            public int ImportDesignerFile(string strOjwPath, out C3d.COjwFileExt ext, out string strWhy)
+            {
                 strWhy = "";
+                ext = new C3d.COjwFileExt();
                 try
                 {
                     if (string.IsNullOrEmpty(strOjwPath) || !File.Exists(strOjwPath)) { strWhy = "디자이너 파일 없음: " + strOjwPath; return -1; }
@@ -818,16 +829,18 @@ namespace OpenJigWare
                     string strThr;
                     if (!StaOk(out strThr)) { strWhy = strThr; return -1; }
                     C3d.COjwDesignerHeader hdr = null;
-                    string strErr;
-                    bool bOk = WithTempC3d(delegate(C3d t) { return t.FileOpen_Without_Event(strOjwPath, out hdr); }, out strErr);
+                    string strErr, strTextWarn = "";
+                    bool bOk = WithTempC3d(delegate(C3d t) { bool b = t.FileOpen_Without_Event(strOjwPath, out hdr); strTextWarn = t.GetFileOpen_Warn() ?? ""; return b; }, out strErr);
                     if (!bOk || hdr == null || hdr.pSMotorInfo == null)
                     {
-                        strWhy = "디자이너 파일을 읽지 못함" + ((strErr.Length > 0) ? " (" + strErr + ")" : "") + ": " + strOjwPath;
+                        strWhy = "디자이너 파일을 읽지 못함" + ((strErr.Length > 0) ? " (" + strErr + ")" : "") + ((strTextWarn.Length > 0) ? " (" + strTextWarn.Replace("\r\n", " / ") + ")" : "") + ": " + strOjwPath;
                         return -1;
                     }
+                    if (hdr.Ext != null) ext = hdr.Ext;
                     SMotorInfo_t[] a = hdr.pSMotorInfo;
                     CArmMotorSet_t s = Clone();
                     List<string> lstWarn = new List<string>();
+                    if (strTextWarn.Length > 0) lstWarn.Add("텍스트 형식 읽기 경고: " + strTextWarn.Replace("\r\n", " / "));
                     int nTaken = 0;
                     for (int i = 0; i < s.Motors.Count; i++)
                     {
@@ -842,6 +855,7 @@ namespace OpenJigWare
                         nTaken++;
                     }
                     if (nTaken == 0) { strWhy = "가져올 축이 없음 — " + string.Join(" / ", lstWarn.ToArray()); return -1; }
+                    s.ApplyArmMotorsSection(ext.Get(C3d.OJWEXT_ARMMOTORS), lstWarn);
                     s.ClearEffective();
                     string strBad;
                     if (!s.Validate(out strBad))
@@ -851,9 +865,10 @@ namespace OpenJigWare
                         return -1;
                     }
                     Motors = s.Motors;
+                    if (string.IsNullOrEmpty(strRobot)) strRobot = s.strRobot;     // 표시용 로봇 이름 (확장 구역 armMotors 의 robot=)
                     LimitConflict = "";
                     try { strSaved = File.GetLastWriteTime(strOjwPath).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture); } catch { }
-                    lstWarn.Insert(0, "디자이너 파일에서 " + nTaken + "축 가져옴 (ID " + RangeText(Axes) + ")");
+                    lstWarn.Insert(0, "디자이너 파일에서 " + nTaken + "축 가져옴 (ID " + RangeText(Axes) + ", " + ((hdr.eFileFormat == C3d.EOjwFileFormat.Text) ? "텍스트 형식" : "바이너리 형식") + ")");
                     strWhy = string.Join("\r\n", lstWarn.ToArray());
                     return nTaken;
                 }
@@ -889,7 +904,7 @@ namespace OpenJigWare
                 m.nProtocolVersion = (h.nProtocolVersion == 0) ? 2 : h.nProtocolVersion;   // 헤더 규약: 0 해도 2 와 같다
                 m.nHwMotor_Key = (h.nHwMotor_Key >= 0 && h.nHwMotor_Key <= 65535) ? h.nHwMotor_Key : 0;
                 m.strNickName = NickFromHeader(h.strNickName);
-                m.bChecked = old.bChecked && m.SameMapping(old);     // .ojw 에는 확인 칸이 없다 — 해석이 바뀐 축은 다시 확인
+                m.bChecked = old.bChecked && m.SameMapping(old);     // 확장 구역 armMotors 가 없는 .ojw (옛 파일) — 지금 확인을 두되 해석이 바뀐 축은 다시 확인 (있으면 ApplyArmMotorsSection 이 덮는다)
                 m.strSource = "디자이너";
                 return m;
             }
@@ -909,14 +924,84 @@ namespace OpenJigWare
                 return CleanName(s);
             }
 
+            // ── 확장 구역 armMotors (2026-10-15) — 방향 확인·출처 (헤더 SMotorInfo_t 에 칸이 없는 것) ──
+            //   "motor=축,확인(1/0),매핑(방향:영점:틱/회전:각/회전),출처" 줄. 되살릴 때 그 축의 매핑이 같아야 확인을 되살린다 (디자이너에서 방향·영점을 고쳤으면 다시 확인)
+            /// <summary>이 세트의 확장 구역 armMotors 글 (UTF-8 글, CRLF)</summary>
+            public string ArmMotorsSectionText()
+            {
+                CultureInfo ci = CultureInfo.InvariantCulture;
+                StringBuilder sb = new StringBuilder();
+                sb.Append("// 모터 세팅 표 — motor=축,방향 확인(1/0),매핑(방향:영점:틱/회전:각/회전),출처. 매핑이 같을 때만 방향 확인을 되살린다\r\n");
+                sb.Append("robot=").Append(CleanText(strRobot)).Append("\r\n");
+                foreach (CArmMotor_t m in Motors)
+                {
+                    if (m == null) continue;
+                    sb.Append("motor=").Append(m.nAxis.ToString(ci)).Append(',').Append(m.bChecked ? "1" : "0").Append(',')
+                      .Append(MotorMapText(m)).Append(',').Append(CleanText(m.strSource)).Append("\r\n");
+                }
+                return sb.ToString();
+            }
+            // 매핑 한 칸 "방향:영점:틱/회전:각/회전" (MappingKey 의 축 뒤 네 칸과 같다)
+            private static string MotorMapText(CArmMotor_t m)
+            {
+                CultureInfo ci = CultureInfo.InvariantCulture;
+                return m.nMotorDir.ToString(ci) + ":" + m.nCenter_Evd.ToString(ci) + ":" + m.nMechMove.ToString(ci) + ":" + Fmt(m.fMechAngle);
+            }
+            /// <summary>확장 구역 armMotors 를 이 세트에 — 축마다 매핑이 같으면 방향 확인·출처를 되살리고, 다르면 확인 해제 + 출처 "디자이너" (경고 한 줄).
+            /// 글이 없으면(옛 .ojw) 아무것도 하지 않는다. 표시용 로봇 이름은 비었을 때만. 예외 없음</summary>
+            internal void ApplyArmMotorsSection(string strText, List<string> lstWarn)
+            {
+                if (string.IsNullOrEmpty(strText)) return;
+                try
+                {
+                    int nOk = 0;
+                    List<int> lstMis = new List<int>();
+                    foreach (string raw in strText.Split('\n'))
+                    {
+                        string s = raw.Trim();
+                        if (s.Length == 0 || s.StartsWith("//", StringComparison.Ordinal)) continue;
+                        int nEq = s.IndexOf('=');
+                        if (nEq <= 0) continue;
+                        string k = s.Substring(0, nEq).Trim().ToLowerInvariant(), v = s.Substring(nEq + 1).Trim();
+                        if (k == "robot") { if (string.IsNullOrEmpty(strRobot)) strRobot = v; continue; }
+                        if (k != "motor") continue;
+                        string[] p = v.Split(new char[] { ',' }, 4);
+                        int ax;
+                        if (p.Length < 3 || !TryInt(p[0], out ax)) continue;
+                        CArmMotor_t m = Get(ax);
+                        if (m == null) continue;
+                        if (p[2].Trim() != MotorMapText(m)) { m.bChecked = false; m.strSource = "디자이너"; lstMis.Add(ax); continue; }
+                        m.bChecked = (p[1].Trim() == "1");
+                        if (p.Length > 3 && p[3].Trim().Length > 0) m.strSource = p[3].Trim();
+                        nOk++;
+                    }
+                    if (lstMis.Count > 0 && lstWarn != null)
+                        lstWarn.Add("ID " + RangeText(lstMis.ToArray()) + ": 저장 뒤 방향·영점·틱/회전·각/회전이 바뀌어 (디자이너 등) 방향 확인을 되살리지 않음 — 다시 확인");
+                }
+                catch { }
+            }
+
             /// <summary>디자이너 파일(.ojw)로 저장. 실패하면 false 와 사유 — 예외는 밖으로 내지 않는다.
             /// ⚠ UI 스레드(STA)에서만 부른다 — 임시 C3d 로 쓰고 다시 읽는다 (화면 3D·헤더·연결·버스는 건드리지 않는다).
             /// 내용 = 화면 3D 헤더(c3d.m_CHeader — 모델·DH·그룹 등 지금 3D 그대로)의 사본에 이 세트의 축을 덮어쓴 것.
             ///   리밋은 수동 리밋만 (EDH $jointrange 는 DH 안에 있어 따로 쓰지 않는다 — 헤더 규약: 없음 = 0, 0° = ∓0.001), 기종 0(미지정)도 그대로.
-            ///   방향 확인(bChecked)·출처는 .ojw 에 칸이 없어 남지 않는다.
+            ///   방향 확인(bChecked)·출처는 확장 구역 armMotors 로 (2026-10-15 — 이 겹함수는 바이너리 형식, 확장 구역은 끝 꼬리 블록).
             /// 순서: 검증(Validate) → &lt;파일&gt;.tmp 에 쓰기 → ImportDesignerFile 로 다시 읽어 비교 → 있던 파일은 &lt;파일&gt;.bak 로 남기고 바꿔 넣기.
             ///   중간에 실패하면 있던 파일은 그대로다. 다시 읽은 값이 다른 칸이 있으면(예: 이름이 31바이트를 넘어 잘림) 저장은 하고 strWhy 에 그 목록</summary>
             public bool SaveDesignerFile(C3d c3d, string strPath, out string strWhy)
+            {
+                return SaveDesignerFile(c3d, strPath, null, C3d.EOjwFileFormat.Binary, out strWhy);
+            }
+            /// <summary>디자이너 파일(.ojw)로 저장 — 형식을 고른다 (Text = 텍스트 형식, Binary = 예전 바이너리 — 다른 프로그램·옛 DLL 용).
+            /// strUrdfDir 가 있으면 그 폴더의 덧붙임 3가지(로봇 정의·로봇팔 설정 sagarm.txt, 수직 눈 확인 기록, 적용 중 처짐 보정 모델 — CArmOjwExtras.Collect)를
+            /// 확장 구역으로 함께 담는다 (null = 담지 않음). 방향 확인·출처(armMotors)는 늘 담는다. 확장 구역은 바이너리면 끝 꼬리 블록 (옛 읽기는 무시한다).
+            /// 그 밖은 3 인자 겹함수와 같다 (다시 읽어 표의 칸·방향 확인·출처·확장 구역이 같은지 비교)</summary>
+            public bool SaveDesignerFile(C3d c3d, string strPath, string strUrdfDir, C3d.EOjwFileFormat eFormat, out string strWhy)
+            {
+                return SaveDesignerFileEx(c3d, strPath, (strUrdfDir != null) ? CArmOjwExtras.Collect(strUrdfDir) : null, eFormat, out strWhy);
+            }
+            // 디자이너 파일(.ojw)로 저장 본체 — 덧붙임 extras (null 이면 덧붙임 3가지를 담지 않는다). 그 밖은 위 겹함수와 같다
+            private bool SaveDesignerFileEx(C3d c3d, string strPath, CArmOjwExtras extras, C3d.EOjwFileFormat eFormat, out string strWhy)
             {
                 strWhy = "";
                 string strTmp = null;
@@ -942,38 +1027,47 @@ namespace OpenJigWare
                     lock (c3d.EdhLimit_SyncRoot) hdr = CopyHeader(c3d.m_CHeader);
                     List<int> lstEn = new List<int>(c3d.m_lstMotorsEn);
                     set.WriteMotorFields(hdr.pSMotorInfo, true);
-                    string strFileTmp = strTmp, strErr;
+                    // 확장 구역 (2026-10-15) — 사본에만 (화면 헤더는 그대로): 방향 확인·출처는 늘, 덧붙임 3가지는 extras 가 있을 때 (urdf 폴더의 파일에서 모은 것 등)
+                    hdr.Ext.Set(C3d.OJWEXT_ARMMOTORS, set.ArmMotorsSectionText());
+                    if (extras != null) extras.PutTo(hdr.Ext);
+                    string strFileTmp = strTmp, strErr, strSaveErr = "";
                     bool bWrote = WithTempC3d(delegate(C3d t)
                     {
                         t.m_CHeader = hdr;
                         t.m_lstMotorsEn.Clear();
                         t.m_lstMotorsEn.AddRange(lstEn);
-                        t.FileSave(strFileTmp, hdr);                            // 안에서 예외를 삼킨다 — 파일이 생겼는지와 다시 읽기로 확인
-                        return File.Exists(strFileTmp) && new FileInfo(strFileTmp).Length > 0;
+                        t.FileSave(strFileTmp, hdr, eFormat);                   // 안에서 예외를 삼킨다 — 쓰다 멈춘 까닭(GetFileSave_Error)·파일이 생겼는지·다시 읽기로 확인
+                        strSaveErr = t.GetFileSave_Error() ?? "";
+                        return strSaveErr.Length == 0 && File.Exists(strFileTmp) && new FileInfo(strFileTmp).Length > 0;
                     }, out strErr);
                     if (!bWrote)
                     {
                         TryDelete(strTmp);
+                        if (strSaveErr.Length > 0) strErr = (strErr.Length > 0) ? strSaveErr + " / " + strErr : strSaveErr;   // 쓰다 멈춘 까닭 (예전에는 잘린 파일의 '다시 읽기 실패' 로만 보였다)
                         strWhy = "저장 실패 — 디자이너 파일을 쓰지 못함" + ((strErr.Length > 0) ? " (" + strErr + ")" : "") + ". 있던 파일은 그대로";
                         return false;
                     }
 
                     CArmMotorSet_t chk = CreateDefault(set.Axes, strRobot);
                     string strChk;
-                    if (chk.ImportDesignerFile(strTmp, out strChk) < 0)
+                    C3d.COjwFileExt extChk;
+                    if (chk.ImportDesignerFile(strTmp, out extChk, out strChk) < 0)
                     {
                         TryDelete(strTmp);
                         strWhy = "저장 실패 — 쓴 파일을 다시 읽지 못함: " + strChk + ". 있던 파일은 그대로";
                         return false;
                     }
                     List<string> lstDiff = new List<string>();
+                    List<string> lstKeys = new List<string>(FieldKeys);
+                    lstKeys.Add("source");                                      // 방향 확인·출처도 확장 구역 armMotors 로 다시 읽힌다
                     foreach (int ax in set.Axes)
-                        foreach (string k in FieldKeys)
+                        foreach (string k in lstKeys)
                         {
-                            if (k == "checked") continue;                       // .ojw 에 칸이 없다
                             string v0 = set.GetField(ax, k), v1 = chk.GetField(ax, k);
                             if (v0 != v1) lstDiff.Add("ID " + ax + " " + k + ": '" + v0 + "' → 파일 '" + v1 + "'");
                         }
+                    foreach (string strSec in hdr.Ext.Names)
+                        if (!string.Equals(hdr.Ext.Get(strSec), extChk.Get(strSec), StringComparison.Ordinal)) lstDiff.Add("확장 구역 " + strSec + " 이 다시 읽은 것과 다름");
 
                     try
                     {
@@ -1016,6 +1110,7 @@ namespace OpenJigWare
                 c.pSMotorInfo = CloneArr(h.pSMotorInfo);
                 c.pDhParamAll = CloneArr(h.pDhParamAll);
                 c.pSOjwCode = CloneArr(h.pSOjwCode);
+                c.Ext = (h.Ext != null) ? h.Ext.Clone() : new C3d.COjwFileExt();   // 확장 구역 — 저장할 사본에 구역을 넣어도 화면 헤더는 그대로
                 if (h.lstGroupInfo != null) c.lstGroupInfo = new List<SGroupInfo_t>(h.lstGroupInfo);
                 return c;
             }
@@ -1320,6 +1415,77 @@ namespace OpenJigWare
         }
 
         // ────────────────────────────────────────────────────────────
+        // 모터 세팅 .ojw 의 덧붙임 (2026-10-15)
+        // ────────────────────────────────────────────────────────────
+        /// <summary>MakeUrdf 모터 세팅 .ojw 에 함께 담는 덧붙임 3가지 — 디자이너 파일의 확장 구역 (COjw_12_3D_OjwText.cs).
+        ///   robotDef  = 로봇 정의·로봇팔 설정 (&lt;urdf&gt;\sagarm.txt 글 그대로)
+        ///   eyeRecord = 수직 눈 확인 기록 (실습 상태 state.txt 의 eyedef·eyemap·eyetime)
+        ///   sagComp   = 적용 중 처짐 보정 모델 (&lt;urdf&gt;\sagcomp_model.txt 글 그대로)
+        /// 방향 확인·출처(armMotors)는 CArmMotorSet_t 가 저장·불러오기에서 직접 다룬다.
+        /// 불러올 때: 로봇 정의·처짐 보정 모델은 앱이 묻고(기본 [아니오]) 적용한다 — 정의는 sagarm.txt 저장 길(CSagArmSetup.CopySettingsFromText),
+        /// 모델은 C3d.SagRun_ActivateText (백업 + 적용). 눈 확인 기록은 정의 서명과 모터 매핑 키가 지금과 같을 때만 되살린다 (C3d.SagPrac_EyeRestore).</summary>
+        public class CArmOjwExtras
+        {
+            public string RobotDefText = null;                  // null = 없음
+            public string EyeRecordText = null;
+            public string SagCompText = null;
+
+            public bool HasRobotDef { get { return !string.IsNullOrEmpty(RobotDefText); } }
+            public bool HasEyeRecord { get { return !string.IsNullOrEmpty(EyeRecordText); } }
+            public bool HasSagComp { get { return !string.IsNullOrEmpty(SagCompText); } }
+            public bool IsEmpty { get { return !HasRobotDef && !HasEyeRecord && !HasSagComp; } }
+            /// <summary>urdf 폴더의 파일에서 모은다 — 없는 파일의 칸은 null. 예외 없음</summary>
+            public static CArmOjwExtras Collect(string strUrdfDir)
+            {
+                CArmOjwExtras x = new CArmOjwExtras();
+                if (string.IsNullOrEmpty(strUrdfDir)) return x;
+                try
+                {
+                    string p = Path.Combine(strUrdfDir, C3d.CSagArmSetup.FILE);
+                    if (File.Exists(p))
+                    {
+                        byte[] raw = File.ReadAllBytes(p);
+                        int n = (raw.Length >= 3 && raw[0] == 0xEF && raw[1] == 0xBB && raw[2] == 0xBF) ? 3 : 0;
+                        x.RobotDefText = new UTF8Encoding(false).GetString(raw, n, raw.Length - n);
+                    }
+                }
+                catch { }
+                x.EyeRecordText = C3d.SagPrac_EyeRecordText(strUrdfDir);
+                x.SagCompText = C3d.SagRun_ActiveModelText(strUrdfDir);
+                return x;
+            }
+            /// <summary>확장 구역에 넣는다 — 있는 것은 넣고 없는 것은 그 구역을 지운다 (옛 내용이 남지 않게)</summary>
+            public void PutTo(C3d.COjwFileExt ext)
+            {
+                if (ext == null) return;
+                ext.Set(C3d.OJWEXT_ROBOTDEF, HasRobotDef ? RobotDefText : null);
+                ext.Set(C3d.OJWEXT_EYERECORD, HasEyeRecord ? EyeRecordText : null);
+                ext.Set(C3d.OJWEXT_SAGCOMP, HasSagComp ? SagCompText : null);
+            }
+            /// <summary>확장 구역에서 읽는다 (ImportDesignerFile 의 ext). 없으면 빈 것</summary>
+            public static CArmOjwExtras From(C3d.COjwFileExt ext)
+            {
+                CArmOjwExtras x = new CArmOjwExtras();
+                if (ext == null) return x;
+                x.RobotDefText = ext.Get(C3d.OJWEXT_ROBOTDEF);
+                x.EyeRecordText = ext.Get(C3d.OJWEXT_EYERECORD);
+                x.SagCompText = ext.Get(C3d.OJWEXT_SAGCOMP);
+                return x;
+            }
+            /// <summary>담긴 로봇 정의·설정 (sagarm.txt 와 같은 규칙으로 읽은 것 — 읽기 경고는 LoadWarn). 없으면 null</summary>
+            public C3d.CSagArmSetup RobotDef() { return HasRobotDef ? C3d.CSagArmSetup.FromText(RobotDefText) : null; }
+            /// <summary>담긴 것 이름 ("로봇 정의·설정, 눈 확인 기록, 처짐 보정 모델" — 없으면 "")</summary>
+            public string Describe()
+            {
+                List<string> l = new List<string>();
+                if (HasRobotDef) l.Add("로봇 정의·설정");
+                if (HasEyeRecord) l.Add("수직 눈 확인 기록");
+                if (HasSagComp) l.Add("처짐 보정 모델");
+                return string.Join(", ", l.ToArray());
+            }
+        }
+
+        // ────────────────────────────────────────────────────────────
         // 결과 구조체
         // ────────────────────────────────────────────────────────────
         /// <summary>읽기 결과 (축 하나) — 레지스터는 표시·경고용 (EEPROM 은 쓰지 않는다). 행 색: 무응답·리밋 밖 = 빨강, bWarn = 노랑</summary>
@@ -1356,7 +1522,7 @@ namespace OpenJigWare
         // 실물 연결 하나
         // ────────────────────────────────────────────────────────────
         /// <summary>로봇팔 실물 연결 하나 — CScene_t 한 개를 가진다. 탭의 연결 줄·모터 세팅 표와 측정·시험 작업이 같은 연결을 빌려 쓴다.
-        /// 잠금: 소유자 문자열 하나. TryAcquire(소유자) 로 잡은 동안 다른 소유자의 버스 동작(읽기·조그·영점·토크·연결 해제·따라가기·세팅 적용)은 거부된다.
+        /// 잠금: 소유자 문자열 하나. TryAcquire(소유자) 로 잡은 동안 다른 소유자의 버스 동작(읽기·조그·영점·토크·재부팅·연결 해제·따라가기·세팅 적용)은 거부된다.
         /// 같은 소유자 이름으로 부르면 다시 잡아도 통과(재진입) — 이름 하나는 한 스레드만 쓸 것. 소유자 null 로 부르는 함수는
         /// 그 동작 동안만 잡았다 놓는다 (소유자 없는 짧은 동작).
         /// 기다림: 작업 스레드에서 잡을 때 다른 스레드의 소유자 없는 짧은 동작(따라가기 읽기·읽기·조그 등)이 잡고 있으면 LockWaitMs 까지 기다렸다가
@@ -1364,7 +1530,7 @@ namespace OpenJigWare
         /// 따라가기 읽기만 (최대 200ms) 기다린다 — 다른 동작은 잡고 있는 작업 스레드가 로그를 UI 로 보내므로(Invoke) 기다리면 서로 멈춘다.
         /// 같은 스레드가 잡고 있으면(DoEvents 안에서 다시 불린 경우) 기다리지 않는다. 따라가기(FollowOnce)는 기다리지 않고, 기다리는 쪽이 있으면
         /// 건너뛴다 — 따라가기 읽기는 BusyOwner·IsBusy 에도 보이지 않는다.
-        /// 스레드: Connect·Disconnect·ReadState·TorqueOn·TorqueOff·EnsureSynced·Jog·PreviewZero·SetZeroHere·ApplyMotors(연결 중)는
+        /// 스레드: Connect·Disconnect·ReadState·TorqueOn·TorqueOff·Reboot·EnsureSynced·Jog·PreviewZero·SetZeroHere·ApplyMotors(연결 중)는
         /// 버스를 쓰는 블로킹 함수라 작업 스레드에서 부른다. FollowOnce 는 UI 타이머(UI 스레드)에서 — 작업 스레드의 동작이 그 읽기를 기다렸다 잡는다.
         /// StateChanged 는 부른 스레드에서 온다 — UI 는 BeginInvoke 로 받는다.
         /// DH 를 다시 만든 뒤의 리밋 반영(ReapplyAfterRebuild)은 잠금이 잡혀 있거나 3D 모션 중이면 미뤘다가 잠금을 새로 잡을 때·놓을 때 한다
@@ -2072,6 +2238,43 @@ namespace OpenJigWare
                 finally { Leave(bTook); Notify(); }
             }
 
+            /// <summary>다시 연결한 뒤 처짐 보정 되살리기 (2026-10-15 검토 — 앱이 포트를 적용 예제 실행기에 넘겼다가 같은 포트로 다시 연결할 때).
+            /// 연결이 토크를 붙잡은 서보를 이어받으면 걸려 있던 처짐 보정을 페이드 없이 끈다 (AdoptTorque → C3d.SagComp_OffForAdopt, 보고에 ADOPT_COMP_OFF,
+            /// 3D = 서보 목표). 넘기기 전에 켜져 있던 보정 mBefore 를 보통 켜기 길로 다시 켠다 (C3d.SagComp_Enable(true) — 끈 직후라 전환 기준 = 걸린 보정 0:
+            /// 다음 출력 틱은 서보 목표 그대로이고, 보정은 다음 동작의 출력 틱 1초에 걸쳐 0 에서 들어온다 — ⑦ '처짐 보정 켬' 을 다시 누른 것과 같다).
+            /// 이어받은 자세가 정해진 뒤에만 켠다: 연결됨 · 토크 ON · 구성 그대로 · 다시 맞출 것 없음 (NeedsSync 가 남았으면 움직이기 전 확인 EnsureSynced 가
+            /// 서보 목표로 맞추며 보정을 다시 끈다) · 잠금·3D 모션 없음 (잠금을 잠깐 잡고 본다). mBefore 가 지금도 적용 중 모델이고 꺼져 있을 때만.
+            /// 버스를 쓰지 않는다 (UI 스레드에서 불러도 된다). 반환 = 다시 켰다. strWhy = 켜지 않은 까닭 ("" = 켰거나 되살릴 것이 없음). 예외 없음</summary>
+            public bool RestoreSagComp(C3d.CSagComp mBefore, out string strWhy)
+            {
+                strWhy = "";
+                try
+                {
+                    if (mBefore == null || m_C3d == null) return false;                          // 넘기기 전에 켜진 보정이 없었다
+                    if (!object.ReferenceEquals(m_C3d.SagComp_Get(), mBefore)) { strWhy = "그사이 적용 중 처짐 보정 모델이 바뀜"; return false; }
+                    if (mBefore.Enabled) return false;                                           // 꺼지지 않았다 — 되살릴 것 없음
+                    CScene_t sc = m_Scene;
+                    if (sc == null || !sc.IsConnected) { strWhy = "연결 안 됨"; return false; }
+                    if (!sc.IsTorqueOn) { strWhy = "토크 OFF — 이어받은 자세가 없음"; return false; }
+                    if (ConfigMismatch) { strWhy = "모터 구성이 연결 뒤 바뀜 — 다시 연결"; return false; }
+                    if (m_bUnsynced) { strWhy = "서보가 붙잡은 목표를 다 읽지 못함 — 움직이기 전 확인이 목표로 맞추며 보정을 끈다"; return false; }
+                    bool bTook;
+                    string w;
+                    if (!EnterLock(null, "처짐 보정 되살리기", false, 0, false, out bTook, out w)) { strWhy = w; return false; }
+                    try
+                    {
+                        if (m_C3d.MoveJoints_IsMoving()) { strWhy = "3D 모션 중"; return false; }
+                        if (!object.ReferenceEquals(m_C3d.SagComp_Get(), mBefore) || mBefore.Enabled) return false;
+                        m_C3d.SagComp_Enable(true);                                              // 보통 켜기 길 — 전환 기준 = 걸린 보정 (이어받기 뒤라 0)
+                    }
+                    finally { Leave(bTook); }
+                    Log("처짐 보정 다시 켬 — 이어받기로 꺼졌던 보정 (지금 자세 그대로, 다음 동작의 출력 틱 1초에 걸쳐 0 에서 들어옴)");
+                    Notify();
+                    return true;
+                }
+                catch (Exception ex) { strWhy = "오류: " + ex.Message; return false; }
+            }
+
             // ── 토크 ──
             /// <summary>토크 켜기 (작업 스레드). 거부는 미연결·잠금 실패(바쁨·모션 중)·ConfigMismatch 뿐 — 읽기 실패·리밋 밖·DH 리밋 반영 못 함은
             /// 경고만(strWhy) 돌려주고 켠다 (예전 torqon 그대로: 정렬 → 처짐 보정 방향 추적 리셋 → 토크 → Stream_Reset). 정렬을 못 했으면
@@ -2297,6 +2500,85 @@ namespace OpenJigWare
                 finally { Leave(bTook); Notify(); }
             }
 
+            // ── 재부팅 (오류 지우기, 10-16) ──
+            /// <summary>전 서보 재부팅 (작업 스레드, 블로킹 — 보통 1~3초) — 하드웨어 오류(주소 70)를 지운다 (CScene_t.reboot — REBOOT 브로드캐스트). 오류가 없어도 된다.
+            /// 거부: 미연결 · 잠금을 잡지 못함 (이름 있는 작업이 쥐고 있으면 기다리지 않고 거부 — Enter 규칙 그대로) · 3D 모션 중 (스트리밍 중에는 보내지 않는다).
+            /// 순서: 축마다 하드웨어 오류를 먼저 읽고 (보고의 '전') → 재부팅 → 다시 대답할 때까지 기다림 → 상태를 다시 읽는다 (ReadStateCore — 토크·오류·위치,
+            /// 토크 OFF 라 3D = 실물 자세, LastState 갱신). 재부팅하면 서보 토크가 꺼지므로 연결도 토크 OFF 로 맞춘다 — 토크 끄기(TorqueOff)와 같이
+            /// 다시 맞출 것 없음 (NeedsSync 해제), 미뤄 둔 DH 리밋 반영. 장면은 붙잡은 자세 모름·처짐 보정의 출력 단 상태를 비운다 (서보가 붙잡은 보정이 없다)
+            /// → 뒤의 [토크 켜기] 는 보통 길 (지금 자세 그대로 켬) 로 간다. 팔이 떨어질 수 있다는 확인은 UI 에서.
+            /// strReport = 요약 한 줄 + 축마다 '오류 전 → 후 · 응답' + 토크 줄 (거부면 사유). 반환 = 재부팅을 보냈다 (다시 대답하지 않은 축·남은 오류가 있어도 true — 보고에 적는다)</summary>
+            public bool Reboot(string strOwner, out string strReport)
+            {
+                strReport = "";
+                CScene_t sc = m_Scene;
+                if (sc == null || !sc.IsConnected) { strReport = "연결 안 됨 — 먼저 연결하십시오"; return false; }
+                bool bTook;
+                if (!Enter(strOwner, "재부팅", true, out bTook, out strReport)) return false;
+                try
+                {
+                    if (m_C3d.MoveJoints_IsMoving()) { strReport = "사용 중: 3D 모션 — 끝난 뒤 다시"; return false; }
+                    int[] ids = sc.IDs;
+                    string w;
+                    Dictionary<int, long> dErr0 = sc.ReadReg(70, 1, out w);          // 재부팅 전 하드웨어 오류 (못 읽은 축은 빠진다 — '?')
+                    if (dErr0 == null) dErr0 = new Dictionary<int, long>();
+                    bool bWasOn = sc.IsTorqueOn;
+                    int nT0 = Environment.TickCount;
+                    if (sc.RebootCore(-1) < 0) { strReport = "재부팅을 보내지 못함 — 3D 모션 중이거나 연결이 끊김 (Log 탭)"; return false; }   // 보내기 전 거부 — 장면은 그대로
+                    int nMs = unchecked(Environment.TickCount - nT0);
+                    m_bUnsynced = false;
+                    CArmMotorState_t[] aSt;
+                    string strRead = "", strAdopt;
+                    try { aSt = ReadStateCore(sc, false, out strRead, out strAdopt); }
+                    catch (Exception exRead) { aSt = new CArmMotorState_t[0]; strRead = "상태 읽기 오류: " + exRead.Message; }   // 연결은 유지 — 표는 '읽기' 로 다시
+                    ReapplyPendingLocked();                // 토크 ON 이라 장면이 거부했던 DH 리밋 반영 — 이제 토크 OFF
+                    // 보고 — 축마다 오류 전 → 후 · 응답
+                    StringBuilder sb = new StringBuilder();
+                    List<int> lstMiss = new List<int>(), lstErr = new List<int>(), lstCleared = new List<int>();
+                    foreach (int id in ids)
+                    {
+                        CArmMotorState_t s = null;
+                        foreach (CArmMotorState_t t in aSt) if (t != null && t.nAxis == id) { s = t; break; }
+                        bool bResp = s != null && s.bResponded;
+                        long v0;
+                        bool bKnown0 = dErr0.TryGetValue(id, out v0);
+                        if (!bResp) lstMiss.Add(id);
+                        else if (s.nHwError != 0) lstErr.Add(id);
+                        else if (bKnown0 && v0 != 0) lstCleared.Add(id);
+                        sb.AppendFormat(CultureInfo.InvariantCulture, "ID {0} {1}: 오류 {2} → {3} · {4}",
+                                        id, bResp ? s.strModel : "-", bKnown0 ? HwErrorText((int)v0) : "? (못 읽음)",
+                                        bResp ? HwErrorText(s.nHwError) : "-", bResp ? "응답" : "무응답");
+                        if (bResp && s.bTorqueKnown && s.bTorque) sb.Append(" · ★토크 ON 남음");
+                        sb.Append("\r\n");
+                    }
+                    string strHead = string.Format(CultureInfo.InvariantCulture, "재부팅 ({0:0.0}초) — 응답 {1}/{2}", nMs / 1000f, ids.Length - lstMiss.Count, ids.Length);
+                    if (lstCleared.Count > 0) strHead += " · 오류 지움 ID " + CArmMotorSet_t.RangeText(lstCleared.ToArray());
+                    if (lstMiss.Count > 0) strHead += " · ★무응답 ID " + CArmMotorSet_t.RangeText(lstMiss.ToArray()) + " (전원·배선 확인)";
+                    if (lstErr.Count > 0) strHead += " · ★오류 남음 ID " + CArmMotorSet_t.RangeText(lstErr.ToArray()) + " (원인을 없앤 뒤 다시 — 과부하면 걸림·하중, 전압이면 전원)";
+                    if (lstMiss.Count == 0 && lstErr.Count == 0) strHead += " · 하드웨어 오류 없음";
+                    sb.Insert(0, strHead + "\r\n");
+                    if (strRead.Length > 0) sb.Append(strRead).Append("\r\n");
+                    sb.Append("토크 OFF (재부팅하면 서보 토크가 꺼짐" + (bWasOn ? " — 재부팅 전에는 토크 ON 이었음" : "") + ") — 다시 붙잡으려면 [토크 켜기]");
+                    strReport = sb.ToString();
+                    Log(strHead);
+                    return true;
+                }
+                catch (Exception ex) { strReport = "재부팅 오류: " + ex.Message; return false; }
+                finally { Leave(bTook); Notify(); }
+            }
+            /// <summary>하드웨어 오류 (주소 70, X 시리즈 비트) 글 — "0x20 과부하" 꼴 (0 이면 "0x00"). 비트: 0x01 전압 · 0x04 과열 · 0x08 엔코더 · 0x10 전기 충격 · 0x20 과부하</summary>
+            public static string HwErrorText(int nErr)
+            {
+                string s = "0x" + (nErr & 0xFF).ToString("X2", CultureInfo.InvariantCulture);
+                List<string> lst = new List<string>();
+                if ((nErr & 0x01) != 0) lst.Add("전압");
+                if ((nErr & 0x04) != 0) lst.Add("과열");
+                if ((nErr & 0x08) != 0) lst.Add("엔코더");
+                if ((nErr & 0x10) != 0) lst.Add("전기 충격");
+                if ((nErr & 0x20) != 0) lst.Add("과부하");
+                return (lst.Count > 0) ? s + " " + string.Join("·", lst.ToArray()) : s;
+            }
+
             // ── 움직이기 전 확인 ──
             /// <summary>움직이는 동작(조그·측정·시험)을 시작하기 전에 부른다 (작업 스레드). 3D 만 바꾸고 실물은 움직이지 않는다.
             /// · 토크 OFF: 실측 → 3D = 실측.
@@ -2495,7 +2777,7 @@ namespace OpenJigWare
                     if (dMax.TryGetValue(id, out v)) s.nMaxPos = (int)v;
                     if (dMin.TryGetValue(id, out v)) s.nMinPos = (int)v;
                     if (dTq.TryGetValue(id, out v)) { s.bTorque = (v != 0); s.bTorqueKnown = true; }
-                    if (dErr.TryGetValue(id, out v)) { s.nHwError = (int)v; if (v != 0) { lstN.Add("하드웨어 오류 0x" + ((int)v).ToString("X2", CultureInfo.InvariantCulture)); s.bWarn = true; } }
+                    if (dErr.TryGetValue(id, out v)) { s.nHwError = (int)v; if (v != 0) { lstN.Add("하드웨어 오류 " + HwErrorText((int)v) + " — 재부팅(Reboot)으로 지울 수 있음"); s.bWarn = true; } }
                     if (dVolt.TryGetValue(id, out v)) s.fVolt = v * 0.1f;
                     if (dTemp.TryGetValue(id, out v)) s.nTempC = (int)v;
                     if (anTick != null) { s.bTickOk = true; s.nTick = anTick[i]; s.fSim = sc.RawToSim(i, anTick[i]); }

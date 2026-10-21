@@ -725,16 +725,21 @@ namespace OpenJigWare.Docking
             DialogResult dlgRet = MessageBox.Show("Overwrite?", "File Save", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             if (dlgRet == System.Windows.Forms.DialogResult.OK)
             {
-                m_C3d.FileSave(m_C3d.GetFileName(), m_C3d.GetHeader());
+                // 덮어쓰기는 연 파일의 형식 그대로 (텍스트 형식으로 연 파일은 텍스트로 — 2026-10-15)
+                m_C3d.FileSave(m_C3d.GetFileName(), m_C3d.GetHeader(), m_C3d.GetHeader().eFileFormat);
             }
-            else 
+            else
             {
                 #region File Save
                 SaveFileDialog saveDlg = new SaveFileDialog();
                 saveDlg.FileName = "*." + Ojw.C3d._STR_EXT;
-                saveDlg.Filter = "Design file(*." + Ojw.C3d._STR_EXT + ")|*." + Ojw.C3d._STR_EXT;
+                // [1] 바이너리 (기본 — 다른 프로그램·옛 DLL 이 읽는다) / [2] 텍스트 형식 (UTF-8 XML — 버전 없이 늘릴 수 있다, 2026-10-15)
+                saveDlg.Filter = "Design file(*." + Ojw.C3d._STR_EXT + ")|*." + Ojw.C3d._STR_EXT +
+                                 "|Design file - 텍스트 형식(*." + Ojw.C3d._STR_EXT + ")|*." + Ojw.C3d._STR_EXT;
+                saveDlg.FilterIndex = 1;
 
                 // [미사용] 저장 버전 선택 - 되살리려면 위 Filter 를 지우고 아래를 해제할 것 (④ 지점).
+                //   (위 Filter 의 2번 칸 = 텍스트 형식 — 되살릴 때 칸 번호가 겹치지 않게 아래 FilterIndex 비교도 함께 고칠 것)
                 //   COjw_12_3D.cs 의 _STR_EXT_VERSION_LEGACY / CheckSavable_LegacyVersion /
                 //   FileSave(.., strSaveVersion) 오버로드도 함께 해제해야 한다.
                 //saveDlg.Filter =
@@ -774,8 +779,9 @@ namespace OpenJigWare.Docking
                             //}
                             //m_C3d.FileSave(fileName, m_C3d.GetHeader(), strSaveVersion);
 
-                            m_C3d.FileSave(fileName, m_C3d.GetHeader());
-                            Ojw.CMessage.Write(fileName + "(" + Ojw.C3d._STR_EXT_VERSION + ") file saved");
+                            bool bText = (saveDlg.FilterIndex == 2);
+                            m_C3d.FileSave(fileName, m_C3d.GetHeader(), bText ? Ojw.C3d.EOjwFileFormat.Text : Ojw.C3d.EOjwFileFormat.Binary);
+                            Ojw.CMessage.Write(fileName + "(" + (bText ? "text" : Ojw.C3d._STR_EXT_VERSION) + ") file saved");
                         }
                     }
                 }

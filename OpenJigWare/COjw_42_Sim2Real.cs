@@ -2404,6 +2404,66 @@ namespace OpenJigWare
                     Log("[COMM] 전 모터 토크 {0} 확인\r\n", bOn ? "ON" : "OFF");
             }
 
+            // ── 재부팅 (오류 지우기, 10-16) ──
+            private const int REBOOT_FIRST_MS = 200;        // 보낸 뒤 첫 확인까지 (재부팅 중에는 대답이 없다 — 일찍 물으면 대기시간 초과만 쌓인다)
+            private const int REBOOT_WAIT_MS = 3000;        // 다시 대답하기를 기다리는 최대 시간 (보통 0.5~2초)
+            /// <summary>전 서보 재부팅 (REBOOT 0x08 브로드캐스트 — CProtocol.Reboot) — 하드웨어 오류(주소 70: 과부하·과열·전압·엔코더 등, 서보가 스스로 토크를 끈 까닭)를 지운다.
+            /// 오류가 없어도 된다. 재부팅하면 서보 토크가 꺼지고 RAM(토크·목표·Profile 등)이 기본값으로 돌아간다 — 팔이 떨어질 수 있으니 받친 뒤 부른다.
+            /// 보낸 뒤 모델번호(주소 0 — 연결 때 응답 확인과 같은 읽기)로 장면의 전 ID 가 다시 대답할 때까지 기다린다 (최대 3초).
+            /// 장면은 토크 OFF·붙잡은 자세 모름으로 하고 처짐 보정의 출력 단 상태를 비운다 (서보가 붙잡은 것이 없다). 다시 움직이려면 torqon().
+            /// 반환 = 전 ID 가 다시 대답했다. 미연결·3D 모션 중이면 보내지 않고 false</summary>
+            public bool reboot() { return RebootCore(-1) > 0; }
+            /// <summary>reboot 와 같고 ID 하나만 (장면의 모터 ID — REBOOT 를 그 ID 로 보내고 그 ID 가 다시 대답할 때까지 기다린다).
+            /// 장면은 토크 OFF 로 둔다 (다른 축은 서보가 붙잡은 그대로 — 다시 움직이려면 torqon())</summary>
+            public bool reboot(int id) { return RebootCore(id) > 0; }
+            /// <summary>재부팅 본체 — nId = -1 이면 전 서보 (브로드캐스트). 반환: -1 = 보내지 않음 (미연결·장면 밖 ID·3D 모션 중),
+            /// 0 = 보냈는데 다시 대답하지 않은 ID 가 있음, 1 = 전부 다시 대답함 (CArmConn_t.Reboot 가 보냈는지를 가린다)</summary>
+            internal int RebootCore(int nId)
+            {
+                if (m_Com == null)
+                {
+                    Log("[SIM] 통신 미연결 — 재부팅은 실물 연결(open) 후에 의미가 있습니다\r\n");
+                    return -1;
+                }
+                if (nId >= 0 && Array.IndexOf(m_anIDs, nId) < 0)
+                {
+                    Log("[COMM] 재부팅 — ID {0} 는 이 장면의 모터가 아닙니다 (모터: {1})\r\n", nId, string.Join(",", Array.ConvertAll(m_anIDs, x => x.ToString())));
+                    return -1;
+                }
+                if (m_C3d.MoveJoints_IsMoving())
+                {
+                    Log("[COMM] 재부팅 거부 — 3D 모션 중 (끝난 뒤 다시)\r\n");
+                    return -1;
+                }
+                // 먼저 장면을 토크 OFF·붙잡은 자세 모름으로 — 재부팅하는 동안 SendPose 가 보내지 않게
+                m_bTorque = false;
+                m_afHoldSim = null; m_afGoalSim = null; m_afLastSent = null;
+                m_Com.Reboot((nId < 0) ? 254 : nId);            // REBOOT 0x08 (프로토콜 2) — CProtocol 의 토크 표시(m_abMot)도 지운다
+                int nT0 = Environment.TickCount;
+                // 다시 대답할 때까지 — 모델번호 읽기 (응답 없는 ID 는 ReadReg 가 빼고 돌려준다)
+                List<int> lstLeft = new List<int>((nId < 0) ? m_anIDs : new int[] { nId });
+                System.Threading.Thread.Sleep(REBOOT_FIRST_MS);
+                while (true)
+                {
+                    string w;
+                    Dictionary<int, long> d = ReadReg(0, 2, out w);
+                    if (d != null) lstLeft.RemoveAll(x => d.ContainsKey(x));
+                    if (lstLeft.Count == 0 || unchecked(Environment.TickCount - nT0) >= REBOOT_WAIT_MS) break;
+                    System.Threading.Thread.Sleep(100);
+                }
+                int nMs = unchecked(Environment.TickCount - nT0);
+                ProfileAccel_Restore();                           // 토크 끄기와 같이 — 토크 ON 때 바꿔 둔 Profile Acceleration 을 원래 값으로 (안 바꿨으면 아무것도 안 함)
+                m_C3d.SagComp_JointReset();                       // 서보에 걸린 처짐 보정이 없다 — 걸린 보정 없음에서 다시 (토크 켤 때도 다시 한다)
+                m_Com.Stream_Reset();
+                string strWho = (nId < 0) ? "전 모터" : "ID " + nId;
+                if (lstLeft.Count == 0)
+                    Log("[COMM] 재부팅 — {0} 다시 대답함 ({1:F1}초) · 토크 OFF — 다시 움직이려면 torqon()\r\n", strWho, nMs / 1000f);
+                else
+                    Log("[COMM] 주의 — 재부팅 뒤 대답 없는 ID: {0} ({1:F1}초 기다림 — 전원·배선 점검) · 토크 OFF\r\n",
+                        string.Join(",", lstLeft.ConvertAll(x => x.ToString()).ToArray()), nMs / 1000f);
+                return (lstLeft.Count == 0) ? 1 : 0;
+            }
+
             public void syncread() { SyncFromReal(); }
 
             /// <summary>syncread 본체 — 실물 자세로 3D 를 맞추고 그 자세(IDs 순 3D 각, 3D 리밋으로 자르기 전)를 돌려준다.
@@ -2456,8 +2516,10 @@ namespace OpenJigWare
                     for (int i = 0; i < m_anIDs.Length; i++) dicSim[m_anIDs[i]] = aMot[i].TickToSim(anTick[i]);
                     return dicSim;
                 }
+                MarkPosition();                                                    // 예전 경로도 응답 없는 ID 의 지난 값을 쓰지 않게 (10-16)
                 var dicDeg = CSim2Real.ReadAll(m_Com, m_anIDs, out strWhy);
-                if (dicDeg == null) return null;
+                if (dicDeg == null) { EncWatch_Bad(ENC_STALE_N, false, strWhy); return null; }
+                EncWatch_Fresh();
                 var dicOut = new Dictionary<int, float>();
                 for (int i = 0; i < m_anIDs.Length; i++) dicOut[m_anIDs[i]] = dicDeg[m_anIDs[i]] * m_anSign[i];
                 return dicOut;
@@ -2479,19 +2541,22 @@ namespace OpenJigWare
                     for (int i = 0; i < m_anIDs.Length; i++)
                     {
                         int t = m_Com.GetMap_Int(m_anIDs[i], 132);
-                        if (t == 0 || t == -1 || t < -8192 || t > 12288) { strWhy = "ID " + m_anIDs[i] + " 이상값"; return null; }
+                        if (t == 0 || t == -1 || t < -8192 || t > 12288) { strWhy = "ID " + m_anIDs[i] + " 이상값"; EncWatch_Bad(1, false, strWhy); return null; }
                         dicSim[m_anIDs[i]] = aMot[i].TickToSim(t);
                     }
+                    EncWatch_Fresh();
                     return dicSim;
                 }
+                MarkPosition();                                                    // 예전 경로도 응답 없는 ID 의 지난 값을 쓰지 않게 (10-16)
                 m_Com.SyncRead_With_Address(132, 4, m_anIDs); System.Threading.Thread.Sleep(12);
                 var dicOut = new Dictionary<int, float>();
                 for (int i = 0; i < m_anIDs.Length; i++)
                 {
                     int t = m_Com.GetMap_Int(m_anIDs[i], 132);
-                    if (t == 0 || t == -1 || t < -8192 || t > 12288) { strWhy = "ID " + m_anIDs[i] + " 이상값"; return null; }
+                    if (t == 0 || t == -1 || t < -8192 || t > 12288) { strWhy = "ID " + m_anIDs[i] + " 이상값"; EncWatch_Bad(1, false, strWhy); return null; }
                     dicOut[m_anIDs[i]] = CSim2Real.Deg(t) * m_anSign[i];
                 }
+                EncWatch_Fresh();
                 return dicOut;
             }
 
@@ -2553,25 +2618,71 @@ namespace OpenJigWare
             /// <summary>서보 레지스터 112~135 (24바이트) 를 한 번의 SyncRead 로 읽는다 — 서보가 실제로 받은 값과 실제 상태.
             /// 반환 [IDs 순][8] = { Profile Velocity raw, Goal Position tick, Realtime Tick(ms), Moving | Moving Status&lt;&lt;8,
             ///                      Present PWM raw, Present Load raw, Present Velocity raw, Present Position tick } (부호 미적용 원시값).
-            /// nWaitMs = 요청 후 응답을 기다리는 시간. 실패 시 null. (XL430/X 시리즈 프로토콜 2.0 컨트롤 테이블 기준)</summary>
+            /// nWaitMs = 요청 후 응답을 기다리는 시간. 실패 시 null. (XL430/X 시리즈 프로토콜 2.0 컨트롤 테이블 기준)
+            /// 10-16: 읽기 전에 수신 맵의 112~135 를 표지값으로 채운다 — 대답하지 않은 ID 가 있으면 null ("무응답 ID") (예전에는 수신 맵에 남은 지난 값을
+            /// 그대로 돌려줘, 버스가 대답을 멈춘 [1. 학습] 이 몇 분 전 누름의 목표·부하와 시작 때 읽은 휴지 자세로 첫닿음을 판정했다).
+            /// 전 축의 24바이트가 직전 읽기와 비트까지 같고 실시간 틱(주소 120 — 서보의 ms 시계)이 0 이 아니면 새로 읽은 값이 아니다 → null ("읽은 값이 그대로").
+            /// 작업 중이면 엔코더 읽기 감시에 알린다 (EncoderTrip)</summary>
             public int[][] ReadServoBlock(int nWaitMs, out string strWhy)
             {
                 strWhy = "";
                 if (m_Com == null) { strWhy = "통신 미연결"; return null; }
+                foreach (int id in m_anIDs) BlockMark(id);
                 m_Com.SyncRead_With_Address(112, 24, m_anIDs);
                 if (nWaitMs > 0) System.Threading.Thread.Sleep(nWaitMs);
                 var res = new int[m_anIDs.Length][];
+                var lstBad = new List<int>();
+                byte[] raw = new byte[m_anIDs.Length * BLOCK_LEN];
+                bool bClock = false;                                               // 실시간 틱이 흐르는 서보 (0 이 아닌 값) 가 있다
                 for (int i = 0; i < m_anIDs.Length; i++)
                 {
                     int id = m_anIDs[i];
+                    if (m_Com.GetMap_Int(id, 132) == BLOCK_MARK_POS) { lstBad.Add(id); continue; }
+                    int nBase = id * CProtocol._SIZE_MAP + BLOCK_ADDR;
+                    if (nBase >= 0 && nBase + BLOCK_LEN <= m_Com.m_abyMap.Length) Array.Copy(m_Com.m_abyMap, nBase, raw, i * BLOCK_LEN, BLOCK_LEN);
                     res[i] = new int[]
                     {
                         m_Com.GetMap_Int(id, 112), m_Com.GetMap_Int(id, 116), m_Com.GetMap_Short(id, 120) & 0xFFFF,
                         m_Com.GetMap_Short(id, 122) & 0xFFFF, m_Com.GetMap_Short(id, 124), m_Com.GetMap_Short(id, 126),
                         m_Com.GetMap_Int(id, 128), m_Com.GetMap_Int(id, 132)
                     };
+                    if (res[i][2] != 0) bClock = true;
                 }
+                if (lstBad.Count > 0)
+                {
+                    strWhy = "무응답 ID: " + string.Join(",", lstBad.ConvertAll(x => x.ToString()).ToArray());
+                    EncWatch_Bad(1, false, strWhy);
+                    return null;
+                }
+                bool bSame;
+                lock (m_oEnc)
+                {
+                    bSame = m_abyEncLastBlk != null && m_abyEncLastBlk.Length == raw.Length;
+                    for (int k = 0; bSame && k < raw.Length; k++) if (raw[k] != m_abyEncLastBlk[k]) bSame = false;
+                    m_abyEncLastBlk = raw;
+                }
+                if (bSame)
+                {
+                    strWhy = "읽은 값이 그대로 (서보 블록 전체가 직전 읽기와 비트까지 같음)";
+                    // 실시간 틱까지 같다 — 새로 읽은 값이 아니다: 읽기 실패로 센다 (값을 돌려주지 않는다).
+                    //   시계가 없는 버스(버스 흉내 등)는 값은 돌려주고 '그대로' 로만 센다 (명령이 움직였을 때만 건다)
+                    EncWatch_Bad(1, !bClock, strWhy);
+                    if (bClock) return null;
+                    return res;
+                }
+                EncWatch_Fresh();
                 return res;
+            }
+            private const int BLOCK_ADDR = 112, BLOCK_LEN = 24;
+            private const int BLOCK_MARK_POS = int.MaxValue;                       // 표지값 — 위치(132)에 이 값이 남아 있으면 대답하지 않은 것 (위치 틱에서 나오지 않는 값)
+            // 서보 블록 표지 — 112~131 은 0xFF, 132~135 는 BLOCK_MARK_POS
+            private void BlockMark(int nId)
+            {
+                byte[] map = m_Com.m_abyMap;
+                int nBase = nId * CProtocol._SIZE_MAP + BLOCK_ADDR;
+                if (nId < 0 || nBase < 0 || nBase + BLOCK_LEN > map.Length) return;
+                for (int b = 0; b < 20; b++) map[nBase + b] = 0xFF;
+                RegMark(nId, 132, 4, BLOCK_MARK_POS);
             }
             /// <summary>ReadServoBlock 원시값의 부호(sim→실물) — 위치·속도·목표 변환에 쓴다.
             /// 모터 세팅이 붙어 있으면 그 축의 방향 (부호 배열은 무시) — 틱을 각으로 바꿀 때는 영점까지 보는 RawToSim 을 쓸 것</summary>
@@ -2638,6 +2749,7 @@ namespace OpenJigWare
                     {
                         string strTrip = StepGuard_Over(m_afGoalSim, afDeg, "명령");
                         if (strTrip != null) { StepGuard_Trip(strTrip); return; }
+                        EncWatch_Cmd(m_afGoalSim, afDeg);          // 엔코더 읽기 감시 — 마지막으로 새로 읽은 뒤 명령이 움직인 양
                     }
                     m_afLastSent = afDeg;                      // 진단용 — 보정까지 얹어 실제로 보낸 각도(부호 적용 전)
                     m_afHoldSim = afHold; m_afGoalSim = afDeg;
@@ -2655,6 +2767,7 @@ namespace OpenJigWare
                 {
                     string strTrip = StepGuard_Over(m_afGoalSim, afDeg, "명령");   // 보정·리밋까지 얹은 최종 명령도 (보정 전환 이상 등)
                     if (strTrip != null) { StepGuard_Trip(strTrip); return; }
+                    EncWatch_Cmd(m_afGoalSim, afDeg);              // 엔코더 읽기 감시 — 마지막으로 새로 읽은 뒤 명령이 움직인 양 (리밋으로 자른 최종 명령)
                 }
                 m_afLastSent = afDeg;                          // 보정·리밋까지 반영한 값
                 m_afHoldSim = afHold; m_afGoalSim = afDeg;
@@ -2686,12 +2799,96 @@ namespace OpenJigWare
                 m_fStepGuardMinDeg = (fMinDeg > 0) ? fMinDeg : 3f;
                 m_fStepGuardDegPerSec = (fDegPerSec > 0) ? fDegPerSec : 60f;
                 m_strStepGuardTrip = null;
+                EncWatch_Reset();                                  // 엔코더 읽기 감시도 이 작업부터 새로 (10-16)
                 m_bStepGuard = true;
             }
-            /// <summary>한 틱 관절 변화 막이 끄기 (작업 끝)</summary>
+            /// <summary>한 틱 관절 변화 막이 끄기 (작업 끝) — 엔코더 읽기 감시도 같이 꺼진다</summary>
             internal void StepGuard_End() { m_bStepGuard = false; }
-            /// <summary>걸린 까닭 지우기 — 다음 동작(원위치 등)을 그 동작의 결과로 보려고</summary>
-            internal void StepGuard_ClearTrip() { m_strStepGuardTrip = null; }
+            /// <summary>걸린 까닭 지우기 — 다음 동작(원위치 등)을 그 동작의 결과로 보려고. 엔코더 읽기 감시의 셈은 그대로 둔다
+            /// (원위치 뒤 확인 읽기도 실패하면 다시 건다 — 새로 읽혀야 셈이 0 으로)</summary>
+            internal void StepGuard_ClearTrip() { m_strStepGuardTrip = null; lock (m_oEnc) m_bEncTripped = false; }
+
+            // ── 엔코더 읽기 감시 (작업 중에만 — 한 틱 관절 변화 막이와 같이 켜고 끈다, 10-16) ──
+            //   10-16 실기: 수직 눈 확인·공구 기울기 보정 뒤 [1. 학습] 의 펼치기 동안 버스가 대답을 멈췄는데 (시작 때 읽기는 정상, 끝의 원위치 확인 읽기도 실패)
+            //   ReadServoBlock 이 수신 맵에 남은 지난 값 — 08:30 누름 마지막 틱의 목표·부하·PWM 과 시작 때 읽은 휴지 자세 — 을 그대로 돌려줘
+            //   누름 84틱 내내 실측 a1..a4 가 휴지 자세에 비트까지 멈춰 있었다 (명령은 5.7° 움직임). 첫닿음 검출기가 멈춘 FK 로 '시작부터 닿아 있었음' 을 냈고,
+            //   원위치는 읽지 못한 채 한 번 더 움직이고 토크를 끈 것으로 적었다.
+            //   그래서 읽기마다 본다: 마지막으로 새로 읽힌 뒤 보낸 명령(SendPose — 리밋까지 얹은 최종 명령)의 관절각 변화 합이 ENC_CMD_DEG 넘었는데
+            //   새 값이 아닌 읽기 (무응답 — 수신 맵 표지값 / 서보 블록 전체가 직전 읽기와 비트까지 같음) 가 ENC_STALE_N 번 잇달았으면,
+            //   또는 명령과 상관없이 실패가 ENC_FAIL_HARD_N 번 잇달았으면 건다: 모션을 멈추고(MoveJoints_Stop) 까닭을 막이 걸림(StepGuardTrip)에 남긴다 —
+            //   작업이 다리·누름마다 보고 멈추고, 원위치(SagArm_Close)는 할 수 있는 데까지 간다. 정착 읽기(ReadTicks·ReadDeg — 안에서 여러 번 시도)의 실패는
+            //   한 번에 ENC_STALE_N 번으로 친다. 서보 블록이 실시간 틱(ms 시계)까지 그대로면 읽기 실패로 센다 (시계가 없는 버스 흉내는 '그대로' 로만 — 명령이 움직였을 때만).
+            //   위치만 같은 것은 세지 않는다 — 바닥을 누른 뒤 들어 올릴 때 정지 마찰로 명령이 4.8° 움직이는 동안 엔코더가
+            //   그대로인 것이 정상이다 (10-15 기록, 그때도 목표·부하·실시간 틱은 틱마다 바뀐다)
+            /// <summary>엔코더 읽기가 멈춤/실패로 걸렸을 때의 까닭 머리 (StepGuardTrip·EncoderTrip 이 이것으로 시작한다)</summary>
+            public const string ENC_TRIP_HEAD = "엔코더 읽기가 멈춤/실패 — 연결을 다시 하십시오";
+            internal const int ENC_STALE_N = 5;                   // 잇달아 새 값이 아닌 읽기 수
+            internal const float ENC_CMD_DEG = 3f;                // 그동안 명령이 움직인 관절각 합 (deg)
+            internal const int ENC_FAIL_HARD_N = 10;              // 명령이 움직이지 않아도 이만큼 잇달아 실패하면 (무게 포함 — 정착 읽기 실패 두 번)
+            private readonly object m_oEnc = new object();
+            private int m_nEncFail = 0, m_nEncSame = 0;           // 잇달은 실패(무게 포함)·같은 블록 수
+            private int m_nEncFailCalls = 0;                      // 잇달은 실패한 읽기 호출 수 (까닭 글에 — 무게 없이)
+            private double m_dEncCmd = 0;                         // 마지막으로 새로 읽힌 뒤 명령이 움직인 관절각 합 (deg)
+            private byte[] m_abyEncLastBlk = null;                // 직전에 읽은 서보 블록 (IDs × 24바이트)
+            private bool m_bEncTripped = false;                   // 이번 걸림을 이미 알렸다 (ClearTrip 이 푼다)
+            private volatile string m_strEncTrip = null;          // 이 작업에서 마지막으로 건 까닭 (작업 시작 때 지운다)
+            private string m_strEncLastWhy = "";
+            /// <summary>이 작업(막이를 켠 뒤)에서 엔코더 읽기 감시가 건 마지막 까닭 — 없으면 null. ClearTrip 이 지우지 않는다 (원위치 확인이 까닭을 적는다)</summary>
+            public string EncoderTrip { get { return m_strEncTrip; } }
+            /// <summary>마지막으로 새로 읽힌 뒤 잇달은 '새 값이 아닌 읽기' 수 (실패는 무게 포함) — 진단용</summary>
+            public int EncoderStaleCount { get { lock (m_oEnc) return m_nEncFail + m_nEncSame; } }
+            private void EncWatch_Reset()
+            {
+                lock (m_oEnc) { m_nEncFail = 0; m_nEncSame = 0; m_nEncFailCalls = 0; m_dEncCmd = 0; m_abyEncLastBlk = null; m_bEncTripped = false; m_strEncLastWhy = ""; }
+                m_strEncTrip = null;
+            }
+            // 새로 읽혔다 — 셈과 명령 변화를 0 으로
+            private void EncWatch_Fresh()
+            {
+                lock (m_oEnc) { m_nEncFail = 0; m_nEncSame = 0; m_nEncFailCalls = 0; m_dEncCmd = 0; }
+            }
+            // 보낸 명령의 변화 (직전 걸린 목표 → 이번 최종 명령) — 작업 중에만 (SendPose)
+            private void EncWatch_Cmd(float[] afPrev, float[] afNow)
+            {
+                if (!m_bStepGuard || afPrev == null || afNow == null || afPrev.Length != afNow.Length) return;
+                double s = 0;
+                for (int i = 0; i < afNow.Length; i++)
+                {
+                    double d = Math.Abs((double)afNow[i] - afPrev[i]);
+                    if (!double.IsNaN(d) && !double.IsInfinity(d)) s += d;
+                }
+                lock (m_oEnc) m_dEncCmd += s;
+            }
+            // 새 값이 아닌 읽기 — nWeight = 실패 무게 (정착 읽기는 ENC_STALE_N), bSame = 블록이 그대로. 작업 중에만 세고, 넘으면 건다
+            private void EncWatch_Bad(int nWeight, bool bSame, string strWhy)
+            {
+                if (!m_bStepGuard) return;
+                string strTrip = null;
+                lock (m_oEnc)
+                {
+                    if (bSame) m_nEncSame++; else { m_nEncFail += Math.Max(1, nWeight); m_nEncFailCalls++; }
+                    if (!string.IsNullOrEmpty(strWhy)) m_strEncLastWhy = strWhy;
+                    int n = m_nEncFail + m_nEncSame;
+                    bool bMove = n >= ENC_STALE_N && m_dEncCmd >= ENC_CMD_DEG;
+                    bool bHard = m_nEncFail >= ENC_FAIL_HARD_N;
+                    if (!m_bEncTripped && (bMove || bHard))
+                    {
+                        m_bEncTripped = true;
+                        var ci = CultureInfo.InvariantCulture;
+                        string strCmd = bMove ? string.Format(ci, "명령이 {0:F1}° 움직이는 동안 ", m_dEncCmd) : "";
+                        int nCalls = m_nEncFailCalls + m_nEncSame;
+                        string strN = nCalls > 1 ? nCalls.ToString(ci) + "번 잇달아 " : "";   // 정착 읽기 한 번은 안에서 여러 번 시도한 것 — 수를 적지 않는다
+                        strTrip = (m_nEncSame > 0 && m_nEncSame >= m_nEncFailCalls)
+                            ? string.Format(ci, "{0} ({1}읽은 값이 {2}그대로 — 버스가 새 값을 주지 않음, 전원·배선·USB 확인)", ENC_TRIP_HEAD, strCmd, strN)
+                            : string.Format(ci, "{0} ({1}새 값을 {2}읽지 못함 — {3}, 전원·배선·USB 확인)", ENC_TRIP_HEAD, strCmd, strN, m_strEncLastWhy);
+                    }
+                }
+                if (strTrip == null) return;
+                m_strEncTrip = strTrip;
+                m_strStepGuardTrip = strTrip;                     // 작업이 다리·누름마다 보는 걸림 (SagArm_GuardWhy·누름의 새 걸림)
+                try { m_C3d.MoveJoints_Stop(); } catch { }        // 지금 모션을 멈춘다 — 이 읽기가 싱크 안이면 이 틱이 마지막
+                Log("[COMM] ★{0} — 모션을 멈춤\r\n", strTrip);
+            }
             // 직전 값과 이번 값의 축마다 차 — 한도를 넘는 가장 큰 축의 까닭 (넘지 않으면 null). 직전 값을 모르면 보지 않는다
             private string StepGuard_Over(float[] afPrev, float[] afNow, string strWhat)
             {
@@ -2933,13 +3130,15 @@ namespace OpenJigWare
             }
 
             /// <summary>전 축 틱 정착 읽기 (IDs 순, CSim2Real.ReadAllTicks) — 응답 없는 ID 의 지난 값을 쓰지 않도록 수신 맵을 -1 로 채우고 읽는다.
-            /// 실패하면 null 과 사유</summary>
+            /// 실패하면 null 과 사유. 작업 중이면 엔코더 읽기 감시에 알린다 (정착 읽기는 안에서 여러 번 시도하므로 실패 한 번을 ENC_STALE_N 번으로 친다 — 10-16)</summary>
             public int[] ReadTicks(out string strWhy)
             {
                 strWhy = "";
                 if (m_Com == null) { strWhy = "통신 미연결"; return null; }
                 MarkPosition();
-                return CSim2Real.ReadAllTicks(m_Com, m_anIDs, out strWhy);
+                int[] an = CSim2Real.ReadAllTicks(m_Com, m_anIDs, out strWhy);
+                if (an == null) EncWatch_Bad(ENC_STALE_N, false, strWhy); else EncWatch_Fresh();
+                return an;
             }
             private void MarkPosition() { foreach (int id in m_anIDs) RegMark(id, 132, 4, -1L); }   // -1 = ReadAll 이 무응답으로 보는 값
 
@@ -3046,7 +3245,7 @@ namespace OpenJigWare
             internal bool SagCompInPlay()
             {
                 C3d.CSagComp m = m_C3d.SagComp_Get();
-                if (m != null && m.Enabled && m.HasJoint) return true;
+                if (m != null && m.Enabled && (m.HasJoint || m.HasWristTilt)) return true;   // 손목 공구 기울기 보정만 있어도 출력 단에 얹힌다 (10-15)
                 foreach (float f in m_C3d.SagComp_LastJointCorr) if (f != 0f) return true;
                 if (m_C3d.SagComp_WristHoldNow != 0f) return true;
                 if (m_C3d.SagComp_HasOffsets) return true;

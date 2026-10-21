@@ -110,6 +110,17 @@ namespace OpenJigWare
                     }
                 }
             }
+            // 선(모델)별 기준선 y 위치 지정 — 기본은 높이를 (모델 수 + 1) 로 균등 분할.
+            //   두 선을 같은 기준선에 겹쳐 비교하거나(예: 측정값과 계산값), 레인 수와 선 수를 다르게 쓸 때 사용
+            public void SetOffsetY(int nModel, int nOffsetY)
+            {
+                if ((m_anOffsetY != null) && (nModel >= 0) && (nModel < m_nModelCount)) m_anOffsetY[nModel] = nOffsetY;
+            }
+            public int GetOffsetY(int nModel)
+            {
+                if ((m_anOffsetY != null) && (nModel >= 0) && (nModel < m_nModelCount)) return m_anOffsetY[nModel];
+                return 0;
+            }
             public int GetCount_Model() { return m_nModelCount; }
             public int GetCount_History() { return m_nHistorySize; }
             public int Pop(int nModelNum, int nIndex) 

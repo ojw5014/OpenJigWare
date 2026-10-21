@@ -4,6 +4,8 @@
 //   ② 측정 계획 (SagRun_MakePlan/CheckPlan) — 첫닿음 모델 예측으로 점마다 하강 창 (시작 = 예측 + 20, 한도 = max(3, 예측 − 12))
 //   ④ 학습 → 결과 파일 (SagRun_Learn) — 관절 모델 바탕 + 첫닿음 데이터셋(<urdf>\floor_dataset_fc.csv)
 //      → <urdf>\sagcomp_results\sagcomp_model_<yyyyMMdd_HHmm>.txt + _report.txt + _data.csv
+//      10-15: CSagLearnCfg.CurSession (처짐 보정 실습 [1. 학습]) — 이번 회차 행만 쓰고 높이 기준을 이번 회차 첫닿음 명령 높이에 맞춘다 (C3d.CSagFcFit).
+//      비면 예전처럼 데이터셋 전부 (고급 페이지 ④)
 //   ⑤ 결과 파일 시험: 틈 재기 계획(SagRun_GapPlan)·닿기 시험 점(SagRun_TestPoints), 판정(SagRun_GapEvaluate/TestEvaluate),
 //      시험 기록(<결과>_test.txt 에 [틈]/[닿기] 한 줄씩)
 //   ⑥ 적용·백업·되돌리기 (SagRun_Activate/Rollback), 쌍둥이 미리 보기 (SagRun_TwinUse), 결과·백업 목록
@@ -50,10 +52,13 @@ namespace OpenJigWare
                 public string DefName = "OMX follower";              // 정의 이름 (robot=)
                 public int FuncNumber = 0;                           // 공구 끝(TCP)이 끝점인 IK 수식 — TCP = 그 체인의 첫 '!' 바로 앞 DH 줄 (OMX 예제 5·6 = 0, TCP = 손목(14) 축에서 공구 쪽 103.2mm)
                 public int[] PosIDs = new int[] { 11, 12, 13 };      // 베이스(요), 피치 관절 1, 2
-                public int WristID = 14;                             // 공구를 바닥으로 수직으로 꺾는 손목 (공구 끝 앞 마지막 관절)
+                public int WristID = 14;                             // 공구를 바닥으로 수직으로 꺾는 손목 (공구 끝 앞 마지막 관절). −1 = 꺾는 손목 없음 (sagarm.txt wrist=none, WRIST_NONE)
                 public int[] HoldIDs = new int[] { 15, 16 };         // 토크만 켜서 켜는 순간 각도로 고정 (그리퍼) — 움직이지 않는다 (공구 끝 체인 밖)
                 public float TcpLenMm = 103.2f;                      // 손목 원점 → 공구 끝 기대 거리 (mm, NaN = 확인 안 함)
-                public float DownSumDeg = 90f;                       // 바닥으로 수직 = 관절 합 PosIDs[1] + PosIDs[2] + WristID (deg, 3D 에서 잰 값과 0.5° 안) — Ry 90 의 관절 합
+                public float DownSumDeg = float.NaN;                 // 바닥으로 수직 = 관절 합 PosIDs[1] + PosIDs[2] + WristID (deg) — Ry 90 의 관절 합.
+                                                                     //   NaN = 자동 (10-13 — 3D FK 로 잰 값, SagDef_Eff 가 정한다 — OMX 90), 숫자 = 직접 정함 (3D 에서 잰 값과 0.5° 안 — V7)
+                /// <summary>바닥으로 수직이 자동인가 (DownSumDeg = NaN — sagarm.txt 에 downsum 키가 없거나 downsum=auto)</summary>
+                public bool DownSumAuto { get { return float.IsNaN(DownSumDeg); } }
                 public float SafeZ = 110f;                           // 옮길 때 높이
                 public float TransferMmPerSec = 40f;                 // 직선 이동 속도 상한
                 public int MinMoveMs = 1500;                         // 어떤 이동도 이보다 짧지 않게 — 보정 전환 1초 페이드가 이동 안에서 끝나게
@@ -69,8 +74,14 @@ namespace OpenJigWare
                 /// (계획 CSV 의 below·zfloor 칸)을 이 세트들보다 깊게 보지 않는다 — 행의 세트 이름과 같은 세트, 없으면 세트들 중 가장 얕은 값
                 /// (계획 파일의 두 칸을 한도와 함께 깊게 고쳐도 지나가지 않게). null = 행의 값 그대로 (설정 없이 부르는 경우)</summary>
                 public List<CFloorPlanSet> PlanSets = null;
-                /// <summary>움직이는 관절 = 위치 3개 + 손목</summary>
-                public int[] MoveIDs { get { return new int[] { PosIDs[0], PosIDs[1], PosIDs[2], WristID }; } }
+                /// <summary>꺾는 손목 없음 (10-13) — WristID 의 값 (sagarm.txt wrist=none)</summary>
+                public const int WRIST_NONE = -1;
+                /// <summary>꺾는 손목이 없는 팔 (WristID &lt; 0) — 공구 끝 위치만 IK 로 정하고 공구 기울기는 자세마다 바뀐다 (바닥으로 수직·손목 유지·수직 눈 확인 없음)</summary>
+                public bool NoWrist { get { return WristID < 0; } }
+                /// <summary>움직이는 관절 = 위치 3개 + 손목 (손목 없음이면 위치 3개만 — 실물·3D 에 보내는 관절)</summary>
+                public int[] MoveIDs { get { return NoWrist ? new int[] { PosIDs[0], PosIDs[1], PosIDs[2] } : new int[] { PosIDs[0], PosIDs[1], PosIDs[2], WristID }; } }
+                /// <summary>계산 자리 4칸 = 위치 3개 + 손목 (손목 없음이면 넷째 칸 −1 — 그 칸의 각은 늘 0, 관절값 사본에 쓰지 않는다). 손목 로봇은 MoveIDs 와 같다</summary>
+                internal int[] QIDs { get { return new int[] { PosIDs[0], PosIDs[1], PosIDs[2], WristID }; } }
                 /// <summary>작업이 쓰는 관절 전부 = 움직이는 관절 + 고정(그리퍼)</summary>
                 public int[] AllIDs
                 {
@@ -81,12 +92,12 @@ namespace OpenJigWare
                         return l.ToArray();
                     }
                 }
-                /// <summary>관절 ID 가 쓸 만한가 (위치 3개 + 손목, 겹침 없음)</summary>
+                /// <summary>관절 ID 가 쓸 만한가 (위치 3개 + 손목, 겹침 없음 — 손목 없음은 −1 만)</summary>
                 public bool IdsOk
                 {
                     get
                     {
-                        if (PosIDs == null || PosIDs.Length != 3) return false;
+                        if (PosIDs == null || PosIDs.Length != 3 || WristID < WRIST_NONE) return false;
                         int[] a = MoveIDs;
                         for (int i = 0; i < a.Length; i++) for (int j = i + 1; j < a.Length; j++) if (a[i] == a[j]) return false;
                         return true;
@@ -186,6 +197,12 @@ namespace OpenJigWare
                 public float RefMm = float.NaN;        // NaN = 학습 평균, 숫자 = 기준 높이 고정 (fcref — 사각형 가운데 FC ≈ 48.8 이면 지금 펜 높이 75 가 거의 그대로)
                 public float[][] PreviewPts = null;    // 보고서 예상 표 점 (x, y) — null = 사각형 (170,−35),(250,−35),(250,50),(170,50),(210,7.5)
                 public float PreviewZ = 80;            // 그 점들의 높이 (틈 재기와 같은 값)
+                // ── 이번 바닥에 맞춘 학습 (10-15, [1. 학습]) — 데이터셋에 바닥 높이가 다른 옛 회차가 섞여 있어도 결과가 이번 바닥에 맞게 (C3d.CSagFcFit) ──
+                public string CurSession = null;       // 이번 회차 (데이터셋 session 칸 — 작업이 덧붙인 회차). null = 예전처럼 모든 행에 절편 하나 (설정 파일에는 없다)
+                public int Sessions = 2;               // 이번 회차가 있을 때 — 2 = 이번 회차 행만 (기본), 1 = 회차마다 절편 (모양 항·잔차는 모든 회차가 함께, c0·Ref 는 이번 바닥), 0 = 절편 하나.
+                                                       //   10-15 실측 데이터로 고름: 이번 회차 교차검증 (행 하나씩) 10-15 0.83 / 10-04 0.34mm — 회차마다 절편 1.02 / 1.06, 절편 하나 2.56 / 1.54
+                public float PlausMm = 5;              // 이번 회차가 있을 때 — 회차·피치가 같은 행의 반경 추세에서 첫닿음 FK 가 이만큼 넘게 벗어난 행은 뺀다 (실습 그럴듯함 PlausFkMm 과 같은 값)
+                public bool CmdLevel = true;           // 이번 회차가 있을 때 — 높이 기준(c0·Ref)을 이번 회차의 첫닿음 명령 높이(관절 모델 켬)에 맞춘다 (C3d.CSagFcFit.CmdLevel)
             }
 
             /// <summary>닿기 시험 설정 — 결과 파일을 보정 끔·켬으로 번갈아 눌러 본다</summary>
@@ -265,31 +282,154 @@ namespace OpenJigWare
                             catch (IOException) { if (i >= 4) throw; Thread.Sleep(100); }   // 편집기·동기화가 잠깐 잡고 있으면 다시 (모두 5번)
                         }
                         s.m_strReadFailed = null;
-                        var sets = new List<CFloorPlanSet>();
-                        var bad = new List<string>(); var warn = new List<string>();
-                        foreach (string raw in lines)
-                        {
-                            string line = StripNote(raw);                                 // '//' 뒤 설명 (robot 줄은 '// 정의 이름' 만 — 이름 안의 '//' 는 이름 확인이 거절)
-                            line = line.Trim(); if (line.Length == 0) continue;
-                            int eq = line.IndexOf('='); if (eq <= 0) continue;
-                            string kRaw = line.Substring(0, eq).Trim(), v = line.Substring(eq + 1).Trim();
-                            try { s.ParseKey(kRaw, v, sets, warn); }
-                            catch
-                            {
-                                bad.Add(kRaw);
-                                // 값이 하나인 키에 쉼표 — 소수점을 쉼표로 쓴 것 (예전에는 천 단위 구분으로 읽혀 10배·100배가 됐다)
-                                if (v.IndexOf(',') >= 0 && IsSingleValueKey(kRaw)) warn.Add(kRaw + "=" + v + " — 소수점은 '.' 로 (쉼표는 안 됨), 기본값 유지");
-                            }
-                        }
-                        if (sets.Count > 0) s.Plan.Sets = sets;
-                        s.Arm.PlanSets = s.Plan.Sets;                                  // 계획 확인의 하강 한도 = 이 파일의 세트 (CSagArmCfg.PlanSets)
-                        var w = new List<string>();
-                        if (bad.Count > 0) w.Add("읽지 못한 줄 (기본값 유지): " + string.Join(", ", bad.ToArray()));
-                        w.AddRange(warn);
-                        s.LoadWarn = string.Join(" · ", w.ToArray());
+                        s.ParseLines(lines);
                     }
                     catch (Exception ex) { s.LoadWarn = "★오류: " + SagRun_Msg(ex); }
                     return s;
+                }
+                // 줄들 → 이 객체 (Load 와 FromText 가 같이 쓴다). 틀린 줄은 건너뛰고 LoadWarn 에
+                private void ParseLines(string[] lines)
+                {
+                    var sets = new List<CFloorPlanSet>();
+                    var bad = new List<string>(); var warn = new List<string>();
+                    foreach (string raw in lines)
+                    {
+                        string line = StripNote(raw);                                 // '//' 뒤 설명 (robot 줄은 '// 정의 이름' 만 — 이름 안의 '//' 는 이름 확인이 거절)
+                        line = line.Trim(); if (line.Length == 0) continue;
+                        int eq = line.IndexOf('='); if (eq <= 0) continue;
+                        string kRaw = line.Substring(0, eq).Trim(), v = line.Substring(eq + 1).Trim();
+                        try { ParseKey(kRaw, v, sets, warn); }
+                        catch
+                        {
+                            bad.Add(kRaw);
+                            // 값이 하나인 키에 쉼표 — 소수점을 쉼표로 쓴 것 (예전에는 천 단위 구분으로 읽혀 10배·100배가 됐다)
+                            if (v.IndexOf(',') >= 0 && IsSingleValueKey(kRaw)) warn.Add(kRaw + "=" + v + " — 소수점은 '.' 로 (쉼표는 안 됨), 기본값 유지");
+                        }
+                    }
+                    if (sets.Count > 0) Plan.Sets = sets;
+                    Arm.PlanSets = Plan.Sets;                                      // 계획 확인의 하강 한도 = 이 파일의 세트 (CSagArmCfg.PlanSets)
+                    var w = new List<string>();
+                    if (bad.Count > 0) w.Add("읽지 못한 줄 (기본값 유지): " + string.Join(", ", bad.ToArray()));
+                    w.AddRange(warn);
+                    LoadWarn = string.Join(" · ", w.ToArray());
+                }
+
+                // ── 글로 주고받기 (2026-10-15 — 디자이너 파일 .ojw 의 확장 구역 robotDef) ──
+                /// <summary>글에서 읽기 — sagarm.txt 와 같은 규칙 (없는 키는 기본값, 틀린 줄은 LoadWarn). 파일은 건드리지 않는다. 예외 없음</summary>
+                public static CSagArmSetup FromText(string strText)
+                {
+                    var s = new CSagArmSetup();
+                    try { s.ParseLines((strText ?? "").Replace("\r\n", "\n").Split('\n')); }
+                    catch (Exception ex) { s.LoadWarn = "★오류: " + SagRun_Msg(ex); }
+                    return s;
+                }
+                /// <summary>sagarm.txt 로 쓸 글 전체 (Save 가 쓰는 것과 같다 — UTF-8, CRLF)</summary>
+                public string ToText()
+                {
+                    var ci = CultureInfo.InvariantCulture;
+                    Func<float, string> N = f => f.ToString("0.###", ci);
+                    Func<float[], string> NA = a => a == null ? "" : string.Join(",", Array.ConvertAll(a, f => f.ToString("0.###", ci)));
+                    var sb = new StringBuilder();
+                    Action<string, string, string> L = (k, v, d) =>
+                    {
+                        string s = k + "=" + v;
+                        if (d.Length > 0) s = s.PadRight(24) + " // " + d;
+                        sb.Append(s).Append("\r\n");
+                    };
+                    sb.Append("// 로봇팔 세팅 탭 설정. 단위 mm / deg / ms. // 뒤는 설명. 포트·속도는 연결 줄이 가진다 (여기 없음)\r\n");
+                    DefLines(sb, Arm);
+                    sb.Append("// ── 이동·계획·시험 ──\r\n");
+                    L("safez", N(Arm.SafeZ), "옮길 때 높이");
+                    L("transfer", N(Arm.TransferMmPerSec), "직선 이동 속도 상한 (mm/s)");
+                    L("minmove", Arm.MinMoveMs.ToString(ci), "이동 하나의 최소 시간 (ms)");
+                    L("unfoldvia", NA(Arm.UnfoldVia) + "," + Arm.UnfoldViaMs.ToString(ci), "펼치기 경유점 x,y,z,ms");
+                    L("restorevia", NA(Arm.RestoreVia), "원위치 경유점");
+                    L("restorems", Arm.RestoreJointMs.ToString(ci), "경유점 → 휴지 자세 관절 보간 (ms)");
+                    L("resttol", N(Arm.RestTolDeg), "원위치 허용 (deg)");
+                    L("maxstart", N(Arm.MaxStartDeg), "시작 때 읽은 각 한계 (deg)");
+                    L("iktol", N(Arm.IkTolMm) + "," + N(Arm.PitchTolDeg), "이동 뒤 3D 도착 확인 (mm, deg)");
+                    L("dryspeed", N(Arm.DrySpeed), "3D 만 배속");
+                    L("plan", PlanFile ?? "", "마지막 계획 파일 (urdf 폴더 기준)");
+                    if (Plan != null && Plan.Sets != null)
+                        foreach (CFloorPlanSet st in Plan.Sets)
+                            L("plan" + st.Name, NA(st.Pitches) + "|" + NA(st.Yaws) + "|" + N(st.RFar) + "," + N(st.RNear) + "," + N(st.RStep) + "|" + N(st.AboveMm) + "," + N(st.BelowMm) + "," + N(st.ZMinFloor),
+                              "피치들|요들|먼 반경,가까운 반경,간격|위,아래,하한 (시작 = 예측 + 위, 한도 = max(하한, 예측 − 아래))");
+                    L("hold", Measure.WristHold ? "1" : "0", "측정 때 손목 수직 유지");
+                    L("retract", N(Measure.Probe.RetractAboveKneeMm), "꺾임점 위 복귀 (mm)");
+                    L("descent", N(Measure.Probe.PressDescentMmPerSec), "하강 속도 (mm/s)");
+                    L("learndataset", Learn.DatasetPath ?? "", "비우면 floor_dataset_fc.csv");
+                    L("learnbase", Learn.BaseModelPath ?? "", "비우면 적용 중 파일의 관절 모델");
+                    L("learnusehold", Learn.UseHold ? "1" : "0", "손목 유지 켬(hold=1) 행도 학습");
+                    L("learnref", float.IsNaN(Learn.RefMm) ? "" : N(Learn.RefMm), "비우면 학습 평균, 숫자면 기준 높이 고정 (fcref)");
+                    L("previewz", N(Learn.PreviewZ), "보고서 예상 표 높이");
+                    L("result", ResultFile ?? "", "마지막으로 고른 결과 파일");
+                    L("testr", NA(Test.Radii), "닿기 시험 반경");
+                    L("testyaw", NA(Test.Yaws), "닿기 시험 요");
+                    L("testpitch", N(Test.Pitch), "닿기 시험 피치");
+                    L("testrep", Test.Repeats.ToString(ci), "점마다 끔·켬 반복");
+                    L("testhold", Test.WristHold ? "1" : "0", "시험 때 손목 수직 유지 (0 = 실사용 조건)");
+                    L("testwin", N(Test.AboveMm) + "," + N(Test.BelowMm) + "," + N(Test.ZMinFloor), "창: 위, 아래, 하한 (시작 = max(예측, Ref) + 위, 한도 끔 = max(하한, 예측 − 아래), 켬 = max(하한, Ref − 아래))");
+                    L("testpass", N(Test.PassSpreadMm), "합격: 켬 폭 ≤ 이 값(mm) 그리고 끔 폭보다 작음");
+                    L("testpred", N(Test.PassPredMm) + "," + N(Test.PassPredNearMm) + "," + N(Test.NearRMm), "합격: 끔 예측 오차 ≤ 첫 값 (반경 셋째 값 이하는 둘째 값)");
+                    var gp = new List<string>(); if (Gap.Pts != null) foreach (float[] p in Gap.Pts) if (p != null && p.Length >= 2) gp.Add(N(p[0]) + "," + N(p[1]));
+                    L("gappts", string.Join(";", gp.ToArray()), "틈 재기 점 x,y (; 로 나눔)");
+                    L("gapz", N(Gap.Z), "틈 재기 높이");
+                    L("gappitch", N(Gap.Pitch), "틈 재기 피치");
+                    L("gappasssame", N(Gap.PassSameMm), "합격: 켬 틈이 평균 ± 이 값 안");
+                    L("gappasspred", N(Gap.PassPredMm), "합격: (켬 − 끔) 변화가 예측 dz ± 이 값 안");
+                    L("gapsettle", Gap.SettleMs.ToString(ci), "모델 전환 뒤 기다림 (ms)");
+                    return sb.ToString();
+                }
+                /// <summary>.ojw 에서 온 설정 글의 로봇 정의·로봇팔 설정을 이 객체로 (sagarm.txt 저장 길 — 앱의 ArmSetup_SaveCfg 가 change 로 부른다):
+                /// 정의 7키·이동·계획 세트·측정·학습·시험·틈 재기. 마지막 계획·결과 파일 칸(plan·result)은 이 설치의 것이라 그대로 둔다.
+                /// 글을 새로 읽어 옮기므로 객체를 다른 곳과 함께 쓰지 않는다. 반환 = 그 글을 읽을 때의 경고 ("" = 없음). 예외 없음</summary>
+                public string CopySettingsFromText(string strText)
+                {
+                    try
+                    {
+                        CSagArmSetup c = FromText(strText);
+                        Arm = c.Arm; Plan = c.Plan; Measure = c.Measure; Learn = c.Learn; Test = c.Test; Gap = c.Gap;
+                        Arm.PlanSets = Plan.Sets;
+                        return c.LoadWarn ?? "";
+                    }
+                    catch (Exception ex) { return "★오류: " + SagRun_Msg(ex); }
+                }
+                /// <summary>두 설정의 차이 (plan·result 칸 빼고) — 정의 7키는 "wrist 14 → 15" 처럼 값과 함께, 나머지는 키 이름만. 같으면 "". 예외 없음</summary>
+                public static string DescribeDiff(CSagArmSetup a, CSagArmSetup b)
+                {
+                    try
+                    {
+                        Dictionary<string, string> da = KeyValues(a), db = KeyValues(b);
+                        var lstDef = new List<string>(); var lstOther = new List<string>();
+                        var keys = new List<string>(da.Keys); foreach (string k in db.Keys) if (!da.ContainsKey(k)) keys.Add(k);
+                        foreach (string k in keys)
+                        {
+                            if (k == "plan" || k == "result") continue;
+                            string va, vb;
+                            da.TryGetValue(k, out va); db.TryGetValue(k, out vb);
+                            if (string.Equals(va ?? "", vb ?? "", StringComparison.Ordinal)) continue;
+                            if (Array.IndexOf(s_astrDefKeys, k) >= 0) lstDef.Add(k + " " + ((va ?? "").Length > 0 ? va : "(빈칸)") + " → " + ((vb ?? "").Length > 0 ? vb : "(빈칸)"));
+                            else lstOther.Add(k);
+                        }
+                        var l = new List<string>();
+                        if (lstDef.Count > 0) l.Add("정의: " + string.Join(", ", lstDef.ToArray()));
+                        if (lstOther.Count > 0) l.Add("설정: " + string.Join(", ", lstOther.ToArray()));
+                        return string.Join(" / ", l.ToArray());
+                    }
+                    catch (Exception ex) { return "비교하지 못함: " + SagRun_Msg(ex); }
+                }
+                // ToText 의 key=value (설명 뗌, 키는 소문자) — 차이 비교용
+                private static Dictionary<string, string> KeyValues(CSagArmSetup s)
+                {
+                    var d = new Dictionary<string, string>(StringComparer.Ordinal);
+                    if (s == null) return d;
+                    foreach (string raw in s.ToText().Replace("\r\n", "\n").Split('\n'))
+                    {
+                        string line = StripNote(raw).Trim(); if (line.Length == 0) continue;
+                        int eq = line.IndexOf('='); if (eq <= 0) continue;
+                        d[line.Substring(0, eq).Trim().ToLowerInvariant()] = line.Substring(eq + 1).Trim();
+                    }
+                    return d;
                 }
 
                 /// <summary>창 시작이 예측 첫닿음보다 적어도 이만큼 위여야 한다 (mm) — planX·testwin 의 '위' 하한, 계획·시험 점 확인</summary>
@@ -336,10 +476,19 @@ namespace OpenJigWare
                                 if (v.Length == 0) { Arm.TcpLenMm = float.NaN; break; }      // 빈칸 = 손목 → 공구 끝 거리를 확인하지 않음
                                 float f = F1(v); if (InRange(kRaw, v, f, 10, 500, warn)) Arm.TcpLenMm = f; break;
                             }
-                        case "downsum": { float f = F1(v); if (InRange(kRaw, v, f, 0, 180, warn)) Arm.DownSumDeg = f; break; }
+                        case "downsum":
+                            {
+                                // 빈칸·auto = 자동 (3D FK 로 잰다 — 10-13), 숫자 = 직접 정함 (예전 파일의 downsum=90 은 그대로 직접 정함으로 읽는다). none = 손목 없음 (쓰지 않음 — 자동과 같다)
+                                if (v.Length == 0 || string.Equals(v, "auto", StringComparison.OrdinalIgnoreCase) || string.Equals(v, "none", StringComparison.OrdinalIgnoreCase)) { Arm.DownSumDeg = float.NaN; break; }
+                                float f = F1(v); if (InRange(kRaw, v, f, 0, 180, warn)) Arm.DownSumDeg = f; break;
+                            }
                         case "func": { int n = I1(v); if (InRange(kRaw, v, n, 0, 99, warn)) Arm.FuncNumber = n; break; }
                         case "posids": { int[] a = Ints(v); if (a.Length != 3) throw new FormatException("posids"); if (IdsInRange(kRaw, v, a, warn)) Arm.PosIDs = a; break; }
-                        case "wrist": { int n = I1(v); if (InRange(kRaw, v, n, 0, 253, warn)) Arm.WristID = n; break; }
+                        case "wrist":
+                            {
+                                if (IsWristNone(v)) { Arm.WristID = CSagArmCfg.WRIST_NONE; break; }   // none·없음·−1 = 꺾는 손목 없음 (10-13)
+                                int n = I1(v); if (InRange(kRaw, v, n, 0, 253, warn)) Arm.WristID = n; break;
+                            }
                         case "holdids": { int[] a = v.Length == 0 ? new int[0] : Ints(v); if (IdsInRange(kRaw, v, a, warn)) Arm.HoldIDs = a; break; }
                         case "safez":
                             {
@@ -438,6 +587,12 @@ namespace OpenJigWare
                         default: break;                              // 모르는 키·옛 키 (port, baud, neighbor, learnaug …) — 무시
                     }
                 }
+                /// <summary>wrist 값이 '꺾는 손목 없음' 인가 — none · 없음 · −1 (대소문자 무시)</summary>
+                public static bool IsWristNone(string v)
+                {
+                    string t = (v ?? "").Trim();
+                    return string.Equals(t, "none", StringComparison.OrdinalIgnoreCase) || t == "없음" || t == "-1";
+                }
                 // 값 하나 읽기 — 천 단위 구분 없이 (쉼표가 있으면 예외 → 읽지 못한 줄)
                 private static float F1(string v) { return float.Parse(v, NumberStyles.Float, CultureInfo.InvariantCulture); }
                 private static int I1(string v) { return int.Parse(v, NumberStyles.Integer, CultureInfo.InvariantCulture); }
@@ -487,61 +642,9 @@ namespace OpenJigWare
                     {
                         if (string.IsNullOrEmpty(strUrdfDir)) return false;
                         if (m_strReadFailed != null && SagRun_SamePath(m_strReadFailed, Path.Combine(strUrdfDir, FILE)) && File.Exists(m_strReadFailed)) return false;
-                        var ci = CultureInfo.InvariantCulture;
-                        Func<float, string> N = f => f.ToString("0.###", ci);
-                        Func<float[], string> NA = a => a == null ? "" : string.Join(",", Array.ConvertAll(a, f => f.ToString("0.###", ci)));
-                        Func<int[], string> IA = a => a == null ? "" : string.Join(",", Array.ConvertAll(a, n => n.ToString(ci)));
-                        var sb = new StringBuilder();
-                        Action<string, string, string> L = (k, v, d) =>
-                        {
-                            string s = k + "=" + v;
-                            if (d.Length > 0) s = s.PadRight(24) + " // " + d;
-                            sb.Append(s).Append("\r\n");
-                        };
-                        sb.Append("// 로봇팔 세팅 탭 설정. 단위 mm / deg / ms. // 뒤는 설명. 포트·속도는 연결 줄이 가진다 (여기 없음)\r\n");
-                        DefLines(sb, Arm);
-                        sb.Append("// ── 이동·계획·시험 ──\r\n");
-                        L("safez", N(Arm.SafeZ), "옮길 때 높이");
-                        L("transfer", N(Arm.TransferMmPerSec), "직선 이동 속도 상한 (mm/s)");
-                        L("minmove", Arm.MinMoveMs.ToString(ci), "이동 하나의 최소 시간 (ms)");
-                        L("unfoldvia", NA(Arm.UnfoldVia) + "," + Arm.UnfoldViaMs.ToString(ci), "펼치기 경유점 x,y,z,ms");
-                        L("restorevia", NA(Arm.RestoreVia), "원위치 경유점");
-                        L("restorems", Arm.RestoreJointMs.ToString(ci), "경유점 → 휴지 자세 관절 보간 (ms)");
-                        L("resttol", N(Arm.RestTolDeg), "원위치 허용 (deg)");
-                        L("maxstart", N(Arm.MaxStartDeg), "시작 때 읽은 각 한계 (deg)");
-                        L("iktol", N(Arm.IkTolMm) + "," + N(Arm.PitchTolDeg), "이동 뒤 3D 도착 확인 (mm, deg)");
-                        L("dryspeed", N(Arm.DrySpeed), "3D 만 배속");
-                        L("plan", PlanFile ?? "", "마지막 계획 파일 (urdf 폴더 기준)");
-                        if (Plan != null && Plan.Sets != null)
-                            foreach (CFloorPlanSet st in Plan.Sets)
-                                L("plan" + st.Name, NA(st.Pitches) + "|" + NA(st.Yaws) + "|" + N(st.RFar) + "," + N(st.RNear) + "," + N(st.RStep) + "|" + N(st.AboveMm) + "," + N(st.BelowMm) + "," + N(st.ZMinFloor),
-                                  "피치들|요들|먼 반경,가까운 반경,간격|위,아래,하한 (시작 = 예측 + 위, 한도 = max(하한, 예측 − 아래))");
-                        L("hold", Measure.WristHold ? "1" : "0", "측정 때 손목 수직 유지");
-                        L("retract", N(Measure.Probe.RetractAboveKneeMm), "꺾임점 위 복귀 (mm)");
-                        L("descent", N(Measure.Probe.PressDescentMmPerSec), "하강 속도 (mm/s)");
-                        L("learndataset", Learn.DatasetPath ?? "", "비우면 floor_dataset_fc.csv");
-                        L("learnbase", Learn.BaseModelPath ?? "", "비우면 적용 중 파일의 관절 모델");
-                        L("learnusehold", Learn.UseHold ? "1" : "0", "손목 유지 켬(hold=1) 행도 학습");
-                        L("learnref", float.IsNaN(Learn.RefMm) ? "" : N(Learn.RefMm), "비우면 학습 평균, 숫자면 기준 높이 고정 (fcref)");
-                        L("previewz", N(Learn.PreviewZ), "보고서 예상 표 높이");
-                        L("result", ResultFile ?? "", "마지막으로 고른 결과 파일");
-                        L("testr", NA(Test.Radii), "닿기 시험 반경");
-                        L("testyaw", NA(Test.Yaws), "닿기 시험 요");
-                        L("testpitch", N(Test.Pitch), "닿기 시험 피치");
-                        L("testrep", Test.Repeats.ToString(ci), "점마다 끔·켬 반복");
-                        L("testhold", Test.WristHold ? "1" : "0", "시험 때 손목 수직 유지 (0 = 실사용 조건)");
-                        L("testwin", N(Test.AboveMm) + "," + N(Test.BelowMm) + "," + N(Test.ZMinFloor), "창: 위, 아래, 하한 (시작 = max(예측, Ref) + 위, 한도 끔 = max(하한, 예측 − 아래), 켬 = max(하한, Ref − 아래))");
-                        L("testpass", N(Test.PassSpreadMm), "합격: 켬 폭 ≤ 이 값(mm) 그리고 끔 폭보다 작음");
-                        L("testpred", N(Test.PassPredMm) + "," + N(Test.PassPredNearMm) + "," + N(Test.NearRMm), "합격: 끔 예측 오차 ≤ 첫 값 (반경 셋째 값 이하는 둘째 값)");
-                        var gp = new List<string>(); if (Gap.Pts != null) foreach (float[] p in Gap.Pts) if (p != null && p.Length >= 2) gp.Add(N(p[0]) + "," + N(p[1]));
-                        L("gappts", string.Join(";", gp.ToArray()), "틈 재기 점 x,y (; 로 나눔)");
-                        L("gapz", N(Gap.Z), "틈 재기 높이");
-                        L("gappitch", N(Gap.Pitch), "틈 재기 피치");
-                        L("gappasssame", N(Gap.PassSameMm), "합격: 켬 틈이 평균 ± 이 값 안");
-                        L("gappasspred", N(Gap.PassPredMm), "합격: (켬 − 끔) 변화가 예측 dz ± 이 값 안");
-                        L("gapsettle", Gap.SettleMs.ToString(ci), "모델 전환 뒤 기다림 (ms)");
+                        string strText = ToText();                                    // 글 만들기 (FromText 와 짝 — .ojw 확장 구역 robotDef 도 같은 꼴)
                         if (!string.IsNullOrEmpty(strUrdfDir)) Directory.CreateDirectory(strUrdfDir);
-                        File.WriteAllText(Path.Combine(strUrdfDir ?? "", FILE), sb.ToString(), new UTF8Encoding(false));
+                        File.WriteAllText(Path.Combine(strUrdfDir ?? "", FILE), strText, new UTF8Encoding(false));
                         return true;
                     }
                     catch { return false; }
@@ -564,10 +667,20 @@ namespace OpenJigWare
                     L("robot", (a.DefName ?? "").Replace("\r", " ").Replace("\n", " "), DEF_NAME_NOTE);
                     L("func", a.FuncNumber.ToString(ci), "공구 끝(TCP)이 끝점인 IK 수식");
                     L("posids", IA(a.PosIDs), "베이스(요), 피치 관절 1, 2");
+                    if (a.NoWrist)
+                    {
+                        // 꺾는 손목 없음 (10-13) — 공구 끝 거리는 팔꿈치(posids 셋째) 원점에서, 바닥으로 수직은 없다 (downsum=auto 는 쓰지 않음)
+                        L("wrist", "none", "꺾는 손목 없음 — 공구 끝 위치만 IK (공구 기울기는 자세마다 바뀜)");
+                        L("holdids", IA(a.HoldIDs), "토크만 켜서 고정 (그리퍼 — 공구 끝 체인 밖)");
+                        L("tcplen", float.IsNaN(a.TcpLenMm) ? "" : a.TcpLenMm.ToString("0.###", ci), "팔꿈치(posids 셋째) 원점 → 공구 끝 기대 거리 mm (빈칸 = 확인 안 함)");
+                        L("downsum", float.IsNaN(a.DownSumDeg) ? "auto" : a.DownSumDeg.ToString("0.###", ci), "손목 없음 — 바닥으로 수직이 없어 쓰지 않음");
+                        return;
+                    }
                     L("wrist", a.WristID.ToString(ci), "공구를 수직으로 꺾는 손목 (공구 끝 앞 마지막 관절)");
                     L("holdids", IA(a.HoldIDs), "토크만 켜서 고정 (그리퍼 — 공구 끝 체인 밖)");
                     L("tcplen", float.IsNaN(a.TcpLenMm) ? "" : a.TcpLenMm.ToString("0.###", ci), "손목 원점 → 공구 끝 기대 거리 mm (빈칸 = 확인 안 함)");
-                    L("downsum", a.DownSumDeg.ToString("0.###", ci), "바닥으로 수직 = 관절 합 posids2+posids3+wrist (3D 와 ±0.5°)");
+                    L("downsum", float.IsNaN(a.DownSumDeg) ? "auto" : a.DownSumDeg.ToString("0.###", ci),
+                      "바닥으로 수직 = 관절 합 posids2+posids3+wrist — auto = 3D FK 로 잼, 숫자 = 직접 정함 (3D 와 ±0.5°)");
                 }
                 /// <summary>정의 이름이 쓸 만한가 — 앞뒤 공백을 자르고 1~40자, '//' '=' '|' '#' 줄바꿈과 파일 이름에 못 쓰는 글자가 없어야 한다
                 /// (sagarm.txt 는 '//' 뒤를 설명으로 자르고 모델 파일은 '#' 줄을 건너뛴다 — 다시 읽으면 깨진다). 반환 = 까닭 (괜찮으면 "")</summary>
@@ -597,7 +710,7 @@ namespace OpenJigWare
                     if (string.Equals(line.Substring(last + 2).Trim(), DEF_NAME_NOTE, StringComparison.Ordinal)) return line.Substring(0, last);
                     return line;
                 }
-                /// <summary>내장 정의 (OMX follower — 수식 0, 위치 11·12·13, 손목 14, 토크만 15·16, 공구 끝 103.2mm, 수직 관절 합 90). 정의 7키 밖 값은 기본값</summary>
+                /// <summary>내장 정의 (OMX follower — 수식 0, 위치 11·12·13, 손목 14, 토크만 15·16, 공구 끝 103.2mm, 수직 관절 합 자동 = 3D 에서 90). 정의 7키 밖 값은 기본값</summary>
                 public static CSagArmCfg OmxDef() { return new CSagArmCfg(); }
                 /// <summary>본보기 파일 목록 (<urdf>\sagarm_defs\*.txt 전체 경로, 이름 순). 없으면 빈 배열. 예외 없음</summary>
                 public static string[] DefPresets(string strUrdfDir)
@@ -687,6 +800,13 @@ namespace OpenJigWare
                 public float[] PreviewDz = null, PreviewStd = null;        // 예상 표 점마다 dz·표준편차 (IK 안 되면 NaN)
                 public string MotorMapWarn = "";                           // 바탕 관절 모델이 지금과 다른 모터 매핑(방향·영점)에서 학습됨 (motormap 비교) — 비면 같음.
                                                                            //   그때 결과 파일의 motormap 은 바탕 파일의 것 (적용·시험 때 '학습 때와 방향·영점이 다름' 이 계속 나온다)
+                // 이번 바닥에 맞춘 학습 (10-15 — CSagLearnCfg.CurSession 이 있을 때, C3d.CSagFcFit 의 결과)
+                public int NCur, NOld, NOut;                               // 쓴 이번 회차 행·옛 회차 행, 회차 추세에서 벗어나 뺀 행
+                public double CvCur = double.NaN;                          // 이번 회차 교차검증 (행 하나씩 빼고 다시 맞춘 예측 RMSE, mm)
+                public double CurOffset = double.NaN;                      // 옛 회차 절편 평균 − 이번 회차 절편 (mm — 절편 하나였으면 끌렸을 양)
+                public string SessionText = "";                            // 회차 절편 한 줄
+                public double CmdShift = double.NaN;                       // 높이 기준으로 옮긴 양 (이번 회차 첫닿음 명령 − FK 평균, mm — 중앙값에서 튄 행은 빼고)
+                public int NCmdOut;                                        // 높이 기준에서 뺀 행 (명령 높이만 튄 행 — C3d.CSagFcFit.NCmdOut, 10-15)
             }
 
             /// <summary>측정 회차 결과 (실물 측정 작업이 채운다)</summary>
@@ -1265,6 +1385,8 @@ namespace OpenJigWare
             //   그래서 계획·확인은 손목 해를 관절 합 = 180 − 피치 쪽으로 시드하고, 풀린 해가 그쪽인지 확인한다 (아니면 IK 불가로 친다).
             //   로봇 정의 (10-04): 수직(Ry 90)의 관절 합은 정의의 downsum (OMX 90 — 3D 에서 잰 값과 0.5° 안, SagDef_Check V7). Ry < 90 은 downsum + (90 − Ry).
             //   식은 (downsum − 90) + (180 − Ry) 꼴로 쓴다 — downsum 90 이면 예전 식 180 − Ry 와 float 비트까지 같다 ((90 − 90) = +0, 0 + x = x).
+            //   downsum 이 자동(NaN, 10-13)인 정의는 입구(작업·계획 — SagDef_Eff)가 3D FK 로 잰 값(0.001° 반올림 — OMX 90)을 채운 사본으로 여기 온다.
+            //   NaN 이 그대로 오면 IK 는 풀지 않는다 (SagArm_IkSum·SagRun_Ik 가 null).
 
             // 시드 자세가 든 관절값 사본 — 위치 3개 = (요, 0, 40), 손목 = 관절 합이 SagArm_SumFor(피치) 가 되게 (OMX 피치 90 → 50). 다른 관절은 계획 기구학 값 그대로
             private static double[] SagRun_Seed(C3d kin, CSagArmCfg arm, float fYaw, float fPitch)
@@ -1285,6 +1407,8 @@ namespace OpenJigWare
             private static float[] SagRun_Ik(C3d kin, CSagArmCfg arm, double[] ad, float x, float y, float z, float pitch, bool bRelax, out float pUsed)
             {
                 pUsed = pitch;
+                if (arm.NoWrist) return SagRun_IkNoWrist(kin, arm, ad, x, y, z);                   // 꺾는 손목 없음 — 위치만 (피치는 정할 수 없다 — 계획·확인이 피치 90 행만 남긴다)
+                if (float.IsNaN(arm.DownSumDeg) || float.IsInfinity(arm.DownSumDeg)) return null;   // 수직 관절 합을 정하지 않은 정의 (자동을 아직 재지 않음) — 풀지 않는다 (SagDef_Eff 를 먼저)
                 for (int nSeed = 0; nSeed < 2; nSeed++)
                 {
                     double[] adS = nSeed == 0 ? ad : SagRun_Seed(kin, arm, (float)(Math.Atan2(y, x) * 180.0 / Math.PI), Math.Min(90f, pitch));
@@ -1308,6 +1432,16 @@ namespace OpenJigWare
             {
                 float pUsed; return SagRun_Ik(kin, arm, ad, x, y, z, pitch, false, out pUsed);
             }
+            // 손목 없음 사본 IK (10-13) — 공구 끝 위치만 (SagArm_IkSum 의 손목 없음 길 — 팔꿈치 위로 굽은 해, 관절 한계·TCP 0.5mm 확인).
+            //   시드 = 사본의 지금 값 → 계획 시드 (요, 0, 40) → 굽힘 시드. 성공하면 사본을 해로 바꿔 다음 시드로 (이어지는 해). 반환 4칸 (넷째 = 0)
+            private static float[] SagRun_IkNoWrist(C3d kin, CSagArmCfg arm, double[] ad, float x, float y, float z)
+            {
+                float bend;
+                float[] q = SagArm_IkSum(kin, arm, ad, x, y, z, float.NaN, out bend);
+                if (q == null) return null;
+                for (int k = 0; k < 3; k++) kin.SagFc_Set(ad, arm.PosIDs[k], q[k]);
+                return q;
+            }
             // 옮기는 높이 — (x, y) 위 SafeZ 에 리치 여유를 두고 갈 수 있으면 SafeZ, 아니면 5mm 씩 내려 zLow 까지 처음으로 되는 높이. 없으면 NaN.
             //   된다 = 관절 합을 정한 IK(SagArm_IkSum — 피치를 늦추지 않는다)가 피치 90 으로(옮기기) 그리고 pitch 가 90 이 아니면 그 피치로도(옮기는 높이에서
             //   피치를 바꾼다) 풀리고, 두 자세 모두 팔꿈치 굽힘이 SAGARM_BEND_MIN_DEG 이상 (리치 경계에서 떨어져 있다).
@@ -1318,7 +1452,7 @@ namespace OpenJigWare
             private static float SagRun_TransferZ(C3d kin, CSagArmCfg arm, double[] ad, float x, float y, float pitch, float zLow)
             {
                 if (float.IsNaN(zLow) || float.IsInfinity(zLow) || float.IsNaN(arm.SafeZ) || float.IsInfinity(arm.SafeZ)) return float.NaN;
-                bool bPitch = pitch < 89.99f && !float.IsNaN(pitch);
+                bool bPitch = pitch < 89.99f && !float.IsNaN(pitch) && !arm.NoWrist;   // 손목 없음은 피치를 바꾸지 못한다 (위치만)
                 for (int i = 0; i < 100; i++)
                 {
                     float z = arm.SafeZ - 5f * i;
@@ -1333,7 +1467,7 @@ namespace OpenJigWare
                         if (SagArm_IkSum(kin, arm, a2, x, y, z, SagArm_SumFor(arm, pitch), out bend2) == null || !(bend2 >= SAGARM_BEND_MIN_DEG)) continue;
                     }
                     for (int k = 0; k < 3; k++) kin.SagFc_Set(ad, arm.PosIDs[k], q[k]);
-                    kin.SagFc_Set(ad, arm.WristID, q[3]);
+                    kin.SagFc_Set(ad, arm.WristID, q[3]);                                // 손목 없음 (−1) 이면 사본에 쓰지 않는다 (SagFc_Set)
                     return z;
                 }
                 return float.NaN;
@@ -1376,6 +1510,7 @@ namespace OpenJigWare
             {
                 fBend = float.NaN;
                 if (kin == null || adSeed == null || c == null || !c.IdsOk) return null;
+                if (c.NoWrist) return SagArm_IkPos(kin, c, adSeed, x, y, z, out fBend);         // 꺾는 손목 없음 — 관절 합은 정하지 않는다 (위치만, fSum 무시)
                 if (float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z) || float.IsNaN(fSum) || float.IsInfinity(x) || float.IsInfinity(y) || float.IsInfinity(z)) return null;
                 float tx, ty, tz, wx, wy, wz;
                 kin.SagFc_Fk(c.FuncNumber, adSeed, -1, out tx, out ty, out tz);
@@ -1408,7 +1543,54 @@ namespace OpenJigWare
                 }
                 return null;
             }
-            // 팔꿈치 굽힘 (deg, 0 = 다 폈음 — 리치 경계) — 어깨(위치 관절 둘째)·팔꿈치(셋째)·손목 원점이 이루는 삼각형의 팔꿈치 각의 보각 (관절값 사본 FK)
+            // 손목 없음 IK (10-13) — 공구 끝(TCP)만 (x, y, z) 에: 위치 관절 셋을 DLS 로 TCP 에 맞춘다 (SagFc_SolveWrist — 손목 자리 −1 = TCP, 0.2mm).
+            //   시드는 SagArm_IkSum 과 같은 차례 (adSeed 의 자세(요만 목표 요로) → 계획 시드 (요, 0, 40) → 굽힘 시드 (요, −30, 60)). 해는 팔꿈치가 위로 굽은 쪽만
+            //   (SagArm_ElbowUp — 피치 두 관절의 두 해 사이를 건너뛰지 않게), 관절 한계(CalcLimit)·FK TCP 0.5mm 확인. 반환 4칸 (넷째 = 0 — 손목 자리), 못 풀면 null
+            private static float[] SagArm_IkPos(C3d kin, CSagArmCfg c, double[] adSeed, float x, float y, float z, out float fBend)
+            {
+                fBend = float.NaN;
+                if (float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z) || float.IsInfinity(x) || float.IsInfinity(y) || float.IsInfinity(z)) return null;
+                double yawDeg = Math.Atan2(y, x) * 180.0 / Math.PI;
+                double[][] seeds = { new double[] { yawDeg, adSeed[c.PosIDs[1]], adSeed[c.PosIDs[2]] }, new double[] { yawDeg, 0, 40 }, new double[] { yawDeg, -30, 60 } };
+                foreach (double[] s in seeds)
+                {
+                    double[] q = (double[])s.Clone();
+                    double[] a2 = (double[])adSeed.Clone();
+                    if (!kin.SagFc_SolveWrist(c.FuncNumber, a2, CSagArmCfg.WRIST_NONE, c.PosIDs, q, x, y, z)) continue;
+                    float[] r = { (float)q[0], (float)q[1], (float)q[2], 0f };
+                    bool bLim = false;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        kin.SagFc_Set(a2, c.PosIDs[k], r[k]);
+                        if (Math.Abs(a2[c.PosIDs[k]] - r[k]) > 0.01) bLim = true;           // 관절 한계에 걸림
+                    }
+                    if (bLim) continue;
+                    float fx, fy, fz;
+                    kin.SagFc_Fk(c.FuncNumber, a2, -1, out fx, out fy, out fz);
+                    double e = Math.Sqrt((double)(fx - x) * (fx - x) + (double)(fy - y) * (fy - y) + (double)(fz - z) * (fz - z));
+                    if (double.IsNaN(e) || e > 0.5) continue;
+                    if (!SagArm_ElbowUp(kin, c, a2)) continue;                                // 팔꿈치가 아래로 굽은 해 — 다른 시드로
+                    fBend = SagArm_BendOf(kin, c, a2);
+                    return r;
+                }
+                return null;
+            }
+            // 팔꿈치가 위로 굽었나 (손목 없음 IK 의 해 고르기) — 어깨(위치 관절 둘째) 원점 S → 공구 끝 T 선분에 수직인 팔꿈치(셋째) 원점 E 의 성분이 위(+z)를 향한다.
+            //   바닥을 누르는 팔은 이 쪽 해를 쓴다 (계획 시드 (요, 0, 40) 의 쪽). 선분이 너무 짧으면 (어깨 위 공구 끝) true
+            private static bool SagArm_ElbowUp(C3d kin, CSagArmCfg c, double[] ad)
+            {
+                float sx, sy, sz, ex, ey, ez, tx, ty, tz;
+                kin.SagFc_Fk(c.FuncNumber, ad, c.PosIDs[1], out sx, out sy, out sz);
+                kin.SagFc_Fk(c.FuncNumber, ad, c.PosIDs[2], out ex, out ey, out ez);
+                kin.SagFc_Fk(c.FuncNumber, ad, -1, out tx, out ty, out tz);
+                double dx = tx - sx, dy = ty - sy, dz = tz - sz, dd = dx * dx + dy * dy + dz * dz;
+                if (dd < 1.0) return true;
+                double vx = ex - sx, vy = ey - sy, vz = ez - sz;
+                double t = (vx * dx + vy * dy + vz * dz) / dd;
+                return vz - t * dz > 0;
+            }
+            // 팔꿈치 굽힘 (deg, 0 = 다 폈음 — 리치 경계) — 어깨(위치 관절 둘째)·팔꿈치(셋째)·손목 원점이 이루는 삼각형의 팔꿈치 각의 보각 (관절값 사본 FK).
+            //   손목 없음이면 손목 원점 자리에 공구 끝 (SagFc_Fk 의 −1)
             private static float SagArm_BendOf(C3d kin, CSagArmCfg c, double[] ad)
             {
                 float sx, sy, sz, ex, ey, ez, wx, wy, wz;
@@ -1441,7 +1623,7 @@ namespace OpenJigWare
             {
                 try
                 {
-                    if (arm == null) arm = new CSagArmCfg();
+                    arm = SagDef_Eff(arm);                                  // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13)
                     C3d kin = arm.IdsOk ? SagRun_Kin() : null;
                     if (kin == null) return float.NaN;
                     double[] ad = SagRun_Seed(kin, arm, (float)(Math.Atan2(y, x) * 180.0 / Math.PI), Math.Min(90f, pitch));
@@ -1455,6 +1637,8 @@ namespace OpenJigWare
             {
                 pred = std = double.NaN; qSum = float.NaN; why = "";
                 var ci = CultureInfo.InvariantCulture;
+                if (arm.NoWrist && pitch < 89.99f) { why = string.Format(ci, "손목 없음 — 공구 피치 {0:0.#} 를 정할 수 없음 (피치 90 = 위치만 행만)", pitch); return false; }
+                if (!arm.NoWrist && (float.IsNaN(arm.DownSumDeg) || float.IsInfinity(arm.DownSumDeg))) { why = "수직 관절 합을 정하지 못함 (자동 — 3D 에서 재지 못함)"; return false; }
                 if (pitch > 90.01f) { why = string.Format(ci, "피치 {0:0.#} 는 IK 로 못 감 (피치 ≤ 90 — 관절 합 {0:0.#} 은 피치 {1:0.#})", pitch, SagArm_SumMirror(arm, pitch)); return false; }
                 lock (m_oSagRunKin)
                 {
@@ -1496,8 +1680,10 @@ namespace OpenJigWare
             {
                 why = "";
                 var ci = CultureInfo.InvariantCulture;
+                if (m != null && arm != null && (m.WristID < 0) != arm.NoWrist)   // 손목 없음 모델 ↔ 손목 있는 정의 (10-13) — 서로 쓰지 않는다
+                { why = m.WristID < 0 ? "꺾는 손목 없는 팔의 모델 (wrist=none) — 지금 정의는 손목 " + arm.WristID.ToString(ci) + "번" : "손목 " + m.WristID.ToString(ci) + "번 팔의 모델 — 지금 정의는 꺾는 손목 없음 (wrist=none)"; return false; }
                 if (!SagRun_SameIds(m, arm)) { why = "관절 구성(func·posids·wrist)"; return false; }
-                if (!(Math.Abs(m.DownSumDeg - arm.DownSumDeg) <= SAGDEF_TOL_DEG))
+                if (!arm.NoWrist && !(Math.Abs(m.DownSumDeg - arm.DownSumDeg) <= SAGDEF_TOL_DEG))   // 손목 없음은 수직 기준이 없다
                 { why = string.Format(ci, "수직 기준 (모델 {0:0.###} → 정의 {1:0.###})", m.DownSumDeg, arm.DownSumDeg); return false; }
                 CSagRunKin st = SagRun_KinState();
                 if (st == null) { why = SAGRUN_NO_KIN; return false; }
@@ -1532,9 +1718,9 @@ namespace OpenJigWare
                     if (!chk.Ok) { why = chk.Why; kind = chk.Kind; return false; }
                     C3d kin = SagRun_Kin();
                     if (kin == null) { why = SAGRUN_NO_KIN; kind = ESagDefFail.NoKin; return false; }
-                    int[] ids = cfg.MoveIDs;
+                    int[] ids = cfg.MoveIDs;                                         // 손목 없음이면 위치 3개 (자세의 넷째 칸은 쓰지 않는다)
                     var poses = new List<float[]>();
-                    float[] cur = new float[4]; for (int i = 0; i < 4; i++) cur[i] = GetData(ids[i]);
+                    float[] cur = new float[4]; for (int i = 0; i < ids.Length; i++) cur[i] = GetData(ids[i]);
                     poses.Add(cur);
                     if (bFull) { poses.Add(new float[] { 0, 0, 40, 50 }); poses.Add(new float[] { 20, 30, -20, 80 }); poses.Add(new float[] { -30, 10, 10, 70 }); }
                     double[] adMain = SagFc_MotCopy(), adKin = kin.SagFc_MotCopy();
@@ -1542,7 +1728,7 @@ namespace OpenJigWare
                     foreach (float[] p in poses)
                     {
                         double[] a1 = (double[])adMain.Clone(), a2 = (double[])adKin.Clone();
-                        for (int i = 0; i < 4; i++) { a1[ids[i]] = p[i]; a2[ids[i]] = p[i]; }   // 관절 한계 없이 DH 만 비교
+                        for (int i = 0; i < ids.Length; i++) { a1[ids[i]] = p[i]; a2[ids[i]] = p[i]; }   // 관절 한계 없이 DH 만 비교
                         float x1, y1, z1, x2, y2, z2;
                         SagFc_Fk(cfg.FuncNumber, a1, -1, out x1, out y1, out z1);
                         kin.SagFc_Fk(cfg.FuncNumber, a2, -1, out x2, out y2, out z2);
@@ -1590,7 +1776,7 @@ namespace OpenJigWare
                 {
                     if (fcModel == null || !fcModel.HasFc) { report = "첫닿음 모델 없음 — ④ 학습 먼저 (floor_dataset_fc.csv)"; return plan; }
                     if (cfg == null) cfg = new CFloorPlanCfg();
-                    if (arm == null) arm = new CSagArmCfg();
+                    arm = SagDef_Eff(arm);                                  // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13)
                     string wd = "관절 구성(func·posids·wrist)", noteDef;
                     if (!SagDef_Gate(arm, true, null, out noteDef)) { report = "★로봇 정의: " + noteDef; return plan; }   // 정의 확인 (3D 에 수식이 없으면 내장 OMX 로 — ★ 알림)
                     if (!arm.IdsOk || !SagRun_SameDef(fcModel, arm, out wd)) { report = "모델과 설정의 로봇 정의가 다름 — " + wd; return plan; }
@@ -1640,7 +1826,8 @@ namespace OpenJigWare
                         fcModel.Fc.Count, fcModel.Fc.Ref, plan.Count, string.Join(", ", perSet.ToArray()), nOk, lines.Count, sec / 60.0));
                     sb.AppendLine("  창: 시작 = 예측 첫닿음 + 위, 한도 = max(하한, 예측 − 아래) (세트별 값, 기본 20 / 12 / 3)");
                     if (noteDef.Length > 0) sb.AppendLine("  " + noteDef);
-                    if (nFail > 0) sb.AppendLine(string.Format(ci, "  첫닿음 예측 못 함 {0}행 (IK 불가 또는 관절 합 {1:0.#} + (90 − 피치) 쪽 손목 해 없음)", nFail, arm.DownSumDeg));
+                    if (nFail > 0) sb.AppendLine(arm.NoWrist ? string.Format(ci, "  첫닿음 예측 못 함 {0}행 (IK 불가 또는 손목 없음 — 피치 90 이 아닌 세트)", nFail)
+                                                             : string.Format(ci, "  첫닿음 예측 못 함 {0}행 (IK 불가 또는 관절 합 {1:0.#} + (90 − 피치) 쪽 손목 해 없음)", nFail, arm.DownSumDeg));
                     if (nExtrap > 0) sb.AppendLine(string.Format(ci, "  넘겨짚기 (예측 std > {0:F1}mm) {1}행 — 재 보고 다시 학습", stdLim, nExtrap));
                     var low = new List<string>();
                     foreach (CFloorPlanRow r in plan)
@@ -1717,7 +1904,7 @@ namespace OpenJigWare
                 try
                 {
                     if (plan == null || plan.Count == 0) { report = "계획 없음"; return 0; }
-                    if (arm == null) arm = new CSagArmCfg();
+                    arm = SagDef_Eff(arm);                                  // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13)
                     var ci = CultureInfo.InvariantCulture;
                     C3d kin = arm.IdsOk ? SagRun_Kin() : null;
                     if (kin == null)
@@ -1762,6 +1949,11 @@ namespace OpenJigWare
                         {
                             r.IkOk = false; r.Why = SagRun_WhyJoin(string.Format(ci, "IK: 피치 {0:0.#} 는 못 감 (피치 ≤ 90 — 관절 합 {0:0.#} 은 피치 {1:0.#})", r.Pitch, SagArm_SumMirror(arm, r.Pitch)), rest);
                             bad.Add(string.Format(ci, "{0} r{1:F0} 피치 > 90", r.LineKey, r.R)); continue;
+                        }
+                        if (arm.NoWrist && r.Pitch < 89.99f)                          // 꺾는 손목 없음 — 공구 피치를 정할 수 없다 (피치 90 행 = 위치만)
+                        {
+                            r.IkOk = false; r.Why = SagRun_WhyJoin(string.Format(ci, "IK: 손목 없음 — 피치 {0:0.#} 는 정할 수 없음 (피치 90 행만)", r.Pitch), rest);
+                            bad.Add(string.Format(ci, "{0} r{1:F0} 손목 없음 — 피치 {2:0.#}", r.LineKey, r.R, r.Pitch)); continue;
                         }
                         // 자리 (X, Y) 가 반경·요의 자리와 0.5mm 안 — 누름은 반경·요로, 옮기기·IK 확인은 X·Y 로 간다. r 만 고친 행은 X·Y 에서 확인하고
                         //   다른 반경을 그 창으로 누른다 (10-03 검토: r 200 → 150 으로 고친 행이 r 200 의 창으로 r 150 을 눌렀다). 닿기 시험 점 확인과 같은 기준
@@ -2242,6 +2434,32 @@ namespace OpenJigWare
                     string why, baseMap;
                     CSagComp m = SagRun_LoadBase(basePath, out why, out baseMap);
                     if (m == null) return SagRun_LearnFail(res, why, L);
+                    // 손목 공구 기울기 보정 (10-15) — 기계 성질: 바탕에 키가 없으면 적용 중 파일의 항을 이어받는다 (실습 2단계의 새 관절 모델 바탕 등)
+                    if (!m.WristTiltKeys)
+                    {
+                        string act = SagRun_ActivePath(strUrdfDir);
+                        CSagComp mAct = SagRun_SamePath(basePath, act) ? null : CSagComp.Load(act);
+                        if (mAct != null && m.CopyWristTiltFrom(mAct) && m.HasWristTilt) L("손목 공구 기울기 보정을 적용 중 파일에서 이어받음 — " + m.WristTiltText());
+                    }
+                    else if (m.HasWristTilt) L("손목 공구 기울기 보정 (바탕 파일) — " + m.WristTiltText());
+                    // 예측 보정 켬·끔 (10-16) — 바탕에 키가 없으면 적용 중 파일의 키를 이어받는다 (적용 중 파일에서 끈 것을 다시 학습이 켜지 않게)
+                    if (!m.PredictiveKey)
+                    {
+                        string act = SagRun_ActivePath(strUrdfDir);
+                        CSagComp mAct = (SagRun_SamePath(basePath, act) || !File.Exists(act)) ? null : CSagComp.Load(act);
+                        if (mAct != null && mAct.PredictiveKey)
+                        {
+                            m.Predictive = mAct.Predictive; m.PredictiveKey = true;
+                            if (!m.Predictive) L("예측 보정 끔 (적용 중 파일의 predictive=0 을 이어받음)");
+                        }
+                    }
+                    // 데드밴드 넘기 (10-16) — 같은 방식: 바탕에 sigmatake 키가 없으면 적용 중 파일의 키를 이어받는다 (sigmatake=0 = 예전 램프로 둔 것을 다시 학습이 바꾸지 않게)
+                    if (!m.SigmaTakeKey)
+                    {
+                        string act = SagRun_ActivePath(strUrdfDir);
+                        CSagComp mAct = (SagRun_SamePath(basePath, act) || !File.Exists(act)) ? null : CSagComp.Load(act);
+                        if (mAct != null && mAct.SigmaTakeKey) { m.SigmaTakeDeg = mAct.SigmaTakeDeg; m.SigmaTakeKey = true; L("데드밴드 넘기 sigmatake=" + m.SigmaTakeDeg.ToString(CultureInfo.InvariantCulture) + " (적용 중 파일에서 이어받음)"); }
+                    }
                     // 로봇 정의 (10-04) — 바탕 모델의 관절 구성·수직 관절 합으로 정의를 확인하고 (3D 에 수식이 없으면 내장 OMX 로 — ★ 로그),
                     //   바탕 모델의 기구학 표시가 지금 3D 의 그 수식과 같아야 한다 (다른 DH 에서 만든 관절 모델에 첫닿음을 얹지 않는다 — 빈 표시 = 내장 OMX)
                     var armDef = new CSagArmCfg { FuncNumber = m.FuncNumber, PosIDs = m.PosIDs == null ? null : (int[])m.PosIDs.Clone(), WristID = m.WristID,
@@ -2266,11 +2484,26 @@ namespace OpenJigWare
                         secEst < 60 ? Math.Max(1, Math.Ceiling(secEst)).ToString("0", ci) + "초" : (secEst / 60).ToString("0.#", ci) + "분 ([중단] 으로 멈출 수 있다)"));
                     if (SagRun_Stopped(stop)) return SagRun_LearnStop(res, L);
                     string rep;
-                    if (!kin.SagComp_FitFloorFc(csv, m, cfg.UseHold, L, stop, out rep) || !m.HasFc)
+                    // 이번 바닥에 맞춘 학습 (10-15) — 이번 회차가 있으면 회차마다 절편·회차 그럴듯함 (없으면 예전 학습 그대로)
+                    string cur = string.IsNullOrEmpty(cfg.CurSession) ? null : cfg.CurSession;
+                    var fo = new CSagFcFit { UseHold = cfg.UseHold, CurSession = cur, Sessions = cfg.Sessions, PlausMm = cur != null ? cfg.PlausMm : 0, CmdLevel = cfg.CmdLevel };
+                    if (cur != null)
+                        L(string.Format(ci, "진행 학습: 이번 회차 {0} — {1}{2}", cur,
+                            cfg.Sessions == 2 ? "이번 회차 행만" : (cfg.Sessions == 0 ? "절편 하나 (옛 회차와 한 바닥으로)" : "회차마다 절편 (모양은 모든 회차가 함께, c0·Ref 는 이번 바닥)"),
+                            cfg.PlausMm > 0 ? string.Format(ci, ", 회차 추세 ±{0:0.#}mm 밖 행 뺌", cfg.PlausMm) : ""));
+                    if (!kin.SagComp_FitFloorFc(csv, m, fo, L, stop, out rep) || !m.HasFc)
                     {
                         if (SagRun_Stopped(stop)) return SagRun_LearnStop(res, L);
                         return SagRun_LearnFail(res, "첫닿음 학습 실패 — " + rep, L);
                     }
+                    res.NCur = fo.NCur; res.NOld = fo.NOld; res.NOut = fo.NOut; res.CvCur = fo.CvCur; res.CurOffset = fo.CurOffset; res.SessionText = fo.SessionText; res.CmdShift = fo.CmdShift;
+                    res.NCmdOut = fo.NCmdOut;
+                    if (cur != null)
+                        L(string.Format(ci, "이번 회차 {0}: {1}행{2}{3}{4}{5}", cur, fo.NCur, fo.NOld > 0 ? string.Format(ci, " + 옛 회차 {0}행", fo.NOld) : "",
+                            double.IsNaN(fo.CurOffset) ? "" : string.Format(ci, " — 옛 회차 바닥 {0:+0.0;-0.0}mm (절편 하나였으면 이만큼 끌림)", fo.CurOffset),
+                            fo.NOut > 0 ? string.Format(ci, " · 회차 추세에서 벗어나 뺀 행 {0}", fo.NOut) : "",
+                            double.IsNaN(fo.CmdShift) ? "" : string.Format(ci, " · 높이 기준 (첫닿음 명령 − FK) {0:+0.00;-0.00}mm{1}", fo.CmdShift,
+                                fo.NCmdOut > 0 ? string.Format(ci, " (명령 높이만 튄 {0}행은 높이 기준에서 뺌)", fo.NCmdOut) : "")));
                     if (SagRun_Stopped(stop)) return SagRun_LearnStop(res, L);
                     // 3. 기준 높이
                     if (!float.IsNaN(cfg.RefMm)) { m.Fc.Ref = cfg.RefMm; m.Fc.RefFixed = true; }
@@ -2318,6 +2551,8 @@ namespace OpenJigWare
                             dsPath, st.Rows, st.F, st.FHold, st.H, st.C, st.X, st.Blank, st.Sessions, st.Groups),
                         string.Format(ci, "학습: 첫닿음 {0}점 — 손목 유지 켬 행 {1} (UseHold={2})", m.Fc.Count, cfg.UseHold ? "넣음" : "뺌", cfg.UseHold ? 1 : 0),
                         "기준: " + strRef };
+                    string strCur = SagRun_LearnCurText(cfg, res);
+                    if (strCur.Length > 0) note.Add(strCur);
                     if (dBase.Length > 0) note.Add("★바탕 관절 모델은 지금과 다른 모터 매핑에서 학습됨 (" + dBase + ") — motormap 은 바탕 파일의 것");
                     note.Add("dataset=" + dsPath);
                     m.Note = string.Join("\n", note.ToArray());
@@ -2340,6 +2575,7 @@ namespace OpenJigWare
                     sb.AppendLine(string.Format(ci, "  {0}행 — 첫닿음 F {1} (손목 유지 켬 {2}), 단단한 정지 H {3}, 검열 C {4}, 못 씀 X {5}, 판정 없음 {6}{7}; 회차 {8}, 묶음 {9}",
                         st.Rows, st.F, st.FHold, st.H, st.C, st.X, st.Blank, nBroken > 0 ? string.Format(ci, ", 못 읽은 줄 {0}", nBroken) : "", st.Sessions, st.Groups));
                     sb.AppendLine(string.Format(ci, "학습에 쓴 점: 첫닿음 {0}점 (손목 유지 켬 {1} — {2})", m.Fc.Count, res.NHold, cfg.UseHold ? "켬 행 넣음" : "켬 행 뺌"));
+                    if (strCur.Length > 0) sb.AppendLine(strCur);
                     sb.AppendLine("기준 Ref: " + strRef);
                     sb.AppendLine("모터 매핑: " + mm);
                     if (dBase.Length > 0)
@@ -2362,11 +2598,12 @@ namespace OpenJigWare
 
                     res.Ok = true; res.Model = m; res.ModelPath = path; res.ReportPath = reportPath; res.DataPath = dataPath; res.Report = sb.ToString();
                     double mn = double.NaN, mx = double.NaN; SagRun_MinMax(res.PreviewDz, out mn, out mx);
-                    string strLine = string.Format(ci, "{0} · 첫닿음 {1}점{2} · CV {3} · Ref {4:F1}{5} · 사각형 dz {6}",
+                    string strLine = string.Format(ci, "{0} · 첫닿음 {1}점{2} · CV {3} · Ref {4:F1}{5} · 사각형 dz {6}{7}",
                         Path.GetFileNameWithoutExtension(path), res.NUsed, res.NHold > 0 ? string.Format(ci, " (켬 {0})", res.NHold) : "",
                         double.IsNaN(res.CvRmse) ? "계산 불가" : string.Format(ci, "{0:F2}mm (물리만 {1:F2})", res.CvRmse, res.CvPhysRmse),
                         res.Ref, m.Fc.RefFixed ? " 고정" : "",
-                        double.IsNaN(mn) ? "—" : string.Format(ci, "{0:+0.0;-0.0}~{1:+0.0;-0.0}", mn, mx));
+                        double.IsNaN(mn) ? "—" : string.Format(ci, "{0:+0.0;-0.0}~{1:+0.0;-0.0}", mn, mx),
+                        double.IsNaN(res.CvCur) ? "" : string.Format(ci, " · 이번 회차 CV {0:F2}mm", res.CvCur));
                     res.Line = (res.MotorMapWarn.Length > 0) ? res.MotorMapWarn + "\r\n" + strLine : strLine;   // 바탕 매핑이 다르면 그 경고를 맨 앞에 (로그에는 위에서 한 번)
                     made.Clear();                                                // 성공 — 남긴다
                     L(strLine);
@@ -2375,6 +2612,19 @@ namespace OpenJigWare
                 catch (Exception ex) { res.Ok = false; res.Why = "★오류: " + SagRun_Msg(ex); L(res.Why); }
                 finally { foreach (string p in made) { try { if (File.Exists(p)) File.Delete(p); } catch { } } }
                 return res;
+            }
+            // 이번 바닥에 맞춘 학습 한 줄 (결과 파일 머리 주석·보고서 — 10-15). 이번 회차가 없으면 ""
+            private static string SagRun_LearnCurText(CSagLearnCfg cfg, CSagLearnResult res)
+            {
+                if (cfg == null || res == null || string.IsNullOrEmpty(cfg.CurSession)) return "";
+                var ci = CultureInfo.InvariantCulture;
+                string how = cfg.Sessions == 2 ? "이번 회차 행만" : (cfg.Sessions == 0 ? "절편 하나 (옛 회차와 한 바닥)" : "회차마다 절편 — 모양은 모든 회차가 함께, c0·Ref 는 이번 바닥");
+                return string.Format(ci, "이번 바닥: 회차 {0} {1}행{2} ({3}){4}{5}{6}{7}", cfg.CurSession, res.NCur, res.NOld > 0 ? string.Format(ci, " + 옛 회차 {0}행", res.NOld) : "", how,
+                    double.IsNaN(res.CurOffset) ? "" : string.Format(ci, " · 옛 회차 바닥 {0:+0.0;-0.0}mm", res.CurOffset),
+                    res.NOut > 0 ? string.Format(ci, " · 회차 추세에서 벗어나 뺀 행 {0}", res.NOut) : "",
+                    double.IsNaN(res.CmdShift) ? "" : string.Format(ci, " · 높이 기준 첫닿음 명령 − FK {0:+0.00;-0.00}mm{1}", res.CmdShift,
+                        res.NCmdOut > 0 ? string.Format(ci, " (명령만 튄 {0}행 뺌)", res.NCmdOut) : ""),
+                    double.IsNaN(res.CvCur) ? "" : string.Format(ci, " · 이번 회차 교차검증 {0:F2}mm", res.CvCur));
             }
             // 학습한 첫닿음 모델이 이 실험에서 말이 되는가 — 아니면 이유 (되면 ""). 첫닿음 FK 높이는 OMX 바닥에서 ≈ 30~60mm 이고 측정 창 한도는 3mm 아래로
             //   내려가지 않는다: 학습 높이 평균 3~300mm, 모두 유한, 기준 Ref 가 그 평균에서 보정 상한(DzMax) 안 (밖이면 모든 점의 보정이 상한에 걸린다),
@@ -2463,7 +2713,7 @@ namespace OpenJigWare
                 var l = new List<int>();
                 if (m != null && m.JointIDs != null) foreach (int id in m.JointIDs) if (!l.Contains(id)) l.Add(id);
                 if (m != null && m.PosIDs != null) foreach (int id in m.PosIDs) if (!l.Contains(id)) l.Add(id);
-                if (m != null && !l.Contains(m.WristID)) l.Add(m.WristID);
+                if (m != null && m.WristID >= 0 && !l.Contains(m.WristID)) l.Add(m.WristID);   // 손목 없음(−1)은 축이 아니다
                 return l.ToArray();
             }
             // 매핑 키에서 그 축들의 칸만 (키 순서 그대로, '|' 로) — 키가 비었으면 그대로 (null = 기본 매핑)
@@ -2631,7 +2881,7 @@ namespace OpenJigWare
                 try
                 {
                     if (cfg == null) cfg = new CSagTestCfg();
-                    if (arm == null) arm = new CSagArmCfg();
+                    arm = SagDef_Eff(arm);                                  // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13)
                     if (mOn == null || !mOn.HasFc) { report = "첫닿음 모델이 없는 파일 — 닿기 시험 창을 정할 수 없다 (④ 학습 결과 파일을 고르십시오)"; return pts; }
                     string wd = "관절 구성(func·posids·wrist)", noteDef;
                     if (!SagDef_Gate(arm, true, null, out noteDef)) { report = "★로봇 정의: " + noteDef; return pts; }   // 정의 확인 (3D 에 수식이 없으면 내장 OMX 로 — ★ 알림)
@@ -2710,7 +2960,7 @@ namespace OpenJigWare
                 try
                 {
                     if (cfg == null) cfg = new CSagGapCfg();
-                    if (arm == null) arm = new CSagArmCfg();
+                    arm = SagDef_Eff(arm);                                  // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13)
                     if (mOn == null || !mOn.HasFc) { report = "첫닿음 모델이 없는 파일 — 틈 변화 예상을 낼 수 없다"; return pts; }
                     string wd = "관절 구성(func·posids·wrist)", noteDef;
                     if (!SagDef_Gate(arm, true, null, out noteDef)) { report = "★로봇 정의: " + noteDef; return pts; }   // 정의 확인 (3D 에 수식이 없으면 내장 OMX 로 — ★ 알림)
@@ -3195,10 +3445,12 @@ namespace OpenJigWare
                 else if (m.HasGp) s = string.Format(ci, "GP {0}점", m.Gp.Count);
                 else if (m.HasFloorMap) s = string.Format(ci, "보정표 {0}점", m.FloorR.Length);
                 else if (m.HasJoint) s = "관절 모델만";
-                else if (m.IsUsable) s = "직교 모델";
+                else if (m.IsFitted) s = "직교 모델";
+                else if (m.HasWristTilt) s = "공구 기울기 보정만";
                 else return "쓸 수 없는 모델";
                 if ((m.HasFc || m.HasGp || m.HasFloorMap) && !m.FloorMapEnabled) s += " [바닥 끔]";
                 if (m.FcDropped) s += " [첫닿음 줄 버림]";
+                if (m.HasWristTilt && (m.HasJoint || m.IsFitted)) s += " + 공구 기울기 " + m.WristTiltC.ToString("+0.0;-0.0;0.0", ci) + "°";   // 10-15
                 return s;
             }
             // 시험 기록 파일의 [틈]·[닿기] 상태 — "틈 합격 (뒤에 3D만) / 닿기 불합격" (옛 형식의 머리표 없는 줄은 닿기로 본다).
@@ -3345,9 +3597,10 @@ namespace OpenJigWare
             /// 지난 적용이 남긴 임시 파일(1분 넘은 것)은 시작 때 치운다. urdf 폴더가 없으면 거절. 예외 없음.</summary>
             public bool SagRun_Activate(string strResultPath, string strUrdfDir, string strMotorMapKey, CSim2Real.DLog log, out string strBackupPath, out string report)
             {
-                using (SagRun_KinUse()) return SagRun_ActivateBody(strResultPath, strUrdfDir, strMotorMapKey, log, out strBackupPath, out report);   // 계획 기구학을 쓰는 동안 묶음을 바꾸지 않는다 (SagRun_KinUse)
+                using (SagRun_KinUse()) return SagRun_ActivateBody(strResultPath, strUrdfDir, strMotorMapKey, log, true, out strBackupPath, out report);   // 계획 기구학을 쓰는 동안 묶음을 바꾸지 않는다 (SagRun_KinUse)
             }
-            private bool SagRun_ActivateBody(string strResultPath, string strUrdfDir, string strMotorMapKey, CSim2Real.DLog log, out string strBackupPath, out string report)
+            //   bCarryTilt = 결과 파일에 손목 공구 기울기 보정 키(wtilt*)가 없고 지금 적용 중 파일에 있으면 넘겨받는다 (10-15 — 기계 성질. 넣기·지우기(SagRun_TiltApply)는 false)
+            private bool SagRun_ActivateBody(string strResultPath, string strUrdfDir, string strMotorMapKey, CSim2Real.DLog log, bool bCarryTilt, out string strBackupPath, out string report)
             {
                 strBackupPath = null; report = "";
                 CSim2Real.DLog L = SagRun_SafeLog(log, null);
@@ -3384,10 +3637,18 @@ namespace OpenJigWare
                         string d = SagRun_MotorMapDiff(mNew.MotorMap, strMotorMapKey);
                         if (d.Length > 0) warns.Add("★학습 때와 방향·영점이 다름 (" + d + ") — 다시 학습 권장");
                     }
+                    // 손목 공구 기울기 보정 (10-15) — 기계 성질: 결과 파일에 wtilt* 키가 없고 지금 적용 중 파일에 있으면 넘겨받는다 (적용 중 파일 = 결과 파일 + 그 줄)
+                    string strTiltCarry = null;
+                    if (bCarryTilt && !mNew.WristTiltKeys && mOld != null && mOld.WristTiltKeys)
+                    {
+                        strTiltCarry = mOld.WristTiltLines("\r\n");
+                        warns.Add("손목 공구 기울기 보정을 지금 적용 중 파일에서 넘겨받음 (" + mOld.WristTiltText() + ")");
+                    }
                     string warn = string.Join(" · ", warns.ToArray());
                     string oldSummary = mOld != null ? mOld.Summary() : "(적용 중 파일 없음)";
                     byte[] staged;
-                    tmp = SagRun_StageCopyBytes(strResultPath, active, out staged);      // 먼저 옆에 복사·확인 — 원본을 읽다 실패해도 적용 중 파일은 그대로
+                    tmp = (strTiltCarry == null) ? SagRun_StageCopyBytes(strResultPath, active, out staged)      // 먼저 옆에 복사·확인 — 원본을 읽다 실패해도 적용 중 파일은 그대로
+                                                 : SagRun_StageCopyPlus(strResultPath, active, strTiltCarry, out staged);
                     if (bHadActive) bak = SagRun_BackupActive(strUrdfDir, active, activeTest);
                     strBackupPath = bak;
                     bTouched = true;                                               // 여기부터 실패하면 백업으로 되돌린다
@@ -3439,6 +3700,214 @@ namespace OpenJigWare
             public bool SagRun_Activate(string strResultPath, string strUrdfDir, CSim2Real.DLog log, out string strBackupPath, out string report)
             {
                 return SagRun_Activate(strResultPath, strUrdfDir, null, log, out strBackupPath, out report);
+            }
+
+            // ── .ojw 에 담는 처짐 보정 모델 (2026-10-15 — 디자이너 파일 확장 구역 sagComp) ──
+            /// <summary>.ojw 에 담을 적용 중 처짐 보정 모델 글 (&lt;urdf&gt;\sagcomp_model.txt 그대로 — UTF-8, BOM 은 뗀다). 없거나 못 읽으면 null. 예외 없음</summary>
+            public static string SagRun_ActiveModelText(string strUrdfDir)
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(strUrdfDir)) return null;
+                    string p = SagRun_ActivePath(strUrdfDir);
+                    if (!File.Exists(p)) return null;
+                    byte[] raw = File.ReadAllBytes(p);
+                    int n = (raw.Length >= 3 && raw[0] == 0xEF && raw[1] == 0xBB && raw[2] == 0xBF) ? 3 : 0;
+                    return new UTF8Encoding(false).GetString(raw, n, raw.Length - n);
+                }
+                catch { return null; }
+            }
+            /// <summary>모델 글이 지금 적용 중 파일과 같은가 (줄 끝·끝 공백 무시). 적용 중 파일이 없으면 false. 예외 없음</summary>
+            public static bool SagRun_SameAsActive(string strModelText, string strUrdfDir)
+            {
+                string a = SagRun_ActiveModelText(strUrdfDir);
+                if (a == null || strModelText == null) return false;
+                Func<string, string> Norm = s => s.Replace("\r\n", "\n").TrimEnd();
+                return string.Equals(Norm(a), Norm(strModelText), StringComparison.Ordinal);
+            }
+            /// <summary>모델 글 한 줄 요약 (CSagComp.Summary — 임시 파일로 읽는다). 읽지 못하면 까닭. 예외 없음</summary>
+            public static string SagRun_ModelTextBrief(string strModelText)
+            {
+                string tmp = null;
+                try
+                {
+                    tmp = Path.Combine(Path.GetTempPath(), "ojw_sagcomp_" + Guid.NewGuid().ToString("N") + ".txt");
+                    File.WriteAllText(tmp, strModelText ?? "", new UTF8Encoding(false));
+                    CSagComp m = CSagComp.Load(tmp);
+                    return (m == null) ? "(모델을 읽지 못함)" : m.Summary();
+                }
+                catch (Exception ex) { return "(모델을 읽지 못함: " + SagRun_Msg(ex) + ")"; }
+                finally { try { if (tmp != null && File.Exists(tmp)) File.Delete(tmp); } catch { } }
+            }
+            /// <summary>.ojw 에서 온 처짐 보정 모델 글 적용 (UI 스레드 — SagRun_Activate 규칙): 글을 &lt;urdf&gt;\sagcomp_results\sagcomp_model_ojw_&lt;yyyyMMdd_HHmmss&gt;.txt 로 쓰고
+            /// SagRun_Activate (적용 중 파일 백업 + 바꿔 끼움 + 1초 전환 — 거절 규칙도 같다: 다른 기구학·다른 관절 구성·작업 중). 지금 적용 중 파일과 글이 같으면
+            /// 하지 않는다 (true, report "이미 적용 중"). strResultPath = 쓴 결과 파일 (적용을 거절해도 남는다 — 결과 목록에서 다시 고를 수 있다). 예외 없음</summary>
+            public bool SagRun_ActivateText(string strModelText, string strUrdfDir, string strMotorMapKey, CSim2Real.DLog log, out string strResultPath, out string strBackupPath, out string report)
+            {
+                strResultPath = null; strBackupPath = null; report = "";
+                try
+                {
+                    if (string.IsNullOrEmpty(strModelText)) { report = "모델 글이 비었음"; return false; }
+                    if (string.IsNullOrEmpty(strUrdfDir) || !Directory.Exists(strUrdfDir)) { report = "urdf 폴더 없음: " + strUrdfDir; return false; }
+                    if (SagRun_SameAsActive(strModelText, strUrdfDir)) { report = "이미 적용 중 (같은 모델)"; return true; }
+                    string dir = SagRun_ResultsDir(strUrdfDir);
+                    Directory.CreateDirectory(dir);
+                    string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+                    string p = Path.Combine(dir, "sagcomp_model_ojw_" + stamp + ".txt");
+                    for (int k = 2; File.Exists(p); k++) p = Path.Combine(dir, "sagcomp_model_ojw_" + stamp + "_" + k.ToString(CultureInfo.InvariantCulture) + ".txt");
+                    File.WriteAllText(p, strModelText, new UTF8Encoding(false));
+                    strResultPath = p;
+                    return SagRun_Activate(p, strUrdfDir, strMotorMapKey, log, out strBackupPath, out report);
+                }
+                catch (Exception ex) { report = "★오류: " + SagRun_Msg(ex); return false; }
+            }
+
+            // ── 손목 공구 기울기 보정 넣기·지우기 (10-15 — 수직 눈 확인이 배운 항, 정의 페이지 [기울기 보정 지우기]) ──
+            /// <summary>손목 공구 기울기 보정을 적용 중 모델에 넣는다 (UI 스레드 — SagRun_Activate 규칙: 작업 중이면 거절, 적용 중 파일 백업 + 1초 전환).
+            /// 적용 중 파일(&lt;urdf&gt;\sagcomp_model.txt)의 글에서 wtilt* 줄만 바꾼 새 결과 파일 sagcomp_results\sagcomp_model_tilt_&lt;시각&gt;.txt 를 만들어 적용한다
+            /// (나머지 줄은 그대로 — 관절·바닥 모델 그대로). 잰 자리의 |τ| 가 그 모델의 관절 보정 상한(maxjoint)에 0.5° 안으로 다가가면 상한을 올린다
+            /// (출력 단은 기울기도 같은 상한으로 자른다 — 올렸으면 report 에). 적용 중 파일이 없으면 기울기만 있는 모델을 만든다
+            /// (arm 의 정의·지금 3D 기구학 표시·strMotorMapKey 를 적어서). fit = null 이면 지운다 (SagRun_TiltClear). strResultPath = 만든 결과 파일. 예외 없음</summary>
+            public bool SagRun_TiltApply(C3d.CSagTiltFit fit, CSagArmCfg arm, string strUrdfDir, string strMotorMapKey, CSim2Real.DLog log, out string strResultPath, out string report)
+            {
+                strResultPath = null; report = "";
+                CSim2Real.DLog L = SagRun_SafeLog(log, null);
+                var ci = CultureInfo.InvariantCulture;
+                try
+                {
+                    if (SagRun_IsBusy) return SagRun_Refuse(out report, "다른 로봇팔 작업이 진행 중 — 끝난 뒤에 하십시오", L);
+                    if (string.IsNullOrEmpty(strUrdfDir) || !Directory.Exists(strUrdfDir)) return SagRun_Refuse(out report, "urdf 폴더 없음: " + strUrdfDir, L);
+                    string act = SagRun_ActiveModelText(strUrdfDir);
+                    string text, note = "";
+                    if (act == null)
+                    {
+                        if (fit == null) { report = "적용 중 처짐 보정 모델이 없음 — 지울 공구 기울기 보정이 없음"; return true; }
+                        if (arm == null || arm.NoWrist || arm.PosIDs == null || arm.PosIDs.Length < 3) return SagRun_Refuse(out report, "꺾는 손목이 없거나 로봇 정의가 없음 — 공구 기울기 보정을 쓸 수 없음", L);
+                        CSagArmCfg e = SagDef_Eff(arm);
+                        var m = new CSagComp
+                        {
+                            Robot = arm.DefName ?? "", FuncNumber = arm.FuncNumber, PosIDs = (int[])arm.PosIDs.Clone(), WristID = arm.WristID,
+                            DownSumDeg = float.IsNaN(e.DownSumDeg) ? 90f : e.DownSumDeg, KinSig = SagRun_KinSig(SagRun_KinState(), arm.FuncNumber),
+                            MotorMap = string.IsNullOrEmpty(strMotorMapKey) ? null : SagRun_MapKeyFor(strMotorMapKey, arm.MoveIDs),
+                            Note = "손목 공구 기울기 보정만 — 수직 눈 확인이 배운 항 (관절·바닥 모델 없음)"
+                        };
+                        fit.PutTo(m);
+                        double need = fit.MaxAbsTau();
+                        if (need + 0.5 > m.MaxAbsJointDeg) { m.MaxAbsJointDeg = (float)Math.Min(15.0, Math.Ceiling(need + 1.0)); note = string.Format(ci, "관절 보정 상한 {0:0.#}°", m.MaxAbsJointDeg); }
+                        string dir0 = SagRun_ResultsDir(strUrdfDir);
+                        Directory.CreateDirectory(dir0);
+                        string p0 = SagRun_TiltResultPath(dir0, "tilt");
+                        m.Save(p0);
+                        strResultPath = p0;
+                        L("기울기만 있는 처짐 보정 모델을 만듦 (적용 중 파일 없음) — " + m.WristTiltText() + (note.Length > 0 ? " · " + note : ""));
+                    }
+                    else
+                    {
+                        string nl = act.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
+                        var lines = new List<string>(act.Replace("\r\n", "\n").Split('\n'));
+                        if (lines.Count > 0 && lines[lines.Count - 1].Length == 0) lines.RemoveAt(lines.Count - 1);
+                        lines.RemoveAll(delegate(string ln)
+                        {
+                            string t = ln.TrimStart().ToLowerInvariant();
+                            return t.StartsWith("wtiltc=") || t.StartsWith("wtilt=") || t.StartsWith("wtiltref=") || t.StartsWith("wtilton=");
+                        });
+                        if (fit != null)
+                        {
+                            var mt = new CSagComp();
+                            fit.PutTo(mt);
+                            string[] add = mt.WristTiltLines("\n").TrimEnd('\n').Split('\n');
+                            int at = -1;
+                            for (int i = 0; i < lines.Count; i++)
+                            {
+                                string t = lines[i].TrimStart().ToLowerInvariant();
+                                if (t.StartsWith("flex=") || t.StartsWith("sigmaramp=")) at = i + 1;
+                            }
+                            if (at < 0) for (int i = 0; i < lines.Count; i++) { string t = lines[i].TrimStart(); if (t.StartsWith("s=") || t.StartsWith("# s=")) { at = i; break; } }
+                            if (at < 0) at = lines.Count;
+                            lines.InsertRange(at, add);
+                            // 관절 보정 상한 — 잰 자리의 τ 가 상한 0.5° 안이면 올린다 (출력 단은 기울기도 같은 상한으로 자른다)
+                            double need = fit.MaxAbsTau();
+                            for (int i = 0; i < lines.Count; i++)
+                            {
+                                string t = lines[i].TrimStart();
+                                if (!t.StartsWith("maxjoint=", StringComparison.OrdinalIgnoreCase)) continue;
+                                float mj;
+                                if (float.TryParse(t.Substring(9).Split('#')[0].Trim(), NumberStyles.Float, ci, out mj) && need + 0.5 > mj)
+                                {
+                                    float nj = (float)Math.Min(15.0, Math.Ceiling(need + 1.0));
+                                    lines[i] = "maxjoint=" + nj.ToString(ci);
+                                    note = string.Format(ci, "관절 보정 상한 {0:0.#}° → {1:0.#}° (기울기 {2:0.0}° 가 잘리지 않게)", mj, nj, need);
+                                }
+                                break;
+                            }
+                        }
+                        text = string.Join(nl, lines.ToArray()) + nl;
+                        string dir = SagRun_ResultsDir(strUrdfDir);
+                        Directory.CreateDirectory(dir);
+                        string p = SagRun_TiltResultPath(dir, fit == null ? "tiltclear" : "tilt");
+                        File.WriteAllText(p, text, new UTF8Encoding(false));
+                        strResultPath = p;
+                    }
+                    string bak, rep;
+                    bool bOk;
+                    using (SagRun_KinUse()) bOk = SagRun_ActivateBody(strResultPath, strUrdfDir, strMotorMapKey, L, false, out bak, out rep);
+                    report = (fit == null ? "공구 기울기 보정 지움" : "공구 기울기 보정 넣음 — " + fit.Text()) + (note.Length > 0 ? " · " + note : "") + "\r\n" + rep;
+                    return bOk;
+                }
+                catch (Exception ex) { report = "★오류: " + SagRun_Msg(ex); L(report); return false; }
+            }
+            /// <summary>손목 공구 기울기 보정을 적용 중 모델에서 지운다 (UI 스레드 — 백업 + 1초 전환, 모터 영점은 건드리지 않는다). 지운 뒤에는 수직 눈 확인을 다시 해야 한다
+            /// (눈 확인 기록의 기울기 서명이 달라진다). 적용 중 모델에 항이 없으면 하지 않는다 (true).
+            /// 관절 모델이 없는 모델 (보통 수직 눈 확인이 만든 기울기만 있는 모델) 은 항을 빼면 적용할 모델이 아니므로 적용 중 파일을 백업하고 내린다 (SagRun_TiltTakeDown). 예외 없음</summary>
+            public bool SagRun_TiltClear(string strUrdfDir, string strMotorMapKey, CSim2Real.DLog log, out string report)
+            {
+                report = "";
+                try
+                {
+                    string act = SagRun_ActiveModelText(strUrdfDir);
+                    CSagComp m = (act == null) ? null : CSagComp.Load(SagRun_ActivePath(strUrdfDir));
+                    if (m == null || !m.WristTiltKeys) { report = "적용 중 모델에 공구 기울기 보정이 없음 — 바꾼 것 없음"; return true; }
+                    if (!m.HasJoint) return SagRun_TiltTakeDown(strUrdfDir, m, SagRun_SafeLog(log, null), out report);
+                    string res;
+                    return SagRun_TiltApply(null, null, strUrdfDir, strMotorMapKey, log, out res, out report);
+                }
+                catch (Exception ex) { report = "★오류: " + SagRun_Msg(ex); return false; }
+            }
+            // 관절 모델이 없는 적용 중 모델에서 기울기 항을 지울 때 — 적용 중 파일을 sagcomp_backup 에 백업하고 내린다 (시험 기록도).
+            //   메모리 모델은 없음으로 (SagComp_Clear — 걸려 있던 보정은 출력 단에서 1초에 걸쳐 빠진다). 지우지 못하면 적용 중 파일·메모리 모델 그대로. 예외 없음
+            private bool SagRun_TiltTakeDown(string strUrdfDir, CSagComp mOld, CSim2Real.DLog L, out string report)
+            {
+                report = "";
+                using (SagRun_KinUse())
+                {
+                    string active = SagRun_ActivePath(strUrdfDir), activeTest = SagRun_TestRecordPath(active);
+                    try
+                    {
+                        if (SagRun_IsBusy) return SagRun_Refuse(out report, "다른 로봇팔 작업이 진행 중 — 끝난 뒤에 하십시오", L);
+                        SagRun_SweepStage(active);
+                        string bak = SagRun_BackupActive(strUrdfDir, active, activeTest);
+                        SagRun_NotReadOnly(active);
+                        File.Delete(active);
+                        SagComp_Clear();
+                        SagRun_DeleteRetry(activeTest);
+                        string brief = (mOld != null) ? mOld.Summary() : "";
+                        bool bLog = SagRun_ApplyLog(strUrdfDir, "내림 " + SAGRUN_ACTIVE + " — 공구 기울기 보정 지움 (관절 모델이 없어 남는 보정 없음, 백업 " + Path.GetFileName(bak) + ")");
+                        report = "공구 기울기 보정 지움 — 관절 모델이 없는 모델이라 적용 중 처짐 보정 모델을 내림 (적용 중 파일 없음)\r\n백업: " + bak + "\r\n이전: " + brief
+                               + (bLog ? "" : "\r\n" + SAGRUN_NO_APPLYLOG);
+                        L("공구 기울기 보정 지움 — 적용 중 파일을 " + Path.GetFileName(bak) + " 로 백업하고 내림 (관절 모델 없음)");
+                        if (!bLog) L(SAGRUN_NO_APPLYLOG);
+                        return true;
+                    }
+                    catch (Exception ex) { report = "★오류: " + SagRun_Msg(ex) + (File.Exists(active) ? " — 적용 중 파일은 그대로" : ""); L(report); return false; }
+                }
+            }
+            // 결과 폴더의 새 이름 — sagcomp_model_<kind>_<yyyyMMdd_HHmmss>[_n].txt
+            private static string SagRun_TiltResultPath(string dir, string kind)
+            {
+                string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+                string p = Path.Combine(dir, "sagcomp_model_" + kind + "_" + stamp + ".txt");
+                for (int k = 2; File.Exists(p); k++) p = Path.Combine(dir, "sagcomp_model_" + kind + "_" + stamp + "_" + k.ToString(CultureInfo.InvariantCulture) + ".txt");
+                return p;
             }
 
             /// <summary>되돌리기 (UI 스레드에서) — 고른 백업을 임시 파일로 복사·확인 → 지금 적용 중 파일도 백업 (되돌리기도 되돌릴 수 있다)
@@ -3624,6 +4093,32 @@ namespace OpenJigWare
                     byte[] src = File.ReadAllBytes(strSrc);
                     if (!SagRun_SameBytes(tmp, src)) throw new IOException("임시 복사본이 원본과 다름 (" + strSrc + ")");
                     staged = src;
+                    return tmp;
+                }
+                catch
+                {
+                    SagRun_DeleteRetry(tmp);
+                    throw;
+                }
+            }
+            // SagRun_StageCopyBytes 와 같고 원본 끝에 글 strExtra 를 덧붙인 바이트 (손목 공구 기울기 보정 넘겨받기 — 10-15). staged = 덧붙인 바이트
+            private static string SagRun_StageCopyPlus(string strSrc, string strActive, string strExtra, out byte[] staged)
+            {
+                staged = null;
+                string dir = Path.GetDirectoryName(Path.GetFullPath(strActive)) ?? "";
+                if (dir.Length > 0) Directory.CreateDirectory(dir);
+                string tmp = Path.Combine(dir, Path.GetFileName(strActive) + "." + Guid.NewGuid().ToString("N").Substring(0, 8) + ".tmp");
+                try
+                {
+                    byte[] src = File.ReadAllBytes(strSrc);
+                    string pre = (src.Length > 0 && src[src.Length - 1] != (byte)'\n') ? "\r\n" : "";
+                    byte[] add = new UTF8Encoding(false).GetBytes(pre + (strExtra ?? ""));
+                    byte[] all = new byte[src.Length + add.Length];
+                    Array.Copy(src, all, src.Length);
+                    Array.Copy(add, 0, all, src.Length, add.Length);
+                    using (var fs = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write)) fs.Write(all, 0, all.Length);
+                    if (!SagRun_SameBytes(tmp, all)) throw new IOException("임시 파일이 쓴 것과 다름 (" + tmp + ")");
+                    staged = all;
                     return tmp;
                 }
                 catch
@@ -3857,7 +4352,7 @@ namespace OpenJigWare
             {
                 why = "";
                 if (m == null) { why = "파일을 읽지 못함"; return false; }
-                if (!m.IsUsable || !m.HasJoint) { why = "관절 모델이 없음"; return false; }
+                if (!m.IsUsable || (!m.HasJoint && !m.HasWristTilt)) { why = "관절 모델이 없음"; return false; }   // 손목 공구 기울기 보정만 있는 모델도 (10-15)
                 int nGp = 0, nFc = 0;
                 foreach (string raw in File.ReadAllLines(strPath))
                 {
@@ -3881,9 +4376,9 @@ namespace OpenJigWare
                 var d = new List<string>();
                 if (a.FuncNumber != b.FuncNumber) d.Add(string.Format(CultureInfo.InvariantCulture, "func {0}→{1}", a.FuncNumber, b.FuncNumber));
                 if (!SagRun_SameInts(a.PosIDs, b.PosIDs)) d.Add("posids " + SagRun_Ints(a.PosIDs) + "→" + SagRun_Ints(b.PosIDs));
-                if (a.WristID != b.WristID) d.Add(string.Format(CultureInfo.InvariantCulture, "wrist {0}→{1}", a.WristID, b.WristID));
+                if (a.WristID != b.WristID) d.Add(string.Format(CultureInfo.InvariantCulture, "wrist {0}→{1}", a.WristID < 0 ? "none" : a.WristID.ToString(CultureInfo.InvariantCulture), b.WristID < 0 ? "none" : b.WristID.ToString(CultureInfo.InvariantCulture)));
                 if (!SagRun_SameInts(a.JointIDs, b.JointIDs)) d.Add("jids " + SagRun_Ints(a.JointIDs) + "→" + SagRun_Ints(b.JointIDs));
-                if (!(Math.Abs(a.DownSumDeg - b.DownSumDeg) <= SAGDEF_TOL_DEG))                       // 로봇 정의의 수직 관절 합
+                if (!(a.WristID < 0 && b.WristID < 0) && !(Math.Abs(a.DownSumDeg - b.DownSumDeg) <= SAGDEF_TOL_DEG))   // 로봇 정의의 수직 관절 합 (손목 없음끼리는 없다)
                     d.Add(string.Format(CultureInfo.InvariantCulture, "downsum {0:0.###}→{1:0.###}", a.DownSumDeg, b.DownSumDeg));
                 string ka = SagRun_KinSigNorm(a.KinSig), kb = SagRun_KinSigNorm(b.KinSig);       // 기구학 표시 (빈 값 = 내장 OMX)
                 if (!string.Equals(ka, kb, StringComparison.Ordinal)) d.Add("kinsig " + (ka.Length > 0 ? ka : "?") + "→" + (kb.Length > 0 ? kb : "?"));
@@ -4055,9 +4550,11 @@ namespace OpenJigWare
                 bool bOk = false;
                 try
                 {
-                    if (cfg == null) cfg = new CSagArmCfg();
                     if (string.IsNullOrEmpty(strOwner)) strOwner = "로봇팔 작업";
+                    string wsum;
+                    cfg = SagDef_Eff(cfg, out wsum);                                  // 사본 (null = 기본값) — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13). 작업 손잡이의 Cfg 는 늘 숫자
                     if (!cfg.IdsOk) { why = "설정의 관절 ID 가 맞지 않음 (위치 3개 + 손목)"; return null; }
+                    if (!cfg.NoWrist && float.IsNaN(cfg.DownSumDeg)) { why = "로봇 정의 — 바닥으로 수직(관절 합)을 3D 에서 잴 수 없음: " + wsum; return null; }   // 손목 없음은 바닥으로 수직이 없다 (위치만)
                     string wh = SagArm_HeightsWhy(cfg);
                     if (wh.Length > 0) { why = wh; return null; }
                     string wk;
@@ -4223,7 +4720,8 @@ namespace OpenJigWare
             ///   시작 때 토크 OFF 면 보정 없이 돌아와 끈다 (끄면 보정은 상관없다).
             /// ④ 관절 보간으로 시작 자세 (RestoreJointMs ÷ Speed — 관절 최고 속도 20°/s 를 넘지 않게 늘림, 위치 3개 + 손목만 — 그리퍼는 그대로)
             /// ⑤ 실물: 정착 읽기로 휴지 자세와 비교 — 서보 목표에 든 보정이 시작 때와 다르면(사용자가 그사이 보정을 끔 등) 그 차만큼 옮긴 휴지 자세와 (SagArm_RestDiff).
-            ///   RestTolDeg 넘으면 4초 한 번 더 ⑥ 실물: 토크를 시작 때 상태로 (꺼져 있었으면 끈다, 켜져 있었으면 켠 채 휴지 자세를 붙잡는다 — 시작 때 서보가
+            ///   RestTolDeg 넘으면 4초 한 번 더 — 단 읽지 못했거나 (10-16) 이 작업에서 엔코더 읽기가 멈춤/실패로 걸렸으면 (CScene_t.EncoderTrip) 다시 움직이지 않고
+            ///   까닭을 적는다 (확인할 수 없는 채 고치려고 움직이지 않는다 — 토크 끔도 '확인 못 함' 으로) ⑥ 실물: 토크를 시작 때 상태로 (꺼져 있었으면 끈다, 켜져 있었으면 켠 채 휴지 자세를 붙잡는다 — 시작 때 서보가
             ///   토크를 붙잡고 있던 축이 하나라도 있었으면 연결이 OFF 로 알았어도 끄지 않는다) ⑦ 보정·쌍둥이 모델 되돌림
             ///   (3D 만: 싱크·출력 단 상태도), 한 틱 관절 변화 막이 끔 ⑧ 연결 잠금 놓기 (포트는 열린 채, 싱크는 연결의 것 그대로) ⑨ 작업 표시 내림.
             ///   3D 만인데 작업 중에 모션 싱크가 바뀌었으면(그사이 연결 등) 3D 를 움직이지 않는다 (실물로 나갈 수 있다).
@@ -4267,14 +4765,31 @@ namespace OpenJigWare
                     if (!arm.IsDry)
                     {
                         float dmax = float.NaN;
+                        string strEnc = null;                                  // 원위치 확인 읽기가 실패한 까닭 (엔코더 읽기 감시) — 있으면 다시 움직이지 않는다
                         try
                         {
                             if (bModelBack && !SagArm_HoldUntilBlended(arm, 4000, null))
                                 L(string.Format(ci, "★시작 때 보정이 아직 다 안 들어감 ({0:F0}%)", SagComp_BlendProgress * 100));
                             dmax = SagArm_RestDiff(arm);
-                            if (!(dmax <= arm.Cfg.RestTolDeg) && tgt != null)
+                            if (float.IsNaN(dmax)) dmax = SagArm_RestDiff(arm);   // 읽기만 한 번 더 (움직이지 않고)
+                            if (float.IsNaN(dmax))
                             {
-                                L(string.Format(ci, "★원위치 차 {0} — 한 번 더", float.IsNaN(dmax) ? "(읽기 실패)" : dmax.ToString("F1", ci) + "°"));
+                                // 10-16: 읽지 못하면 '한 번 더' 움직이지 않는다 — 확인할 수 없는 채 다시 보내는 것은 눈 감고 움직이는 것이다.
+                                //   보낸 명령대로면 실물은 시작 자세에 있다 (원위치 경로는 보내기만 하는 다리라 읽기와 상관없이 갔다)
+                                strEnc = (arm.Scene != null ? arm.Scene.EncoderTrip : null) ?? (CScene_t.ENC_TRIP_HEAD + " (원위치 확인 읽기 실패)");
+                                arm.LastFail = strEnc;
+                                L("★원위치 확인 못 함 — " + strEnc + " — 다시 움직이지 않음 (보낸 명령대로면 시작 자세)");
+                            }
+                            else if (!(dmax <= arm.Cfg.RestTolDeg) && arm.Scene != null && arm.Scene.EncoderTrip != null)
+                            {
+                                // 이 작업에서 엔코더 읽기가 멈춤/실패로 걸렸다 — 읽은 값을 믿을 수 없어 고치려고 다시 움직이지 않는다
+                                strEnc = arm.Scene.EncoderTrip;
+                                arm.LastFail = strEnc;
+                                L(string.Format(ci, "★원위치 차 {0:F1}° — 이 작업에서 {1} — 읽은 값을 믿을 수 없어 다시 움직이지 않음", dmax, strEnc));
+                            }
+                            else if (!(dmax <= arm.Cfg.RestTolDeg) && tgt != null)
+                            {
+                                L(string.Format(ci, "★원위치 차 {0} — 한 번 더", dmax.ToString("F1", ci) + "°"));
                                 if (arm.GuardScene != null) arm.GuardScene.StepGuard_ClearTrip();
                                 SagArm_JointTo(arm, tgt, 4000);
                                 if (bModelBack) SagArm_HoldUntilBlended(arm, 4000, null);
@@ -4291,7 +4806,9 @@ namespace OpenJigWare
                             // 시작 때 모델로 되돌렸어도 그 모델이 꺼져 있으면(서보 목표 이어받기가 보정을 끈 경우 등) 보정은 걸리지 않는다 — 그대로 적는다
                             if (arm.WasTorqueOn) strTq = "토크 ON 그대로 (시작 때처럼 — 휴지 자세를 붙잡음" +
                                                          (!bModelBack ? ")" : (arm.PrevModel != null && arm.PrevModel.Enabled && arm.PrevModel.HasJoint) ? ", 시작 때 보정 다시 걸림)" : ", 보정 끔 그대로 — 시작 때처럼)");
-                            else if (arm.TorqueTurnedOn) strTq = (arm.Conn != null && arm.Conn.TorqueOff(arm.Owner)) ? "토크 끔" : "★토크 끄기 실패 — 팔을 받친 뒤 로봇팔 세팅 탭에서 토크를 끄십시오";
+                            else if (arm.TorqueTurnedOn) strTq = (arm.Conn != null && arm.Conn.TorqueOff(arm.Owner))
+                                                                   ? (strEnc != null ? "★토크 끔을 보냄 — 확인 못 함 (읽기 실패, 팔을 받친 뒤 연결을 다시 하고 토크 상태를 보십시오)" : "토크 끔")
+                                                                   : "★토크 끄기 실패 — 팔을 받친 뒤 로봇팔 세팅 탭에서 토크를 끄십시오";
                             else strTq = "토크 켠 채 둠 — 시작 때 토크를 붙잡고 있던 축(ID " + SagRun_Ints(arm.StartTorqueAxes) + ")이 있어 끄지 않는다 (끄려면 팔을 받친 뒤 연결 줄에서)";
                         }
                         catch (Exception ex) { strTq = "★토크 되돌리기 오류: " + SagRun_Msg(ex); }
@@ -4339,7 +4856,9 @@ namespace OpenJigWare
                     bool bNow = ReferenceEquals(m_SagComp, arm.MoveModel);
                     arm.MoveModel = m != null ? m.JointOnlyCopy() : null;
                     if (bNow) SagComp_Switch(arm.MoveModel);
-                    L(arm.MoveModel != null ? "옮기는 동안 보정: 관절 모델만 (바닥 부분 끔) — 펼치기·옮기기·원위치 들어 올림"
+                    L(arm.MoveModel != null ? (arm.MoveModel.HasJoint ? "옮기는 동안 보정: 관절 모델만 (바닥 부분 끔) — 펼치기·옮기기·원위치 들어 올림"
+                                                                      : "옮기는 동안 보정: 손목 공구 기울기 보정만 (관절·바닥 모델 없음)") +
+                                            (arm.MoveModel.HasJoint && arm.MoveModel.HasWristTilt ? " + 손목 공구 기울기 보정" : "")
                                             : "★옮기는 동안 보정 없음 (관절 모델 없음) — 실물 끝이 관절 처짐만큼 계획보다 낮게 지나간다");
                     return arm.MoveModel != null;
                 }
@@ -4362,7 +4881,8 @@ namespace OpenJigWare
 
             /// <summary>펼치기 (블로킹, 작업 스레드) — 휴지 자세에서 경유점(UnfoldVia)까지 관절 보간 한 번 (UnfoldViaMs ÷ Speed, 관절 최고 속도 20°/s 를 넘지 않게
             /// 늘림 — 경유점 해는 관절 합을 정한 IK 의 계획 시드 쪽 해, 0도를 거치지 않는다. 그 관절 보간 경로의 TCP 가 두 끝 중 낮은 쪽보다 5mm 넘게
-            /// 내려가면 움직이지 않는다) → 첫 점 (x0, y0) 위 옮기는 높이로 안전 이동 (fTransferZ = 그 점의 TransferZ, NaN = SafeZ). stop 이면 경유점에서 멈추고 false.
+            /// 내려가면 움직이지 않는다) → 첫 점 (x0, y0) 위 옮기는 높이로 안전 이동 (fTransferZ = 그 점의 TransferZ, NaN = SafeZ) → (실물) 엔코더를 한 번 읽어
+            /// 버스가 대답하는지 본다 (10-16 — 못 읽으면 "엔코더 읽기가 멈춤/실패 — 연결을 다시 하십시오" 로 false). stop 이면 경유점에서 멈추고 false.
             /// 실패하면 "★펼치기 실패 — 원위치" 로그와 false (원위치는 부른 쪽의 SagArm_Close — 첫 다리가 움직이기 전에 실패했으면 Close 도 움직이지 않는다). 예외 없음.</summary>
             public bool SagArm_Unfold(CSagArm arm, float fX0, float fY0, CSim2Real.DLog log, CSim2Real.DIsStopped stop)
             {
@@ -4389,6 +4909,9 @@ namespace OpenJigWare
                         else L("★펼치기 실패 — 원위치");
                         return false;
                     }
+                    // 펼친 뒤 엔코더 확인 (실물, 10-16) — 펼치기·옮기기는 읽지 않고 보내기만 한다. 내려가거나 누르기 전에 버스가 대답하는지 한 번 본다
+                    //   (10-16 실기: 펼치기 동안 대답이 멈췄는데 누름이 지난 값으로 판정했다)
+                    if (!SagArm_EncCheck(arm, "펼친 뒤 엔코더 확인", L)) { L("★펼치기 실패 — 원위치"); return false; }
                     return true;
                 }
                 catch (Exception ex) { L("★펼치기 오류: " + SagRun_Msg(ex) + " — 원위치"); return false; }
@@ -4588,7 +5111,8 @@ namespace OpenJigWare
                 float bend;
                 float[] qB = SagArm_IkSum(kin, c, adBase, x, y, z, fSum, out bend);
                 if (qB == null)
-                    return SagArm_Fail(arm, L, string.Format(ci, "★{0}: IK 로 못 감 ({1:F1}, {2:F1}, {3:F1}) 관절 합 {4:0.#} — 움직이지 않음", strName, x, y, z, fSum));
+                    return SagArm_Fail(arm, L, c.NoWrist ? string.Format(ci, "★{0}: IK 로 못 감 ({1:F1}, {2:F1}, {3:F1}) 위치만 (손목 없음) — 움직이지 않음", strName, x, y, z)
+                                                         : string.Format(ci, "★{0}: IK 로 못 감 ({1:F1}, {2:F1}, {3:F1}) 관절 합 {4:0.#} — 움직이지 않음", strName, x, y, z, fSum));
                 double rA = Math.Sqrt((double)xa * xa + (double)ya * ya), rB = Math.Sqrt((double)x * x + (double)y * y);
                 float rLo = (float)Math.Min(rA, rB) - SAGARM_BAND_MM, rHi = (float)Math.Max(rA, rB) + SAGARM_BAND_MM;
                 var lq = new List<float[]>(); var lp = new List<float[]>();
@@ -4638,7 +5162,7 @@ namespace OpenJigWare
             private static string SagArm_PathWhy(C3d kin, CSagArmCfg c, double[] adBase, float[] qA, float[] qB, float[] pA, float[] pB, float zFloor, float rLo, float rHi, float devH)
             {
                 var ci = CultureInfo.InvariantCulture;
-                int[] ids = c.MoveIDs;
+                int[] ids = c.QIDs;                                               // 4칸 (손목 없음이면 넷째 −1 — 사본에 쓰지 않는다)
                 int n = Math.Max(8, Math.Min(400, (int)Math.Ceiling(SagArm_MaxDq(qA, qB) / 1.0)));
                 double[] ad = (double[])adBase.Clone();
                 double ux = pB[0] - pA[0], uy = pB[1] - pA[1], uu = ux * ux + uy * uy;
@@ -4666,17 +5190,24 @@ namespace OpenJigWare
             {
                 var ci = CultureInfo.InvariantCulture;
                 if (!SagArm_SinkOk(arm, L)) return false;
-                int[] ids = arm.Cfg.MoveIDs;
-                Play(nMs, nDelay, new float[] { ids[0], q[0], ids[1], q[1], ids[2], q[2], ids[3], q[3] });
+                int[] ids = arm.Cfg.MoveIDs;                                      // 손목 없음이면 위치 3개만 보낸다
+                Play(nMs, nDelay, SagArm_PlayVals(ids, q));
                 string g = SagArm_GuardWhy(arm);
                 if (g.Length > 0) return SagArm_Fail(arm, L, "★" + strName + ": " + g + " — 멈춤");
                 if (arm.IsDry && MoveJoints_GetMotionSink() != arm.DrySink) return SagArm_SinkOk(arm, L);
                 float e = 0;
-                for (int k = 0; k < 4; k++) e = Math.Max(e, Math.Abs(GetData(ids[k]) - q[k]));
+                for (int k = 0; k < ids.Length; k++) e = Math.Max(e, Math.Abs(GetData(ids[k]) - q[k]));
                 if (!(e <= 0.05f)) return SagArm_Fail(arm, L, string.Format(ci, "★{0}: 도착 확인 실패 — 3D 관절이 목표와 {1:F2}° 다름 (관절 한계·멈춤)", strName, e));
                 return true;
             }
-            // 다리 끝 확인 — 3D TCP 가 목표에서 IkTolMm 안, 관절 합이 fSum 에서 PitchTolDeg 안
+            // Play 값 (ID, 각, ID, 각 …) — ids 순 (손목 없음이면 위치 3개, 자세 q 의 넷째 칸은 보내지 않는다). 손목 로봇은 예전 8칸 그대로
+            private static float[] SagArm_PlayVals(int[] ids, float[] q)
+            {
+                var v = new float[ids.Length * 2];
+                for (int k = 0; k < ids.Length; k++) { v[2 * k] = ids[k]; v[2 * k + 1] = q[k]; }
+                return v;
+            }
+            // 다리 끝 확인 — 3D TCP 가 목표에서 IkTolMm 안, 관절 합이 fSum 에서 PitchTolDeg 안 (손목 없음은 관절 합을 보지 않는다 — 위치만)
             private bool SagArm_Arrived(CSagArm arm, string strName, float x, float y, float z, float fSum, CSim2Real.DLog L)
             {
                 CSagArmCfg c = arm.Cfg;
@@ -4684,6 +5215,12 @@ namespace OpenJigWare
                 SagArm_Tcp(c, out ax, out ay, out az, out ap);
                 double d = Math.Sqrt((double)(ax - x) * (ax - x) + (double)(ay - y) * (ay - y) + (double)(az - z) * (az - z));
                 float s = SagArm_SumNow(c);
+                if (c.NoWrist)
+                {
+                    if (d <= c.IkTolMm) return true;
+                    return SagArm_Fail(arm, L, string.Format(CultureInfo.InvariantCulture, "★이동 확인 실패 ({0}): 목표 ({1:F1}, {2:F1}, {3:F1}) — 도착 ({4:F1}, {5:F1}, {6:F1}), 차 {7:F1}mm",
+                        strName, x, y, z, ax, ay, az, d));
+                }
                 if (d <= c.IkTolMm && Math.Abs(s - fSum) <= c.PitchTolDeg) return true;
                 return SagArm_Fail(arm, L, string.Format(CultureInfo.InvariantCulture, "★이동 확인 실패 ({0}): 목표 ({1:F1}, {2:F1}, {3:F1}) 관절 합 {4:0.#} — 도착 ({5:F1}, {6:F1}, {7:F1}) 관절 합 {8:F1}, 차 {9:F1}mm",
                     strName, x, y, z, fSum, ax, ay, az, s, d));
@@ -4691,8 +5228,8 @@ namespace OpenJigWare
             // 화면 3D 의 관절 한계(CalcLimit — 연결 중이면 모터 세팅 리밋 ∩ EDH)에 걸리는 축이 있으면 까닭 (없으면 "") — 걸리면 Play 가 한계에서 멈춰 끝 자세가 틀어진다
             private string SagArm_LimitWhy(CSagArmCfg c, float[] q)
             {
-                int[] ids = c.MoveIDs;
-                for (int k = 0; k < 4 && k < q.Length; k++)
+                int[] ids = c.MoveIDs;                                            // 손목 없음이면 위치 3개
+                for (int k = 0; k < ids.Length && k < q.Length; k++)
                 {
                     float f = CalcLimit(ids[k], q[k]);
                     if (Math.Abs(f - q[k]) > 0.01f)
@@ -4792,6 +5329,18 @@ namespace OpenJigWare
                 }
                 return mx;
             }
+            // 엔코더 읽기 확인 (실물, 10-16) — 정착 읽기 한 번 (ReadDeg — 안에서 여러 번 시도). 못 읽으면 장면의 엔코더 읽기 감시가 까닭을 막이 걸림에 남기고
+            //   (명령이 움직인 뒤면 — 펼치기 뒤는 늘) 모션을 멈춘다. 반환 false = 까닭을 손잡이에 (SagArm_Fail — "★where — 엔코더 읽기가 멈춤/실패 — …").
+            //   3D 만은 늘 true
+            private bool SagArm_EncCheck(CSagArm arm, string strWhere, CSim2Real.DLog L)
+            {
+                if (arm == null || arm.IsDry || arm.Scene == null) return true;
+                string w;
+                Dictionary<int, float> d = arm.Scene.ReadDeg(out w);
+                if (d != null) return true;
+                string t = arm.Scene.EncoderTrip;
+                return SagArm_Fail(arm, L, "★" + strWhere + " — " + (t ?? (CScene_t.ENC_TRIP_HEAD + " (" + w + ")")));
+            }
             // 실물 작업 — 모션 싱크가 장면의 것인지 (누름 측정은 싱크를 잠깐 바꿨다 되돌린다 — 예외로 끊겼어도 원위치는 실물로 가게). null 로는 바꾸지 않는다
             private void SagArm_EnsureSceneSink(CSagArm arm)
             {
@@ -4858,7 +5407,7 @@ namespace OpenJigWare
             /// IkOk = false 로 들어온 행 — 계획 파일의 ik=0 등 — 은 다시 넣지 않는다: 재는 행은 부른 쪽이 센 IkOk 행 수를 넘지 않는다),
             /// cfg = 측정 설정 (CollectModelPath·DatasetPath 가 비면 urdf 폴더의 적용 중 파일·floor_dataset_fc.csv). 잠금 소유자 "측정".
             /// 작업 폴더 <urdf>\sagcomp_runs\<yyyyMMdd_HHmmss>_measure[_3d] (run.log, rest_pose.txt, floor_plan.csv, floor_trace.csv, floor_live.csv,
-            /// floor_dataset_run.csv, measure_report.txt). 3D 만이면 실물은 움직이지 않고 데이터셋도 건드리지 않는다. 실물은 이 로봇·정의·모터 영점으로 수직 눈 확인을 했어야 한다 (SagPrac_EyeNeeded — 아니면 움직이기 전에 거절: SAGPRAC_EYE_FIRST). 예외 없음.</summary>
+            /// floor_dataset_run.csv, measure_report.txt). 3D 만이면 실물은 움직이지 않고 데이터셋도 건드리지 않는다. 수직 눈 확인은 요구하지 않는다 (10-15 — 선택 사항, 로그 한 줄). 예외 없음.</summary>
             public CSagRunResult SagRun_MeasureJob(CArmConn_t conn, CSagArmCfg armCfg, List<CFloorPlanRow> plan, CSagMeasureCfg cfg, string strUrdfDir, bool bDry,
                                                    CSim2Real.DLog log, CSim2Real.DIsStopped stop)
             {
@@ -4876,11 +5425,11 @@ namespace OpenJigWare
                 bool bRan = false;
                 try
                 {
-                    if (armCfg == null) armCfg = new CSagArmCfg();
+                    armCfg = SagDef_Eff(armCfg);                            // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13, 못 재면 정의 확인이 거절)
                     if (cfg == null) cfg = new CSagMeasureCfg();
                     string why;
                     if (!SagRun_JobPrecheck(conn, bDry, strUrdfDir, out why)) return SagRun_RunRefuse(res, why, L);
-                    if (!SagPrac_EyeGate(strUrdfDir, conn, armCfg, bDry, out why)) return SagRun_RunRefuse(res, why, L);   // 실물 — 이 로봇·정의·모터 영점으로 수직 눈 확인을 했나 (움직이기 전)
+                    if (!SagPrac_EyeGate(strUrdfDir, conn, armCfg, bDry, L, out why)) return SagRun_RunRefuse(res, why, L);   // 실물 — 로봇 정의 확인 (수직 눈 확인은 선택 — 로그 한 줄, 10-15)
                     if (plan == null || plan.Count == 0) return SagRun_RunRefuse(res, "계획 없음 — ② 계획 만들기 먼저", L);
                     string runDir = SagRun_NewRunDir(strUrdfDir, t0, bDry ? "measure_3d" : "measure");
                     res.RunDir = runDir;
@@ -4904,6 +5453,7 @@ namespace OpenJigWare
                     string whyM;
                     CSagComp mMove = SagRun_LoadJointOnly(mc.CollectModelPath, out whyM);   // 측정 모델 (관절 모델만) — 누름과 옮기기 모두 이 보정 (10-03)
                     if (mMove == null) return SagRun_RunRefuse(res, whyM, L);
+                    mMove.Predictive = false;                                // 데이터셋 모으기는 1차 보정 (예측 보정 끔 — 옛 회차의 첫닿음 명령 높이와 같은 조건, 10-16)
                     res.MotorMapWarn = SagArm_MotorMapWarn(bDry ? null : conn, mMove);
                     if (res.MotorMapWarn.Length > 0) L(res.MotorMapWarn);
                     arm = SagArm_Open(conn, armCfg, runDir, "측정", bDry, L, out why);
@@ -4997,14 +5547,15 @@ namespace OpenJigWare
                 if (rows.Count == 0) { res.Why = "측정할 행 없음 (IK 확인 통과·예측 있는 행 0)"; L("★" + res.Why); return; }
                 CFloorProbeCfg p0 = (cfg.Probe != null ? cfg.Probe : new CSagMeasureCfg().Probe).Clone();
                 p0.FuncNumber = arm.Cfg.FuncNumber; p0.PosIDs = (int[])arm.Cfg.PosIDs.Clone(); p0.WristID = arm.Cfg.WristID; p0.DownSumDeg = arm.Cfg.DownSumDeg;
-                p0.WristHold = cfg.WristHold; p0.Repeats = 1; if (p0.Margin < 20) p0.Margin = 20;
+                p0.WristHold = cfg.WristHold && !arm.Cfg.NoWrist; p0.Repeats = 1; if (p0.Margin < 20) p0.Margin = 20;   // 손목 없음 — 손목 수직 유지 없음
+                if (cfg.WristHold && arm.Cfg.NoWrist) L("손목 수직 유지 끔 — 꺾는 손목 없음 (sagarm.txt hold 는 쓰지 않음)");
                 string dir = arm.RunDir;
                 string tracePath = (!arm.IsDry && !string.IsNullOrEmpty(dir)) ? Path.Combine(dir, "floor_trace.csv") : null;
                 string cutPath = (!arm.IsDry && !string.IsNullOrEmpty(dir)) ? Path.Combine(dir, "floor_trace_stopped.csv") : null;   // 끝까지 누르지 않은 하강 (데이터셋에 넣지 않는다)
                 string livePath = !string.IsNullOrEmpty(dir) ? Path.Combine(dir, "floor_live.csv") : null;
                 res.TracePath = tracePath; res.LivePath = livePath;
                 if (livePath != null) SagRun_WriteText(livePath, SagRun_ContactCsvHeader());
-                L(string.Format(ci, "측정 {0}행 — 손목 수직 유지 {1}, 관절 모델 {2}", rows.Count, cfg.WristHold ? "켬" : "끔", Path.GetFileName(cfg.CollectModelPath)));
+                L(string.Format(ci, "측정 {0}행 — 손목 수직 유지 {1}, 관절 모델 {2}", rows.Count, p0.WristHold ? "켬" : "끔", Path.GetFileName(cfg.CollectModelPath)));
                 bool bHdr = false, bHdrCut = false;
                 if (!arm.IsDry) SagComp_ClearFloorTrace();
                 string lastKey = null;
@@ -5225,7 +5776,7 @@ namespace OpenJigWare
             /// <summary>닿기 시험 작업 (블로킹 — 작업 스레드) — 결과 파일을 보정 끔(관절 모델만)·켬(첫닿음 모델 포함)으로 번갈아 눌러 본다. 잠금 소유자 "닿기 시험".
             /// 점·창은 SagRun_TestPoints (첫닿음 예측 pred·Ref 를 모두 담는 창) — 쓸 점이 없으면 포트를 건드리기 전에 실패.
             /// 작업 폴더 …_test[_3d] (run.log, test.csv, test_trace.csv, test_report.txt), 결과 파일 옆 <결과>_test.txt 에 "[닿기] …" 한 줄 (중단이면 판정=중단).
-            /// 판정은 누름마다 궤적을 첫닿음으로 다시 읽은 값 (SagRun_Test 설명). 실물은 이 로봇·정의·모터 영점으로 수직 눈 확인을 했어야 한다 (SagPrac_EyeNeeded — 아니면 움직이기 전에 거절: SAGPRAC_EYE_FIRST). 예외 없음.</summary>
+            /// 판정은 누름마다 궤적을 첫닿음으로 다시 읽은 값 (SagRun_Test 설명). 수직 눈 확인은 요구하지 않는다 (10-15 — 선택 사항, 로그 한 줄). 예외 없음.</summary>
             public CSagTestResult SagRun_TestJob(CArmConn_t conn, CSagArmCfg armCfg, string strResultPath, CSagTestCfg cfg, string strUrdfDir, bool bDry,
                                                  CSim2Real.DLog log, CSim2Real.DIsStopped stop)
             {
@@ -5240,11 +5791,11 @@ namespace OpenJigWare
                 bool bRan = false;
                 try
                 {
-                    if (armCfg == null) armCfg = new CSagArmCfg();
+                    armCfg = SagDef_Eff(armCfg);                            // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13, 못 재면 정의 확인이 거절)
                     if (cfg == null) cfg = new CSagTestCfg();
                     string why;
                     if (!SagRun_JobPrecheck(conn, bDry, strUrdfDir, out why)) return SagRun_TestRefuse(res, why, L);
-                    if (!SagPrac_EyeGate(strUrdfDir, conn, armCfg, bDry, out why)) return SagRun_TestRefuse(res, why, L);   // 실물 — 이 로봇·정의·모터 영점으로 수직 눈 확인을 했나 (움직이기 전)
+                    if (!SagPrac_EyeGate(strUrdfDir, conn, armCfg, bDry, L, out why)) return SagRun_TestRefuse(res, why, L);   // 실물 — 로봇 정의 확인 (수직 눈 확인은 선택 — 로그 한 줄, 10-15)
                     if (string.IsNullOrEmpty(strResultPath) || !File.Exists(strResultPath)) return SagRun_TestRefuse(res, "결과 파일 없음: " + strResultPath, L);
                     CSagComp mOn = CSagComp.Load(strResultPath);
                     if (mOn == null || !mOn.HasJoint || !mOn.HasFc) return SagRun_TestRefuse(res, "결과 파일에 관절 모델·첫닿음 모델이 없음 — ④ 학습 결과 파일을 고르십시오", L);
@@ -5361,7 +5912,7 @@ namespace OpenJigWare
                                 CFloorProbeCfg pc = (cfg.Probe != null ? cfg.Probe : new CSagTestCfg().Probe).Clone();
                                 pc.FuncNumber = arm.Cfg.FuncNumber; pc.PosIDs = (int[])arm.Cfg.PosIDs.Clone(); pc.WristID = arm.Cfg.WristID; pc.DownSumDeg = arm.Cfg.DownSumDeg;
                                 pc.Radii = new float[] { p.R }; pc.YawDeg = p.Yaw; pc.RyDeg = p.Pitch; pc.ZStart = p.ZStart; pc.ZMin = p.ZMinFor(bOn);
-                                pc.WristHold = cfg.WristHold; pc.Repeats = 1; if (pc.Margin < 20) pc.Margin = 20;
+                                pc.WristHold = cfg.WristHold && !arm.Cfg.NoWrist; pc.Repeats = 1; if (pc.Margin < 20) pc.Margin = 20;   // 손목 없음 — 손목 수직 유지 없음
                                 List<CFloorContact> cs;
                                 if (!arm.IsDry)
                                 {
@@ -5566,7 +6117,7 @@ namespace OpenJigWare
                 bool bRan = false;
                 try
                 {
-                    if (armCfg == null) armCfg = new CSagArmCfg();
+                    armCfg = SagDef_Eff(armCfg);                            // 사본 — 수직 관절 합이 자동이면 3D FK 로 잰 값 (10-13, 못 재면 정의 확인이 거절)
                     if (cfg == null) cfg = new CSagGapCfg();
                     string why;
                     if (!SagRun_JobPrecheck(conn, bDry, strUrdfDir, out why)) return SagRun_GapRefuse(res, why, L);

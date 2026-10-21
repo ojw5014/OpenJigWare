@@ -27,6 +27,13 @@
 //   직교 모델이 못 가르던 "접근 방향 차(최대 4.9mm)" 가 관절별 이동 방향으로 설명된다.
 //   보상은 IK 목표가 아니라 **실물 출력 단**(CScene_t.SendPose → SagComp_JointOut)에서 관절각에 얹는다 —
 //   3D·IK·경로 시작점은 이상 자세 그대로다. 방향 추적은 모델 없이도 늘 돌아 측정 표본에 기록된다.
+// ★데드밴드 넘기 (10-16, CSagComp.SigmaTakeDeg — sigmatake=, 0 이면 예전): 관절이 반전하면 이상 관절이 0.1° 가는 사이(100ms 보다 빠르지 않게)
+//   데드밴드 항 h·σ 를 넘긴다. 예전 램프(h 폭)는 반전 뒤 실물이 이상 관절 h 만큼 멈춰 있어 사각형 먼 변(가운데에서 12·13·14 가 느리게 반전)에서
+//   끝이 ±4.7mm 꿀렁였다 (놀이 모델 예측). 쌍둥이는 데드밴드를 보낸 명령의 놀이(폭 h)로 예측한다 (SagTwin_Predict).
+// ★예측 보정 (10-16, CSagComp.Predictive — 기본 켬, predictive=0 이면 끔): 출력 단의 1차 보정을 처짐 쌍둥이 예측으로 다듬어
+//   쌍둥이(실물이 있을 자세)의 끝 = 목표, 공구 = 3D 의 공구 각이 되게 한다 (SagComp_PredRefine — 고정점 2~4번, 0.05mm·0.05° 에서 멈춤).
+//   10-16 격자 (r120~260·요 0/±30·z 바닥+5~110, 보정 켬, 쌍둥이 끝 − 3D 끝): 최대 7.1 → 0.04mm, 평균 0.78 → 0.01mm, 공구 각 최대 2.7 → 0.01°.
+//   출력 틱 비용 0.38 → 0.77ms (최대 약 1.0ms, 대개 평가 2번). 측정·실습 학습의 바닥 데이터 모으기는 1차 보정으로 한다 (옛 회차와 같은 조건).
 // ================================================================
 using System;
 using System.Collections.Generic;
@@ -119,7 +126,10 @@ namespace OpenJigWare
                 public int[] JointIDs = null;                      // 관절 모델 ID 순서 = 표본 JointCmd 순서 (PosIDs + WristID, 체인 순)
                 public double[] Jc = null, Jh = null;              // 중력 컴플라이언스 (deg per mm/deg) / 데드밴드 반폭 (deg)
                 public float JRmseBefore = 0, JRmseAfter = 0;      // 정지 TCP 3D 오차 RMSE (mm): 원시 / 관절 모델 잔차
-                public float MaxAbsJointDeg = 6f;                  // 관절 보정량 안전 상한 (deg)
+                public float MaxAbsJointDeg = 6f;                  // 관절 보정량 안전 상한 (deg) — 파일 maxjoint= (적힌 값을 그대로 쓴다)
+                // 학습([1. 학습]·⑨ 처짐보상)이 새로 만드는 관절 모델의 보정 상한 (deg, 사용자 결정 10-16) — 예전에는 위 기본값 6 이 들어가
+                //   손목 공구 기울기 τ (6.5~8.5°)·먼 자리 바닥 항이 잘려 쌍둥이 공구가 0.3~4° 기울었다. 결과 모델은 바탕 관절 모델의 값을 이어받는다
+                public const float LEARN_MAX_JOINT_DEG = 12f;
                 // 관절 추종 지연 (09-28 z=90 주행 실측: 정지 모델을 뺀 잔차가 관절 속도에 비례, 방향 대칭 — 어깨 ≈60ms, 팔꿈치 ≈40ms)
                 //   잔차 = −τ·ω − κ·α  →  출력 명령에 τ·ω + κ·α 를 더해 "앞서 보낸다" (되먹임이 아닌 앞먹임 — 발산하지 않는다)
                 public double[] Jtau = null;                       // 관절별 지연 τ (s)
@@ -136,11 +146,93 @@ namespace OpenJigWare
                 public bool LagEnabled = false;
                 // 방향 전환 램프 폭 = SigmaRamp × h. 1.0 이면 전환 중 최대 h 만큼 뒤처지고, 0.35 면 약 0.5h.
                 //   09-28 z=90 주행: ← 경로(r=260 에서 전 관절 반전 출발) 첫 1/4 에서만 오차 3.3~4.6mm → 줄이는 후보. 실기 비교 전까지 1.0.
+                //   10-16 부터는 SigmaTakeDeg = 0 (예전 방식) 일 때만 쓴다.
                 public float SigmaRamp = 1.0f;
+                // 데드밴드 넘기 (10-16, sigmatake=) — 관절이 방향을 바꾸면 이상 관절이 이만큼(deg) 움직이는 사이 σ 가 −1↔+1 을 넘어간다
+                //   (보낸 명령은 그동안 데드밴드 2h 를 건너므로 실물이 반전 자리에서 거의 멈추지 않는다). 넘어가는 시간은 SAG_SIGMA_FLIP_MS 보다 짧지 않다.
+                //   10-16 draw_square 먼 변 (x=240, 모서리와 가운데에서 12·13·14 가 반전 — 가운데는 아주 느리게): 예전 램프(h 폭)는 반전 뒤 이상 관절이 h 를 갈 때까지
+                //   실물이 멈춰 놀이 모델 예측 끝 높이가 −4.7~+4.7mm (y=−35·+35 근처), 0.1° 에서 −0.4~+0.4mm. 보낸 명령 한 틱 최대 변화 12/13/14 1.40/2.43/1.11 → 1.36/1.83/0.80°.
+                //   같은 날 실물 (먼 변 공중 6초): 13번은 가운데 반전 뒤 명령이 3.0~3.5° 움직여야 따라 나섰다 — 학습된 2h (2.15°) 보다 넓어 그만큼은 남는다
+                //   (먼 자리 데드밴드를 다시 재거나 서보 게인으로 줄일 몫).
+                //   0 = 예전 방식 (SigmaRamp × h 램프, 쌍둥이도 예전 식). 키가 없으면 SIGMA_TAKE_DEF
+                public const float SIGMA_TAKE_DEF = 0.1f;
+                public float SigmaTakeDeg = SIGMA_TAKE_DEF;
+                public bool SigmaTakeKey = false;                    // 파일에 sigmatake 키가 있었다 (다시 저장할 때 줄을 남긴다)
                 // 외부 휨 배율 κ (09-28 바닥 접촉 캘리브레이션) — 엔코더로 안 보이는 링크·브래킷 휨도 중력 부하에 비례한다고 보고,
                 //   **적용할 때만** 관절 보정의 중력 몫을 (1+κ) 배로 한다. c·h 는 엔코더 데이터로 맞춘 그대로(학습·평가에는 κ 없음).
                 //   바닥(수평, 외부 기준면)에 그리퍼 끝이 닿는 명령 높이가 반경마다 같아지도록 SagComp_FitFlex 가 정한다.
                 public double FlexGain = 0;
+                // 예측 보정 (10-16) — 출력 단이 1차 보정(이상 자세에서 잰 지레·바닥 dz·공구 기울기)을 처짐 쌍둥이 예측으로 다듬는다:
+                //   예측(보낸 명령) = 이상 자세 — 쌍둥이 끝 = 목표, 쌍둥이 공구 = 이상 자세의 공구 각 (SagComp_PredRefine). 1차 보정에서 시작하는 고정점 반복
+                //   (평가 최대 4번, 끝 0.05mm·공구 0.05° 안이면 끝). 끄면(predictive=0) 1차 보정 그대로 — 예전과 비트 단위로 같다.
+                //   키가 없으면 켬. 측정·실습 학습의 바닥 데이터 모으기는 1차 보정으로 한다 (옛 회차 데이터셋의 첫닿음 명령 높이와 같은 조건 — SagPrac_LearnJob·SagRun 측정)
+                public bool Predictive = true;                       // predictive= (0 = 끔)
+                public bool PredictiveKey = false;                   // 파일에 predictive 키가 있었다 (다시 저장할 때 줄을 남긴다)
+                // 손목 공구 기울기 보정 (10-15) — 엔코더 밖 기울기 (영점·펜 장착·브래킷 등): 엔코더가 '바닥으로 수직' 이라 볼 때 실물 공구가 τ 만큼 기운다
+                //   (+ = 공구 끝이 베이스 쪽).  τ(q) = c + b12·(g12(q) − g12ref) + b13·(g13(q) − g13ref),  g = −L (중력 지레 — 출력 단이 계산하는 것)
+                //   적용 = 출력 단에서 손목 명령 += −τ(이상 자세) — 관절 보정과 같은 단계, 같은 MaxAbsJointDeg 자르기·1초 전환 안 (SagComp_JointOutModel).
+                //   관절 모델·바닥 모델이 없어도 쓴다 (기울기만 있는 모델). 꺾는 손목 없음(WristID −1)이면 해당 없음 (쓰지 않는다).
+                //   수직 눈 확인 [수직임] 이 c (먼 자리도 재면 b12) 를 배워 적용 중 모델에 넣는다 (SagPrac_TiltApply). 키가 없으면 끔 — 옛 파일은 그대로 읽고 그대로 쓴다.
+                //   기계 성질이라 다시 학습·적용해도 넘겨받는다 (CopyWristTiltFrom — SagRun_Learn·SagRun_Activate, JointOnlyCopy 는 그대로 가진다)
+                public bool WristTiltOn = false;                     // wtilton=1
+                public double WristTiltC = 0;                        // wtiltc= (deg)
+                public double[] WristTiltB = null;                   // wtilt=b12,b13 (deg / (mm/deg)) — null = 상수만
+                public double[] WristTiltRef = null;                 // wtiltref=g12ref,g13ref (mm/deg)
+                public bool WristTiltKeys = false;                   // 파일에 wtilt* 키가 있었다 (없을 때만 넘겨받는다 — 키로 끈 것은 그대로)
+                /// <summary>손목 공구 기울기 보정이 켜져 있고 쓸 수 있다 (꺾는 손목이 있다)</summary>
+                public bool HasWristTilt { get { return WristTiltOn && WristID >= 0; } }
+                /// <summary>τ (deg) — 중력 지레 g12 = −L12, g13 = −L13 (mm/deg) 에서. 자세 항이 없으면 c</summary>
+                public double WristTiltAt(double g12, double g13)
+                {
+                    double t = WristTiltC;
+                    if (WristTiltB != null && WristTiltB.Length >= 2)
+                    {
+                        double r12 = (WristTiltRef != null && WristTiltRef.Length >= 1) ? WristTiltRef[0] : 0, r13 = (WristTiltRef != null && WristTiltRef.Length >= 2) ? WristTiltRef[1] : 0;
+                        t += WristTiltB[0] * (g12 - r12) + WristTiltB[1] * (g13 - r13);
+                    }
+                    return t;
+                }
+                /// <summary>다른 모델의 손목 공구 기울기 보정을 넘겨받는다 (기계 성질 — 관절 모델을 다시 학습해도 그대로). other 에 키가 없으면 false (그대로)</summary>
+                public bool CopyWristTiltFrom(CSagComp other)
+                {
+                    if (other == null || !other.WristTiltKeys) return false;
+                    WristTiltOn = other.WristTiltOn; WristTiltC = other.WristTiltC;
+                    WristTiltB = other.WristTiltB == null ? null : (double[])other.WristTiltB.Clone();
+                    WristTiltRef = other.WristTiltRef == null ? null : (double[])other.WristTiltRef.Clone();
+                    WristTiltKeys = true;
+                    return true;
+                }
+                /// <summary>파일의 wtilt* 줄 (Save 와 같은 글, 줄 끝 nl) — 키가 없고 값도 없으면 "" (옛 파일은 줄이 없다)</summary>
+                public string WristTiltLines(string nl)
+                {
+                    if (!(WristTiltKeys || WristTiltOn || WristTiltC != 0 || WristTiltB != null)) return "";
+                    var ci = CultureInfo.InvariantCulture;
+                    var sb = new StringBuilder();
+                    sb.Append("wtiltc=" + WristTiltC.ToString("R", ci) + "   # 손목 공구 기울기 보정 상수 c (deg, + = 공구 끝이 베이스 쪽) — 엔코더 밖 기울기 (영점·펜 장착·브래킷 등), 손목 명령 += −τ").Append(nl);
+                    if (WristTiltB != null && WristTiltB.Length >= 2) sb.Append("wtilt=" + WristTiltB[0].ToString("R", ci) + "," + WristTiltB[1].ToString("R", ci) + "   # 자세 항 b12,b13 (deg / 중력 지레 mm/deg) — τ = c + b·(g − gref), g = −L").Append(nl);
+                    if (WristTiltRef != null && WristTiltRef.Length >= 2) sb.Append("wtiltref=" + WristTiltRef[0].ToString("R", ci) + "," + WristTiltRef[1].ToString("R", ci) + "   # 기준 지레 g12ref,g13ref").Append(nl);
+                    sb.Append("wtilton=" + (WristTiltOn ? "1" : "0") + "   # 0 이면 기울기 보정 끔 (키를 지워도 끔)").Append(nl);
+                    return sb.ToString();
+                }
+                /// <summary>손목 공구 기울기 보정을 지운다 (키째 — 저장하면 줄이 빠진다)</summary>
+                public void ClearWristTilt() { WristTiltOn = false; WristTiltC = 0; WristTiltB = null; WristTiltRef = null; WristTiltKeys = false; }
+                /// <summary>쉬운 말 — "공구 기울기 보정 +5.2° (일정)" / "… +5.2° (r 에 따라 바뀜 — b12 +0.31)" / "공구 기울기 보정 없음" (+ = 공구 끝이 베이스 쪽)</summary>
+                public string WristTiltText()
+                {
+                    var ci = CultureInfo.InvariantCulture;
+                    if (!HasWristTilt) return WristID < 0 ? "공구 기울기 보정 해당 없음 (꺾는 손목 없음)" : "공구 기울기 보정 없음";
+                    bool bPose = WristTiltB != null && WristTiltB.Length >= 2 && (WristTiltB[0] != 0 || WristTiltB[1] != 0);
+                    return "공구 기울기 보정 " + WristTiltC.ToString("+0.0;-0.0;0.0", ci) + "°" +
+                           (bPose ? string.Format(ci, " (자세에 따라 바뀜 — b12 {0:+0.00;-0.00;0.00}, b13 {1:+0.00;-0.00;0.00})", WristTiltB[0], WristTiltB[1]) : " (일정)");
+                }
+                /// <summary>수직 눈 확인 기록용 서명 — "none" 또는 "c5.19|b0.31,0|r1.33,2.83" (값이 바뀌면 눈 확인을 다시 해야 한다)</summary>
+                public string WristTiltSig()
+                {
+                    if (!HasWristTilt) return "none";
+                    var ci = CultureInfo.InvariantCulture;
+                    Func<double[], string> J = a => a == null ? "" : string.Join(",", Array.ConvertAll(a, v => v.ToString("0.####", ci)));
+                    return "c" + WristTiltC.ToString("0.####", ci) + "|b" + J(WristTiltB) + "|r" + J(WristTiltRef);
+                }
                 // 바닥 보정표 (09-28) — 14번 손목 브래킷이 무게로 처져(사용자: 조여서 없앨 수 없음) 그리퍼가 지면에 수직이 못 된다.
                 //   엔코더는 수직(피치 89~92°)이라 보지만 끝은 자세마다 다른 만큼 낮다 → 관절 모델로는 못 잡는다.
                 //   FloorDz(r) = 바닥 접촉 꺾임점의 FK 높이(r) − 기준 (mm). 적용 = 끝이 Δz 만큼 더 높이 가도록 관절 12·13·14 를 바꾼다
@@ -167,10 +259,11 @@ namespace OpenJigWare
                 public bool HasFc { get { return Fc != null && Fc.HasData; } }
                 public bool FcDropped = false;                       // 불러올 때 fc* 줄이 있었지만 버렸다 (꼭 있어야 하는 줄이 없거나 잘못된 줄 — CSagFc.EndLoad). Summary 에 표시
                 /// <summary>관절 모델만 쓰는 사본 (10-03) — 얕은 복사 (표본·계수 배열·바닥 모델 객체는 함께 쓴다 — 사본으로 바꾸지 말 것), 바닥 보정 끔(FloorMapEnabled = false),
-                /// 켬(Enabled = true). 로봇팔 작업이 옮기는 동안 거는 보정 (실물 끝이 관절 처짐만큼 낮게 지나가지 않게). 관절 모델이 없으면 null</summary>
+                /// 켬(Enabled = true). 로봇팔 작업이 옮기는 동안 거는 보정 (실물 끝이 관절 처짐만큼 낮게 지나가지 않게). 관절 모델이 없으면 null.
+                /// 손목 공구 기울기 보정(10-15)은 그대로 가진다 — 옮기는 동안·눈 확인 동안에도 실물 공구가 수직 (기울기만 있는 모델도 사본을 준다)</summary>
                 public CSagComp JointOnlyCopy()
                 {
-                    if (!HasJoint) return null;
+                    if (!HasJoint && !HasWristTilt) return null;
                     var c = (CSagComp)MemberwiseClone();
                     c.FloorMapEnabled = false; c.Enabled = true;
                     return c;
@@ -218,7 +311,7 @@ namespace OpenJigWare
                 public bool HasDynamic { get { return Kr != null && Kz != null; } }
                 public bool HasJoint { get { return JointIDs != null && Jc != null && Jh != null && Jc.Length == JointIDs.Length && Jh.Length == JointIDs.Length; } }
                 /// <summary>보상에 쓸 수 있는 모델이 하나라도 있다 (관절 모델 또는 직교 정지 모델)</summary>
-                public bool IsUsable { get { return IsFitted || HasJoint; } }
+                public bool IsUsable { get { return IsFitted || HasJoint || HasWristTilt; } }   // 손목 공구 기울기 보정만 있는 모델도 (10-15)
 
                 // 특징 단계: 1 = [1, r]   2 = [1, r, r²]   3 = [1, r, r², z, r·z]
                 //   높이가 한 층뿐인 측정에서도 r² 항이 살도록 (처짐은 뻗은 거리에 대해 대체로 2차) z 없이 2단계를 둔다
@@ -354,9 +447,9 @@ namespace OpenJigWare
                 public string FitJoint()
                 {
                     Jc = Jh = null;
-                    int nj = PosIDs.Length + 1;
+                    int nj = PosIDs.Length + (WristID >= 0 ? 1 : 0);                   // 꺾는 손목 없음이면 위치 관절만 (10-13)
                     if (JointIDs == null || JointIDs.Length != nj)
-                    { JointIDs = new int[nj]; Array.Copy(PosIDs, JointIDs, PosIDs.Length); JointIDs[nj - 1] = WristID; }
+                    { JointIDs = new int[nj]; Array.Copy(PosIDs, JointIDs, PosIDs.Length); if (WristID >= 0) JointIDs[nj - 1] = WristID; }
                     var st = Samples.FindAll(s => !s.Dynamic && !s.Excluded && s.JointCmd != null && s.JointAct != null && s.JointDir != null && s.JointLever != null &&
                                                   s.JointCmd.Length >= nj && s.JointAct.Length >= nj && s.JointDir.Length >= nj && s.JointLever.Length >= nj);
                     if (st.Count < 3) return "관절 모델: 방향·지레가 기록된 정지 표본이 3개 미만 — 생략";
@@ -536,9 +629,10 @@ namespace OpenJigWare
                     if (!string.IsNullOrEmpty(MotorMap)) sb.AppendLine("motormap=" + MotorMap.Replace("\r", "").Replace("\n", "").Replace("#", "") + "   # 학습 때 모터 매핑 (축:방향:영점:틱/회전:각/회전) — 지금 매핑과 다르면 경고, 없으면 기본 매핑");
                     sb.AppendLine("func=" + FuncNumber);
                     sb.AppendLine("posids=" + string.Join(",", Array.ConvertAll(PosIDs, v => v.ToString(ci))));
-                    sb.AppendLine("wrist=" + WristID);
+                    sb.AppendLine("wrist=" + (WristID < 0 ? "none" : WristID.ToString(ci)));   // none = 꺾는 손목 없는 팔 (10-13 — 손목 있는 정의에는 쓰지 않는다)
                     // 로봇 정의 (10-04) — 기구학 표시가 있거나 수직 관절 합이 90 이 아니면 두 줄을 적는다 (표시 없는 옛 OMX 모델은 다시 저장해도 줄이 그대로 — 없으면 90 · 내장 OMX 로 읽힌다)
-                    if (!string.IsNullOrEmpty(KinSig) || DownSumDeg != 90f) sb.AppendLine("downsum=" + DownSumDeg.ToString("0.###", ci) + "   # 로봇 정의의 수직 관절 합 (posids2+posids3+wrist)");
+                    if (WristID < 0) sb.AppendLine("downsum=none   # 꺾는 손목 없음 — 바닥으로 수직(관절 합)이 없다");
+                    else if (!string.IsNullOrEmpty(KinSig) || DownSumDeg != 90f) sb.AppendLine("downsum=" + DownSumDeg.ToString("0.###", ci) + "   # 로봇 정의의 수직 관절 합 (posids2+posids3+wrist)");
                     if (!string.IsNullOrEmpty(KinSig)) sb.AppendLine("kinsig=" + KinSig.Replace("\r", "").Replace("\n", "").Replace("#", "") + "   # 이 모델을 만든 기구학 (DH) 표시");
                     sb.AppendLine("pitch=" + PitchDeg.ToString(ci));
                     sb.AppendLine("maxdelta=" + MaxAbsDelta.ToString(ci));
@@ -562,7 +656,10 @@ namespace OpenJigWare
                     sb.AppendLine("lagaccel=" + (LagUseAccel ? "1" : "0"));
                     sb.AppendLine("lagon=" + (LagEnabled ? "1" : "0"));
                     sb.AppendLine("sigmaramp=" + SigmaRamp.ToString(ci));
+                    if (SigmaTakeKey || SigmaTakeDeg != SIGMA_TAKE_DEF) sb.AppendLine("sigmatake=" + SigmaTakeDeg.ToString(ci) + "   # 방향 전환 때 데드밴드를 넘기는 이상 관절 이동 (deg) — 0 이면 예전 램프 (sigmaramp × h)");
                     if (FlexGain != 0) sb.AppendLine("flex=" + FlexGain.ToString("R", ci) + "   # 외부 휨 배율 κ (바닥 접촉 캘리브레이션)");
+                    if (PredictiveKey || !Predictive) sb.AppendLine("predictive=" + (Predictive ? "1" : "0") + "   # 0 이면 예측 보정 끔 — 1차 보정만 (쌍둥이 예측으로 다듬지 않는다, 키가 없으면 켬)");
+                    sb.Append(WristTiltLines(Environment.NewLine));                                       // 손목 공구 기울기 보정 (10-15) — 키가 없으면 줄도 없음
                     if (HasFloorMap)
                     {
                         sb.AppendLine("floorr=" + string.Join(",", Array.ConvertAll(FloorR, v => v.ToString("0.###", ci))) + "   # 바닥 보정표 반경 (mm)");
@@ -644,8 +741,12 @@ namespace OpenJigWare
                                 case "motormap": { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); v = v.Trim(); m.MotorMap = v.Length > 0 ? v : null; break; }
                                 case "func": m.FuncNumber = int.Parse(val, ci); break;
                                 case "posids": m.PosIDs = Array.ConvertAll(val.Split(','), v => int.Parse(v.Trim(), ci)); break;
-                                case "wrist": m.WristID = int.Parse(val, ci); break;
-                                case "downsum": { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.DownSumDeg = float.Parse(v.Trim(), NumberStyles.Float, ci); break; }
+                                case "wrist": m.WristID = CSagArmSetup.IsWristNone(val) ? CSagArmCfg.WRIST_NONE : int.Parse(val, ci); break;   // none = 꺾는 손목 없음 (10-13)
+                                case "downsum":
+                                    {
+                                        string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash);
+                                        m.DownSumDeg = string.Equals(v.Trim(), "none", StringComparison.OrdinalIgnoreCase) ? float.NaN : float.Parse(v.Trim(), NumberStyles.Float, ci); break;
+                                    }
                                 case "kinsig": { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.KinSig = v.Trim(); break; }
                                 case "pitch": m.PitchDeg = float.Parse(val, ci); break;
                                 case "maxdelta": m.MaxAbsDelta = float.Parse(val, ci); break;
@@ -674,8 +775,26 @@ namespace OpenJigWare
                                 case "lagaccel": m.LagUseAccel = val.Trim() == "1"; break;
                                 case "lagon": m.LagEnabled = val.Trim() == "1"; break;
                                 case "sigmaramp": m.SigmaRamp = Math.Max(0.05f, float.Parse(val, ci)); break;
+                                case "sigmatake":                                                       // 데드밴드 넘기 (10-16) — 0 이면 예전 램프
+                                    { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.SigmaTakeDeg = Math.Max(0f, float.Parse(v.Trim(), NumberStyles.Float, ci)); m.SigmaTakeKey = true; break; }
+                                case "wtiltc": case "wtilt": case "wtiltref": case "wtilton":           // 손목 공구 기울기 보정 (10-15)
+                                    {
+                                        string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); v = v.Trim();
+                                        m.WristTiltKeys = true;
+                                        if (key == "wtiltc") m.WristTiltC = double.Parse(v, NumberStyles.Float, ci);
+                                        else if (key == "wtilton") m.WristTiltOn = v == "1";
+                                        else
+                                        {
+                                            double[] a = Array.ConvertAll(v.Split(','), t => double.Parse(t.Trim(), NumberStyles.Float, ci));
+                                            if (a.Length < 2) throw new FormatException(key);
+                                            if (key == "wtilt") m.WristTiltB = new double[] { a[0], a[1] }; else m.WristTiltRef = new double[] { a[0], a[1] };
+                                        }
+                                        break;
+                                    }
                                 case "flex":
                                     { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.FlexGain = double.Parse(v.Trim(), ci); break; }
+                                case "predictive":                                                      // 예측 보정 (10-16) — 0 이면 끔, 그 밖은 켬
+                                    { string v = val; int hash = v.IndexOf('#'); if (hash >= 0) v = v.Substring(0, hash); m.Predictive = v.Trim() != "0"; m.PredictiveKey = true; break; }
                                 case "floorr":
                                 case "floordz":
                                     {
@@ -763,6 +882,7 @@ namespace OpenJigWare
                         catch { /* 손상 줄은 건너뛴다 */ }
                     }
                     foreach (int k in lstExcl) if (k >= 0 && k < m.Samples.Count) m.Samples[k].Excluded = true;
+                    if (m.WristID < 0) m.DownSumDeg = float.NaN;                       // 꺾는 손목 없음 — 수직 기준 없음 (줄이 없어도)
                     bool bBad = m.IsFitted && (m.Cz.Length != FeatCount(m.Degree) || m.Cr == null || m.Cr.Length != FeatCount(m.Degree));
                     if ((!m.IsFitted || bBad) && m.Samples.Count >= 2) { m.Fit(); m.FitDynamic(); }
                     if (m.Kr != null && m.Kr.Length != 2) m.Kr = null;
@@ -794,8 +914,10 @@ namespace OpenJigWare
                                 FloorMapEnabled && Gp.Enabled ? "" : " [꺼짐]", Gp.BadR == null ? 0 : Gp.BadR.Length)
                                : HasFloorMap ? string.Format(CultureInfo.InvariantCulture, ", 바닥 보정표 {0}점 r {1:F0}~{2:F0}mm Δz {3:+0.0;-0.0}~{4:+0.0;-0.0}mm{5}",
                                 FloorR.Length, FloorR[0], FloorR[FloorR.Length - 1], FloorDzMin(), FloorDzMax(), FloorMapEnabled ? "" : " [꺼짐 — flooron=0]") : "")
-                            + (FcDropped ? ", 첫닿음 모델 버림 (파일의 fc* 줄이 모자라거나 잘못됨 — fcbeta·fcell·fcsig·fcx 확인)" : "");
+                            + (FcDropped ? ", 첫닿음 모델 버림 (파일의 fc* 줄이 모자라거나 잘못됨 — fcbeta·fcell·fcsig·fcx 확인)" : "")
+                            + (HasWristTilt ? ", " + WristTiltText() : "");                      // 손목 공구 기울기 보정 (10-15)
                     }
+                    if (!IsFitted && HasWristTilt) return "처짐 보상: " + WristTiltText() + " — 관절·바닥 모델 없음 (기울기 보정만)" + (Enabled ? "" : " [꺼짐]");
                     if (!IsFitted) return string.Format("처짐 보상: 미학습 (표본 {0})", Samples.Count);
                     double dR0, dZ0, dR1, dZ1;
                     PredictStatic(RMin, 0, (ZMin + ZMax) / 2, out dR0, out dZ0);
@@ -947,7 +1069,7 @@ namespace OpenJigWare
                     m_dicSagVelDeg.Clear(); m_dicSagVelT.Clear(); m_dicSagOmega.Clear(); m_dicSagAlpha.Clear();
                     m_dicSagApplied.Clear(); m_dicSagFrom = null;    // 실물 자세를 새로 잡았다 — 걸려 있는 보정 없음에서 시작
                     m_bSagBlendRun = false; m_dSagBlendMs = 0; m_nSagSwitchGen++; m_nSagHardGen++;
-                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null;
+                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null; m_afSagLastPred = null;
                 }
                 lock (m_oWristHold) { m_nWristHoldID = -1; m_fWristHold = 0; m_bWristHoldFading = false; m_dWristHoldFadeMs = 0; m_bWristHoldFadeTicked = false; m_fWristHoldLast = 0; }
             }
@@ -971,7 +1093,7 @@ namespace OpenJigWare
                     m_dicSagVelDeg.Clear(); m_dicSagVelT.Clear(); m_dicSagOmega.Clear(); m_dicSagAlpha.Clear();
                     m_dicSagApplied.Clear(); m_dicSagFrom = null;            // 걸린 보정 0, 빠질 보정도 없음 — 전환은 끝난 것 (SagComp_BlendProgress = 1)
                     m_bSagBlendRun = false; m_dSagBlendMs = 0; m_nSagSwitchGen++; m_nSagHardGen++;
-                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null;
+                    m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null; m_afSagLastPred = null;
                     lock (m_oWristHold)
                     {
                         if (m_fWristHoldLast != 0f || (m_nWristHoldID >= 0 && WristHoldCurrent() != 0f)) bWas = true;
@@ -1036,27 +1158,52 @@ namespace OpenJigWare
                 else { if (diff >= SAG_DIR_THR_DEG) { m_dicSagDir[id] = +1; m_dicSagAnchor[id] = deg; } else if (-diff >= SAG_DIR_THR_DEG) { m_dicSagDir[id] = -1; m_dicSagAnchor[id] = deg; } }
             }
 
+            // 보상용 이동 방향 σ (−1..+1) 한 틱 — 출력 단 (이상 관절의 이번 틱 이동 dPose, 직전 출력 틱과의 간격 nGapMs).
+            //   sigmatake > 0 (10-16 기본 0.1°): σ += dPose / sigmatake — 반전 뒤 이상 관절이 sigmatake 만큼 가는 사이 보낸 명령(θ + h·σ)이 데드밴드 2h 를 건넌다.
+            //     놀이(play) 꼴이라 그 자체가 이력이다 — 속도 부호를 보지 않으므로 반전 자리의 0 근처 속도에서 떨지 않고, 작은 흔들림은 그만큼만 σ 를 움직인다.
+            //     한 틱에 넘는 양은 σ 전체 전환(2)이 SAG_SIGMA_FLIP_MS 보다 빠르지 않게 자른다 (꺾인 경로처럼 한 틱에 반전해도 명령이 한 틱에 2h 튀지 않는다 —
+            //     틱 간격은 전환과 같이 SAG_BLEND_TICK_MAX_MS 까지만 센다). 한 방향으로 계속 가면 ±1 그대로 — 예전과 같다.
+            //   sigmatake = 0: 예전 — σ += dPose / max(0.2, sigmaramp·h) (반전 뒤 이상 관절이 h 를 갈 때까지 실물이 멈춰 최대 h 뒤처진다)
+            private const double SAG_SIGMA_FLIP_MS = 100.0;                                  // σ 가 −1↔+1 을 넘어가는 가장 짧은 시간 (출력 틱 시간, ms)
+            private static float SagComp_SigmaStep(CSagComp m, int j, float sg, float dPose, int nGapMs)
+            {
+                if (m.SigmaTakeDeg > 0)
+                {
+                    double ds = dPose / m.SigmaTakeDeg;
+                    double lim = 2.0 * Math.Max(0, Math.Min(SAG_BLEND_TICK_MAX_MS, nGapMs)) / SAG_SIGMA_FLIP_MS;
+                    if (ds > lim) ds = lim; if (ds < -lim) ds = -lim;
+                    sg = (float)(sg + ds);
+                }
+                else sg += dPose / (float)Math.Max(0.2, m.SigmaRamp * m.Jh[j]);
+                if (sg > 1f) sg = 1f; if (sg < -1f) sg = -1f;
+                return sg;
+            }
+
             /// <summary>실물로 나가는 관절각에 관절 보상을 얹는다 — CScene_t.SendPose 가 모션 틱마다 부른다.
             /// afDeg = ids 순서의 3D(이상) 관절각 → 보정된 실물 명령으로 바뀐다. **3D 모델은 건드리지 않는다**
             /// (그래서 IK 시드·현재 TCP·경로 시작점이 보정에 오염되지 않는다 — 09-28 주행 검증 실패의 구조적 원인 제거).
-            /// 명령 = θ − c·L(θ) + h·σ.  σ 는 이동량/h 로 −1..+1 사이를 매끈하게 오가서, 방향이 바뀌는 순간에도
-            /// 명령이 2h 만큼 튀지 않는다. 모델을 켠 뒤 1초에 걸쳐 들어온다.
+            /// 명령 = θ − c·L(θ) + h·σ.  σ 는 반전 뒤 이상 관절이 sigmatake(기본 0.1°) 를 가는 사이 −1..+1 을 매끈하게 넘어가서
+            /// (100ms 보다 빠르지 않게 — SagComp_SigmaStep), 방향이 바뀌는 순간에도 명령이 한 틱에 2h 튀지 않고 실물도 반전 자리에서 거의 멈추지 않는다
+            /// (sigmatake=0 이면 예전 램프 — 이동량/(sigmaramp·h)). 모델을 켠 뒤 1초에 걸쳐 들어온다.
             /// 지연 모델이 있으면 τ·ω + κ·α 만큼 앞서 보낸다 (상한 MaxLeadDeg). smoothstep 이라 동작 끝에서 ω→0 → 앞섬도 0.
+            /// 예측 보정(CSagComp.Predictive, 10-16 — 기본 켬)이면 이 1차 보정을 처짐 쌍둥이 예측으로 다듬는다 (SagComp_PredRefine — 쌍둥이 끝 = 목표, 공구 = 3D 의 공구 각).
             /// 모델 유무와 무관하게 관절별 이동 방향·속도를 추적한다 (측정 표본 기록용).</summary>
             public void SagComp_JointOut(int[] ids, float[] afDeg)
             {
                 if (ids == null || afDeg == null) return;
                 float[] ideal = SagTwin_Wanted ? (float[])afDeg.Clone() : null;   // 처짐 쌍둥이용 — 보정 전 이상각
-                SagComp_JointOutModel(ids, afDeg);
+                float[] db;
+                SagComp_JointOutModel(ids, afDeg, out db);
                 SagComp_WristHoldOut(ids, afDeg);   // 측정 중에만(SagComp_FloorPress) — 손목 수직 유지. 방향 추적·모델 전환과 별개
-                if (ideal != null) SagTwin_NoteCommand(ids, ideal, afDeg);   // 실제로 보낸 명령 기록 (COjw_12_3D_SagTwin.cs)
+                if (ideal != null) SagTwin_NoteCommand(ids, ideal, afDeg, db);   // 실제로 보낸 명령 기록 (COjw_12_3D_SagTwin.cs)
             }
             // 쌍둥이 그림자 출력 틱 (SagTwin_Update — 실물로 나가지 않을 때) — SagComp_JointOut 과 같은 계산(관절·바닥 보정 + 전환 + 손목 유지)을
             //   그림자 상태 사본(m_SagShadowState)으로 한다. 실물 출력 단의 상태는 이 틱 전후로 똑같다 (부작용 없음 — 위 설명).
             //   omega·alpha·dir = 그림자 틱이 끝난 순간의 그림자 쪽 방향·속도 추적 (ids 순) — 쌍둥이의 지연·방향 예측이 실물 추적 대신 쓴다
-            private void SagComp_JointOutShadow(int[] ids, float[] afDeg, out float[] omega, out float[] alpha, out float[] dir)
+            //   db = 그림자 명령에 든 데드밴드 항 (ids 순, 없으면 null — SagComp_JointOutModel)
+            private void SagComp_JointOutShadow(int[] ids, float[] afDeg, out float[] omega, out float[] alpha, out float[] dir, out float[] db)
             {
-                omega = alpha = dir = null;
+                omega = alpha = dir = db = null;
                 if (ids == null || afDeg == null) return;
                 float[] ideal = SagTwin_Wanted ? (float[])afDeg.Clone() : null;
                 lock (m_dicSagDir)
@@ -1073,7 +1220,7 @@ namespace OpenJigWare
                     m_bSagShadowTick = true;
                     try
                     {
-                        SagComp_JointOutModel(ids, afDeg);
+                        SagComp_JointOutModel(ids, afDeg, out db);
                         SagComp_WristHoldOut(ids, afDeg);
                         omega = new float[ids.Length]; alpha = new float[ids.Length]; dir = new float[ids.Length];
                         for (int i = 0; i < ids.Length; i++)
@@ -1092,25 +1239,28 @@ namespace OpenJigWare
                         m_nSagShadowGen = m_nSagSwitchGen; m_nSagShadowHard = m_nSagHardGen; m_nSagShadowReal = m_nSagRealTicks;
                     }
                 }
-                if (ideal != null) SagTwin_NoteCommand(ids, ideal, afDeg);   // 그림자가 만든 "보냈을 명령" (lock 밖에서 — 쌍둥이 lock 과 순서가 엇갈리지 않게)
+                if (ideal != null) SagTwin_NoteCommand(ids, ideal, afDeg, db);   // 그림자가 만든 "보냈을 명령" (lock 밖에서 — 쌍둥이 lock 과 순서가 엇갈리지 않게)
             }
-            private void SagComp_JointOutModel(int[] ids, float[] afDeg)
+            // dbOut = 이 틱 명령에 든 데드밴드 항 w·h·σ (ids 순, 10-16 — 쌍둥이가 놀이로 실물의 반전 멈춤을 본다). 관절 모델을 쓰지 않은 틱은 null
+            private void SagComp_JointOutModel(int[] ids, float[] afDeg, out float[] dbOut)
             {
+                dbOut = null;
                 int nNow = MotionTick_ms();
                 CSagComp m; CSagFc fc; Dictionary<int, float> from; double w; int nGen; bool bModel;
+                int nGap;
                 lock (m_dicSagDir)
                 {
                     if (!m_bSagShadowTick) m_nSagRealTicks++;                                         // 실물 출력 틱 — 그림자 사본은 다음 그림자 틱에 실물 상태에서 다시 시작한다
-                    int nGap = (m_nSagOutLastMs == int.MinValue) ? 0 : unchecked(nNow - m_nSagOutLastMs);   // 직전 출력 틱과의 간격 (ms)
+                    nGap = (m_nSagOutLastMs == int.MinValue) ? 0 : unchecked(nNow - m_nSagOutLastMs);   // 직전 출력 틱과의 간격 (ms) — 전환 진행·σ 넘기 속도 (10-16)
                     m_nSagOutLastMs = nNow;
                     for (int i = 0; i < ids.Length && i < afDeg.Length; i++) { SagComp_TrackDir(ids[i], afDeg[i]); SagComp_TrackVel(ids[i], afDeg[i], nNow); }
                     // 모델·첫닿음 모델·전환 기준·진행·세대를 한 번에 읽고 이 틱 끝까지 쓴다 — 전환(SagComp_SwitchLocked)이 같은 lock 안에서 함께 바꾼다
                     m = m_SagComp; fc = m == null ? null : m.Fc; from = m_dicSagFrom; nGen = m_nSagSwitchGen;
-                    bModel = m != null && m.Enabled && m.HasJoint;
+                    bModel = m != null && m.Enabled && (m.HasJoint || m.HasWristTilt);              // 손목 공구 기울기만 있는 모델도 (10-15)
                     if (!bModel && (from == null || from.Count == 0))
                     {
                         m_dicSagApplied.Clear(); m_dicSagFrom = null; m_bSagBlendRun = false; m_dSagBlendMs = 0;
-                        m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null;
+                        m_afSagLastJoint = new float[0]; m_fSagLastFloorDz = 0; m_afSagLastFc = null; m_afSagLastPred = null;
                         return;
                     }
                     // 전환은 출력 틱이 흐를 때만 나아간다 — 첫 틱은 전환 순간 값 그대로, 그다음은 틱 간격만큼 (한 틱에 SAG_BLEND_TICK_MAX_MS 까지)
@@ -1122,24 +1272,26 @@ namespace OpenJigWare
                 var target = new Dictionary<int, float>();                               // 새 모델의 보정 (전환 전 값, 관절 ID → deg)
                 float dzMap = 0;
                 m_afSagLastFc = null;                                                     // 첫닿음 모델 진단 — 이번 틱에 쓰면 SagComp_FcOut 이 채운다
-                if (bModel)
+                float[] levOut = null; int[] jidsOut = null;                              // 이 틱의 중력 지레 (손목 공구 기울기의 자세 항이 같은 값을 쓴다)
+                float[] poseOut = null, sgOut = null; double[] leadOut = null;            // 예측 보정(10-16)이 쓰는 이상 자세·이동 방향 σ·앞서 보내기 (JointIDs 순)
+                bool bFloorOut = false; double dzOut = 0; int[] fidOut = null; float[] fqOut = null;   // 1차 보정이 얹은 바닥 항
+                if (bModel && m.HasJoint)
                 {
                     int nj = m.JointIDs.Length;
                     int[] idx = new int[nj]; float[] pose = new float[nj];
                     for (int j = 0; j < nj; j++) { idx[j] = Array.IndexOf(ids, m.JointIDs[j]); pose[j] = idx[j] >= 0 ? afDeg[idx[j]] : GetData(m.JointIDs[j]); }
                     float[] lev = SagComp_JointLevers(m.FuncNumber, m.JointIDs, pose);
+                    levOut = lev; jidsOut = m.JointIDs;
+                    poseOut = pose; sgOut = new float[nj];
                     lock (m_dicSagDir)
                         for (int j = 0; j < nj; j++)
                         {
                             int id = m.JointIDs[j];
                             float sg, prev;
                             if (!m_dicSagSigma.TryGetValue(id, out sg)) { int d; m_dicSagDir.TryGetValue(id, out d); sg = d; }   // 첫 틱 = 추적된 방향에서 시작
-                            else if (m_dicSagPrev.TryGetValue(id, out prev))
-                            {
-                                sg += (pose[j] - prev) / (float)Math.Max(0.2, m.SigmaRamp * m.Jh[j]);
-                                if (sg > 1f) sg = 1f; if (sg < -1f) sg = -1f;
-                            }
+                            else if (m_dicSagPrev.TryGetValue(id, out prev)) sg = SagComp_SigmaStep(m, j, sg, pose[j] - prev, nGap);
                             m_dicSagSigma[id] = sg; m_dicSagPrev[id] = pose[j];
+                            sgOut[j] = sg;
                             double c = m.JointCorrStatic(j, lev[j], sg);             // = −(c·L·(1+κ) − h·σ)
                             if (m.HasJointLag && m.LagEnabled)
                             {
@@ -1147,6 +1299,8 @@ namespace OpenJigWare
                                 double lead = -m.PredictJointLag(j, om, al);                     // = τ·ω + κ·α
                                 if (lead > m.MaxLeadDeg) lead = m.MaxLeadDeg; if (lead < -m.MaxLeadDeg) lead = -m.MaxLeadDeg;
                                 c += lead;
+                                if (leadOut == null) leadOut = new double[nj];
+                                leadOut[j] = lead;
                             }
                             if (c > m.MaxAbsJointDeg) c = m.MaxAbsJointDeg; if (c < -m.MaxAbsJointDeg) c = -m.MaxAbsJointDeg;
                             target[id] = (float)c;
@@ -1187,14 +1341,33 @@ namespace OpenJigWare
                         if (Math.Abs(dz) > 1e-3 && SagComp_FloorJointDelta(m.FuncNumber, fid, fq, dz, out dq))
                         {
                             dzMap = (float)dz;
+                            bFloorOut = true; dzOut = dz; fidOut = fid; fqOut = fq;
                             for (int k = 0; k < 3; k++)
                             {
+                                if (fid[k] < 0) continue;                                    // 꺾는 손목 없음 — dz 는 피치 두 관절로만 (2×2 야코비안)
                                 float t0; target.TryGetValue(fid[k], out t0);
                                 target[fid[k]] = t0 + (float)Math.Max(-m.MaxAbsJointDeg, Math.Min(m.MaxAbsJointDeg, dq[k]));
                             }
                         }
                     }
                 }
+                // 손목 공구 기울기 보정 (10-15) — 손목 명령 += −τ(이상 자세), 관절 보정과 같은 자르기 (MaxAbsJointDeg)·아래 1초 전환 안
+                float fTiltNow = 0;
+                if (bModel && m.HasWristTilt)
+                {
+                    fTiltNow = (float)SagComp_TiltAt(m, ids, afDeg, levOut, jidsOut, null);
+                    float t0; target.TryGetValue(m.WristID, out t0);
+                    target[m.WristID] = t0 + (float)Math.Max(-m.MaxAbsJointDeg, Math.Min(m.MaxAbsJointDeg, -fTiltNow));
+                }
+                // 예측 보정 (10-16) — 1차 보정을 쌍둥이 예측으로 다듬는다 (아래 전환 앞 — 자르기는 항마다 1차와 같다. 끄면 건너뛰어 예전과 같다)
+                float[] predInfo = null;
+                if (bModel && m.HasJoint && m.Predictive)
+                {
+                    double[] adP = SagFc_MotCopy();
+                    for (int i = 0; i < ids.Length && i < afDeg.Length; i++) SagFc_Set(adP, ids[i], afDeg[i]);
+                    SagComp_PredRefine(m, adP, poseOut, sgOut, leadOut, bFloorOut, dzOut, fidOut, fqOut, m.HasWristTilt ? (double)fTiltNow : double.NaN, target, out predInfo);
+                }
+                m_afSagLastPred = predInfo;
                 // 출력 = w·새 보정 + (1−w)·전환 순간 보정 — 모델 전환·끄기에도 실물 명령이 이어진다
                 lock (m_dicSagDir)
                 {
@@ -1211,17 +1384,100 @@ namespace OpenJigWare
                     }
                     if (w >= 1.0 && nGen == m_nSagSwitchGen) m_dicSagFrom = null;      // 넘어가기 끝 — 이 틱 사이에 들어온 전환(새 기준)은 지우지 않는다
                 }
-                if (bModel)
+                m_fSagLastTilt = (float)(w * fTiltNow);
+                if (bModel && m.HasJoint)
                 {
                     float[] corr = new float[m.JointIDs.Length];
                     lock (m_dicSagDir) for (int j = 0; j < corr.Length; j++) { float o; if (m_dicSagApplied.TryGetValue(m.JointIDs[j], out o)) corr[j] = o; }
                     m_afSagLastJoint = corr;
+                    if (sgOut != null)
+                    {
+                        dbOut = new float[ids.Length];
+                        for (int j = 0; j < corr.Length; j++) { int k = Array.IndexOf(ids, m.JointIDs[j]); if (k >= 0) dbOut[k] = (float)(w * m.Jh[j] * sgOut[j]); }
+                    }
                 }
                 else m_afSagLastJoint = new float[0];
                 m_fSagLastFloorDz = (float)(w * dzMap);
             }
 
-            private float m_fSagLastFloorDz = 0, m_fSagLastGpStd = float.NaN;
+            private float m_fSagLastFloorDz = 0, m_fSagLastGpStd = float.NaN, m_fSagLastTilt = 0;
+            /// <summary>직전 출력 틱에 손목 공구 기울기 보정으로 손목 명령에서 뺀 τ (deg, 전환 무게 포함) — 진단용 (10-15)</summary>
+            public float SagComp_LastTilt { get { return m_fSagLastTilt; } }
+
+            // ── 손목 공구 기울기 τ (10-15) ──
+            // 모델 m 의 항을 이상 자세에서 (ids·afDeg, 그 밖 관절은 3D 값 또는 사본 ad 의 값). 자세 항이 있으면 중력 지레 g = −L 이 필요하다 —
+            //   lev·jids 가 주어지면 (출력 단이 이 틱에 관절 모델로 계산한 것) 그것을, 아니면 관절 모델 ID (없으면 위치 3 + 손목 — SagComp_TiltLeverIds) 로 계산.
+            //   ad = 관절값 사본 (예측 — SagFc_Levers, 부작용 없음), null = 3D 관절값 (출력 단 — SagComp_JointLevers). 항이 없거나 손목 없음이면 0
+            private double SagComp_TiltAt(CSagComp m, int[] ids, float[] afDeg, float[] lev, int[] jids, double[] ad)
+            {
+                if (m == null || !m.HasWristTilt) return 0;
+                if (m.WristTiltB == null || m.WristTiltB.Length < 2 || m.PosIDs == null || m.PosIDs.Length < 3) return m.WristTiltC;   // 상수만 — 지레가 필요 없다
+                if (lev == null || jids == null)
+                {
+                    jids = SagComp_TiltLeverIds(m);
+                    float[] pose = new float[jids.Length];
+                    for (int j = 0; j < jids.Length; j++)
+                    {
+                        int k = (ids == null) ? -1 : Array.IndexOf(ids, jids[j]);
+                        pose[j] = (k >= 0 && afDeg != null && k < afDeg.Length) ? afDeg[k] : (ad != null ? SagFc_Get(ad, jids[j]) : GetData(jids[j]));
+                    }
+                    lev = (ad != null) ? SagFc_Levers(m.FuncNumber, jids, pose, ad) : SagComp_JointLevers(m.FuncNumber, jids, pose);
+                }
+                int i12 = Array.IndexOf(jids, m.PosIDs[1]), i13 = Array.IndexOf(jids, m.PosIDs[2]);
+                double g12 = (i12 >= 0 && i12 < lev.Length) ? -lev[i12] : 0, g13 = (i13 >= 0 && i13 < lev.Length) ? -lev[i13] : 0;
+                return m.WristTiltAt(g12, g13);
+            }
+            // 자세 항의 지레를 잴 관절 (체인 순) — 관절 모델이 있으면 그 ID (출력 단이 같은 목록으로 잰다), 없으면 위치 3 + 손목
+            private static int[] SagComp_TiltLeverIds(CSagComp m)
+            {
+                if (m.HasJoint) return m.JointIDs;
+                return new int[] { m.PosIDs[0], m.PosIDs[1], m.PosIDs[2], m.WristID };
+            }
+            /// <summary>적용 중 모델의 손목 공구 기울기 τ (deg, + = 공구 끝이 베이스 쪽) — 지금 3D 자세에서 (출력 단이 전환을 마친 뒤 손목에서 빼는 값 — 자르기 전).
+            /// 모델이 없거나 꺼져 있거나 항이 없으면 0. 관절값 사본으로 계산한다 (부작용 없음 — 어느 스레드에서도 된다). 예외 없음</summary>
+            public float SagComp_TiltNow()
+            {
+                try
+                {
+                    CSagComp m = m_SagComp;
+                    if (m == null || !m.Enabled || !m.HasWristTilt) return 0f;
+                    return (float)SagComp_TiltAt(m, null, null, null, null, SagFc_MotCopy());
+                }
+                catch { return 0f; }
+            }
+            /// <summary>모델 m 의 τ 를 관절 자세 (ids·q, 그 밖은 지금 3D 값) 에서 — 관절값 사본으로 (부작용 없음). 항이 없으면 0. 예외 없음</summary>
+            public float SagComp_TiltOf(CSagComp m, int[] ids, float[] q)
+            {
+                try
+                {
+                    if (m == null || !m.HasWristTilt) return 0f;
+                    double[] ad = SagFc_MotCopy();
+                    if (ids != null && q != null) for (int i = 0; i < ids.Length && i < q.Length; i++) SagFc_Set(ad, ids[i], q[i]);
+                    return (float)SagComp_TiltAt(m, ids, q, null, null, ad);
+                }
+                catch { return 0f; }
+            }
+            /// <summary>자세 항에 쓰는 중력 지레 g12 = −L12, g13 = −L13 (mm/deg) — 관절 자세 (ids·q, 그 밖은 지금 3D 값) 에서, 모델 m 의 지레 관절 목록으로
+            /// (m 이 null 이거나 관절 모델이 없으면 위치 3 + 손목 — 기울기만 있는 모델의 출력 단과 같다). 관절값 사본으로 (부작용 없음). 못 재면 false. 예외 없음</summary>
+            public bool SagComp_TiltLevers(CSagComp m, CSagArmCfg c, int[] ids, float[] q, out double g12, out double g13)
+            {
+                g12 = g13 = double.NaN;
+                try
+                {
+                    if (c == null || c.PosIDs == null || c.PosIDs.Length < 3 || c.NoWrist) return false;
+                    int[] jids = (m != null && m.HasJoint) ? m.JointIDs : new int[] { c.PosIDs[0], c.PosIDs[1], c.PosIDs[2], c.WristID };
+                    double[] ad = SagFc_MotCopy();
+                    if (ids != null && q != null) for (int i = 0; i < ids.Length && i < q.Length; i++) SagFc_Set(ad, ids[i], q[i]);
+                    float[] pose = new float[jids.Length];
+                    for (int j = 0; j < jids.Length; j++) pose[j] = SagFc_Get(ad, jids[j]);
+                    float[] lev = SagFc_Levers((m != null) ? m.FuncNumber : c.FuncNumber, jids, pose, ad);
+                    int i12 = Array.IndexOf(jids, c.PosIDs[1]), i13 = Array.IndexOf(jids, c.PosIDs[2]);
+                    if (lev == null || i12 < 0 || i13 < 0) return false;
+                    g12 = -lev[i12]; g13 = -lev[i13];
+                    return !double.IsNaN(g12) && !double.IsNaN(g13);
+                }
+                catch { return false; }
+            }
             /// <summary>직전 출력 틱의 바닥 GP 예측 표준편차 (mm) — 진단용</summary>
             public float SagComp_LastGpStd { get { return m_fSagLastGpStd; } }
             /// <summary>직전 출력 틱에 바닥 보정표로 얹은 끝 높이 보정 (mm) — 진단용</summary>
@@ -1260,7 +1516,7 @@ namespace OpenJigWare
                     lock (m_dicSagDir)
                     {
                         CSagComp m = m_SagComp;
-                        bool bModel = m != null && m.Enabled && m.HasJoint;
+                        bool bModel = m != null && m.Enabled && (m.HasJoint || m.HasWristTilt);
                         if (!bModel && (m_dicSagFrom == null || m_dicSagFrom.Count == 0)) return 1.0;   // 들어올 보정도 빠질 보정도 없다
                         if (!m_bSagBlendRun) return 0.0;                                                 // 전환 뒤 첫 출력 틱 전
                         return Math.Min(1.0, m_dSagBlendMs / SAG_BLEND_MS);
@@ -1278,14 +1534,15 @@ namespace OpenJigWare
             //   (모션 스레드의 출력 틱과 겹쳐 불러도 된다). 첫닿음 모델이 아직 준비 전이면 준비한다 (전환 때와 같은 일 — 결과가 같다).
             // ────────────────────────────────────────────────────────────
             /// <summary>정지 자세에서 출력 단이 전환을 마친 뒤(w = 1) 얹을 관절 보정 (deg, ids 순, 부호 = 명령에 더할 값) — 적용 중 모델로.
-            /// = 관절 모델(중력·데드밴드, MaxAbsJointDeg 로 자름) + 바닥 보정(첫닿음 모델 / GP / 반경 보정표 → 관절 12·13·14, 축마다 MaxAbsJointDeg 로 자름).
+            /// = 관절 모델(중력·데드밴드, MaxAbsJointDeg 로 자름) + 바닥 보정(첫닿음 모델 / GP / 반경 보정표 → 관절 12·13·14, 축마다 MaxAbsJointDeg 로 자름)
+            /// + 손목 공구 기울기, 예측 보정이 켜져 있으면 출력 단과 같이 다듬은 값 (SagComp_PredRefine, 10-16).
             /// 앞서 보내기(속도·가속도)와 손목 유지는 넣지 않는다. afIdeal = ids 순 이상(3D) 관절각, afSigma = ids 순 이동 방향 σ (−1..+1, null·NaN = 0).
             /// ids 밖 관절은 지금 3D 값. 모델이 없거나 꺼져 있으면 0 배열, 입력이 틀리면 null. 부작용 없음 — 어느 스레드에서 불러도 된다. 예외 없음.</summary>
             public float[] SagComp_PredictJointCorr(int[] ids, float[] afIdeal, float[] afSigma)
             {
                 CSagComp m = m_SagComp;
                 if (ids == null || afIdeal == null || afIdeal.Length != ids.Length) return null;
-                if (m == null || !m.Enabled || !m.HasJoint) return new float[ids.Length];
+                if (m == null || !m.Enabled || (!m.HasJoint && !m.HasWristTilt)) return new float[ids.Length];
                 return SagComp_PredictJointCorr(m, ids, afIdeal, afSigma);
             }
             /// <summary>SagComp_PredictJointCorr 와 같고 모델을 준다 — 그 모델을 켜서 적용하면 얹을 보정 (Enabled 플래그는 보지 않는다,
@@ -1296,7 +1553,7 @@ namespace OpenJigWare
                 {
                     if (ids == null || afIdeal == null || afIdeal.Length != ids.Length) return null;
                     float[] r = new float[ids.Length];
-                    if (m == null || !m.HasJoint) return r;
+                    if (m == null || (!m.HasJoint && !m.HasWristTilt)) return r;
                     Dictionary<int, float> t = SagComp_PredictCore(m, m.Fc, ids, afIdeal, afSigma);
                     for (int i = 0; i < ids.Length; i++) { float v; if (t.TryGetValue(ids[i], out v)) r[i] = v; }
                     return r;
@@ -1327,7 +1584,7 @@ namespace OpenJigWare
                 {
                     CSagComp m = m_SagComp;
                     if (ids == null || afGoal == null || afGoal.Length != ids.Length) return null;
-                    if (m == null || !m.Enabled || !m.HasJoint) return null;
+                    if (m == null || !m.Enabled || (!m.HasJoint && !m.HasWristTilt)) return null;
                     CSagFc fc = m.Fc;                                           // 한 번만 읽는다 (다시 학습이 다른 스레드에서 바꿔 끼울 수 있다)
                     bool bStart = afStart != null && afStart.Length == ids.Length;
                     if (!bStart)
@@ -1733,19 +1990,23 @@ namespace OpenJigWare
                 var target = new Dictionary<int, float>();
                 double[] ad = SagFc_MotCopy();
                 for (int i = 0; i < ids.Length; i++) SagFc_Set(ad, ids[i], afIdeal[i]);
+                if (!m.HasJoint) { SagComp_PredictTilt(m, ids, afIdeal, null, null, ad, target); return target; }   // 손목 공구 기울기만 있는 모델 (10-15)
                 int nj = m.JointIDs.Length;
                 float[] pose = new float[nj];
                 for (int j = 0; j < nj; j++) { int k = Array.IndexOf(ids, m.JointIDs[j]); pose[j] = k >= 0 ? afIdeal[k] : SagFc_Get(ad, m.JointIDs[j]); }
                 float[] lev = SagFc_Levers(m.FuncNumber, m.JointIDs, pose, ad);
+                float[] sgj = new float[nj];                                                     // 이동 방향 σ (JointIDs 순 — 예측 보정이 쓴다)
                 for (int j = 0; j < nj; j++)
                 {
                     int k = Array.IndexOf(ids, m.JointIDs[j]);
                     float sg = (afSigma != null && k >= 0 && k < afSigma.Length && !float.IsNaN(afSigma[k])) ? afSigma[k] : 0f;
                     if (sg > 1f) sg = 1f; if (sg < -1f) sg = -1f;
+                    sgj[j] = sg;
                     double c = m.JointCorrStatic(j, lev[j], sg);
                     if (c > m.MaxAbsJointDeg) c = m.MaxAbsJointDeg; if (c < -m.MaxAbsJointDeg) c = -m.MaxAbsJointDeg;
                     target[m.JointIDs[j]] = (float)c;
                 }
+                bool bFloorP = false; double dzP = 0; int[] fidP = null; float[] fqP = null;      // 1차 보정이 얹은 바닥 항 (예측 보정이 쓴다)
                 bool bFc = fc != null && fc.HasData && fc.Enabled;
                 if ((bFc || (m.HasGp ? m.Gp.Enabled : m.HasFloorMap)) && m.FloorMapEnabled && m.PosIDs != null && m.PosIDs.Length >= 3)
                 {
@@ -1791,13 +2052,34 @@ namespace OpenJigWare
                     else dz = m.FloorDzAt(r0);
                     double[] dq;
                     if (Math.Abs(dz) > 1e-3 && SagComp_FloorJointDeltaCopy(m.FuncNumber, ad, fid, fq, dz, out dq))
+                    {
+                        bFloorP = true; dzP = dz; fidP = fid; fqP = fq;
                         for (int k = 0; k < 3; k++)
                         {
+                            if (fid[k] < 0) continue;                                        // 꺾는 손목 없음 — 피치 두 관절로만
                             float t0; target.TryGetValue(fid[k], out t0);
                             target[fid[k]] = t0 + (float)Math.Max(-m.MaxAbsJointDeg, Math.Min(m.MaxAbsJointDeg, dq[k]));
                         }
+                    }
+                }
+                double tauP = SagComp_PredictTilt(m, ids, afIdeal, lev, m.JointIDs, ad, target);   // 손목 공구 기울기 (출력 단과 같은 식·같은 자르기)
+                // 예측 보정 (10-16) — 출력 단과 같다 (앞서 보내기 없음)
+                if (m.Predictive)
+                {
+                    float[] info;
+                    SagComp_PredRefine(m, ad, pose, sgj, null, bFloorP, dzP, fidP, fqP, tauP, target, out info);
                 }
                 return target;
+            }
+            // 손목 공구 기울기 보정 (10-15) — 출력 단과 같다: 손목 += −τ, MaxAbsJointDeg 로 자른 뒤 더한다. 관절값 사본 ad 로 (부작용 없음).
+            //   반환 = τ (deg, 항이 없으면 NaN — 예측 보정이 쓴다)
+            private double SagComp_PredictTilt(CSagComp m, int[] ids, float[] afIdeal, float[] lev, int[] jids, double[] ad, Dictionary<int, float> target)
+            {
+                if (m == null || !m.HasWristTilt) return double.NaN;
+                double tau = SagComp_TiltAt(m, ids, afIdeal, lev, jids, ad);
+                float t0; target.TryGetValue(m.WristID, out t0);
+                target[m.WristID] = t0 + (float)Math.Max(-m.MaxAbsJointDeg, Math.Min(m.MaxAbsJointDeg, -tau));
+                return tau;
             }
             // SagComp_FloorJointDelta 와 같은 풀이 — 관절값 사본으로 (3D 관절값을 바꾸지 않는다, 어느 스레드에서도 된다)
             private bool SagComp_FloorJointDeltaCopy(int nFunc, double[] adBase, int[] fid, float[] q, double dz, out double[] dq)
@@ -1820,6 +2102,183 @@ namespace OpenJigWare
                 return true;
             }
 
+            // ────────────────────────────────────────────────────────────
+            // 예측 보정 (10-16, CSagComp.Predictive) — 1차 보정을 처짐 쌍둥이 예측으로 다듬는다: 쌍둥이(보낸 명령) = 이상 자세
+            //   1차 보정은 이상 자세에서 잰 지레로 관절 처짐을 메우고, 바닥 dz 는 '이상 자세에서 끝을 dz 올리는 관절 변화', 공구 기울기는 −τ 다.
+            //   쌍둥이(SagTwin_Predict)는 관절 처짐을 보낸 명령의 지레로 내고, 엔코더 밖 처짐을 '이상 자세에서 끝을 dz 내리는 관절 변화' 와 τ 로 더한다 —
+            //   그래서 보정 켬에도 쌍둥이가 2차 잔차만큼 3D 에서 벗어났다 (10-16 격자 r120~260·요 0/±30·z 바닥+5~110: 끝 평균 0.78mm·공구 0.24°,
+            //   r260 z90 은 바닥 관절 변화가 MaxAbsJointDeg 에 잘려 7.1mm·2.7° — 공구 끝이 베이스 쪽).
+            //   여기서는 보낸 명령 q = 이상 + c 를 쌍둥이 식에 넣고 c ← 관절 보정(지레 = q) + 바닥 몫 −(끝을 dz 내리는 관절 변화) + 기울기 몫 −τ 를 되풀이한다
+            //   (고정점 — 지레는 자세에 천천히 바뀌어 한두 번이면 수렴). 자르기는 항마다 1차 보정과 같다 (MaxAbsJointDeg, 앞서 보내기는 MaxLeadDeg 로 잘린 값 그대로).
+            //   평가마다 예측 자세 (q + 관절 처짐 + 엔코더 밖 처짐 — 쌍둥이와 같은 식, 지연 항 없음) 를 끝까지 FK 해 이상 자세와 끝 거리·공구 축 각 차를 재고,
+            //   0.05mm·0.05° 안이면 멈춘다 (평가 최대 4번 — 1차 보정 평가 포함). 마지막 평가를 쓴다 (자르기가 걸린 자세도 잘린 고정점으로 이어진다 — 자세에 따라 매끈).
+            //   1차 보정 그대로: 1차가 이미 허용 안, 또는 다음 걸음이 수가 아니거나 관절 한계(CalcLimit) 밖이거나 1차 보정에서 MaxAbsJointDeg 넘게 벗어남(발산),
+            //   또는 마지막 평가가 1차보다 나쁨.
+            //   보정하지 않는 항은 넣지 않는다 — 바닥 보정이 꺼졌거나(flooron=0·옮기는 동안의 관절 모델) dz 를 얹지 못했으면 바닥 몫 없음. 지연(τ·ω)은 1차와 같다.
+            //   관절값 사본으로 계산한다 (3D 관절값을 바꾸지 않는다). 비용: 평가마다 지레(중력 항이 있는 관절만 — OMX FK 10번) + FK 2번, 바닥 몫 FK 4번, 기준 FK 2번 (10-16 측정: 대개 평가 2번, 출력 틱 0.38 → 0.77ms)
+            // ────────────────────────────────────────────────────────────
+            private const int SAG_PRED_MAX_EVAL = 4;                                         // 예측 평가 최대 횟수 (1차 보정 평가 포함 — 다듬는 걸음은 최대 3번)
+            private const double SAG_PRED_TOL_MM = 0.05, SAG_PRED_TOL_DEG = 0.05;           // 멈춤 허용 — 쌍둥이 끝 거리 (mm)·공구 축 각 차 (deg)
+            private float[] m_afSagLastPred = null;                                          // 직전 출력 틱의 예측 보정 진단 {다듬음, 평가 수, 끝 거리, 공구 각 차}
+            /// <summary>직전 출력 틱의 예측 보정 (10-16) — {다듬음 (1 = 예측 보정을 얹음, 0 = 1차 보정 그대로), 평가 수, 쓴 보정의 예측 끝 − 이상 끝 거리 (mm),
+            /// 예측 공구 축 − 이상 공구 축 각 (deg, 꺾는 손목 없음이면 NaN)}. 예측 보정을 쓰지 않았으면 (끔·관절 모델 없음) NaN 넷. 전환 무게 앞의 값. 진단용</summary>
+            public float[] SagComp_LastPredInfo { get { float[] v = m_afSagLastPred; return v == null ? new float[] { float.NaN, float.NaN, float.NaN, float.NaN } : (float[])v.Clone(); } }
+
+            // target = 1차 보정 (관절 ID → deg, 항마다 자른 뒤) — 다듬었으면 고쳐 쓰고 true, 아니면 그대로 false.
+            //   ad = 관절값 사본 (ids 에 이상 자세를 넣은 것 — 바꾸지 않는다), pose = 이상 자세 (m.JointIDs 순), sg = 이동 방향 σ (JointIDs 순),
+            //   lead = 앞서 보내기 (JointIDs 순, MaxLeadDeg 로 자른 값 — null = 없음), bFloor·dz·fid·fq = 1차 보정이 얹은 바닥 항 (이상 자세의 끝을 올린 양 dz,
+            //   관절 fid 와 그 이상 각 fq), tau = 손목 공구 기울기 τ (NaN = 항 없음). info = {다듬음 1/0, 평가 수, 끝 거리 mm, 공구 각 차 deg}
+            private bool SagComp_PredRefine(CSagComp m, double[] ad, float[] pose, float[] sg, double[] lead, bool bFloor, double dz, int[] fid, float[] fq,
+                                            double tau, Dictionary<int, float> target, out float[] info)
+            {
+                info = null;
+                if (m == null || !m.HasJoint || ad == null || pose == null || sg == null || target == null) return false;
+                int[] jids = m.JointIDs;
+                int nj = jids.Length;
+                if (pose.Length < nj || sg.Length < nj) return false;
+                double mx = m.MaxAbsJointDeg;
+                // 다룰 관절 — 관절 모델 + 바닥 항 관절 + 손목 (기울기)
+                var aids = new List<int>(jids);
+                if (bFloor && fid != null) foreach (int id in fid) if (id >= 0 && !aids.Contains(id)) aids.Add(id);
+                bool bTilt = !double.IsNaN(tau) && m.WristID >= 0;
+                if (bTilt && !aids.Contains(m.WristID)) aids.Add(m.WristID);
+                int na = aids.Count;
+                var ja = new int[nj];                                                       // JointIDs 칸 → aids 칸
+                for (int j = 0; j < nj; j++) ja[j] = aids.IndexOf(jids[j]);
+                var qi = new double[na];                                                    // 이상 자세 (aids 순)
+                for (int a = 0; a < na; a++) { int j = Array.IndexOf(jids, aids[a]); qi[a] = j >= 0 ? pose[j] : SagFc_Get(ad, aids[a]); }
+                // 쌍둥이의 엔코더 밖 항 X (이상 자세에서 — 보낸 명령과 무관) 와 보정의 그 몫 K = −X (항마다 자름)
+                var X = new double[na]; var K = new double[na];
+                if (bFloor)
+                {
+                    double[] dqm;
+                    if (fid == null || fq == null || !SagComp_FloorJointDeltaCopy(m.FuncNumber, ad, fid, fq, -dz, out dqm)) return false;   // 끝을 dz 내리는 관절 변화 (쌍둥이 ②) — 못 풀면 1차 그대로
+                    for (int k = 0; k < 3; k++)
+                    {
+                        if (fid[k] < 0) continue;                                            // 꺾는 손목 없음 — 피치 두 관절로만
+                        int a = aids.IndexOf(fid[k]);
+                        X[a] += dqm[k];
+                        K[a] += Math.Max(-mx, Math.Min(mx, -dqm[k]));
+                    }
+                }
+                if (bTilt)
+                {
+                    int a = aids.IndexOf(m.WristID);
+                    X[a] += tau;                                                              // 쌍둥이 ③
+                    K[a] += Math.Max(-mx, Math.Min(mx, -tau));
+                }
+                // 앞서 보내기 (켬일 때) — 쌍둥이의 지연 항이 메운다고 보고 예측 자세에서 뺀다 (1차 보정과 같은 짝)
+                var Ld = new double[na];
+                if (lead != null) for (int j = 0; j < nj && j < lead.Length; j++) Ld[ja[j]] = lead[j];
+                // 기준 — 이상 자세의 끝·공구 축 (손목 원점 → 끝)
+                bool bWrist = m.WristID >= 0;
+                double[] adI = (double[])ad.Clone();
+                for (int a = 0; a < na; a++) SagFc_Set(adI, aids[a], (float)qi[a]);
+                float tx0, ty0, tz0, wx0 = 0, wy0 = 0, wz0 = 0;
+                SagFc_Fk(m.FuncNumber, adI, -1, out tx0, out ty0, out tz0);
+                if (bWrist) SagFc_Fk(m.FuncNumber, adI, m.WristID, out wx0, out wy0, out wz0);
+                // 1차 보정에서 시작
+                var c0 = new double[na];
+                for (int a = 0; a < na; a++) { float v; if (target.TryGetValue(aids[a], out v)) c0[a] = v; }
+                double[] c = c0;
+                var need = new bool[nj];                                                    // 지레가 필요한 관절 — 중력 항이 있는 관절 (c ≠ 0). c = 0 이면 지레가 식에 들어가지 않는다
+                for (int j = 0; j < nj; j++) need[j] = m.Jc[j] != 0;
+                double score0 = double.NaN, score = double.NaN, dMm = double.NaN, dDeg = double.NaN;
+                int nEval = 0;
+                float[] lev;
+                for (int it = 0; ; it++)
+                {
+                    // 평가 — 보낸 명령 q = 이상 + c 의 지레 (쌍둥이 ①) → 예측 자세 = q + 관절 처짐 e + X → 끝·공구 축을 이상 자세와
+                    if (!SagComp_PredEval(m, ad, jids, ja, aids, pose, qi, sg, X, Ld, c, need, bWrist, tx0, ty0, tz0, wx0, wy0, wz0, out lev, out dMm, out dDeg)) { score = double.NaN; break; }
+                    nEval++;
+                    score = Math.Max(dMm / SAG_PRED_TOL_MM, bWrist ? dDeg / SAG_PRED_TOL_DEG : 0);
+                    if (it == 0) score0 = score;
+                    if (score <= 1.0 || it >= SAG_PRED_MAX_EVAL - 1) break;                   // 허용 안 (또는 마지막 평가)
+                    // 다음 c = 관절 보정 (지레 = q, 1차와 같은 자르기) + 바닥·기울기 몫 K
+                    var cn = (double[])K.Clone();
+                    for (int j = 0; j < nj; j++)
+                    {
+                        double cj = m.JointCorrStatic(j, lev[j], sg[j]);                     // = −(c·L(q)·(1+κ) − h·σ)
+                        if (lead != null && j < lead.Length) cj += lead[j];
+                        if (cj > mx) cj = mx; if (cj < -mx) cj = -mx;
+                        cn[ja[j]] += cj;
+                    }
+                    for (int a = 0; a < na; a++)
+                    {
+                        if (double.IsNaN(cn[a]) || double.IsInfinity(cn[a]) || Math.Abs(cn[a] - c0[a]) > mx) { score = double.NaN; break; }   // 수가 아님·1차에서 너무 멀다 (발산)
+                        float q = (float)(qi[a] + cn[a]);
+                        if (Math.Abs(CalcLimit(aids[a], q) - q) > 1e-4f) { score = double.NaN; break; }                                     // 관절 한계 밖
+                    }
+                    if (double.IsNaN(score)) break;
+                    c = cn;
+                }
+                // 쓴다: 마지막 평가 (1차 보정이 이미 허용 안이면 1차 그대로). 1차로 돌아감: 다음 걸음이 수가 아님·관절 한계 밖·발산, 또는 마지막 평가가 1차보다 나쁨
+                bool bUse = !ReferenceEquals(c, c0) && !double.IsNaN(score) && !double.IsNaN(score0) && score <= score0;
+                info = new float[] { bUse ? 1f : 0f, nEval, bUse ? (float)dMm : float.NaN, bUse ? (float)dDeg : float.NaN };
+                if (!bUse) return false;
+                for (int a = 0; a < na; a++) target[aids[a]] = (float)c[a];
+                return true;
+            }
+            // 예측 보정 평가 한 번 — c (aids 순 보정) 를 보낸 명령으로 쌍둥이 식의 예측 자세 (q + e + X − 앞서 보내기 Ld) 를 만들고 끝을 FK: 이상 끝(tx0..)과 거리 dMm,
+            //   공구 축 각 차 dDeg (손목 없음 NaN).
+            //   lev = 그 명령 자세의 지레 (JointIDs 순 — 다음 걸음의 관절 보정이 쓴다). 수가 아니면 false
+            private bool SagComp_PredEval(CSagComp m, double[] ad, int[] jids, int[] ja, List<int> aids, float[] pose, double[] qi, float[] sg, double[] X, double[] Ld, double[] c, bool[] need,
+                                          bool bWrist, float tx0, float ty0, float tz0, float wx0, float wy0, float wz0, out float[] lev, out double dMm, out double dDeg)
+            {
+                int nj = jids.Length, na = aids.Count;
+                dMm = dDeg = double.NaN;
+                var qj = new float[nj];
+                for (int j = 0; j < nj; j++) qj[j] = (float)(pose[j] + c[ja[j]]);
+                lev = SagComp_PredLevers(m.FuncNumber, jids, qj, ad, need);
+                var e = new double[na];
+                for (int j = 0; j < nj; j++) e[ja[j]] = (1.0 + m.FlexGain) * m.Jc[j] * lev[j] - m.Jh[j] * sg[j];
+                double[] adP = (double[])ad.Clone();
+                for (int a = 0; a < na; a++)
+                {
+                    double v = qi[a] + c[a] + e[a] + X[a] - Ld[a];
+                    if (double.IsNaN(v) || double.IsInfinity(v)) return false;
+                    SagFc_Set(adP, aids[a], (float)v);
+                }
+                float tx, ty, tz;
+                SagFc_Fk(m.FuncNumber, adP, -1, out tx, out ty, out tz);
+                dMm = Math.Sqrt((double)(tx - tx0) * (tx - tx0) + (double)(ty - ty0) * (ty - ty0) + (double)(tz - tz0) * (tz - tz0));
+                if (double.IsNaN(dMm) || double.IsInfinity(dMm)) return false;
+                if (bWrist)
+                {
+                    float wx, wy, wz;
+                    SagFc_Fk(m.FuncNumber, adP, m.WristID, out wx, out wy, out wz);
+                    dDeg = SagComp_PredAngle(tx0 - wx0, ty0 - wy0, tz0 - wz0, tx - wx, ty - wy, tz - wz);
+                    if (double.IsNaN(dDeg)) return false;
+                }
+                return true;
+            }
+            // SagFc_Levers 와 같은 값 — need[j] 인 관절만 계산하고 나머지는 0 (중력 항 c = 0 인 관절은 지레가 보정·예측에 들어가지 않는다 — 출력 틱 비용을 줄인다)
+            private float[] SagComp_PredLevers(int nFunc, int[] jids, float[] pose, double[] adBase, bool[] need)
+            {
+                const float D = 0.5f;
+                int nj = jids.Length;
+                float[] lev = new float[nj];
+                double[] ad = (double[])adBase.Clone();
+                for (int j = 0; j < nj; j++) SagFc_Set(ad, jids[j], pose[j]);
+                for (int j = 0; j < nj; j++)
+                {
+                    if (!need[j]) continue;
+                    SagFc_Set(ad, jids[j], pose[j] + D); double zp = SagFc_MeanZ(nFunc, ad, jids, j);
+                    SagFc_Set(ad, jids[j], pose[j] - D); double zm = SagFc_MeanZ(nFunc, ad, jids, j);
+                    SagFc_Set(ad, jids[j], pose[j]);
+                    lev[j] = (float)((zp - zm) / (2 * D));
+                }
+                return lev;
+            }
+            // 두 공구 축 벡터 사이 각 (deg) — atan2(|a×b|, a·b) (작은 각도 정확). 길이가 0 이면 NaN
+            private static double SagComp_PredAngle(double ax, double ay, double az, double bx, double by, double bz)
+            {
+                double cx = ay * bz - az * by, cy = az * bx - ax * bz, cz = ax * by - ay * bx;
+                double s = Math.Sqrt(cx * cx + cy * cy + cz * cz), d = ax * bx + ay * by + az * bz;
+                if (Math.Sqrt(ax * ax + ay * ay + az * az) < 1e-9 || Math.Sqrt(bx * bx + by * by + bz * bz) < 1e-9) return double.NaN;
+                return Math.Atan2(s, d) * 180.0 / Math.PI;
+            }
+
             // 출력 단 상태 사본 — 3D 만 작업(SagRun)이 시작 때 떠 두고 끝에 되돌린다 (그사이 작업이 건 모델 전환의 기준·시계까지 시작 때로),
             //   쌍둥이 그림자 출력 단(SagComp_JointOutShadow)은 틱마다 실물 상태를 떠 두고 그림자 사본을 바꿔 끼웠다가 되돌린다 (그림자가 실물 상태를 바꾸지 않게).
             //   방향·속도 추적, 직전 틱 보정, 전환 기준·시계, 손목 유지, 진단값(직전 틱 관절 보정·바닥 dz·첫닿음·GP 표준편차) 전부
@@ -1828,7 +2287,7 @@ namespace OpenJigWare
                 public Dictionary<int, float> Anchor, Sigma, Prev, VelDeg, Omega, Alpha, Applied, From;
                 public Dictionary<int, int> Dir, VelT;
                 public bool BlendRun; public double BlendMs; public int OutLastMs;
-                public float[] LastJoint; public float LastFloorDz; public float[] LastFc; public float LastGpStd;
+                public float[] LastJoint; public float LastFloorDz; public float[] LastFc; public float LastGpStd; public float[] LastPred;
                 public int WhID, WhLastOutMs; public float Wh, WhFadeFrom, WhLast; public bool WhFading, WhFadeTicked; public double WhFadeMs;
             }
             private object SagComp_SaveOutState()
@@ -1855,7 +2314,7 @@ namespace OpenJigWare
                 s.Applied = new Dictionary<int, float>(m_dicSagApplied); s.From = m_dicSagFrom == null ? null : new Dictionary<int, float>(m_dicSagFrom);
                 s.Dir = new Dictionary<int, int>(m_dicSagDir); s.VelT = new Dictionary<int, int>(m_dicSagVelT);
                 s.BlendRun = m_bSagBlendRun; s.BlendMs = m_dSagBlendMs; s.OutLastMs = m_nSagOutLastMs;
-                s.LastJoint = m_afSagLastJoint; s.LastFloorDz = m_fSagLastFloorDz; s.LastFc = m_afSagLastFc; s.LastGpStd = m_fSagLastGpStd;
+                s.LastJoint = m_afSagLastJoint; s.LastFloorDz = m_fSagLastFloorDz; s.LastFc = m_afSagLastFc; s.LastGpStd = m_fSagLastGpStd; s.LastPred = m_afSagLastPred;
                 lock (m_oWristHold)
                 {
                     s.WhID = m_nWristHoldID; s.Wh = m_fWristHold; s.WhFading = m_bWristHoldFading; s.WhFadeFrom = m_fWristHoldFadeFrom; s.WhFadeMs = m_dWristHoldFadeMs;
@@ -1873,7 +2332,7 @@ namespace OpenJigWare
                 m_dicSagDir.Clear(); if (s.Dir != null) foreach (KeyValuePair<int, int> kv in s.Dir) m_dicSagDir[kv.Key] = kv.Value;
                 m_dicSagVelT.Clear(); if (s.VelT != null) foreach (KeyValuePair<int, int> kv in s.VelT) m_dicSagVelT[kv.Key] = kv.Value;
                 m_bSagBlendRun = s.BlendRun; m_dSagBlendMs = s.BlendMs; m_nSagOutLastMs = s.OutLastMs;
-                m_afSagLastJoint = s.LastJoint; m_fSagLastFloorDz = s.LastFloorDz; m_afSagLastFc = s.LastFc; m_fSagLastGpStd = s.LastGpStd;
+                m_afSagLastJoint = s.LastJoint; m_fSagLastFloorDz = s.LastFloorDz; m_afSagLastFc = s.LastFc; m_fSagLastGpStd = s.LastGpStd; m_afSagLastPred = s.LastPred;
                 lock (m_oWristHold)
                 {
                     m_nWristHoldID = s.WhID; m_fWristHold = s.Wh; m_bWristHoldFading = s.WhFading; m_fWristHoldFadeFrom = s.WhFadeFrom; m_dWristHoldFadeMs = s.WhFadeMs;
@@ -1981,6 +2440,16 @@ namespace OpenJigWare
                 }
             }
 
+            // 공구 피치 오차 — 손목 공구 기울기 보정(10-15)이 걸려 있으면 기준 = 이상 합 − τ(이상 자세): 실측 합 − (이상 합 − τ).
+            //   손목 유지(측정 누름·자리 잡기)가 출력 단의 −τ 를 지우지 않게 — 실물 공구가 수직인 손목 자리가 유지의 목표다. 걸린 모델 = 출력 단의 지금 모델 (꺼져 있으면 τ 없음)
+            private double SagComp_PitchErrTilt(int[] ids, float[] q, float[] a)
+            {
+                double d = SagComp_PitchErr(q, a);
+                if (double.IsNaN(d)) return d;
+                CSagComp m = m_SagComp;
+                if (m == null || !m.Enabled || !m.HasWristTilt) return d;
+                return d + SagComp_TiltOf(m, ids, q);
+            }
             // 공구 피치 오차 (deg) = 실측 합 − 이상 합. q·a = PosIDs 3 + Wrist 순 — 피치 관절 = PosIDs[1]·PosIDs[2]·Wrist
             private static double SagComp_PitchErr(float[] q, float[] a)
             {
@@ -1988,23 +2457,24 @@ namespace OpenJigWare
                 return (a[1] + a[2] + a[3]) - (q[1] + q[2] + q[3]);
             }
 
-            // 관절 (12,13,14) 자세 q 에서의 TCP 수평 반경·높이 — 3D 관절값은 잠깐 바꿨다가 원복
+            // 관절 (12,13,14) 자세 q 에서의 TCP 수평 반경·높이 — 관절값 사본으로 (3D 관절값을 바꾸지 않는다).
+            //   10-15: 예전에는 3D 관절값을 잠깐 바꿨다 되돌려, 출력 틱·쌍둥이가 계산하는 사이 화면이 그 자세를 그려 검은 팔·쌍둥이가 떨렸다
             private void SagComp_TcpRZ(int nFunc, int[] fid, float[] q, out double r, out double z)
             {
-                float[] keep = new float[3];
-                for (int k = 0; k < 3; k++) keep[k] = GetData(fid[k]);
-                float x, y, zz;
-                try
-                {
-                    for (int k = 0; k < 3; k++) SetData(fid[k], q[k]);
-                    CalcF(nFunc, -1, false, out x, out y, out zz);
-                }
-                finally { for (int k = 0; k < 3; k++) SetData(fid[k], keep[k]); }
-                r = Math.Sqrt((double)x * x + (double)y * y); z = zz;
+                SagFc_TcpRZ(nFunc, SagFc_MotCopy(), fid, q, out r, out z);
+            }
+            // ids 에 q 를 넣은 관절값 사본의 TCP (수식 nFunc) — CalcF(nFunc, −1, false) 와 같은 값, 3D 관절값을 바꾸지 않는다 (엔코더 FK 등)
+            private void SagComp_FkCopy(int nFunc, int[] ids, float[] q, out float x, out float y, out float z)
+            {
+                double[] ad = SagFc_MotCopy();
+                for (int i = 0; i < ids.Length && i < q.Length; i++) SagFc_Set(ad, ids[i], q[i]);
+                SagFc_Fk(nFunc, ad, -1, out x, out y, out z);
             }
 
             /// <summary>끝을 dz(mm) 만큼 올리는 관절 (12,13,14) 변화 (deg) — 반경 방향 위치와 공구 피치(세 관절 합)는 그대로.
-            /// 피치를 지키는 두 방향 (+12,−14), (+13,−14) 의 수치 야코비안(±0.5°) 2×2 를 풀고 뉴턴 1회로 다듬는다 (CalcF 4회).</summary>
+            /// 피치를 지키는 두 방향 (+12,−14), (+13,−14) 의 수치 야코비안(±0.5°) 2×2 를 풀고 뉴턴 1회로 다듬는다 (CalcF 4회).
+            /// 꺾는 손목 없음 (fid[2] = −1, 10-13): 손목 칸은 3D 관절값에 쓰이지 않아 두 방향이 (+12), (+13) 이 된다 — 피치 두 관절의 2×2 야코비안으로
+            /// 반경을 지키며 끝을 올린다 (공구 기울기는 지키지 못한다). dq[2] 는 쓰는 쪽이 버린다</summary>
             public bool SagComp_FloorJointDelta(int nFunc, int[] fid, float[] q, double dz, out double[] dq)
             {
                 dq = null;
@@ -2028,32 +2498,29 @@ namespace OpenJigWare
 
             /// <summary>관절별 중력 지레 L_j = ∂z̄_j/∂θ_j (mm/deg). z̄_j = 관절 j 하류 질량점(뒤 관절 원점들 + TCP)의 평균 높이.
             /// 수치 미분(±0.5°) 이라 축 방향을 몰라도 되고 어떤 체인에도 쓴다. jids 는 체인 순서.
-            /// 3D 관절값은 잠깐 바꿨다가 원복한다.</summary>
+            /// 관절값 사본으로 계산한다 — 3D 관절값을 바꾸지 않는다 (10-15: 예전에는 잠깐 바꿨다 원복해 그사이 화면이 ±0.5° 자세를 그렸다).</summary>
             public float[] SagComp_JointLevers(int nFunc, int[] jids, float[] pose)
             {
                 int nj = jids.Length;
-                float[] keep = new float[nj], lev = new float[nj];
-                for (int j = 0; j < nj; j++) keep[j] = GetData(jids[j]);
+                float[] lev = new float[nj];
                 const float D = 0.5f;
-                try
+                double[] ad = SagFc_MotCopy();
+                for (int j = 0; j < nj; j++) SagFc_Set(ad, jids[j], pose[j]);
+                for (int j = 0; j < nj; j++)
                 {
-                    for (int j = 0; j < nj; j++) SetData(jids[j], pose[j]);
-                    for (int j = 0; j < nj; j++)
-                    {
-                        SetData(jids[j], pose[j] + D); double zp = SagComp_MeanZ(nFunc, jids, j);
-                        SetData(jids[j], pose[j] - D); double zm = SagComp_MeanZ(nFunc, jids, j);
-                        SetData(jids[j], pose[j]);
-                        lev[j] = (float)((zp - zm) / (2 * D));
-                    }
+                    SagFc_Set(ad, jids[j], pose[j] + D); double zp = SagComp_MeanZ(nFunc, ad, jids, j);
+                    SagFc_Set(ad, jids[j], pose[j] - D); double zm = SagComp_MeanZ(nFunc, ad, jids, j);
+                    SagFc_Set(ad, jids[j], pose[j]);
+                    lev[j] = (float)((zp - zm) / (2 * D));
                 }
-                finally { for (int j = 0; j < nj; j++) SetData(jids[j], keep[j]); }
                 return lev;
             }
-            private double SagComp_MeanZ(int nFunc, int[] jids, int j)
+            // 관절 j 하류 질량점 평균 높이 (관절값 사본 ad) — 예전 CalcF 판과 같은 값 (번호 −1 칸은 CalcF(−1) 처럼 TCP 로 센다)
+            private double SagComp_MeanZ(int nFunc, double[] ad, int[] jids, int j)
             {
                 double s = 0; int n = 0; float x, y, z;
-                for (int k = j + 1; k < jids.Length; k++) { CalcF(nFunc, jids[k], false, out x, out y, out z); s += z; n++; }   // 관절 k 원점
-                CalcF(nFunc, -1, false, out x, out y, out z); s += z; n++;                                                   // TCP
+                for (int k = j + 1; k < jids.Length; k++) { SagFc_Fk(nFunc, ad, jids[k], out x, out y, out z); s += z; n++; }   // 관절 k 원점
+                SagFc_Fk(nFunc, ad, -1, out x, out y, out z); s += z; n++;                                                   // TCP
                 return s / n;
             }
 
@@ -2063,18 +2530,12 @@ namespace OpenJigWare
                 dx = dy = dz = 0;
                 if (m == null || !m.HasJoint || cmd == null || dir == null || lev == null) return;
                 int nj = m.JointIDs.Length;
-                float[] keep = new float[nj];
-                for (int j = 0; j < nj; j++) keep[j] = GetData(m.JointIDs[j]);
-                try
-                {
-                    float x0, y0, z0, x1, y1, z1;
-                    for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], cmd[j]);
-                    CalcF(m.FuncNumber, -1, false, out x0, out y0, out z0);
-                    for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], (float)(cmd[j] + m.PredictJointErr(j, lev[j], dir[j])));
-                    CalcF(m.FuncNumber, -1, false, out x1, out y1, out z1);
-                    dx = x1 - x0; dy = y1 - y0; dz = z1 - z0;
-                }
-                finally { for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], keep[j]); }
+                float x0, y0, z0, x1, y1, z1;
+                float[] q1 = new float[nj];
+                for (int j = 0; j < nj; j++) q1[j] = (float)(cmd[j] + m.PredictJointErr(j, lev[j], dir[j]));
+                SagComp_FkCopy(m.FuncNumber, m.JointIDs, cmd, out x0, out y0, out z0);          // 관절값 사본 — 3D 관절값을 바꾸지 않는다
+                SagComp_FkCopy(m.FuncNumber, m.JointIDs, q1, out x1, out y1, out z1);
+                dx = x1 - x0; dy = y1 - y0; dz = z1 - z0;
             }
 
             /// <summary>관절 지연 학습 + TCP 기준 평가. 관절 속도가 기록되지 않은 옛 주행 표본은 같은 경로(연속·같은 방향)의
@@ -2142,15 +2603,7 @@ namespace OpenJigWare
 
             private void SagComp_FkPose(CSagComp m, float[] pose, out float x, out float y, out float z)
             {
-                int nj = m.JointIDs.Length;
-                float[] keep = new float[nj];
-                for (int j = 0; j < nj; j++) keep[j] = GetData(m.JointIDs[j]);
-                try
-                {
-                    for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], pose[j]);
-                    CalcF(m.FuncNumber, -1, false, out x, out y, out z);
-                }
-                finally { for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], keep[j]); }
+                SagComp_FkCopy(m.FuncNumber, m.JointIDs, pose, out x, out y, out z);           // 관절값 사본 — 3D 관절값을 바꾸지 않는다
             }
 
             /// <summary>측정 중 바닥 접촉 의심 표본을 자동으로 학습에서 뺀다 (기본 켬).</summary>
@@ -2207,8 +2660,8 @@ namespace OpenJigWare
             public string SagComp_FitJoint(CSagComp m, float[] afStartPose, bool bRefeature)
             {
                 if (m == null) return "모델 없음";
-                int nj = m.PosIDs.Length + 1;
-                int[] jids = new int[nj]; Array.Copy(m.PosIDs, jids, m.PosIDs.Length); jids[nj - 1] = m.WristID;
+                int nj = m.PosIDs.Length + (m.WristID >= 0 ? 1 : 0);                   // 꺾는 손목 없음이면 위치 관절만 (10-13)
+                int[] jids = new int[nj]; Array.Copy(m.PosIDs, jids, m.PosIDs.Length); if (m.WristID >= 0) jids[nj - 1] = m.WristID;
                 m.JointIDs = jids;
                 if (bRefeature)
                 {
@@ -2406,12 +2859,15 @@ namespace OpenJigWare
                 {
                     Robot = cfg.Robot, FuncNumber = cfg.FuncNumber, PosIDs = (int[])cfg.PosIDs.Clone(),
                     WristID = cfg.WristID, PitchDeg = cfg.RyDeg, MaxAbsDelta = cfg.MaxAbsDelta,
-                    DownSumDeg = float.IsNaN(cfg.DownSumDeg) ? (float)Math.Round(chkDef.DownSumMeasDeg, 3) : cfg.DownSumDeg, KinSig = chkDef.KinSig
+                    DownSumDeg = float.IsNaN(cfg.DownSumDeg) ? (float)Math.Round(chkDef.DownSumMeasDeg, 3) : cfg.DownSumDeg, KinSig = chkDef.KinSig,
+                    MaxAbsJointDeg = CSagComp.LEARN_MAX_JOINT_DEG                    // 관절 보정 상한 12° (10-16)
                 };
                 CSagComp prev = m_SagComp;
                 // 바닥 보정표는 이어받는다 — FK 기준 표는 엔코더 밖 오차(14번 브래킷 처짐)라 관절 모델을 다시 학습해도 그대로 유효 (09-29)
                 if (model.CopyFloorMapFrom(prev) && log != null)
                     log(SagComp_InheritText(model));
+                if (model.CopyWristTiltFrom(prev) && model.HasWristTilt && log != null)       // 손목 공구 기울기 보정도 기계 성질 — 이어받는다 (10-15)
+                    log("손목 공구 기울기 보정 이어받음 — " + model.WristTiltText());
                 else if (prev != null && prev.HasFloorMap && prev.FloorFromCmd && log != null)
                     log("바닥 보정표(명령 높이 기준)는 관절 모델에 묶여 있어 이어받지 않음 — 다시 재야 한다");
                 SagComp_Switch(null);                               // 측정 중엔 보상 끔 — 원시 처짐을 재야 한다 (1초에 걸쳐 빠진다)
@@ -2540,8 +2996,6 @@ namespace OpenJigWare
 
                                 // 표본 짝짓기: 읽은 시각의 명령점·v·a 를 추적 버퍼에서 보간, 실측은 FK
                                 int nAdded = 0; double se = 0;
-                                float[] keep = new float[ids.Length];
-                                for (int i = 0; i < ids.Length; i++) keep[i] = GetData(ids[i]);
                                 for (int q = 0; q < reads.Count; q++)
                                 {
                                     var kv = reads[q];
@@ -2549,8 +3003,7 @@ namespace OpenJigWare
                                     if (!SagComp_TraceAt(kv.Key, out tx, out ty, out tz, out vr, out vz, out ar, out az)) continue;
                                     float[] lev = SagComp_JointLevers(cfg.FuncNumber, ids, cmds[q]);
                                     float ax, ay, azz;
-                                    for (int i = 0; i < ids.Length; i++) SetData(ids[i], kv.Value[i]);
-                                    CalcF(cfg.FuncNumber, -1, false, out ax, out ay, out azz);
+                                    SagComp_FkCopy(cfg.FuncNumber, ids, kv.Value, out ax, out ay, out azz);   // 엔코더 FK — 관절값 사본
                                     var s = new CSagSample
                                     {
                                         CmdX = tx, CmdY = ty, CmdZ = tz, ActX = ax, ActY = ay, ActZ = azz,
@@ -2562,7 +3015,6 @@ namespace OpenJigWare
                                     SagComp_DiagRow("raw", z, ms, dir == 0 ? +1 : -1, kv.Key - t0, (double)(kv.Key - t0) / ms,
                                         tx, ty, tz, ax, ay, azz, ids, cmds[q], kv.Value, null, dirs[q], vels[q]);
                                 }
-                                for (int i = 0; i < ids.Length; i++) SetData(ids[i], keep[i]);
                                 string row = string.Format(CultureInfo.InvariantCulture,
                                     "  주행 z={0:F0} {1}ms {2}: 표본 {3}개, 원시 Δz RMSE {4:F2}mm (최고속 {5:F0}mm/s)",
                                     z, ms, dir == 0 ? "→멀리" : "←가까이", nAdded, nAdded > 0 ? Math.Sqrt(se / nAdded) : 0,
@@ -2707,8 +3159,6 @@ namespace OpenJigWare
                                 try { bOk = PlayXyzPath(ms, cfg.SettleMs, cfg.FuncNumber, new float[] { xB, yB, z }, cfg.RxDeg, cfg.RyDeg, cfg.RzDeg, cfg.WristID, cfg.PosIDs); }
                                 finally { m_bSagTraceOn = false; MoveJoints_SetMotionSink(scene.SendPose); }
                                 if (!bOk) continue;
-                                float[] keep = new float[ids.Length];
-                                for (int i = 0; i < ids.Length; i++) keep[i] = GetData(ids[i]);
                                 double se = 0; int n = 0; double worst = 0;
                                 for (int q = 0; q < reads.Count; q++)
                                 {
@@ -2716,13 +3166,11 @@ namespace OpenJigWare
                                     float tx, ty, tz, vr, vz, ar, az;
                                     if (!SagComp_TraceAt(kv.Key, out tx, out ty, out tz, out vr, out vz, out ar, out az)) continue;
                                     float ax, ay, azz;
-                                    for (int i = 0; i < ids.Length; i++) SetData(ids[i], kv.Value[i]);
-                                    CalcF(cfg.FuncNumber, -1, false, out ax, out ay, out azz);
+                                    SagComp_FkCopy(cfg.FuncNumber, ids, kv.Value, out ax, out ay, out azz);   // 엔코더 FK — 관절값 사본
                                     double dz = azz - tz; se += dz * dz; n++; worst = Math.Max(worst, Math.Abs(dz));
                                     SagComp_DiagRow("verify", z, ms, dir == 0 ? +1 : -1, kv.Key - t0, (double)(kv.Key - t0) / ms,
                                         tx, ty, tz, ax, ay, azz, ids, cmds[q], kv.Value, corrs[q], dirs[q], vels[q]);
                                 }
-                                for (int i = 0; i < ids.Length; i++) SetData(ids[i], keep[i]);
                                 seAll += se; nAll += n;
                                 string row = string.Format(CultureInfo.InvariantCulture,
                                     "  z={0:F0} {1}ms {2}: 표본 {3}개, 보상 후 Δz RMSE {4:F2}mm (최대 {5:F2})",
@@ -3074,7 +3522,8 @@ namespace OpenJigWare
                 public int FuncNumber = 0;
                 public int[] PosIDs = new int[] { 11, 12, 13 };
                 public int WristID = 14;
-                public float DownSumDeg = 90f;         // 로봇 정의의 수직 관절 합 (Ry 90 의 관절 합 — 작업이 누를 때마다 정의에서 채운다, 입구 정의 확인 SagDef_Check)
+                public float DownSumDeg = 90f;         // 로봇 정의의 수직 관절 합 (Ry 90 의 관절 합 — 작업이 누를 때마다 정의에서 채운다, 입구 정의 확인 SagDef_Check).
+                                                       //   NaN = 자동 — 누름 입구가 3D FK 로 잰 값을 여기 채운다 (10-13, SagDef_Eff)
                 public float RxDeg = 0, RyDeg = 90, RzDeg = 0;
                 public float[] Radii = new float[] { 120, 155, 190, 225, 260 };
                 public float YawDeg = 0;
@@ -3311,15 +3760,9 @@ namespace OpenJigWare
                                     if (b == null) return;
                                     float cx, cy, cz, fx, fy, fz;
                                     CalcF(cfg.FuncNumber, -1, false, out cx, out cy, out cz);                  // 이상(명령) TCP
-                                    float[] keep = new float[ids.Length], act = new float[ids.Length];
-                                    for (int i = 0; i < ids.Length; i++)
-                                    {
-                                        keep[i] = GetData(ids[i]);
-                                        act[i] = scene.RawToSim(map[i], b[map[i]][7]);                      // 틱 → 3D 각 (장면의 모터 세팅 — 없으면 예전 식)
-                                        SetData(ids[i], act[i]);
-                                    }
-                                    CalcF(cfg.FuncNumber, -1, false, out fx, out fy, out fz);                  // 엔코더 FK TCP
-                                    for (int i = 0; i < ids.Length; i++) SetData(ids[i], keep[i]);
+                                    float[] act = new float[ids.Length];
+                                    for (int i = 0; i < ids.Length; i++) act[i] = scene.RawToSim(map[i], b[map[i]][7]);   // 틱 → 3D 각 (장면의 모터 세팅 — 없으면 예전 식)
+                                    SagComp_FkCopy(cfg.FuncNumber, ids, act, out fx, out fy, out fz);          // 엔코더 FK TCP — 관절값 사본 (3D 는 명령 자세 그대로)
                                     float load12 = b[map[1]][5] * 0.1f, pwm12 = b[map[1]][4] * 0.113f;
                                     float load13 = b[map[2]][5] * 0.1f, pwm13 = b[map[2]][4] * 0.113f;
                                     nTick++; nTickAll++;
@@ -3359,9 +3802,8 @@ namespace OpenJigWare
                                 float hx, hy, hcz, hfz;
                                 CalcF(cfg.FuncNumber, -1, false, out hx, out hy, out hcz);                     // 멈춘 명령(이상) 높이
                                 float[] keep2 = new float[ids.Length], act2 = new float[ids.Length];
-                                for (int i = 0; i < ids.Length; i++) { keep2[i] = GetData(ids[i]); act2[i] = hold.ContainsKey(ids[i]) ? hold[ids[i]] : keep2[i]; SetData(ids[i], act2[i]); }
-                                CalcF(cfg.FuncNumber, -1, false, out hx, out hy, out hfz);
-                                for (int i = 0; i < ids.Length; i++) SetData(ids[i], keep2[i]);
+                                for (int i = 0; i < ids.Length; i++) { keep2[i] = GetData(ids[i]); act2[i] = hold.ContainsKey(ids[i]) ? hold[ids[i]] : keep2[i]; }
+                                SagComp_FkCopy(cfg.FuncNumber, ids, act2, out hx, out hy, out hfz);           // 관절값 사본
                                 double eh = hcz - hfz;
                                 double lagHold = (czStart - hcz) - (fzStart - hfz);
                                 bool bContact = !double.IsNaN(baseE) ? (baseE - eh) >= cfg.DetectMm * 0.7 : lagHold >= Math.Min(cfg.SafetyMm * 0.7, lagAtCand * 0.7);
@@ -3434,10 +3876,10 @@ namespace OpenJigWare
                 var sb = new StringBuilder();
                 double a0 = cfg.YawDeg * Math.PI / 180.0;
                 float lastCmd = float.NaN;   // 직전 접촉의 명령 높이 — 창은 명령 기준 (FK 는 자세에 따라 명령과 10mm 가까이 다를 수 있다, 09-28 r=260)
-                bool bHold = cfg.WristHold;   // 손목 수직 유지 (측정 동안만)
+                bool bHold = cfg.WristHold && cfg.WristID >= 0;   // 손목 수직 유지 (측정 동안만 — 꺾는 손목 없는 팔은 없다, 10-13)
                 try
                 {
-                    if (Array.IndexOf(map, -1) >= 0) { report = "장면에 없는 관절 ID"; return res; }
+                    if (SagComp_MapMissing(ids, map)) { report = "장면에 없는 관절 ID"; return res; }   // 손목 없음(−1) 칸은 관절이 아니다
                     string whyG0;
                     if (SagComp_PressGuardWhy(scene, out whyG0)) { report = whyG0 + " — 걸린 채라 누르지 않음"; if (log != null) log("★" + report); return res; }   // 작업이 걸림을 보고 멈춰야 한다
                     if (log != null) log(string.Format(ci, "바닥 접촉(누르고 들어 올리기): 반경 {0}, 반경마다 {1}회, 하강 {2:F1} mm/s, 누름 판정 벌어짐 {3:F1}mm + 부하 {4:F0}%",
@@ -3524,6 +3966,7 @@ namespace OpenJigWare
                                 for (int i = 0; i < ids.Length; i++)
                                 {
                                     q[i] = SagFc_Get(adQ, ids[i]);
+                                    if (map[i] < 0) { a[i] = q[i]; g[i] = q[i]; continue; }        // 꺾는 손목 없음 — 손목 칸 (늘 0, 10-13)
                                     a[i] = scene.RawToSim(map[i], b[map[i]][7]); g[i] = scene.RawToSim(map[i], b[map[i]][1]);   // 틱 → 3D 각은 장면의 모터 세팅으로
                                     SagFc_Set(adA, ids[i], a[i]);
                                 }
@@ -3536,7 +3979,7 @@ namespace OpenJigWare
                             };
 
                             // ── ① 누르러 내려가기 ──
-                            CSagFtLive ftLive = cfg.StopAtFirstTouch ? new CSagFtLive() : null;      // 첫닿음에서 멈춤 (켰을 때만)
+                            CSagFtLive ftLive = cfg.StopAtFirstTouch ? new CSagFtLive { NoWrist = cfg.WristID < 0 } : null;      // 첫닿음에서 멈춤 (켰을 때만 — 손목 없음은 팔꿈치 잔차·보조 판정)
                             string ftWhy = null;
                             int nTick = 0; bool bPressed = false, bSafety = false, bArmed = false;
                             float czStart = float.NaN, fzStart = float.NaN, lagArm = 0, base12 = 0, base13 = 0, start12 = 0, start13 = 0;
@@ -3559,7 +4002,7 @@ namespace OpenJigWare
                                 float lag = (czStart - zz[0]) - (fzStart - zz[1]);
                                 float dl = bArmed ? Math.Max(Math.Abs(zz[2] - base12), Math.Abs(zz[3] - base13))
                                                   : Math.Max(Math.Abs(zz[2] - start12), Math.Abs(zz[3] - start13));
-                                double dP = SagComp_PitchErr(q, a);
+                                double dP = SagComp_PitchErrTilt(ids, q, a);                                 // 기준 = 이상 합 − τ (손목 공구 기울기 보정, 10-15)
                                 SagComp_FloorTraceRow(rr, 1, nTick, bArmed, czRaw, zz[1], zz[0] - zz[1], dl, lag, zz[2], zz[4], zz[3], zz[5], x, y, cfg.RyDeg, q, a,
                                                       bHold ? SagComp_WristHoldNow : float.NaN, dP, g, fd);
                                 // 무장 뒤 닿으면(벌어짐) 공중 구간 끝 — 손목 유지는 고정, 그 전에는 따라간다. 피치 오차가 한도를 넘으면 무장과 무관하게 고정(이상 상황)
@@ -3596,7 +4039,7 @@ namespace OpenJigWare
                                 }
                                 // 꺾임 맞춤 표본은 무장 뒤부터 — 출발 정지 마찰(FK 가 늦게 출발)이 위쪽에 거꾸로 된 꺾임을 만든다
                                 if (bArmed) { dX.Add(zz[0]); dY.Add(zz[1]); dDp.Add(dP); dRaw.Add(czRaw); }
-                                if (!bStop && ftLive != null && ftLive.Add(zz[0], zz[1], zz[2], (q.Length > 3 && a.Length > 3) ? a[3] - q[3] : float.NaN))
+                                if (!bStop && ftLive != null && ftLive.Add(zz[0], zz[1], zz[2], CSagFtLive.Residual(q, a, ftLive.NoWrist)))
                                 { bStop = true; ftWhy = ftLive.Why; }                                   // 첫닿음 — 이 틱에 멈춘다 (얕게)
                                 if (bStop)
                                 {
@@ -3632,7 +4075,7 @@ namespace OpenJigWare
                                     if (nUp <= cfg.StaleTicks) return;
                                     uX.Add(zz[0]); uY.Add(zz[1]); uRaw.Add(czRawU);
                                     SagComp_FloorTraceRow(rr, 3, nUp, true, czRawU, zz[1], zz[0] - zz[1], 0, 0, zz[2], zz[4], zz[3], zz[5], x, y, cfg.RyDeg, q, a,
-                                                          bHold ? SagComp_WristHoldNow : float.NaN, SagComp_PitchErr(q, a), g, fdU);
+                                                          bHold ? SagComp_WristHoldNow : float.NaN, SagComp_PitchErrTilt(ids, q, a), g, fdU);
                                 };
                                 MoveJoints_SetMotionSink(sinkUp);
                                 int msUp = (int)Math.Max(300, cfg.LiftMm / Math.Max(0.5f, cfg.LiftMmPerSec) * 1000f);
@@ -3681,6 +4124,7 @@ namespace OpenJigWare
                                 c.UserStop = bUserStop;
                                 if (ftWhy != null) { c.LiveTouch = true; c.LiveWhy = ftWhy; }
                                 if (bUserStop) c.Note = c.FitOk ? "하강 중 중단 요청 — 그때까지의 꺾임 맞춤으로 접촉" : "하강 중 중단 요청 — 꺾임 없음";
+                                else if (!bPressed && whyTrip.Length > 0) c.Note = "하강 중 멈춤";   // 막이가 걸려 끊긴 하강 — 한도까지 가지 않았다 (까닭은 아래에 붙는다)
                                 else if (!bPressed) c.Note = c.FitOk ? "누름 판정 없이 한도 도달 — 꺾임 맞춤으로 접촉" : "한도까지 내려가도 누름·꺾임 없음";
                                 else if (!c.FitOk) c.Note = "꺾임 맞춤이 물리적으로 맞지 않음 — 제외";
                                 if (bSafety) c.Note += (c.Note.Length > 0 ? ", " : "") + "안전 정지(" + why + ")";
@@ -3767,7 +4211,7 @@ namespace OpenJigWare
                 }
                 var c = new CSagArmCfg { FuncNumber = cfg.FuncNumber, PosIDs = cfg.PosIDs == null ? null : (int[])cfg.PosIDs.Clone(), WristID = cfg.WristID, HoldIDs = new int[0], DownSumDeg = cfg.DownSumDeg };
                 if (!c.IdsOk) { why = "관절 ID 가 맞지 않음 (위치 3개 + 손목)"; return 1; }
-                int[] ids = c.MoveIDs;
+                int[] ids = c.QIDs;                                               // 4칸 (손목 없음이면 넷째 −1 — 그 칸은 늘 0, 보내지 않는다)
                 double[] ad = SagFc_MotCopy();
                 float[] qA = new float[4];
                 for (int k = 0; k < 4; k++) qA[k] = SagFc_Get(ad, ids[k]);
@@ -3775,7 +4219,8 @@ namespace OpenJigWare
                 SagFc_Fk(c.FuncNumber, ad, -1, out xa, out ya, out za);
                 float sumA = qA[1] + qA[2] + qA[3], sumB = SagArm_SumFor(c, cfg.RyDeg), bend;
                 float[] qB = SagArm_IkSum(this, c, ad, x, y, z, sumB, out bend);
-                if (qB == null) { why = string.Format(ci, "IK 로 못 감 ({0:F1}, {1:F1}, {2:F1}) 관절 합 {3:0.#}", x, y, z, sumB); return 1; }
+                if (qB == null) { why = c.NoWrist ? string.Format(ci, "IK 로 못 감 ({0:F1}, {1:F1}, {2:F1}) 위치만 (손목 없음)", x, y, z)
+                                                  : string.Format(ci, "IK 로 못 감 ({0:F1}, {1:F1}, {2:F1}) 관절 합 {3:0.#}", x, y, z, sumB); return 1; }
                 float[] pA = { xa, ya, za }, pB = { x, y, z };
                 double rA = Math.Sqrt((double)xa * xa + (double)ya * ya), rB = Math.Sqrt((double)x * x + (double)y * y);
                 float rLo = (float)Math.Min(rA, rB) - SAGARM_BAND_MM, rHi = (float)Math.Max(rA, rB) + SAGARM_BAND_MM;
@@ -3826,10 +4271,23 @@ namespace OpenJigWare
                 catch { }
                 return false;
             }
+            // 장면에 없는 관절이 있나 — map[i] < 0 인 관절 (손목 없음 −1 칸은 관절이 아니라 빼고 본다, 10-13)
+            private static bool SagComp_MapMissing(int[] ids, int[] map)
+            {
+                for (int i = 0; i < ids.Length && i < map.Length; i++) if (ids[i] >= 0 && map[i] < 0) return true;
+                return false;
+            }
+            // Play 값 (ID, 각 …) — 손목 없음(−1) 칸은 보내지 않는다. 손목 로봇은 예전 8칸 그대로
+            private static float[] SagComp_PlayVals(int[] ids, float[] q)
+            {
+                var v = new List<float>();
+                for (int k = 0; k < ids.Length && k < q.Length; k++) { if (ids[k] < 0) continue; v.Add(ids[k]); v.Add(q[k]); }
+                return v.ToArray();
+            }
             // 관절 보간 (위치 3개 + 손목) — Play (블로킹)
             private void SagComp_PlayQ4(int[] ids, float[] q, int nMs, int nDelay)
             {
-                Play(nMs, nDelay, new float[] { ids[0], q[0], ids[1], q[1], ids[2], q[2], ids[3], q[3] });
+                Play(nMs, nDelay, SagComp_PlayVals(ids, q));
             }
 
             /// <summary>시작점에서 손목 수직 자리 잡기 (멈춘 채) — 재고(정착 확인 읽기) → 14번 고치고 → WristSettleWaitMs 기다려 다시 재기.
@@ -3845,7 +4303,7 @@ namespace OpenJigWare
                     if (d == null) return double.NaN;
                     float[] q = new float[ids.Length], a = new float[ids.Length];
                     for (int i = 0; i < ids.Length; i++) { q[i] = GetData(ids[i]); float v; a[i] = d.TryGetValue(ids[i], out v) ? v : float.NaN; }
-                    return SagComp_PitchErr(q, a);
+                    return SagComp_PitchErrTilt(ids, q, a);
                 };
                 SagComp_WristSettleCore(read, delegate() { scene.SendPose(100); }, delegate() { return stop != null && stop(); }, cfg, out dp0, out dpEnd, out nFix);
             }
@@ -4103,23 +4561,18 @@ namespace OpenJigWare
                 if (m == null || !m.HasJoint || q == null) return 0;
                 int nj = m.JointIDs.Length;
                 float[] lev = SagComp_JointLevers(m.FuncNumber, m.JointIDs, q);
-                float[] keep = new float[nj];
-                for (int j = 0; j < nj; j++) keep[j] = GetData(m.JointIDs[j]);
                 double A = 0;
-                try
+                double[] ad = SagFc_MotCopy();                                                   // 관절값 사본 — 3D 관절값을 바꾸지 않는다
+                for (int j = 0; j < nj; j++) SagFc_Set(ad, m.JointIDs[j], q[j]);
+                for (int j = 0; j < nj; j++)
                 {
-                    for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], q[j]);
-                    for (int j = 0; j < nj; j++)
-                    {
-                        if (m.Jc[j] == 0) continue;
-                        float x, y, zp, zm;
-                        SetData(m.JointIDs[j], q[j] + 0.5f); CalcF(m.FuncNumber, -1, false, out x, out y, out zp);
-                        SetData(m.JointIDs[j], q[j] - 0.5f); CalcF(m.FuncNumber, -1, false, out x, out y, out zm);
-                        SetData(m.JointIDs[j], q[j]);
-                        A += -((zp - zm) / 1.0) * m.Jc[j] * lev[j];
-                    }
+                    if (m.Jc[j] == 0) continue;
+                    float x, y, zp, zm;
+                    SagFc_Set(ad, m.JointIDs[j], q[j] + 0.5f); SagFc_Fk(m.FuncNumber, ad, -1, out x, out y, out zp);
+                    SagFc_Set(ad, m.JointIDs[j], q[j] - 0.5f); SagFc_Fk(m.FuncNumber, ad, -1, out x, out y, out zm);
+                    SagFc_Set(ad, m.JointIDs[j], q[j]);
+                    A += -((zp - zm) / 1.0) * m.Jc[j] * lev[j];
                 }
-                finally { for (int j = 0; j < nj; j++) SetData(m.JointIDs[j], keep[j]); }
                 return A;
             }
 
@@ -4222,9 +4675,7 @@ namespace OpenJigWare
                 float[] a = new float[ids.Length];
                 for (int i = 0; i < ids.Length; i++) { if (!act.ContainsKey(ids[i])) { why = "ID " + ids[i] + " 없음"; return false; } a[i] = act[ids[i]]; }
                 float ax, ay, az;
-                for (int i = 0; i < ids.Length; i++) SetData(ids[i], a[i]);
-                CalcF(cfg.FuncNumber, -1, false, out ax, out ay, out az);
-                for (int i = 0; i < ids.Length; i++) SetData(ids[i], cmd[i]);
+                SagComp_FkCopy(cfg.FuncNumber, ids, a, out ax, out ay, out az);                 // 엔코더 FK — 관절값 사본 (3D 는 명령 자세 그대로)
                 sample = new CSagSample
                 {
                     CmdX = x, CmdY = y, CmdZ = z, ActX = ax, ActY = ay, ActZ = az,

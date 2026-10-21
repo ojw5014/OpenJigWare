@@ -5,8 +5,10 @@
 //   공구 끝(TCP) = IK 수식 func 체인의 끝 — 첫 '!' 바로 앞 DH 줄 ('!' 가 없으면 체인 마지막 DH 줄, Init=1 로 다시 시작하면 마지막 체인).
 //     OMX follower 의 공구 끝은 손목 14 원점에서 공구 쪽 103.2mm (60mm 는 손목 롤 15 에서 잰 값).
 //   꺾는 손목 = 공구를 바닥으로 수직으로 꺾는 관절 (공구 끝 앞 마지막 관절). 공구축 = 손목 원점 → 공구 끝.
-//   바닥으로 수직 = 공구축이 3D 의 −Z — 계산은 관절 합 posids[1] + posids[2] + wrist = downsum (OMX 90, 미리 정해 두는 값).
-//     3D 에서 잰 값과 0.5° 넘게 다르면 저장도 작업도 하지 않는다.
+//   바닥으로 수직 = 공구축이 3D 의 −Z — 계산은 관절 합 posids[1] + posids[2] + wrist = downsum (OMX 90).
+//     10-13: downsum 은 자동이 기본 — sagarm.txt 에 키가 없거나 downsum=auto 면 3D FK 로 잰다 (SagDef_Eff — 작업·계획 입구가 정해 쓴다, OMX 는 90 그대로).
+//     숫자가 있으면 직접 정함 (예전 파일 그대로) — 3D 에서 잰 값과 0.5° 넘게 다르면 저장도 작업도 하지 않는다 (V7). 못 재면 작업은 까닭과 함께 거절.
+//     정의 서명(SagDef_Sig)은 정해진 값으로 적는다 — 자동이든 직접 정함 90 이든 OMX 는 "d90" (실습·눈 확인 기록이 그대로 맞다).
 //   고정 규약: 아래 = 3D 의 −Z · 바닥은 3D 의 XY 평면과 평행 (높이는 바닥 찾기가 잰다) · 로봇 베이스는 수평 · 펜은 손목 원점 → 공구 끝 직선 위
 //     · 공구 피치 Ry 90 = 이 정의의 수직 (Ry < 90 이면 관절 합 = downsum + (90 − Ry)).
 //   정의 확인 SagDef_Check (V0~V9) — 계획 기구학 묶음(지금 3D 의 수식 글로 만든 C3d, COjw_12_3D_SagRun.cs)에서 관절 한계 없이 관절값 사본에 직접 써서
@@ -69,6 +71,8 @@ namespace OpenJigWare
                              LateralDeg = float.NaN, PenOffDeg = float.NaN, IkTiltDeg = float.NaN, KinDiffMm = float.NaN;
                 public int[] ChainIDs = new int[0], Formulas = new int[0];               // 공구 끝 체인의 관절 (처음 나온 차례), 3D 에서 글이 있는 수식 슬롯
                 public string TcpLine = "", KinSig = ""; public bool BuiltIn; public int Gen;
+                public bool NoWrist;                                                     // 꺾는 손목 없는 정의 (10-13) — V4·V7 해당 없음, V3 체인 = 베이스→피치→피치, V5 = 팔꿈치 원점 → 공구 끝
+                public float ToolSumDeg = float.NaN;                                     // 손목 없음: 팔꿈치 원점 → 공구 끝이 −Z 인 관절 합 피치1 + 피치2 (공구 기울기 = 관절 합 − 이 값)
                 public string Summary = "";   // 쉬운 말: "공구 끝 = 수식 0 끝 · 꺾는 손목 = 14번 · 바닥으로 수직 = 3D 와 맞음"
                 public string Detail = "";    // 숫자: 공구 끝 줄 글, 손목→끝 거리, 잰 수직 합(흩어짐), 펜, 시험 IK, 기구학 표시
                 /// <summary>사본 (Items 는 새 목록) — 캐시된 결과를 바꾸지 않게</summary>
@@ -148,8 +152,10 @@ namespace OpenJigWare
                 int[] pos = c.PosIDs;
                 // ── V1 관절 번호 ──
                 bool bIds = c.IdsOk;
+                r.NoWrist = c.NoWrist;
                 if (bIds) foreach (int id in c.MoveIDs) if (id < 0 || id > 253) bIds = false;
-                if (!bIds) { Fail(ESagDefFail.Def, "V1", "관절 번호가 겹치거나 0~253 밖 (베이스·피치 2개·손목 — posids " + SagRun_Ints(pos) + ", wrist " + w.ToString(ci) + ")"); return SagDef_Finish(r, c); }
+                if (!bIds) { Fail(ESagDefFail.Def, "V1", c.NoWrist ? "관절 번호가 겹치거나 0~253 밖 (베이스·피치 2개 — posids " + SagRun_Ints(pos) + ", 손목 없음)"
+                                                                   : "관절 번호가 겹치거나 0~253 밖 (베이스·피치 2개·손목 — posids " + SagRun_Ints(pos) + ", wrist " + w.ToString(ci) + ")"); return SagDef_Finish(r, c); }
                 int[] mv = c.MoveIDs;
                 int[] hold = c.HoldIDs ?? new int[0];
                 foreach (int h in hold)
@@ -172,6 +178,7 @@ namespace OpenJigWare
                 r.TcpLine = SagDef_TcpLine(f);
                 r.KinSig = SagRun_KinSig(st, f);
                 Pass(string.Format(ci, "V2 맞음 — 수식 {0}: DH {1}줄, 공구 끝 줄 '{2}'", f, nRow, r.TcpLine));
+                if (c.NoWrist) return SagDef_ComputeNoWrist(st, c, r, dh, nRow, hold, Fail, Pass);   // 꺾는 손목 없음 (10-13) — V3~V9 를 따로
                 // ── V3 체인 ──
                 int[] ch = r.ChainIDs;
                 string strCh = SagRun_Ints(ch);
@@ -237,7 +244,7 @@ namespace OpenJigWare
                     lstD.Add(D);
                     double lat = Math.Asin(Math.Min(1.0, Math.Abs(vx * (-uy) + vy * ux) / L)) * 180.0 / Math.PI;
                     latMax = Math.Max(latMax, lat);
-                }
+                }   // (SagDef_MeasureSum 이 같은 자세·같은 식으로 D 만 잰다 — 바꾸면 둘 다)
                 r.PenOffDeg = (float)penMax;
                 if (nLen > 0) { r.TcpLenMm = (float)(lenSum / nLen); r.TcpLenSpreadMm = (float)(lenMax - lenMin); }
                 if (penMax > SAGDEF_TOL_DEG)
@@ -265,7 +272,7 @@ namespace OpenJigWare
                     else Pass(string.Format(ci, "V6 맞음 — 공구 방향 = 관절 합 모형 (흩어짐 {0:F2}°, 팔 평면 밖 {1:F2}°)", spread, latMax));
                     if (!float.IsNaN(c.DownSumDeg) && !(Math.Abs(mean - c.DownSumDeg) <= SAGDEF_TOL_DEG))
                         Fail(ESagDefFail.Def, "V7", string.Format(ci, "3D 에서 수직 = 관절 합 {0:F1}° ≠ 정의 {1:0.###}°", mean, c.DownSumDeg));
-                    else Pass(string.Format(ci, "V7 맞음 — 3D 에서 수직 = 관절 합 {0:F2}°{1}", mean, float.IsNaN(c.DownSumDeg) ? " (정의 값 없음 — 잰 값을 씀)" : string.Format(ci, " (정의 {0:0.###})", c.DownSumDeg)));
+                    else Pass(string.Format(ci, "V7 맞음 — 3D 에서 수직 = 관절 합 {0:F2}°{1}", mean, float.IsNaN(c.DownSumDeg) ? " (자동 — 잰 값을 씀)" : string.Format(ci, " (정의 {0:0.###})", c.DownSumDeg)));
                 }
                 // ── V8 3D 와 계획 기구학 ──
                 {
@@ -325,15 +332,140 @@ namespace OpenJigWare
                 }
                 return SagDef_Finish(r, c);
             }
+            // 꺾는 손목 없는 정의의 V3~V9 (10-13) — 공구 끝은 팔꿈치(피치 둘째) 체인의 끝에 굳어 있고 위치만 IK 로 정한다:
+            //   V3 체인 = 처음 나온 차례로 정확히 [베이스, 피치 1, 피치 2] (피치 2 뒤에 움직이는 관절이 있으면 공구 끝이 따로 움직인다 — 그 관절이 꺾는 손목이면 ② 에서 고른다),
+            //      토크만 관절은 체인 밖 · V4 해당 없음 (펜 = 손목 원점 → 공구 끝 직선이 없다) · V5 팔꿈치 원점 → 공구 끝 길이 일정 (0.1mm), tcplen 과 0.5mm 안 (NaN 이면 생략)
+            //   · V6 피치 두 관절이 평행 — 팔꿈치 원점 → 공구 끝의 공구 각이 관절 합(피치 1 + 피치 2) 모형 (흩어짐 0.5°), 팔 평면 안 (0.5°). 그 일정한 값 ToolSumDeg
+            //     = 팔꿈치 → 공구 끝이 −Z 인 관절 합 (공구 기울기 = 관절 합 − ToolSumDeg — 자세마다 바뀐다) · V7 해당 없음 (바닥으로 수직이 없다)
+            //   · V8 3D 와 계획 기구학의 공구 끝 차 0.5mm 안 · V9 시험 점(요 0·20)을 위치 IK 로 풀어 공구 끝 0.5mm 안 (팔꿈치 위로 굽은 해)
+            private CSagDefCheck SagDef_ComputeNoWrist(CSagRunKin st, CSagArmCfg c, CSagDefCheck r, CDhParamAll dh, int nRow, int[] hold,
+                                                       Action<ESagDefFail, string, string> Fail, Action<string> Pass)
+            {
+                var ci = CultureInfo.InvariantCulture;
+                int f = c.FuncNumber;
+                int[] pos = c.PosIDs;
+                // ── V3 체인 ──
+                int[] ch = r.ChainIDs;
+                string strCh = SagRun_Ints(ch);
+                int[] exp = { pos[0], pos[1], pos[2] };
+                string[] names = { "베이스(요)", "피치 관절", "피치 관절" };
+                string v3 = null;
+                for (int k = 0; k < 3 && v3 == null; k++) if (Array.IndexOf(ch, exp[k]) < 0) v3 = string.Format(ci, "{0} {1}번이 공구 끝 체인에 없음 (체인: {2})", names[k], exp[k], strCh);
+                for (int k = 0; k < ch.Length && v3 == null; k++)
+                    if (Array.IndexOf(exp, ch[k]) < 0)
+                        v3 = Array.IndexOf(ch, pos[2]) >= 0 && k > Array.IndexOf(ch, pos[2])
+                            ? string.Format(ci, "피치 관절 {0}번 뒤에 관절 {1}번이 있음 (체인: {2}) — 손목 없음이면 공구 끝이 피치 관절 체인 끝에 굳어 있어야 함 (그 관절이 꺾는 손목이면 ② 에서 그 관절을 고르십시오)", pos[2], ch[k], strCh)
+                            : string.Format(ci, "공구 끝 체인에 정의 밖 관절 {0}번 (체인: {1})", ch[k], strCh);
+                if (v3 == null && (ch.Length != 3 || ch[0] != exp[0] || ch[1] != exp[1] || ch[2] != exp[2]))
+                    v3 = string.Format(ci, "체인 순서가 베이스→피치→피치가 아님 (체인: {0})", strCh);
+                if (v3 == null) foreach (int h in hold) if (Array.IndexOf(ch, h) >= 0) { v3 = string.Format(ci, "토크만 관절 {0}번이 공구 끝 체인 안에 있음 (움직이면 공구 끝이 움직임)", h); break; }
+                if (v3 != null) { Fail(ESagDefFail.Def, "V3", v3); return SagDef_Finish(r, c); }
+                Pass(string.Format(ci, "V1·V3 맞음 — 체인 {0} = 베이스 {1} → 피치 {2}·{3} · 꺾는 손목 없음{4}", strCh, pos[0], pos[1], pos[2],
+                    hold.Length > 0 ? " (토크만 " + SagRun_Ints(hold) + " 은 체인 밖)" : ""));
+                Pass("V4 해당 없음 — 꺾는 손목이 없어 '펜 = 손목 원점 → 공구 끝' 이 없다");
+                // ── V5·V6 (자세 5개 — 손목 칸은 쓰지 않는다) ──
+                int iE = -1;
+                for (int i = 0; i < nRow; i++) { CDhParam p = dh.GetData(i); if (p.nAxisNum == pos[2]) { iE = i; break; } }
+                double lenMin = double.MaxValue, lenMax = double.MinValue, lenSum = 0, latMax = 0;
+                var lstD = new List<double>();
+                int nLen = 0;
+                foreach (float[] q in SAGDEF_POSES)
+                {
+                    List<double[]> pts; double[] zT;
+                    SagDef_ChainPts(dh, SagDef_Ad(c, q), out pts, out zT);
+                    double[] E = pts[iE], T = pts[nRow];
+                    double vx = T[0] - E[0], vy = T[1] - E[1], vz = T[2] - E[2], L = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                    lenMin = Math.Min(lenMin, L); lenMax = Math.Max(lenMax, L); lenSum += L; nLen++;
+                    double ur = Math.Sqrt(E[0] * E[0] + E[1] * E[1]);
+                    if (ur < SAGDEF_MIN_R_MM || L < 1e-9) continue;
+                    double ux = E[0] / ur, uy = E[1] / ur;
+                    double phi = Math.Atan2(-vz, vx * ux + vy * uy) * 180.0 / Math.PI;
+                    double D = (double)q[1] + q[2] - phi + 90.0;
+                    if (lstD.Count > 0) { while (D - lstD[0] > 180) D -= 360; while (D - lstD[0] <= -180) D += 360; }
+                    lstD.Add(D);
+                    latMax = Math.Max(latMax, Math.Asin(Math.Min(1.0, Math.Abs(vx * (-uy) + vy * ux) / L)) * 180.0 / Math.PI);
+                }
+                if (nLen > 0) { r.TcpLenMm = (float)(lenSum / nLen); r.TcpLenSpreadMm = (float)(lenMax - lenMin); }
+                if (!(r.TcpLenSpreadMm <= SAGDEF_LEN_SPREAD_MM))
+                    Fail(ESagDefFail.Def, "V5", string.Format(ci, "팔꿈치 {0}번 원점 → 공구 끝 거리가 자세마다 다름 ({1:F1}~{2:F1}mm — 피치 관절 뒤에 움직이는 관절?)", pos[2], lenMin, lenMax));
+                else if (!float.IsNaN(c.TcpLenMm) && !(Math.Abs(r.TcpLenMm - c.TcpLenMm) <= SAGDEF_TOL_MM))
+                    Fail(ESagDefFail.Def, "V5", string.Format(ci, "팔꿈치 {0}번 원점 → 공구 끝 {1:F1} mm ≠ 정의 {2:0.0} mm", pos[2], r.TcpLenMm, c.TcpLenMm));
+                else Pass(string.Format(ci, "V5 맞음 — 팔꿈치 {0}번 원점 → 공구 끝 {1:F1}mm (흩어짐 {2:F2}mm{3})", pos[2], r.TcpLenMm, r.TcpLenSpreadMm,
+                                         float.IsNaN(c.TcpLenMm) ? ", 정의 거리 확인 안 함" : string.Format(ci, ", 정의 {0:0.0}", c.TcpLenMm)));
+                if (lstD.Count < 3)
+                    Fail(ESagDefFail.Def, "V6", string.Format(ci, "피치 관절 모형을 볼 자세가 모자람 ({0}개 — 팔꿈치 원점이 베이스 축 위)", lstD.Count));
+                else
+                {
+                    double sum = 0; foreach (double d in lstD) sum += d;
+                    double mean = sum / lstD.Count, spread = 0;
+                    foreach (double d in lstD) spread = Math.Max(spread, Math.Abs(d - mean));
+                    while (mean > 180) mean -= 360; while (mean <= -180) mean += 360;
+                    r.ToolSumDeg = (float)mean; r.SpreadDeg = (float)spread; r.LateralDeg = (float)latMax;
+                    if (spread > SAGDEF_TOL_DEG)
+                        Fail(ESagDefFail.Def, "V6", string.Format(ci, "공구 방향이 피치 두 관절의 합으로 설명되지 않음 (최대 {0:F1}° — 피치 관절 축이 평행하지 않음: 손목 없음은 베이스 요 + 평행한 피치 둘 팔만)", spread));
+                    else if (latMax > SAGDEF_TOL_DEG)
+                        Fail(ESagDefFail.Def, "V6", string.Format(ci, "공구 끝이 팔 평면 밖으로 {0:F1}° (베이스 축과 팔 평면이 어긋남)", latMax));
+                    else Pass(string.Format(ci, "V6 맞음 — 피치 관절 평행 (흩어짐 {0:F2}°, 팔 평면 밖 {1:F2}°) · 공구 기울기 = 관절 합 {2}+{3} − {4:0.##}° (자세마다 바뀜)",
+                                            spread, latMax, pos[1], pos[2], mean));
+                }
+                Pass("V7 해당 없음 — 꺾는 손목이 없어 '바닥으로 수직' 이 없다 (공구 끝 위치만 맞춘다)");
+                // ── V8 3D 와 계획 기구학 ──
+                {
+                    double worst = 0;
+                    foreach (float[] q in SAGDEF_V8_POSES)
+                    {
+                        double[] a1 = SagDef_Ad(c, q), a2 = SagDef_Ad(c, q);
+                        float x1, y1, z1, x2, y2, z2;
+                        SagFc_Fk(f, a1, -1, out x1, out y1, out z1);
+                        st.Kin.SagFc_Fk(f, a2, -1, out x2, out y2, out z2);
+                        double d = Math.Sqrt((double)(x1 - x2) * (x1 - x2) + (double)(y1 - y2) * (y1 - y2) + (double)(z1 - z2) * (z1 - z2));
+                        if (double.IsNaN(d) || double.IsInfinity(d)) d = double.MaxValue;
+                        worst = Math.Max(worst, d);
+                    }
+                    r.KinDiffMm = (float)Math.Min(worst, 1e9);
+                    if (worst > SAGDEF_TOL_MM)
+                        Fail(ESagDefFail.Model, "V8", worst >= 1e6 ? "3D 와 계획 기구학의 공구 끝을 비교하지 못함" : string.Format(ci, "3D 와 계획 기구학의 공구 끝이 {0:F1} mm 다름", worst));
+                    else Pass(string.Format(ci, "V8 맞음 — 3D 와 계획 기구학의 공구 끝 차 {0:F2}mm", worst));
+                }
+                // ── V9 시험 점 위치 IK ──
+                {
+                    string v9 = null; double errMax = 0; int nTry = 0;
+                    foreach (float yaw in SAGDEF_V9_YAWS)
+                    {
+                        double[] T = null;
+                        foreach (float[] p12 in SAGDEF_V9_P12)
+                        {
+                            float tx, ty, tz;
+                            st.Kin.SagFc_Fk(f, SagDef_Ad(c, new float[] { yaw, p12[0], p12[1] }), -1, out tx, out ty, out tz);
+                            if (Math.Sqrt((double)tx * tx + (double)ty * ty) >= 30) { T = new double[] { tx, ty, tz }; break; }
+                        }
+                        if (T == null) { v9 = string.Format(ci, "시험 점을 찾지 못함 (요 {0:0}, 공구 끝이 베이스 축 가까이)", yaw); break; }
+                        nTry++;
+                        float bend;
+                        float[] qs = SagArm_IkSum(st.Kin, c, SagRun_Seed(st.Kin, c, yaw, 90f), (float)T[0], (float)T[1], (float)T[2], float.NaN, out bend);
+                        if (qs == null) { v9 = string.Format(ci, "시험 점을 위치 IK 로 풀지 못함 (요 {0:0}, ({1:F0}, {2:F0}, {3:F0}))", yaw, T[0], T[1], T[2]); break; }
+                        float ex, ey, ez;
+                        st.Kin.SagFc_Fk(f, SagDef_Ad(c, qs), -1, out ex, out ey, out ez);
+                        errMax = Math.Max(errMax, Math.Sqrt((ex - T[0]) * (ex - T[0]) + (ey - T[1]) * (ey - T[1]) + (ez - T[2]) * (ez - T[2])));
+                    }
+                    if (v9 == null && errMax > SAGDEF_TOL_MM) v9 = string.Format(ci, "시험 점 위치 IK 의 공구 끝이 {0:F1} mm 어긋남", errMax);
+                    if (v9 != null) Fail(ESagDefFail.Def, "V9", v9);
+                    else Pass(string.Format(ci, "V9 맞음 — 시험 점 {0}개를 위치 IK 로 풂 (공구 끝 오차 {1:F2}mm, 팔꿈치 위로 굽은 해)", nTry, errMax));
+                }
+                return SagDef_Finish(r, c);
+            }
             // 끝 — Ok·요약·숫자 글
             private CSagDefCheck SagDef_Finish(CSagDefCheck r, CSagArmCfg c)
             {
                 var ci = CultureInfo.InvariantCulture;
                 r.Ok = r.Kind == ESagDefFail.None;
+                if (c.NoWrist) return SagDef_FinishNoWrist(r, c);
                 int[] pos = c.PosIDs ?? new int[0];
                 string strSum = pos.Length == 3 ? string.Format(ci, "{0}+{1}+{2}", pos[1], pos[2], c.WristID) : "관절 합";
+                bool bAuto = float.IsNaN(c.DownSumDeg);
                 if (r.Ok)
-                    r.Summary = string.Format(ci, "공구 끝 = 수식 {0} 끝 · 꺾는 손목 = {1}번 · 바닥으로 수직 = 3D 와 맞음", c.FuncNumber, c.WristID);
+                    r.Summary = string.Format(ci, "공구 끝 = 수식 {0} 끝 · 꺾는 손목 = {1}번 · 바닥으로 수직 = {2}", c.FuncNumber, c.WristID,
+                        bAuto ? string.Format(ci, "3D FK 자동 ({0:0.0}°)", r.DownSumMeasDeg) : "3D 와 맞음");
                 else if (r.Kind == ESagDefFail.NoModel) r.Summary = "★3D 에 로봇 모델 없음";
                 else r.Summary = "★로봇 정의 확인 안 됨 — " + r.Why;
                 var parts = new List<string>();
@@ -341,8 +473,9 @@ namespace OpenJigWare
                     parts.Add(string.Format(ci, "공구 끝 = 수식 {0} 끝 '{1}'{2}", c.FuncNumber, r.TcpLine,
                         float.IsNaN(r.TcpLenMm) ? "" : string.Format(ci, " — 손목 {0} 축에서 {1:F1} mm", c.WristID, r.TcpLenMm)));
                 if (!float.IsNaN(r.DownSumMeasDeg))
-                    parts.Add(string.Format(ci, "바닥으로 수직 = 관절 합 {0} = {1}° (3D {2:F2}°, 흩어짐 {3:F2}°)", strSum,
-                        float.IsNaN(c.DownSumDeg) ? "—" : c.DownSumDeg.ToString("0.###", ci), r.DownSumMeasDeg, r.SpreadDeg));
+                    parts.Add(string.Format(ci, "바닥으로 수직 = 관절 합 {0} = {1}° ({4}3D {2:F2}°, 흩어짐 {3:F2}°)", strSum,
+                        bAuto ? ((float)Math.Round(r.DownSumMeasDeg, 3)).ToString("0.###", ci) : c.DownSumDeg.ToString("0.###", ci), r.DownSumMeasDeg, r.SpreadDeg,
+                        bAuto ? "자동 — " : "직접 정함 · "));
                 var nums = new List<string>();
                 if (!float.IsNaN(r.PenOffDeg)) nums.Add(string.Format(ci, "펜 {0:F2}°", r.PenOffDeg));
                 if (!float.IsNaN(r.IkTiltDeg)) nums.Add(string.Format(ci, "시험 IK {0:F2}°", r.IkTiltDeg));
@@ -352,12 +485,36 @@ namespace OpenJigWare
                 r.Detail = string.Join(" / ", parts.ToArray());
                 return r;
             }
-            // 정의의 관절에 자세 q (요, 피치 1, 피치 2, 손목) 를 직접 쓴 관절값 사본 (다른 관절 0 — 관절 한계 없음, 지금 3D 자세와 무관)
+            // 끝 — 손목 없음 (10-13): 요약 "공구 끝 = 수식 0 끝 · 꺾는 손목 없음 (위치만 — 공구 기울기는 자세마다 바뀜)", 숫자 글
+            private CSagDefCheck SagDef_FinishNoWrist(CSagDefCheck r, CSagArmCfg c)
+            {
+                var ci = CultureInfo.InvariantCulture;
+                int[] pos = c.PosIDs ?? new int[0];
+                string strSum = pos.Length == 3 ? string.Format(ci, "{0}+{1}", pos[1], pos[2]) : "관절 합";
+                if (r.Ok) r.Summary = string.Format(ci, "공구 끝 = 수식 {0} 끝 · 꺾는 손목 없음 (위치만 — 공구 기울기는 자세마다 바뀜)", c.FuncNumber);
+                else if (r.Kind == ESagDefFail.NoModel) r.Summary = "★3D 에 로봇 모델 없음";
+                else r.Summary = "★로봇 정의 확인 안 됨 — " + r.Why;
+                var parts = new List<string>();
+                if (r.TcpLine.Length > 0)
+                    parts.Add(string.Format(ci, "공구 끝 = 수식 {0} 끝 '{1}'{2}", c.FuncNumber, r.TcpLine,
+                        float.IsNaN(r.TcpLenMm) || pos.Length != 3 ? "" : string.Format(ci, " — 팔꿈치 {0} 축에서 {1:F1} mm", pos[2], r.TcpLenMm)));
+                if (!float.IsNaN(r.ToolSumDeg))
+                    parts.Add(string.Format(ci, "손목 없음 — 공구 기울기 = 관절 합 {0} − {1:0.##}° (수직 아래 = 관절 합 {1:0.##}°, 흩어짐 {2:F2}°) · 바닥으로 수직·손목 유지·수직 눈 확인 없음",
+                        strSum, r.ToolSumDeg, r.SpreadDeg));
+                var nums = new List<string>();
+                if (!float.IsNaN(r.KinDiffMm)) nums.Add(string.Format(ci, "3D·계획 차 {0:F2}mm", r.KinDiffMm));
+                if (r.KinSig.Length > 0) nums.Add("기구학 " + r.KinSig);
+                if (r.BuiltIn) nums.Add("★3D 에 수식 없음 — 내장 OMX");
+                if (nums.Count > 0) parts.Add(string.Join(" · ", nums.ToArray()));
+                r.Detail = string.Join(" / ", parts.ToArray());
+                return r;
+            }
+            // 정의의 관절에 자세 q (요, 피치 1, 피치 2, 손목) 를 직접 쓴 관절값 사본 (다른 관절 0 — 관절 한계 없음, 지금 3D 자세와 무관). 손목 없음이면 넷째 칸은 쓰지 않는다
             private static double[] SagDef_Ad(CSagArmCfg c, float[] q)
             {
                 var ad = new double[256];
                 int[] ids = c.MoveIDs;
-                for (int k = 0; k < 4 && k < q.Length; k++) if (ids[k] >= 0 && ids[k] < ad.Length) ad[ids[k]] = q[k];
+                for (int k = 0; k < ids.Length && k < q.Length; k++) if (ids[k] >= 0 && ids[k] < ad.Length) ad[ids[k]] = q[k];
                 return ad;
             }
             // 체인의 관절 (nAxisNum ≥ 0) — 처음 나온 차례
@@ -460,19 +617,106 @@ namespace OpenJigWare
             {
                 try
                 {
-                    if (c == null) c = new CSagArmCfg();
-                    string k = SagRun_KinSig(SagRun_KinState(), c.FuncNumber);
-                    return SagDef_SigText(c, k);
+                    string w;
+                    CSagArmCfg e = SagDef_Eff(c, out w);                     // 수직 관절 합은 정해진 값으로 (자동이면 3D 에서 잰 값 — OMX 는 90: 예전 서명 "d90" 그대로)
+                    string k = SagRun_KinSig(SagRun_KinState(), e.FuncNumber);
+                    return SagDef_SigText(e, k);
                 }
                 catch { return ""; }
             }
             private static string SagDef_SigText(CSagArmCfg c, string strKin)
             {
                 var ci = CultureInfo.InvariantCulture;
+                if (c.NoWrist) return string.Format(ci, "f{0}|p{1}|wnone|k{2}", c.FuncNumber, SagRun_Ints(c.PosIDs), strKin ?? "");   // 손목 없음 (10-13) — 수직 관절 합 칸 없음
                 return string.Format(ci, "f{0}|p{1}|w{2}|d{3}|k{4}", c.FuncNumber, SagRun_Ints(c.PosIDs), c.WristID, c.DownSumDeg.ToString("0.###", ci), strKin ?? "");
             }
             // 내장 OMX 정의의 서명 (기구학 표시 = 내장 OMX 수식 0) — 정의 칸이 없는 옛 실습 상태는 이 정의로 했다
-            private static string SagDef_OmxSig() { return SagDef_SigText(new CSagArmCfg(), s_strOmxKinSig ?? ""); }
+            private static string SagDef_OmxSig() { return SagDef_SigText(new CSagArmCfg { DownSumDeg = 90f }, s_strOmxKinSig ?? ""); }   // 내장 OMX 의 수직 관절 합 = 90 (자동으로 재도 90)
+
+            // ── 바닥으로 수직 자동 (10-13) ──
+            /// <summary>정의 c 의 사본 — 바닥으로 수직(downsum)이 자동(NaN)이면 3D FK 로 잰 값으로 채운다 (SagDef_MeasureSum — 계획 기구학 = 지금 3D 의 수식,
+            /// 3D 에 수식이 없으면 내장 OMX. 0.001° 로 반올림 — OMX 는 90 그대로라 예전 downsum=90 과 계산이 비트까지 같다). 직접 정한 숫자면 그대로 사본.
+            /// 잴 수 없으면 사본의 DownSumDeg 는 NaN 그대로 + why (작업·계획은 정의 확인에서 거절한다). c 가 null 이면 기본값 (OMX follower). 예외 없음</summary>
+            public CSagArmCfg SagDef_Eff(CSagArmCfg c, out string why)
+            {
+                using (SagRun_KinUse()) return SagDef_EffBody(c, out why);   // 계획 기구학을 쓰는 동안 묶음을 바꾸지 않는다 (SagRun_KinUse)
+            }
+            /// <summary>SagDef_Eff 와 같고 까닭을 버린다</summary>
+            public CSagArmCfg SagDef_Eff(CSagArmCfg c) { string w; return SagDef_Eff(c, out w); }
+            private CSagArmCfg SagDef_EffBody(CSagArmCfg c, out string why)
+            {
+                why = "";
+                CSagArmCfg r = (c == null) ? new CSagArmCfg() : c.Clone();
+                try
+                {
+                    if (r.NoWrist) return r;                                         // 손목 없음 (10-13) — 바닥으로 수직이 없다 (DownSumDeg 는 쓰지 않는다)
+                    if (!float.IsNaN(r.DownSumDeg)) return r;                       // 직접 정함
+                    float spread;
+                    float d = SagDef_MeasureSum(r, out spread, out why);
+                    if (!float.IsNaN(d)) r.DownSumDeg = (float)Math.Round(d, 3);
+                }
+                catch (Exception ex) { why = "★오류: " + SagRun_Msg(ex); }
+                return r;
+            }
+            /// <summary>바닥으로 수직 관절 합을 3D FK 로 잰다 (deg, 못 재면 NaN + why). 계획 기구학 묶음의 수식 c.FuncNumber 체인에서 자세 다섯 개 (SAGDEF_POSES — 정의 확인 V6 와
+            /// 같은 자세·같은 식) 마다 손목 원점 W → 공구 끝 T 의 공구 각 φ 와 관절 합 S 로 D = S − φ + 90 을 내 평균한다 (흩어짐·팔 평면 밖이 0.5° 를 넘으면 못 잰다).
+            /// 왜 관절 합인가: 공구가 수직인지는 손목까지의 FK 회전(베이스 → 손목 좌표계)만으로 정해진다. 공구 끝(TCP)은 손목 좌표계에서 어느 방향이 공구축인지
+            /// (손목 원점 → 공구 끝, 자세와 무관한 상수 — V4·V5 가 확인)를 알려 줄 뿐이다. 피치 관절 둘과 손목이 평행하면 그 회전은 관절 합과 요로만 정해지므로
+            /// 공구축이 −Z 가 되는 관절 합 D 는 하나다 (V6 가 확인). 손목이 꺾이지 않는 로봇(손목 없음)은 이 식이 아니라 따로 정해야 한다. 예외 없음</summary>
+            public float SagDef_MeasureSum(CSagArmCfg c, out float fSpreadDeg, out string why)
+            {
+                using (SagRun_KinUse()) return SagDef_MeasureSumBody(c, out fSpreadDeg, out why);
+            }
+            private float SagDef_MeasureSumBody(CSagArmCfg c, out float fSpreadDeg, out string why)
+            {
+                fSpreadDeg = float.NaN; why = "";
+                var ci = CultureInfo.InvariantCulture;
+                try
+                {
+                    if (c == null) c = new CSagArmCfg();
+                    if (c.NoWrist) { why = "꺾는 손목 없음 — 바닥으로 수직(관절 합)이 없다"; return float.NaN; }
+                    if (!c.IdsOk) { why = "관절 번호가 맞지 않음 (베이스·피치 2개·손목)"; return float.NaN; }
+                    CSagRunKin st = SagRun_KinState();
+                    if (st == null || st.Kin == null) { why = m_strSagRunKinErr.Length > 0 ? m_strSagRunKinErr : SAGRUN_NO_KIN; return float.NaN; }
+                    int f = c.FuncNumber, w = c.WristID;
+                    CDhParamAll dh = (f >= 0 && st.Kin.m_CHeader != null && f < st.Kin.m_CHeader.pDhParamAll.Length) ? st.Kin.m_CHeader.pDhParamAll[f] : null;
+                    int nRow = dh == null ? 0 : dh.GetCount();
+                    if (nRow <= 0) { why = string.Format(ci, "수식 {0} 의 DH 줄이 없음", f); return float.NaN; }
+                    int iW = -1;
+                    for (int i = 0; i < nRow; i++) { CDhParam p = dh.GetData(i); if (p.nAxisNum == w) { iW = i; break; } }
+                    if (iW < 0) { why = string.Format(ci, "꺾는 손목 {0}번이 공구 끝 체인에 없음", w); return float.NaN; }
+                    var lstD = new List<double>();
+                    double latMax = 0;
+                    foreach (float[] q in SAGDEF_POSES)
+                    {
+                        List<double[]> pts; double[] zT;
+                        SagDef_ChainPts(dh, SagDef_Ad(c, q), out pts, out zT);
+                        double[] W = pts[iW], T = pts[nRow];
+                        double vx = T[0] - W[0], vy = T[1] - W[1], vz = T[2] - W[2], L = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+                        double ur = Math.Sqrt(W[0] * W[0] + W[1] * W[1]);
+                        if (ur < SAGDEF_MIN_R_MM || L < 1e-9) continue;
+                        double ux = W[0] / ur, uy = W[1] / ur;
+                        double phi = Math.Atan2(-vz, vx * ux + vy * uy) * 180.0 / Math.PI;
+                        double S = (double)q[1] + q[2] + q[3];
+                        double D = S - phi + 90.0;
+                        if (lstD.Count > 0) { while (D - lstD[0] > 180) D -= 360; while (D - lstD[0] <= -180) D += 360; }
+                        lstD.Add(D);
+                        latMax = Math.Max(latMax, Math.Asin(Math.Min(1.0, Math.Abs(vx * (-uy) + vy * ux) / L)) * 180.0 / Math.PI);
+                    }
+                    if (lstD.Count < 3) { why = string.Format(ci, "자세가 모자람 ({0}개 — 손목 원점이 베이스 축 위)", lstD.Count); return float.NaN; }
+                    double sum = 0; foreach (double d in lstD) sum += d;
+                    double mean = sum / lstD.Count, spread = 0;
+                    foreach (double d in lstD) spread = Math.Max(spread, Math.Abs(d - mean));
+                    while (mean > 180) mean -= 360; while (mean <= -180) mean += 360;
+                    fSpreadDeg = (float)spread;
+                    if (spread > SAGDEF_TOL_DEG) { why = string.Format(ci, "공구 방향이 관절 합으로 설명되지 않음 (최대 {0:F1}°)", spread); return float.NaN; }
+                    if (latMax > SAGDEF_TOL_DEG) { why = string.Format(ci, "공구가 팔 평면 밖으로 {0:F1}°", latMax); return float.NaN; }
+                    return (float)mean;
+                }
+                catch (Exception ex) { why = "★오류: " + SagRun_Msg(ex); return float.NaN; }
+            }
+            // 수직 관절 합이 자동인데 아직 재지 않은 정의가 작업·계획 입구에 왔다 (부른 쪽이 SagDef_Eff 를 먼저 — 화면 글이라 함수 이름은 넣지 않는다)
+            private const string SAGDEF_WHY_NOSUM = "바닥으로 수직(관절 합)을 정하지 못함 — 자동인데 3D 에서 재지 못함";
             /// <summary>공구 피치 Ry → 관절 합 (표시용) — Ry 90 = downsum, Ry &lt; 90 = downsum + (90 − Ry). c 가 null 이면 downsum 90</summary>
             public static float SagDef_SumFor(CSagArmCfg c, float fRy) { return SagArm_SumFor(c, fRy); }
             /// <summary>모델(결과·적용 중 파일)을 만든 기구학(kinsig, 빈 값 = 내장 OMX)이 지금 3D 의 그 수식과 다르면 경고 한 줄, 같으면 "" (앱 표시용, 막지 않는다). 예외 없음</summary>
@@ -502,6 +746,13 @@ namespace OpenJigWare
                 try
                 {
                     if (cfg == null) cfg = new CSagSurveyCfg();
+                    if (cfg.WristID < 0)                                                  // 꺾는 손목 없음 (10-13) — ⑨ 의 예전 경로(PlayXyz·CalcInv_Tool)는 공구 피치를 손목으로 맞춘다
+                    {
+                        var rn = new CSagDefCheck { Kind = ESagDefFail.Def, NoWrist = true, Formulas = SagDef_Formulas(),
+                                                    Why = "⑨ 처짐보상 측정·검증은 꺾는 손목이 있는 팔만 (예전 경로 — 공구 피치를 손목으로 맞춘다). 손목 없는 팔의 관절 처짐 측정은 처짐 보정 실습 2단계 (같은 표본·같은 학습)" };
+                        rn.Items.Add("V3 ★" + rn.Why); rn.Summary = "★로봇 정의 확인 안 됨 — " + rn.Why;
+                        return rn;
+                    }
                     var c = new CSagArmCfg { FuncNumber = cfg.FuncNumber, PosIDs = cfg.PosIDs == null ? null : (int[])cfg.PosIDs.Clone(), WristID = cfg.WristID,
                                              HoldIDs = new int[0], TcpLenMm = float.NaN, DownSumDeg = cfg.DownSumDeg, DefName = string.IsNullOrEmpty(cfg.Robot) ? "" : cfg.Robot };
                     CSagDefCheck chk = SagDef_Check(c);
@@ -544,6 +795,13 @@ namespace OpenJigWare
                 why = "";
                 if (p == null) { why = "설정 없음"; return false; }
                 CSagArmCfg c = SagDef_FromProbe(p);
+                if (c.NoWrist && bLegacy) { why = "꺾는 손목 없음 — 예전 경로(PlayXyz·CalcInv_Tool, 공구 피치를 손목으로)는 쓸 수 없음: 관절 보간 누름(SumIk)만"; return false; }
+                if (float.IsNaN(p.DownSumDeg))                                       // 자동 (10-13) — 3D FK 로 잰 값을 이 누름 설정에 채운다 (누름 IK 가 쓴다)
+                {
+                    string w;
+                    CSagArmCfg e = SagDef_Eff(c, out w);
+                    if (!float.IsNaN(e.DownSumDeg)) { p.DownSumDeg = e.DownSumDeg; c.DownSumDeg = e.DownSumDeg; }
+                }
                 if (!SagDef_Gate(c, false, L, out why)) return false;
                 if (!bLegacy) { why = ""; return true; }
                 bool bWarn;
@@ -565,12 +823,15 @@ namespace OpenJigWare
                         CSagRunKin st = SagRun_KinState();
                         if (st != null && st.BuiltIn && SagDef_Formulas().Length == 0)
                         {
+                            if (c != null && c.NoWrist) { why = "3D 에 수식이 없음 — 내장 OMX 는 꺾는 손목이 있는 팔 (손목 없음 정의는 3D 에 그 팔의 수식이 있어야 함)"; return false; }
+                            if (c != null && float.IsNaN(c.DownSumDeg)) { why = SAGDEF_WHY_NOSUM; return false; }   // 계산이 쓸 수직 관절 합 (부른 쪽이 SagDef_Eff 로 정한다)
                             why = "★3D 에 수식이 없어 내장 OMX 기구학으로 계산 (실물 작업은 하지 않음)";
                             if (L != null) L(why);
                             return true;
                         }
                     }
                     CSagDefCheck chk = SagDef_Check(c);
+                    if (chk.Ok && c != null && !c.NoWrist && float.IsNaN(c.DownSumDeg)) { why = SAGDEF_WHY_NOSUM; return false; }   // 확인은 지나도 계산할 값이 없다 (부른 쪽이 SagDef_Eff 를 먼저) — 손목 없음은 쓰지 않는다
                     if (chk.Ok) return true;
                     why = chk.Why;
                     return false;
@@ -643,12 +904,13 @@ namespace OpenJigWare
                     float tx, ty, tz, wx, wy, wz;
                     SagFc_Fk(c.FuncNumber, ad, -1, out tx, out ty, out tz);
                     tcp = new float[] { tx, ty, tz };
-                    if (c.PosIDs != null && c.PosIDs.Length == 3) sumDeg = (float)(ad[c.PosIDs[1]] + ad[c.PosIDs[2]] + ad[c.WristID]);
+                    if (c.PosIDs != null && c.PosIDs.Length == 3) sumDeg = (float)(ad[c.PosIDs[1]] + ad[c.PosIDs[2]] + (c.WristID >= 0 ? ad[c.WristID] : 0));
+                    int wAx = (c.NoWrist && c.PosIDs != null && c.PosIDs.Length == 3) ? c.PosIDs[2] : c.WristID;   // 손목 없음 (10-13) — 공구선 = 팔꿈치 원점 → 공구 끝 (기울기가 자세마다 바뀌는 것을 보인다)
                     bool bChain = false;
                     CDhParamAll dh = (m_CHeader != null && m_CHeader.pDhParamAll != null && c.FuncNumber >= 0 && c.FuncNumber < m_CHeader.pDhParamAll.Length) ? m_CHeader.pDhParamAll[c.FuncNumber] : null;
-                    if (dh != null && Array.IndexOf(SagDef_ChainOf(dh), c.WristID) >= 0) bChain = true;
+                    if (dh != null && Array.IndexOf(SagDef_ChainOf(dh), wAx) >= 0) bChain = true;
                     if (!bChain) { wrist = (float[])tcp.Clone(); return false; }
-                    SagFc_Fk(c.FuncNumber, ad, c.WristID, out wx, out wy, out wz);
+                    SagFc_Fk(c.FuncNumber, ad, wAx, out wx, out wy, out wz);
                     wrist = new float[] { wx, wy, wz };
                     double vx = tx - wx, vy = ty - wy, vz = tz - wz, L = Math.Sqrt(vx * vx + vy * vy + vz * vz);
                     if (L < 0.01) { wrist = (float[])tcp.Clone(); return false; }

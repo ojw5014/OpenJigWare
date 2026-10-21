@@ -7645,9 +7645,9 @@ namespace OpenJigWare
                                 strFile = strFile.Substring(1);
                             }
 #if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
-                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : "");
+                            String strFileName = ModelFile_Path(strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : ""));
 #else
-                            String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+                            String strFileName = ModelFile_Path(strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : ""));
 #endif
 
                             FileInfo f;
@@ -9395,6 +9395,8 @@ namespace OpenJigWare
                             //Ojw.CMessage.Write("MouseDown(Right) InverseNum={0}, X[{1}], Y[{2}]", m_nSelected_InverseKinematicsNumber, m_nMouse_X_Right, m_nMouse_Y_Right);
 
                             if (e.Button == MouseButtons.Right) m_nMenuStatus = 1;
+                            // orbit 피벗 모드 1: 누른 순간 커서 아래 부품을 픽해 회전 중심을 정한다 (선택 상태는 그대로)
+                            if ((e.Button == MouseButtons.Right) && (m_nOrbitPivotMode == 1)) OrbitPivot_Begin(e.X, e.Y);
                         }
                         int nInverseNum = m_nSelected_InverseKinematicsNumber;// m_nStatus_InverseKinematicsNumber;
                                                 
@@ -15574,6 +15576,7 @@ namespace OpenJigWare
                     m_nSeq_MouseUp++;
                     m_bOrbitHeldPrev = m_bOrbitPivotHeld;   // 진단용: 직전 드래그의 피벗 성립 여부 보존
                     m_bOrbitPivotHeld = false;   // 다음 우클릭 드래그에서 피벗 재확정
+                    OrbitPivot_Release();        // 모드 1: 픽 대기·피벗 표시 해제
 
                     //OjwDraw();
                     //m_nMouse_X_Left = e.X;
@@ -16207,8 +16210,10 @@ namespace OpenJigWare
                         else if (e.Button == MouseButtons.Right)
                         {
                             // 선택 오브젝트가 있으면 그 중심을 orbit 피벗으로 (드래그 시작 시 1회 확정)
+                            //   SetOrbitPivotMode(1) 이면 대신 우클릭 지점 부품 중심 / 모델 원점 (OjwMouseDown 에서 확정)
                             float fPanOld = m_fPan, fTiltOld = m_fTilt, fSwingOld = m_fSwing;
-                            if (m_bOrbitPivotHeld == false)
+                            bool bOrbitWait = (m_nOrbitPivotMode == 1) && OrbitPivot_Wait();   // 모드 1 피벗 픽이 아직이면 이번 이동량 보류
+                            if ((m_nOrbitPivotMode == 0) && (m_bOrbitPivotHeld == false))
                             {
                                 lock (m_oPivotLock)
                                 {
@@ -16244,25 +16249,27 @@ namespace OpenJigWare
                             if (m_fPan < 0) m_fPan += 360;
                             if (m_fTilt >= 360) m_fTilt -= 360;
                             if (m_fPan >= 360) m_fPan -= 360;
+                            if (bOrbitWait == true)
+                            {
+                                // 피벗이 정해지기 전 — 각도는 되돌리고 기준점(m_nMouse_X/Y_Right)도 그대로 두어
+                                // 이번 이동량이 피벗 확정 뒤 첫 이동에 합쳐 반영되게 한다 (피벗 없이 돌았다가 튀는 일 없음)
+                                m_fPan = fPanOld; m_fTilt = fTiltOld; m_fSwing = fSwingOld;
+                            }
                             if (m_bOrbitPivotHeld &&
                                 ((fPanOld != m_fPan) || (fTiltOld != m_fTilt) || (fSwingOld != m_fSwing)))
                             {
-                                // 피벗 p 의 화면 위치가 회전 후에도 유지되도록 t 재계산:
+                                // 피벗 p 의 화면 위치가 회전 후에도 유지되도록 t 재계산 (OrbitPivot_Retranslate):
                                 //   v = R_old·(p + t_old),  t_new = R_new⁻¹·v − p
-                                // Forward R = Ry(Pan)·Rx(Tilt)·Rz(Swing) — 벡터엔 Z→X→Y 순 적용,
-                                // Inverse 는 Y(-P)→X(-T)→Z(-S) (기존 역변환 코드와 동일 규약).
-                                double x = m_adOrbitDragPivot[0] + m_fX;
-                                double y = m_adOrbitDragPivot[1] + m_fY;
-                                double z = m_adOrbitDragPivot[2] + m_fZ;
-                                CMath.CalcRot(0, 0, (double)fSwingOld, ref x, ref y, ref z);
-                                CMath.CalcRot((double)fTiltOld, 0, 0, ref x, ref y, ref z);
-                                CMath.CalcRot(0, (double)fPanOld, 0, ref x, ref y, ref z);
-                                CMath.CalcRot(0, (double)(-m_fPan), 0, ref x, ref y, ref z);
-                                CMath.CalcRot((double)(-m_fTilt), 0, 0, ref x, ref y, ref z);
-                                CMath.CalcRot(0, 0, (double)(-m_fSwing), ref x, ref y, ref z);
-                                if (GetFreeze_X() == false) m_fX = (float)(x - m_adOrbitDragPivot[0]);
-                                if (GetFreeze_Y() == false) m_fY = (float)(y - m_adOrbitDragPivot[1]);
-                                if (GetFreeze_Z() == false) m_fZ = (float)(z - m_adOrbitDragPivot[2]);
+                                double px, py, pz;
+                                lock (m_oPivotLock)
+                                {
+                                    px = m_adOrbitDragPivot[0];
+                                    py = m_adOrbitDragPivot[1];
+                                    pz = m_adOrbitDragPivot[2];
+                                }
+                                OrbitPivot_Retranslate(px, py, pz, fPanOld, fTiltOld, fSwingOld, m_fPan, m_fTilt, m_fSwing,
+                                                       ref m_fX, ref m_fY, ref m_fZ, GetFreeze_X(), GetFreeze_Y(), GetFreeze_Z());
+                                if (m_nOrbitPivotMode == 1) m_bOrbitDragActive = true;   // 피벗 표시 시작
                             }
                             if (GetMouseMode() == 0)
                             {
@@ -16274,8 +16281,11 @@ namespace OpenJigWare
                             {
                                 m_nMenuStatus = 0;
                             }
-                            m_nMouse_X_Right = e.X;
-                            m_nMouse_Y_Right = e.Y;
+                            if (bOrbitWait == false)
+                            {
+                                m_nMouse_X_Right = e.X;
+                                m_nMouse_Y_Right = e.Y;
+                            }
                         }
                         else
                         {
@@ -17071,7 +17081,15 @@ namespace OpenJigWare
                     //Glut.glutInit();
                     //m_szDisplaySize = this.Size;
                     //SizeChange(m_szDisplaySize);
+                    if (m_bOrbitPickPass == true) OrbitPick_Abort();   // 직전 orbit 피벗 픽 패스가 예외로 끝나지 못했으면 GL 상태부터 복구
                     SizeChange(this.Size);
+
+                    // orbit 피벗 픽 패스 (SetOrbitPivotMode(1) 의 우클릭) — 좌클릭 픽 예약은 건드리지 않고 다음 프레임으로 넘긴다
+                    if (m_bOrbitPickReserve == true)
+                    {
+                        m_bOrbitPickReserve = false;
+                        if (OrbitPick_Ready() == true) return;
+                    }
 
                     if (m_bPickMouseClick_Reserve == true)
                     {
@@ -24668,7 +24686,9 @@ namespace OpenJigWare
                                 }
                             }
                             #endregion Test Drawing
-                            
+
+                            if (m_nOrbitPivotMode == 1) OrbitPivot_DrawMarker();   // 우클릭 드래그 중 회전 중심 표시 (모드 1 전용, 픽 프레임 제외)
+
                             long lRet = glDraw_End();
                             //bPick = IsPicking();
                             //if (bPick == true)
@@ -24853,8 +24873,11 @@ namespace OpenJigWare
                             }
 
                             String strError = String.Format("File Missing[{0}] -> " + strMessage, nCnt);
+                            m_strLastMissing = strError;
                             Ojw.CMessage.Write_Error(strError);
-                            MessageBox.Show(strError);
+                            Action<string> fMiss = MissingFileLog;
+                            if (fMiss != null) { try { fMiss(strError); } catch { } }
+                            if (MissingFileBox) MessageBox.Show(strError);
                             //MessageBox.Show(GetNoLoadedModelingFile());
                         }
                     }
@@ -25095,6 +25118,11 @@ namespace OpenJigWare
                 public long glDraw_End()
                 {
                     //Refresh();
+                    if (m_bOrbitPickPass == true)   // orbit 피벗 픽 패스 — 화면 갱신·선택 판정 없이 피벗만 정한다 (호출 측엔 일반 프레임처럼 -1)
+                    {
+                        OrbitPick_End();
+                        return -1;
+                    }
                     if (m_bPickMouseClick == true)
                     {
                         Picking_End();
@@ -26379,6 +26407,7 @@ namespace OpenJigWare
 
                 private void CacheGLMatrices()
                 {
+                    if (m_bOrbitPickPass == true) return;   // 픽 패스의 투영(픽 행렬)은 캐시하지 않는다 — ScreenToWorld* 는 마지막 화면 프레임 기준 유지
                     try
                     {
                         Gl.glGetDoublev(Gl.GL_MODELVIEW_MATRIX, m_adCachedModelview);
@@ -26419,6 +26448,476 @@ namespace OpenJigWare
                             m_adOrbitDragPivot[0], m_adOrbitDragPivot[1], m_adOrbitDragPivot[2],
                             m_adViewTMat[12], m_adViewTMat[13], m_adViewTMat[14]);
                     }
+                }
+
+                // ── 우클릭 지점 부품 중심 orbit (SetOrbitPivotMode) ─────────────────
+                //   0 = 기존 동작 (기본값). 회전 고정점은 화면 중심에 있는 씬 점 −t (t = m_fX/Y/Z) —
+                //       화면을 옮긴(pan) 뒤에는 원점이 아니다. User_SetPick 으로 선택된 부품이 있으면
+                //       그 부품 프레임 원점 (위 m_bSelPivotArm 경로). 둘 다 종전 그대로.
+                //   1 = 우클릭을 누른 순간 커서 아래 부품을 GL 픽으로 찾아 그 부품의 기하 중심
+                //       (실제로 그려지는 도형의 바운딩 박스 중심: 메시는 정점 범위, 기본 도형은 크기·오프셋)을,
+                //       빈 곳이면 모델 원점(0,0,0) — 로봇 이동/회전(SetRobot_*)까지 반영한 위치 — 을 피벗으로 쓴다.
+                //       드래그 동안 피벗의 화면 위치가 그대로이도록 t 를 다시 구한다 (OrbitPivot_Retranslate).
+                //   픽은 좌클릭과 같은 GL 선택 버퍼 방식(그리기 경로 OjwDraw 그대로)이지만 별도 패스(m_bOrbitPickPass)라
+                //   좌클릭 선택 상태(m_unObjectName·선택 그룹·GetEvent_Pick·클릭 DH 라인)는 바뀌지 않는다.
+                //   다른 앱에서 켜기: Init 뒤에 SetOrbitPivotMode(1)  (끄기 0)
+                private int m_nOrbitPivotMode = 0;
+                public void SetOrbitPivotMode(int nMode)
+                {
+                    m_nOrbitPivotMode = ((nMode == 1) ? 1 : 0);
+                    OrbitPivot_Release();
+                    lock (m_oPivotLock) { m_bOrbitPivotHeld = false; }
+                }
+                public int GetOrbitPivotMode() { return m_nOrbitPivotMode; }
+                // 모드 1 드래그 중 피벗 위치에 작은 구를 그릴지 (기본: 그림)
+                private bool m_bOrbitPivotMarker = true;
+                public void SetOrbitPivotMarker(bool bShow) { m_bOrbitPivotMarker = bShow; }
+
+                private int m_nOrbitPickState = 0;            // 0 = 없음, 1 = 픽 대기 (그리기가 막혀 아직 못 함), 2 = 피벗 확정
+                private bool m_bOrbitPickReserve = false;     // 다음 그리기를 orbit 피벗 픽 패스로
+                private bool m_bOrbitPickPass = false;        // 지금 그리는 프레임이 orbit 피벗 픽 패스
+                private bool m_bOrbitProjPushed = false;      // 픽 패스가 투영 행렬을 쌓았나 (정리용)
+                private bool m_bOrbitDragActive = false;      // 피벗 기준으로 실제 회전 중 (표시용)
+                private int m_nOrbitPickX = 0;
+                private int m_nOrbitPickY = 0;
+                private int m_nOrbitPickTick = 0;             // 우클릭 누른 시각 (Environment.TickCount)
+                private const int _ORBIT_PICK_WAIT_MS = 300;  // 이만큼 지나도 픽을 못 하면 모델 원점으로
+                private uint[] m_puiOrbitPick = new uint[4096];   // 히트 레코드 = [이름수][zMin][zMax][0][부품 번호]
+                private GCHandle m_hOrbitPick;                // glSelectBuffer 는 주소를 보관하므로 패스 동안 고정
+                private class COrbitPick_t                    // 픽 패스에서 번호를 붙인 부품 하나
+                {
+                    public COjwDisp CDisp;
+                    public double[] adMat = new double[16];   // 도형 분기 직전 모델뷰 (모터 회전 뒤, 그리기 함수의 오프셋 전)
+                }
+                private List<COrbitPick_t> m_lstOrbitPick = new List<COrbitPick_t>();
+                private COjwAse m_CAseOrbitBox = null;        // 메시 범위 캐시 (마지막 1개)
+                private int m_nOrbitBoxCnt = -1;
+                private float[] m_afOrbitBox = null;
+
+                // 우클릭 누름 (모드 1) — 누른 순간의 화면으로 픽해서 피벗 확정
+                private void OrbitPivot_Begin(int nX, int nY)
+                {
+                    OrbitPivot_Release();
+                    lock (m_oPivotLock) { m_bOrbitPivotHeld = false; }
+                    m_nOrbitPickX = nX;
+                    m_nOrbitPickY = nY;
+                    m_nOrbitPickTick = Environment.TickCount;
+                    m_nOrbitPickState = 1;
+                    OrbitPivot_RunPick();
+                }
+                // 픽 패스를 지금 바로 그린다 (좌클릭 픽처럼 마우스 이벤트 안에서 OjwDraw 한 번 — 화면은 바뀌지 않음).
+                // 그리기가 막혀 있으면 예약만 남아 다음 OjwDraw 가 픽 패스가 된다.
+                private void OrbitPivot_RunPick()
+                {
+                    if (m_nOrbitPickState != 1) return;
+                    m_bOrbitPickReserve = true;
+                    try { OjwDraw(); }
+                    catch { }
+                    if (m_bOrbitPickPass == true) OrbitPick_Abort();   // 패스 도중 예외 — GL 상태만 복구하고 대기 유지
+                }
+                // 드래그 이동 때: 아직 픽 대기면 다시 시도, 그래도 대기면 true (회전 보류).
+                // 끝내 그리기가 안 되면 모델 원점을 피벗으로 확정해 드래그가 멈춰 있지 않게 한다.
+                private bool OrbitPivot_Wait()
+                {
+                    if (m_nOrbitPickState != 1) return false;
+                    OrbitPivot_RunPick();
+                    if (m_nOrbitPickState != 1) return false;
+                    if (unchecked(Environment.TickCount - m_nOrbitPickTick) < _ORBIT_PICK_WAIT_MS) return true;
+                    m_bOrbitPickReserve = false;
+                    double px, py, pz;
+                    OrbitPivot_Origin(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot, m_fX_Robot, m_fY_Robot, m_fZ_Robot, out px, out py, out pz);
+                    OrbitPivot_SetPivot(px, py, pz);
+                    return false;
+                }
+                private void OrbitPivot_SetPivot(double px, double py, double pz)
+                {
+                    lock (m_oPivotLock)
+                    {
+                        m_adOrbitDragPivot[0] = px;
+                        m_adOrbitDragPivot[1] = py;
+                        m_adOrbitDragPivot[2] = pz;
+                        m_bOrbitPivotHeld = true;
+                    }
+                    m_nOrbitPickState = 2;
+                }
+                // 버튼을 놓을 때·모드 변경 때 대기·표시 해제
+                private void OrbitPivot_Release()
+                {
+                    m_nOrbitPickState = 0;
+                    m_bOrbitPickReserve = false;
+                    m_bOrbitDragActive = false;
+                }
+
+                // glDraw_Ready 에서 — 선택 모드로 전환 (투영은 좌클릭 Picking_Ready 와 같음, 버퍼·이름 규약만 별도)
+                private bool OrbitPick_Ready()
+                {
+                    try
+                    {
+                        m_lstOrbitPick.Clear();
+                        if (m_hOrbitPick.IsAllocated == false) m_hOrbitPick = GCHandle.Alloc(m_puiOrbitPick, GCHandleType.Pinned);
+                        Gl.glSelectBuffer(m_puiOrbitPick.Length, m_hOrbitPick.AddrOfPinnedObject());
+                        int[] viewport = new int[4];
+                        Gl.glGetIntegerv(Gl.GL_VIEWPORT, viewport);
+
+                        m_bOrbitPickPass = true;
+                        m_bPickMode = true;            // 픽 프레임 규약 그대로 (그림자 팔·공구 표시 생략)
+
+                        Gl.glMatrixMode(Gl.GL_PROJECTION);
+                        Gl.glPushMatrix();
+                        m_bOrbitProjPushed = true;
+                        Gl.glRenderMode(Gl.GL_SELECT);
+                        Gl.glInitNames();              // 이름 스택은 선택 모드에서만 유효 — 그래서 모드 전환 뒤에
+                        Gl.glPushName(0u);
+                        Gl.glLoadIdentity();
+                        Glu.gluPickMatrix((double)m_nOrbitPickX, (double)(viewport[3] - m_nOrbitPickY), 1.0, 1.0, viewport);
+                        float fRatio = (float)(_RATIO * m_fScale);
+                        Ortho((float)m_nWidth, (float)m_nHeight, fRatio);
+                        Gl.glDepthRange(-fRatio, fRatio);
+                        Gl.glMatrixMode(Gl.GL_MODELVIEW);
+                        return true;
+                    }
+                    catch
+                    {
+                        OrbitPick_Abort();
+                        return false;
+                    }
+                }
+                // OjwDraw_Class 의 도형 분기 직전 (픽 패스 전용) — 부품 번호를 쌓고 그 순간의 모델뷰 행렬을 기록
+                private bool OrbitPick_PushPart(COjwDisp OjwDisp)
+                {
+                    if (m_bSagTwinPass == true) return false;   // 처짐 그림자 팔은 부품이 아니다
+                    COrbitPick_t CPick = new COrbitPick_t();
+                    CPick.CDisp = OjwDisp;
+                    Gl.glGetDoublev(Gl.GL_MODELVIEW_MATRIX, CPick.adMat);
+                    m_lstOrbitPick.Add(CPick);
+                    Gl.glPushName((uint)m_lstOrbitPick.Count);   // 1 부터 (0 = 부품 아님)
+                    return true;
+                }
+                // 선택 모드 종료·GL 상태 복구 → 히트 수 (넘침이면 음수)
+                private int OrbitPick_Close()
+                {
+                    int nHits = -1;
+                    try { nHits = Gl.glRenderMode(Gl.GL_RENDER); }
+                    catch { }
+                    if (m_bOrbitProjPushed == true)
+                    {
+                        try
+                        {
+                            Gl.glMatrixMode(Gl.GL_PROJECTION);
+                            Gl.glPopMatrix();
+                            Gl.glMatrixMode(Gl.GL_MODELVIEW);
+                        }
+                        catch { }
+                        m_bOrbitProjPushed = false;
+                    }
+                    if (m_hOrbitPick.IsAllocated == true) m_hOrbitPick.Free();
+                    m_bPickMode = false;
+                    m_bOrbitPickPass = false;
+                    return nHits;
+                }
+                private void OrbitPick_Abort()
+                {
+                    OrbitPick_Close();
+                    m_lstOrbitPick.Clear();
+                }
+                // glDraw_End 에서 — 가장 가까운 히트의 부품 중심 (없으면 모델 원점) 을 피벗으로 확정
+                private void OrbitPick_End()
+                {
+                    int nHits = OrbitPick_Close();
+                    int nPart = (nHits > 0) ? ParseOrbitPickBuffer(m_puiOrbitPick, nHits) : 0;
+                    double px, py, pz;
+                    if (OrbitPick_PartCenter(nPart, out px, out py, out pz) == false)
+                        OrbitPivot_Origin(m_fPan_Robot, m_fTilt_Robot, m_fSwing_Robot, m_fX_Robot, m_fY_Robot, m_fZ_Robot, out px, out py, out pz);
+                    m_lstOrbitPick.Clear();
+                    if (m_nOrbitPickState == 1) OrbitPivot_SetPivot(px, py, pz);   // 그 사이 버튼을 놓았으면 버린다
+                }
+                // 부품 번호(1부터) → 그 부품 기하 중심의 씬 좌표. 번호가 없으면 false.
+                private bool OrbitPick_PartCenter(int nPart, out double px, out double py, out double pz)
+                {
+                    px = py = pz = 0;
+                    if ((nPart < 1) || (nPart > m_lstOrbitPick.Count)) return false;
+                    COrbitPick_t CPick = m_lstOrbitPick[nPart - 1];
+                    double cx, cy, cz;
+                    if (OrbitPivot_LocalCenter(CPick.CDisp, OrbitPivot_MeshBox(CPick.CDisp), out cx, out cy, out cz) == false)
+                    {
+                        cx = cy = cz = 0;   // 크기를 모르는 도형 (트랙 등) — 부품 프레임 원점
+                    }
+                    double[] adViewT = new double[16];
+                    lock (m_oPivotLock) { Array.Copy(m_adViewTMat, adViewT, 16); }   // 같은 픽 패스의 InitPosAngle 에서 캡처
+                    OrbitPivot_SceneFromDraw(adViewT, CPick.adMat, cx, cy, cz, out px, out py, out pz);
+                    return true;
+                }
+                // 메시 부품(STL/ASE/OBJ/DAT)의 로컬 정점 범위 [minX,minY,minZ,maxX,maxY,maxZ].
+                // 그리기(OjwAse_Outside)와 같은 이름 규칙으로 모델을 찾는다. 메시가 아니거나(기본 도형·트랙) 없으면 null.
+                private float[] OrbitPivot_MeshBox(COjwDisp OjwDisp)
+                {
+                    try
+                    {
+                        string strName = OjwDisp.strDispObject;
+                        if ((strName == null) || (strName.Length == 0) || (strName.IndexOf('#') >= 0)) return null;
+                        if ((strName.IndexOf('?') == 0) || (strName.IndexOf("!?") == 0) ||
+                            (strName.IndexOf('/') == 0) || (strName.IndexOf("/!") == 0)) return null;   // 트랙 (여러 조각)
+                        if (strName.LastIndexOf('*') == strName.Length - 1) strName = strName.Substring(0, strName.Length - 1);
+                        if (strName.Length == 0) return null;
+                        int nIndex = OjwAse_GetIndex(strName);
+                        if ((nIndex < 0) || (nIndex >= m_nCnt_Obj_Ase) || (nIndex >= m_lstOjwAse.Count)) return null;
+                        COjwAse CAse = m_lstOjwAse[nIndex];
+                        int nCnt = CAse.Data_GetCnt();
+                        if (nCnt <= 0) return null;
+                        if ((CAse == m_CAseOrbitBox) && (nCnt == m_nOrbitBoxCnt)) return m_afOrbitBox;
+                        float[] afBox = new float[6] { float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue, float.MinValue, float.MinValue };
+                        for (int i = 0; i < nCnt; i++)
+                        {
+                            SVector4D_t SVec = CAse.Data_Get(i);
+                            if (SVec.x < afBox[0]) afBox[0] = SVec.x;
+                            if (SVec.y < afBox[1]) afBox[1] = SVec.y;
+                            if (SVec.z < afBox[2]) afBox[2] = SVec.z;
+                            if (SVec.x > afBox[3]) afBox[3] = SVec.x;
+                            if (SVec.y > afBox[4]) afBox[4] = SVec.y;
+                            if (SVec.z > afBox[5]) afBox[5] = SVec.z;
+                        }
+                        if (afBox[0] > afBox[3]) return null;
+                        m_CAseOrbitBox = CAse;
+                        m_nOrbitBoxCnt = nCnt;
+                        m_afOrbitBox = afBox;
+                        return afBox;
+                    }
+                    catch { return null; }
+                }
+                // 모드 1 드래그 중 피벗 위치 표시 — OjwDraw 끝 (화면 프레임에서만) 에 작은 구 하나, 깊이 무시
+                private void OrbitPivot_DrawMarker()
+                {
+                    if ((m_bOrbitPivotMarker == false) || (m_bOrbitDragActive == false) || (m_bPickMode == true)) return;
+                    double px, py, pz;
+                    lock (m_oPivotLock)
+                    {
+                        if (m_bOrbitPivotHeld == false) return;
+                        px = m_adOrbitDragPivot[0];
+                        py = m_adOrbitDragPivot[1];
+                        pz = m_adOrbitDragPivot[2];
+                    }
+                    try
+                    {
+                        // 화면 반지름 약 5 px (정사영: 화면 짧은 쪽 반폭 = _RATIO * m_fScale)
+                        int nHalf = Math.Max(1, Math.Min(m_nWidth, m_nHeight) / 2);
+                        float fR = 5.0f * _RATIO * m_fScale / (float)nHalf;
+                        Gl.glPushAttrib(Gl.GL_ENABLE_BIT | Gl.GL_CURRENT_BIT);
+                        Gl.glPushMatrix();
+                        try
+                        {
+                            Gl.glDisable(Gl.GL_DEPTH_TEST);   // 부품 속(중심)에 있어도 보이게
+                            Gl.glLoadIdentity();
+                            Glu.gluLookAt(0, 0, 2000 * m_fScale, 0, 0, 0, 0, 1, 0);
+                            if (m_nCoordMode != 0) OjwRotation(m_fCoordBase_Pan, m_fCoordBase_Tilt, m_fCoordBase_Swing);
+                            OjwRotation(m_fPan, m_fTilt, m_fSwing);
+                            OjwTranslate(m_fX, m_fY, m_fZ);
+                            Gl.glTranslated(px, py, pz);
+                            OjwBall(true, Color.Magenta, 1.0f, fR, 16);
+                        }
+                        finally
+                        {
+                            Gl.glPopMatrix();
+                            Gl.glPopAttrib();
+                        }
+                    }
+                    catch { }
+                }
+
+                // ── orbit 피벗 계산 — GL 없이 검증할 수 있도록 순수 함수로 분리 ──
+                // 점에 축 회전 적용 (nAxis 0=X, 1=Y, 2=Z, 오른손 법칙 = glRotate 와 같은 부호)
+                private static void OrbitRotAxis(int nAxis, double dDeg, ref double x, ref double y, ref double z)
+                {
+                    if (dDeg == 0) return;
+                    double dRad = dDeg * Math.PI / 180.0;
+                    double c = Math.Cos(dRad), s = Math.Sin(dRad), a, b;
+                    if (nAxis == 0) { a = y * c - z * s; b = y * s + z * c; y = a; z = b; }
+                    else if (nAxis == 1) { a = x * c + z * s; b = -x * s + z * c; x = a; z = b; }
+                    else { a = x * c - y * s; b = x * s + y * c; x = a; y = b; }
+                }
+                // OjwRotation(pan, tilt, swing) 의 회전 Ry(pan)·Rx(tilt)·Rz(swing) 을 점에 적용 (Rz 부터)
+                private static void OrbitRotGl(double dPan, double dTilt, double dSwing, ref double x, ref double y, ref double z)
+                {
+                    OrbitRotAxis(2, dSwing, ref x, ref y, ref z);
+                    OrbitRotAxis(0, dTilt, ref x, ref y, ref z);
+                    OrbitRotAxis(1, dPan, ref x, ref y, ref z);
+                }
+                // 메시(OjwAse_Outside)·OjwBox_Outside 의 오프셋 회전 Rz(swing)·Rx(tilt)·Ry(pan) 을 점에 적용 (Ry 부터)
+                private static void OrbitRotMesh(double dPan, double dTilt, double dSwing, ref double x, ref double y, ref double z)
+                {
+                    OrbitRotAxis(1, dPan, ref x, ref y, ref z);
+                    OrbitRotAxis(0, dTilt, ref x, ref y, ref z);
+                    OrbitRotAxis(2, dSwing, ref x, ref y, ref z);
+                }
+                /// <summary>부품이 그려지는 프레임(OjwDraw_Class 의 도형 분기 직전 행렬) 기준, 실제로 그려지는 도형의 바운딩 박스 중심.
+                /// 각 그리기 함수가 오프셋(SOffset_Trans/Rot)을 적용하는 순서를 그대로 따른다.
+                /// afMeshBox = 메시 로컬 정점 범위 (메시가 아니면 null). 크기를 알 수 없으면 false (호출 측은 프레임 원점 사용).</summary>
+                private static bool OrbitPivot_LocalCenter(COjwDisp OjwDisp, float[] afMeshBox, out double cx, out double cy, out double cz)
+                {
+                    cx = cy = cz = 0;
+                    if ((OjwDisp == null) || (OjwDisp.strDispObject == null)) return false;
+                    string str = OjwDisp.strDispObject;
+                    double dW = OjwDisp.fWidth_Or_Radius, dH = OjwDisp.fHeight_Or_Depth, dT = OjwDisp.fThickness;
+                    double x = 0, y = 0, z = 0;
+                    int nOffset = 1;   // 0 = 오프셋 없음, 1 = glTranslate(오프셋)·OjwRotation(회전), 2 = Rz·Rx·Ry 회전 후 오프셋 (메시·#7)
+                    switch (str)
+                    {
+                        case "#0": y = -dH / 2.0; nOffset = 0; break;      // OjwBox: x ±W/2, y -H~0, z ±D/2
+                        case "#1": z = dH / 2.0; nOffset = 0; break;       // OjwCircle: 반지름 W, z 0~H
+                        case "#2": nOffset = 0; break;                     // OjwBall: 원점 중심
+                        case "#3":
+                        case "#4": y = -dH / 2.0; break;                   // OjwCase ('ㄷ' 상자, 근사: y -H~0)
+                        case "#5":
+                        case "#6":                                         // OjwCase_half: x 범위는 그리기 식 그대로, y 는 근사
+                            {
+                                double dW2 = dW * 2.0;
+                                if (dW2 < 0) dW2 -= dT * 2.0;
+                                double dSign = (dW2 >= 0) ? 1.0 : -1.0;
+                                double dX1 = -(dW2 + dT * 2.0 * dSign) / 2.0;
+                                if (dW2 < 0) dX1 -= dT;
+                                double dX3 = (-dW2 - dT * 2.0 * dSign) / 2.0;
+                                if (dW2 < 0) dX3 -= dT * 2.0;
+                                double dX4 = -dW2 / 2.0;
+                                double dMin = Math.Min(Math.Min(dX1, 0.0), Math.Min(dX3, dX4));
+                                double dMax = Math.Max(Math.Max(dX1, 0.0), Math.Max(dX3, dX4));
+                                x = (dMin + dMax) / 2.0;
+                                y = -dH / 2.0;
+                            }
+                            break;
+                        case "#7": y = -dH / 2.0; nOffset = 2; break;      // OjwBox_Outside: 꼭짓점을 Rotation(tilt,pan,swing) 후 오프셋
+                        case "#8":
+                        case "#19": z = dH / 2.0; break;                   // 원기둥: 반지름 W, z 0~H
+                        case "#9":
+                        case "#20": break;                                 // 구: 오프셋 위치가 중심
+                        case "#10": z = dH / 2.0; break;                   // 원뿔: 밑면 z=0, 꼭짓점 z=H
+                        case "#11":
+                        case "#12":
+                        case "#13":
+                        case "#14":
+                            {
+                                // 화살표: 굵기 W, 길이 H (음수면 반대 방향) — 시작 공(-W/2) ~ 화살촉 끝(|H|+1.5W)
+                                double dLen = (Math.Abs(dH) + dW) / 2.0 * ((dH < 0) ? -1.0 : 1.0);
+                                if (str == "#11") x = dLen;
+                                else if (str == "#12") y = dLen;
+                                else if (str == "#13") z = dLen;
+                                else { x = dLen; y = dLen; z = dLen; }
+                            }
+                            break;
+                        case "#15":
+                        case "#16":
+                        case "#17":
+                        case "#18":
+                            {
+                                List<SVector3D_t> lstPoints = OjwDisp.Points;
+                                int nCnt = (lstPoints == null) ? 0 : lstPoints.Count;
+                                if (str == "#15") nCnt = Math.Min(nCnt, 1);
+                                else if (str == "#17") nCnt = Math.Min(nCnt, 2);
+                                if (nCnt <= 0) return false;
+                                double[] adMin = new double[3] { double.MaxValue, double.MaxValue, double.MaxValue };
+                                double[] adMax = new double[3] { double.MinValue, double.MinValue, double.MinValue };
+                                for (int i = 0; i < nCnt; i++)
+                                {
+                                    SVector3D_t SPnt = lstPoints[i];
+                                    adMin[0] = Math.Min(adMin[0], SPnt.x); adMax[0] = Math.Max(adMax[0], SPnt.x);
+                                    adMin[1] = Math.Min(adMin[1], SPnt.y); adMax[1] = Math.Max(adMax[1], SPnt.y);
+                                    adMin[2] = Math.Min(adMin[2], SPnt.z); adMax[2] = Math.Max(adMax[2], SPnt.z);
+                                }
+                                x = (adMin[0] + adMax[0]) / 2.0;
+                                y = (adMin[1] + adMax[1]) / 2.0;
+                                z = (adMin[2] + adMax[2]) / 2.0;
+                            }
+                            break;
+                        default:
+                            if ((afMeshBox == null) || (afMeshBox.Length < 6)) return false;   // 크기를 모름 (트랙 등)
+                            x = ((double)afMeshBox[0] + afMeshBox[3]) / 2.0;
+                            y = ((double)afMeshBox[1] + afMeshBox[4]) / 2.0;
+                            z = ((double)afMeshBox[2] + afMeshBox[5]) / 2.0;
+                            nOffset = 2;                                   // OjwAse_Outside: T(오프셋)·Rz(swing)·Rx(tilt)·Ry(pan)
+                            break;
+                    }
+                    if (nOffset == 1) OrbitRotGl(OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, ref x, ref y, ref z);
+                    else if (nOffset == 2) OrbitRotMesh(OjwDisp.SOffset_Rot.pan, OjwDisp.SOffset_Rot.tilt, OjwDisp.SOffset_Rot.swing, ref x, ref y, ref z);
+                    if (nOffset != 0)
+                    {
+                        x += OjwDisp.SOffset_Trans.x;
+                        y += OjwDisp.SOffset_Trans.y;
+                        z += OjwDisp.SOffset_Trans.z;
+                    }
+                    cx = x; cy = y; cz = z;
+                    return true;
+                }
+                /// <summary>뷰 기준행렬 V_T (InitPosAngle 의 뷰 변환 직후, column-major)와 부품 그리기 행렬 M 으로
+                /// 부품 로컬 점 c 의 씬 좌표 p = inv(V_T)·M·c 를 구한다. V_T 는 강체 변환이라 inv(V_T) = [Rᵀ | −Rᵀ·c].</summary>
+                private static void OrbitPivot_SceneFromDraw(double[] adViewT, double[] adDraw, double cx, double cy, double cz,
+                                                             out double px, out double py, out double pz)
+                {
+                    double ex = adDraw[0] * cx + adDraw[4] * cy + adDraw[8] * cz + adDraw[12];
+                    double ey = adDraw[1] * cx + adDraw[5] * cy + adDraw[9] * cz + adDraw[13];
+                    double ez = adDraw[2] * cx + adDraw[6] * cy + adDraw[10] * cz + adDraw[14];
+                    double vx = ex - adViewT[12], vy = ey - adViewT[13], vz = ez - adViewT[14];
+                    px = adViewT[0] * vx + adViewT[1] * vy + adViewT[2] * vz;
+                    py = adViewT[4] * vx + adViewT[5] * vy + adViewT[6] * vz;
+                    pz = adViewT[8] * vx + adViewT[9] * vy + adViewT[10] * vz;
+                }
+                /// <summary>모델 원점(0,0,0)의 씬 좌표 — InitPosAngle 의 로봇 변환 OjwRotation(회전)·OjwTranslate(이동) 반영.
+                /// 로봇 변환이 없으면 (0,0,0) = 기준축 원점.</summary>
+                private static void OrbitPivot_Origin(float fPan, float fTilt, float fSwing, float fX, float fY, float fZ,
+                                                      out double px, out double py, out double pz)
+                {
+                    double x = fX, y = fY, z = fZ;
+                    OrbitRotGl(fPan, fTilt, fSwing, ref x, ref y, ref z);
+                    px = x; py = y; pz = z;
+                }
+                /// <summary>피벗 p(씬 좌표)의 화면 위치가 회전 전후로 같도록 화면 평행이동 t(m_fX/Y/Z)를 다시 구한다.
+                ///   v = R_old·(p + t_old),  t_new = R_new⁻¹·v − p,  R = Ry(Pan)·Rx(Tilt)·Rz(Swing)
+                /// 좌표 모드 1 의 기준 회전 B 는 R 의 바깥(왼쪽)에 곱해지므로 B·R_new·(p+t_new) = B·R_old·(p+t_old) 에서
+                /// 소거된다 — 두 좌표 모드 모두 같은 식. 고정(Freeze)된 축은 바꾸지 않는다.</summary>
+                private static void OrbitPivot_Retranslate(double px, double py, double pz,
+                                                           float fPanOld, float fTiltOld, float fSwingOld,
+                                                           float fPanNew, float fTiltNew, float fSwingNew,
+                                                           ref float fX, ref float fY, ref float fZ,
+                                                           bool bFreezeX, bool bFreezeY, bool bFreezeZ)
+                {
+                    // Forward R = Ry(Pan)·Rx(Tilt)·Rz(Swing) — 벡터엔 Z→X→Y 순 적용,
+                    // Inverse 는 Y(-P)→X(-T)→Z(-S) (기존 역변환 코드와 동일 규약).
+                    double x = px + fX;
+                    double y = py + fY;
+                    double z = pz + fZ;
+                    CMath.CalcRot(0, 0, (double)fSwingOld, ref x, ref y, ref z);
+                    CMath.CalcRot((double)fTiltOld, 0, 0, ref x, ref y, ref z);
+                    CMath.CalcRot(0, (double)fPanOld, 0, ref x, ref y, ref z);
+                    CMath.CalcRot(0, (double)(-fPanNew), 0, ref x, ref y, ref z);
+                    CMath.CalcRot((double)(-fTiltNew), 0, 0, ref x, ref y, ref z);
+                    CMath.CalcRot(0, 0, (double)(-fSwingNew), ref x, ref y, ref z);
+                    if (bFreezeX == false) fX = (float)(x - px);
+                    if (bFreezeY == false) fY = (float)(y - py);
+                    if (bFreezeZ == false) fZ = (float)(z - pz);
+                }
+                /// <summary>orbit 피벗 픽 버퍼 판독 — 가장 가까운 히트의 부품 번호(1부터)를 돌려준다. 가장 가까운 것이
+                /// 이름 없는 도형(기준축·바닥 등)이거나 히트가 없으면 0. 이름 스택은 [0(초기), 부품 번호] 라서 이름이 2개
+                /// 이상인 레코드의 마지막 이름이 부품 번호다. 깊이가 같으면 나중에 그린 쪽 (좌클릭 판독 규약과 같음).</summary>
+                private static int ParseOrbitPickBuffer(uint[] buf, int nHits)
+                {
+                    if ((buf == null) || (nHits <= 0)) return 0;
+                    int nPos = 0, nPart = 0;
+                    bool bFind = false;
+                    uint unBest = 0xffffffff;
+                    for (int i = 0; i < nHits; i++)
+                    {
+                        if (nPos + 3 > buf.Length) break;              // 버퍼 넘침 방어
+                        long lSize = buf[nPos++];
+                        uint unMin = buf[nPos++];
+                        nPos++;                                         // zMax (미사용)
+                        if (nPos + lSize > buf.Length) break;
+                        int nSize = (int)lSize;
+                        if ((bFind == false) || (unMin <= unBest))
+                        {
+                            bFind = true;
+                            unBest = unMin;
+                            nPart = (nSize >= 2) ? (int)buf[nPos + nSize - 1] : 0;
+                        }
+                        nPos += nSize;
+                    }
+                    return nPart;
                 }
 
                 /// <summary>
@@ -26588,7 +27087,7 @@ namespace OpenJigWare
                     }
                     else
                     {
-                        if ((m_bPickMode == true) && (unObjectName > 0))
+                        if ((m_bPickMode == true) && (unObjectName > 0) && (m_bOrbitPickPass == false))   // orbit 피벗 픽 패스는 부품 번호만 쌓는다
                         {
                             // ★이름을 두 개 쌓는다: [부품 식별자(DhLine+1), 그룹 이름]
                             //   그룹 이름만으로는 같은 모터 그룹의 여러 부품(관절 볼 / 링크 봉 / …)이
@@ -27587,6 +28086,9 @@ namespace OpenJigWare
                         }
                     }
 
+                    // orbit 피벗 픽 패스 (SetOrbitPivotMode(1) 의 우클릭): 부품마다 번호를 쌓고 지금(도형 직전)의 모델뷰 행렬을 기록
+                    bool bOrbitName = (m_bOrbitPickPass == true) && OrbitPick_PushPart(OjwDisp);
+
                     if (OjwDisp.strDispObject == "#-1")
                     {
                     }
@@ -27889,12 +28391,14 @@ namespace OpenJigWare
                     //bPicking = false;
                     //}
 
+                    if (bOrbitName == true) Gl.glPopName();   // orbit 피벗 픽: 부품 번호
+
                     if (bMate == true)
                     {
                     }
                     else
                     {
-                        if ((m_bPickMode == true) && (unObjectName > 0))
+                        if ((m_bPickMode == true) && (unObjectName > 0) && (m_bOrbitPickPass == false))
                         {
                             PopName();   // 그룹 이름
                             PopName();   // 부품 식별자 (DhLine+1)
@@ -35256,6 +35760,77 @@ namespace OpenJigWare
                     m_strAseFilePath = ("\\" + strPath.Trim('\\') + "\\");
                 }//("\\" + strPath.Trim('\\') + "\\"); }
                 public string GetAseFile_Path() { return m_strAseFilePath; }
+                // ── 모델(메시) 파일 찾는 폴더 더하기 (2026-10-15) ──
+                //   기본 자리 = 실행 파일 폴더 + SetAseFile_Path. 거기 없으면 SetMeshDirs 로 준 폴더(전체 경로)를 차례로 본다
+                //   (예제 실행기 OjwPyRunner 가 STL 폴더 칸으로 MakeUrdf 의 STL 폴더를 복사하지 않고 그대로 쓴다)
+                private string[] m_astrMeshDirs = new string[0];
+                /// <summary>모델(STL·ASE·DAT·OBJ) 파일을 더 찾아볼 폴더 (전체 경로, 차례대로). 기본 자리(실행 파일 폴더 + SetAseFile_Path)에 없을 때만 본다. null = 비움</summary>
+                public void SetMeshDirs(string[] astrDirs)
+                {
+                    var lst = new List<string>();
+                    if (astrDirs != null)
+                        foreach (string d in astrDirs)
+                        {
+                            if (string.IsNullOrEmpty(d) || d.Trim().Length == 0) continue;
+                            string p = d.Trim().Trim('"');
+                            try { p = Path.GetFullPath(p); } catch { continue; }
+                            bool bDup = false;
+                            foreach (string q in lst) if (string.Equals(q, p, StringComparison.OrdinalIgnoreCase)) bDup = true;
+                            if (!bDup) lst.Add(p);
+                        }
+                    m_astrMeshDirs = lst.ToArray();
+                }
+                /// <summary>SetMeshDirs 로 준 폴더 (사본)</summary>
+                public string[] GetMeshDirs() { return (string[])m_astrMeshDirs.Clone(); }
+                // 모델 파일 이름 → 읽을 경로. 기본 자리에 있으면 그것, 없으면 더한 폴더에서 찾은 것, 어디에도 없으면 기본 자리 (없는 파일 — 'File Missing' 목록으로 간다).
+                //   이름 끝의 '*' (STL 원점 옮기기 표시) 는 그대로 붙여 돌려준다
+                private string ModelFile_Path(string strName)
+                {
+                    string strDef = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strName;
+                    try
+                    {
+                        bool bStar = strName.Length > 0 && strName[strName.Length - 1] == '*';
+                        string n = bStar ? strName.Substring(0, strName.Length - 1) : strName;
+                        if (File.Exists(bStar ? strDef.Substring(0, strDef.Length - 1) : strDef)) return strDef;
+                        string[] dirs = m_astrMeshDirs;
+                        foreach (string d in dirs)
+                        {
+                            string p = Path.Combine(d, n.TrimStart('\\', '/'));
+                            if (File.Exists(p)) return p + (bStar ? "*" : "");
+                        }
+                    }
+                    catch { }
+                    return strDef;
+                }
+                /// <summary>모델 파일을 찾지 못했을 때 ('File Missing[n] -> …') 창으로 알린다 (기본 true). false 면 창 없이 MissingFileLog·CMessage 로만</summary>
+                public bool MissingFileBox = true;
+                /// <summary>모델 파일을 찾지 못했을 때 그 한 줄을 받을 곳 (null = 없음) — 그리는 스레드에서 부른다</summary>
+                public Action<string> MissingFileLog = null;
+                /// <summary>지금 그림 모델(CompileDesign 한 OjwDispAll) 가운데 읽지 못한 모델 파일 이름 (중복 없이) — 그리기 전에 알 수 있다
+                /// ('File Missing' 창은 첫 그리기에서 뜬다). 예외 없음</summary>
+                public string[] MissingModelFiles()
+                {
+                    var l = new List<string>();
+                    try
+                    {
+                        int n = OjwDispAll.GetCount();
+                        for (int i = 0; i < n; i++)
+                        {
+                            COjwDisp c = OjwDispAll.GetData(i);
+                            if (c == null || string.IsNullOrEmpty(c.strDispObject) || c.strDispObject.IndexOf('#') >= 0) continue;
+                            string s = c.strDispObject;
+                            if ((s.IndexOf('?') >= 0) || (s.IndexOf('/') >= 0)) s = s.Substring(1);     // CompileDesign 과 같은 규칙
+                            s = s.TrimEnd('*');
+                            if (s.Length == 0 || s.IndexOf('?') >= 0) continue;
+                            if (OjwAse_GetIndex(s) < 0 && !l.Contains(s)) l.Add(s);
+                        }
+                    }
+                    catch { }
+                    return l.ToArray();
+                }
+                /// <summary>마지막 'File Missing' 한 줄 ("" = 없음)</summary>
+                public string LastMissingFiles { get { return m_strLastMissing; } }
+                private string m_strLastMissing = "";
                 private int m_nSeq_Compile = 0;
                 private int m_nSeq_Compile_Back = 0;
                 private int[] m_pnName_List = null; 
@@ -35299,9 +35874,9 @@ namespace OpenJigWare
                                             strFile = strFile.Substring(1);
                                         }
 #if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
-                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : "");
+                                        String strFileName = ModelFile_Path(strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : ""));
 #else
-                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+                                        String strFileName = ModelFile_Path(strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : ""));
 #endif
                                         FileInfo f;
                                         int nOld = strFileName.LastIndexOf('*');
@@ -35461,9 +36036,9 @@ namespace OpenJigWare
                                             strFile = strFile.Substring(1);
                                         }
 #if _CHANGE_DEFAULT_FROM_ASE_TO_DAT
-                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : "");
+                                        String strFileName = ModelFile_Path(strFile + ((strFile.IndexOf('.') < 0) ? ".dat" : ""));
 #else
-                                        String strFileName = Application.StartupPath.Trim('\\') + GetAseFile_Path() + strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : "");
+                                        String strFileName = ModelFile_Path(strFile + ((strFile.IndexOf('.') < 0) ? ".ase" : ""));
 #endif
                                         FileInfo f;
                                         int nOld = strFileName.LastIndexOf('*');
@@ -37310,14 +37885,24 @@ namespace OpenJigWare
             {
                 FileSave(strFileName, CHeader, null);
             }
+            private String m_strFileSave_Error = String.Empty;
+            /// <summary>마지막 FileSave 가 파일을 끝까지 쓰지 못한 까닭 ("" = 끝까지 씀).
+            /// FileSave 는 쓰는 도중 예외를 밖으로 내지 않고 그 자리에서 파일을 닫는다 (파일이 거기서 잘린다) — 부르는 쪽이 저장 실패의 까닭을 알 수 있게 남긴다.
+            /// 쓴 뒤의 DH 해석(메모리 헤더) 오류는 넣지 않는다 (파일은 이미 다 썼다)</summary>
+            public String GetFileSave_Error() { return m_strFileSave_Error; }
             /// <summary>strSaveVersion 은 항상 null 로 호출한다 (= 최신 버전으로 저장).
             /// 구버전 형식 저장은 현재 사용하지 않아 private 으로 닫아 두었다.
-            /// 되살리려면 public 으로 바꾸고 아래 "구버전 저장 가능 여부 검사" 블록을 해제할 것 (③ 지점).</summary>
+            /// 되살리려면 public 으로 바꾸고 아래 "구버전 저장 가능 여부 검사" 블록을 해제할 것 (③ 지점).
+            /// 문자열 칸이 null 이면 빈 글(길이 0)로 쓴다 — 읽을 때 길이 0 은 "" 라 형식·버전은 그대로다.
+            ///   (예전에는 null 을 Encoding.GetBytes 에 넘겨 예외가 났고, 아래 catch 가 삼켜 파일이 그 칸에서 잘렸다 — 다시 읽지 못하는 .ojw.
+            ///    MakeUrdf 는 안 쓰는 수식 슬롯을 null 로 비운다)</summary>
             private void FileSave(String strFileName, COjwDesignerHeader CHeader, String strSaveVersion)
             {
+                m_strFileSave_Error = String.Empty;
                 //int nVersion =
                 if (strFileName == "")
                 {
+                    m_strFileSave_Error = "File Save Error - Null FileName";
                     Ojw.CMessage.Write_Error("File Save Error - Null FileName");
                     return;
                 }
@@ -37326,6 +37911,7 @@ namespace OpenJigWare
                 String strFileVersion = (String.IsNullOrEmpty(strSaveVersion)) ? _STR_EXT_VERSION : strSaveVersion;
                 if ((_STR_EXT.Length != 3) || (strFileVersion.Length != 8))
                 {
+                    m_strFileSave_Error = "Incorrect File Version";
                     Ojw.CMessage.Write_Error("Incorrect File Version");
                     return;
                 }
@@ -37347,6 +37933,7 @@ namespace OpenJigWare
 
                 FileInfo f = new FileInfo(strFileName);
                 FileStream fs = f.Create();
+                bool bWritten = false;                          // 파일을 끝까지 쓰고 닫았다 (그 뒤는 메모리 헤더의 DH 해석)
 
                 try
                 {
@@ -37388,7 +37975,7 @@ namespace OpenJigWare
                     if (nVersion >= 010800)
                     {
                         // Name
-                        byteData = Encoding.Default.GetBytes(CHeader.strTitle);
+                        byteData = Encoding.Default.GetBytes(CHeader.strTitle ?? String.Empty);
                         for (i = 0; i < 20; i++)
                         {
                             if (i < byteData.Length) fs.WriteByte(byteData[i]);
@@ -37403,7 +37990,7 @@ namespace OpenJigWare
                     #region Title  ( 21 Bytes )
                     // Name
                     //byteData = Encoding.Default.GetBytes(m_CHeader.strModelName);
-                    byteData = Encoding.Default.GetBytes(CHeader.strModelName);
+                    byteData = Encoding.Default.GetBytes(CHeader.strModelName ?? String.Empty);
                     for (i = 0; i < 20; i++)
                     {
                         if (i < byteData.Length) fs.WriteByte(byteData[i]);
@@ -37710,7 +38297,8 @@ namespace OpenJigWare
                         #endregion Encrypetion
 
                         #region Char - GroupName
-                        byteData = Encoding.Default.GetBytes(m_CHeader.pstrGroupName[i]); // The name of the group that are listed in the string(Kor: 스트링으로 적혀있는 해당 그룹의 이름)
+                        // 슬롯 글(그룹 이름·수식·역기구학)이 null 이면 빈 글(길이 0)로 쓴다 — 읽을 때 길이 0 = "" (형식 그대로)
+                        byteData = Encoding.Default.GetBytes(m_CHeader.pstrGroupName[i] ?? String.Empty); // The name of the group that are listed in the string(Kor: 스트링으로 적혀있는 해당 그룹의 이름)
                         #region Char Size - Forward ( 2 Bytes )
                         byteData2 = BitConverter.GetBytes((short)(byteData.Length));
                         fs.Write(byteData2, 0, 2);
@@ -37724,10 +38312,10 @@ namespace OpenJigWare
                         #region Char - Forward
 
                         bool bSecret = (m_CHeader.pnSecret[i] > 0) ? true : false;
-                        if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i]);
+                        if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i] ?? String.Empty);
                         else
                         {
-                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i]);
+                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrKinematics[i] ?? String.Empty);
                             byteData = CEncryption.Encryption(bSecret, byteData);
                         }
 
@@ -37739,10 +38327,10 @@ namespace OpenJigWare
                         #endregion Char - Forward
 
                         #region Char - Inverse
-                        if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i]);
+                        if (bSecret == false) byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i] ?? String.Empty);
                         else
                         {
-                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i]);
+                            byteData = Encoding.Default.GetBytes(m_CHeader.pstrInverseKinematics[i] ?? String.Empty);
                             byteData = CEncryption.Encryption(bSecret, byteData);
                         }
                         #region Char Size - Inverse ( 2 Bytes, 32767 초과 시 2+4 Bytes )
@@ -37761,7 +38349,7 @@ namespace OpenJigWare
                     #region actual design string(Kor: 실 디자인 스트링)
 
                     #region Char - actual design string(Kor: 실 디자인 스트링)
-                    byteData = Encoding.Default.GetBytes(CHeader.strDrawModel);
+                    byteData = Encoding.Default.GetBytes(CHeader.strDrawModel ?? String.Empty);
                     #region Char Size - actual design string(Kor: 실 디자인 스트링) ( 01.09.00~ 4 Bytes, 이전 2 Bytes )
                     WriteStringLength_DrawModel(fs, nVersion, byteData.Length);
                     #endregion Char Size - actual design string(Kor: 실 디자인 스트링) ( 01.09.00~ 4 Bytes, 이전 2 Bytes )
@@ -37789,7 +38377,7 @@ namespace OpenJigWare
                         fs.Write(byteData2, 0, 2);
                         byteData2 = null;
                         #endregion Char Size - Comment ( 2 Bytes )
-                        for (j = 0; j < CHeader.strComment.Length; j++) fs.WriteByte(byteData[j]);
+                        for (j = 0; j < byteData.Length; j++) fs.WriteByte(byteData[j]); // 길이 칸과 같은 바이트 수만큼 (예전에는 글자 수만큼 써서 한글 설명이면 길이 칸과 어긋났다)
                         byteData = null;
                     }
                     #endregion Char - Comment
@@ -37825,7 +38413,7 @@ namespace OpenJigWare
                             byteData2 = null;
 
                             // GroupName
-                            byteData = Encoding.Default.GetBytes(m_CHeader.lstGroupInfo[k].strName);
+                            byteData = Encoding.Default.GetBytes(m_CHeader.lstGroupInfo[k].strName ?? String.Empty);
 
                             // GroupName(Size)
                             byteData2 = BitConverter.GetBytes((short)(byteData.Length));
@@ -37875,7 +38463,7 @@ namespace OpenJigWare
 
 
                         // strBleName
-                        byteData = Encoding.Default.GetBytes(m_CHeader.SJson.strBleName);
+                        byteData = Encoding.Default.GetBytes(m_CHeader.SJson.strBleName ?? String.Empty);
                         // strBleName(Size)
                         byteData2 = BitConverter.GetBytes((short)(byteData.Length));
                         fs.Write(byteData2, 0, 2);
@@ -37909,40 +38497,52 @@ namespace OpenJigWare
                     }
                     #endregion GroupInfo
 
-
+                    #region 확장 구역 끝 꼬리 블록 (2026-10-15) — 헤더에 확장 구역이 있을 때만 ('OJWX' + 길이 + XML + 'XE', 옛 읽기는 Json 칸 뒤를 보지 않아 무시한다)
+                    OjwText_WriteBinaryTail(fs, CHeader);
+                    #endregion 확장 구역 끝 꼬리 블록 (2026-10-15) — 헤더에 확장 구역이 있을 때만 ('OJWX' + 길이 + XML + 'XE', 옛 읽기는 Json 칸 뒤를 보지 않아 무시한다)
 
                     fs.Close();
+                    bWritten = true;
 
                     //if (m_bAutoSaved == false) Modify(false);
 
                     byteData = null;
                     byteData2 = null;
 
-                    //////////////////////////////
-                    // Memory available for Dh(Kor: Dh 를 위한 메모리 확보)
-                    m_CHeader.pDhParamAll = new CDhParamAll[512];
-                    int nCnt_InverseKinematics = 0;
-                    for (i = 0; i < 512; i++)
-                    {
-                        if (m_CHeader.pstrKinematics[i] != null)
-                        {
-                            if (m_CHeader.pstrKinematics[i].Length > 0)
-                            {
-                                // Forward
-                                Ojw.CKinematics.CForward.MakeDhParam(m_CHeader.pstrKinematics[i], out m_CHeader.pDhParamAll[i]);
-                                // Inverse
-                                bool bError = Ojw.CKinematics.CInverse.Compile(((m_CHeader.pbPython[i] == true) ? "!" : string.Empty) + m_CHeader.pstrInverseKinematics[i], out m_CHeader.pSOjwCode[i]);
-
-                                /////////////
-                                if (m_CHeader.pSOjwCode[i].nMotor_Max > 0) nCnt_InverseKinematics++;
-                            }
-                        }
-                    }
+                    FileSave_RebuildDh();
                 }
-                catch
+                catch (Exception ex)
                 {
                     //Message("File save error");
                     fs.Close();
+                    if (bWritten == false)
+                    {
+                        // 쓰는 도중 예외 — 파일은 여기서 잘린 채 닫혔다 (다시 읽지 못한다). 까닭을 남기고 알린다 (예전에는 소리 없이 삼켰다)
+                        m_strFileSave_Error = ex.GetType().Name + ": " + ex.Message;
+                        try { Ojw.CMessage.Write_Error("File Save Error - " + strFileName + " (" + m_strFileSave_Error + ")"); } catch { }
+                    }
+                }
+            }
+            // 저장 뒤 처리 — Memory available for Dh(Kor: Dh 를 위한 메모리 확보). 바이너리·텍스트 FileSave 가 같이 쓴다
+            private void FileSave_RebuildDh()
+            {
+                m_CHeader.pDhParamAll = new CDhParamAll[512];
+                int nCnt_InverseKinematics = 0;
+                for (int i = 0; i < 512; i++)
+                {
+                    if (m_CHeader.pstrKinematics[i] != null)
+                    {
+                        if (m_CHeader.pstrKinematics[i].Length > 0)
+                        {
+                            // Forward
+                            Ojw.CKinematics.CForward.MakeDhParam(m_CHeader.pstrKinematics[i], out m_CHeader.pDhParamAll[i]);
+                            // Inverse
+                            bool bError = Ojw.CKinematics.CInverse.Compile(((m_CHeader.pbPython[i] == true) ? "!" : string.Empty) + m_CHeader.pstrInverseKinematics[i], out m_CHeader.pSOjwCode[i]);
+
+                            /////////////
+                            if (m_CHeader.pSOjwCode[i].nMotor_Max > 0) nCnt_InverseKinematics++;
+                        }
+                    }
                 }
             }
             public bool FileOpen_Without_Event(String strFileName, out COjwDesignerHeader CHeader)
@@ -37970,13 +38570,30 @@ namespace OpenJigWare
                     #endregion Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
 
                     #region separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
+                    // 텍스트 형식(2026-10-15)은 내용으로 가린다 — BOM·공백 뒤 '<' (바이너리는 'OJW'·'DHF')
+                    bool bTextForm = OjwFile_IsText(byteData);
                     String strTmp = String.Empty;
-                    for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
-                   
+                    for (i = 0; (i < (_STR_EXT.Length + _STR_EXT_VERSION.Length)) && (i < byteData.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
+
                     strData = (_STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper());
                     #endregion separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
                     COjwDesignerHeader CDesignHeder = new COjwDesignerHeader();
                     #region OjwVersion
+                    #region 텍스트 형식 — 헤더를 채운 뒤 아래 뒤처리는 바이너리와 같다 (COjw_12_3D_OjwText.cs)
+                    if (bTextForm == true)
+                    {
+                        String strWhyText;
+                        COjwDesignerHeader CText = OjwText_Read(byteData, out strWhyText);
+                        if (CText != null)
+                        {
+                            CDesignHeder = CText;
+                            strVersion = _STR_EXT_VERSION;
+                            m_CMonster.SetHeader(CDesignHeder);                       // 바이너리(OJW) 읽기와 같은 부수 효과
+                        }
+                        else bFileOpened = false;
+                    }
+                    else
+                    #endregion 텍스트 형식 — 헤더를 채운 뒤 아래 뒤처리는 바이너리와 같다 (COjw_12_3D_OjwText.cs)
 #if _DHF_FILE
                     if ((strTmp[0] == 'D') & (strTmp[1] == 'H') & (strTmp[2] == 'F'))
                     {
@@ -38867,9 +39484,10 @@ namespace OpenJigWare
 
                                 CDesignHeder.SJson.nAddress_Motion = BitConverter.ToInt32(byteData, nPos); nPos += 4;
                                 CDesignHeder.SJson.nAddress_Control = BitConverter.ToInt32(byteData, nPos); nPos += 4;
-                                
+
                                 #endregion GroupInfo
                             }
+                            OjwText_ReadBinaryTail(byteData, nPos, CDesignHeder);         // 확장 구역 끝 꼬리 블록 (2026-10-15) — 없으면 그대로
                         }
                         else bFileOpened = false;
 #endif
@@ -38939,14 +39557,34 @@ namespace OpenJigWare
                     #endregion Moved by opening the file into memory(Kor: 파일을 열어서 메모리로 옮김)
 
                     #region separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
+                    // 텍스트 형식(2026-10-15)은 내용으로 가린다 — BOM·공백 뒤 '<' (바이너리는 'OJW'·'DHF')
+                    bool bTextForm = OjwFile_IsText(byteData);
                     String strTmp = String.Empty;
-                    for (i = 0; i < (_STR_EXT.Length + _STR_EXT_VERSION.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
+                    for (i = 0; (i < (_STR_EXT.Length + _STR_EXT_VERSION.Length)) && (i < byteData.Length); i++) strTmp += ((char)byteData[i]).ToString().ToUpper();
                     //strTmp = strTmp.ToUpper();
 
                     strData = (_STR_EXT.ToUpper() + _STR_EXT_VERSION.ToUpper());
                     #endregion separation code - OJW1.0 ( (_STR_EXT.Length + _STR_EXT_VERSION.Length) Bytes )
                     COjwDesignerHeader CDesignHeder = new COjwDesignerHeader();
                     #region OjwVersion
+                    #region 텍스트 형식 — 헤더를 채운 뒤 아래 뒤처리(3D·모션·이벤트)는 바이너리와 같다 (COjw_12_3D_OjwText.cs)
+                    if (bTextForm == true)
+                    {
+                        String strWhyText;
+                        COjwDesignerHeader CText = OjwText_Read(byteData, out strWhyText);
+                        if (CText != null)
+                        {
+                            CDesignHeder = CText;
+                            m_strVersion = _STR_EXT_VERSION;
+                        }
+                        else
+                        {
+                            bFileOpened = false;
+                            Ojw.CMessage.Write_Error("Error -> FileOpen(), " + strWhyText);
+                        }
+                    }
+                    else
+                    #endregion 텍스트 형식 — 헤더를 채운 뒤 아래 뒤처리(3D·모션·이벤트)는 바이너리와 같다 (COjw_12_3D_OjwText.cs)
 #if _DHF_FILE
                     if ((strTmp[0] == 'D') & (strTmp[1] == 'H') & (strTmp[2] == 'F'))
                     {
@@ -39840,6 +40478,7 @@ namespace OpenJigWare
 
                                 #endregion GroupInfo
                             }
+                            OjwText_ReadBinaryTail(byteData, nPos, CDesignHeder);         // 확장 구역 끝 꼬리 블록 (2026-10-15) — 없으면 그대로
                             #endregion OJW
 
 
@@ -39988,6 +40627,12 @@ namespace OpenJigWare
                     public int nAddress_Control;
                 }
                 public SJson_t SJson = new SJson_t();
+
+                // 확장 구역 (2026-10-15, COjw_12_3D_OjwText.cs) — 이름 붙은 글. 텍스트 형식은 <ext>, 바이너리는 끝 꼬리 블록 (옛 읽기는 무시한다).
+                //   텍스트 형식에서 읽은 모르는 요소·속성도 여기 남아 다시 쓸 때 그대로 나간다
+                public COjwFileExt Ext = new COjwFileExt();
+                // 읽은 파일의 형식 (바이너리 / 텍스트) — 디자이너의 덮어쓰기는 이 형식 그대로. 새 헤더는 Binary
+                public EOjwFileFormat eFileFormat = EOjwFileFormat.Binary;
 
                 public COjwDesignerHeader() // 생성자
                 {

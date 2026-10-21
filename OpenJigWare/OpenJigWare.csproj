@@ -255,6 +255,7 @@
     <Compile Include="COjw_12_3D_SagRun.cs" />
     <Compile Include="COjw_12_3D_SagDef.cs" />
     <Compile Include="COjw_12_3D_SagPractice.cs" />
+    <Compile Include="COjw_12_3D_OjwText.cs" />
     <Compile Include="COjw_12_3D_EdhValidator.cs" />
     <Compile Include="COjw_12_3D_StlParser.cs" />
     <Compile Include="COjw_14_Socket.cs" />
@@ -745,28 +746,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy *.dll "..\..\..\..\Released_DLL\"
-copy *.dll "..\..\..\Tools\Tools\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\Github_Release\Released_DLL\"
-copy *.dll "..\..\..\..\..\..\Github_Release\Beta_Release\"
-
-echo "/////////////////////////////////"
-echo "현재는 Checkout을 담당하는 프로그램이 따로 있어 필요 없다."
-echo mkdir "..\..\..\..\..\..\..\Github\"
-echo mkdir "..\..\..\..\..\..\..\Github\OpenJigWare\"
-echo mkdir "..\..\..\..\..\..\..\Github\OpenJigWare\OpenJigWare\"
-echo mkdir "..\..\..\..\..\..\..\Github\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\..\Github\Released_DLL\"
-echo copy  ..\..\..\OpenJigWare.* "..\..\..\..\..\..\..\Github\OpenJigWare\"
-echo xcopy  ..\..\..\OpenJigWare\* "..\..\..\..\..\..\..\Github\OpenJigWare\OpenJigWare\" /E/C/H/R/Y
-echo rmdir "..\..\..\..\..\..\..\Github\OpenJigWare\OpenJigWare\bin" /S/Q
-echo "/////////////////////////////////"
-
-echo copy *.dll "..\..\..\..\..\..\for Others(public)\OpenJigWare\trunk\OpenJigWare\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\for Others(public)\Examples\Released_DLL\"
-echo copy *.dll "..\..\..\..\..\..\OpenJigWare\DLL\Released_DLL\"
-echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\Tool\Tool\Tool\DLL\"
-echo copy *.dll "Z:\17.Github전송용\GitHub\OpenJigWare\DLL\Released_DLL"</PostBuildEvent>
+    <PostBuildEvent>if exist "..\..\..\..\Released_DLL\" copy *.dll "..\..\..\..\Released_DLL\"
+if exist "..\..\..\Tools\Tools\Released_DLL\" copy *.dll "..\..\..\Tools\Tools\Released_DLL\"
+if exist "..\..\..\..\..\..\Github_Release\Beta_Release\" copy *.dll "..\..\..\..\..\..\Github_Release\Beta_Release\"
+exit /b 0</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1257,7 +1257,105 @@ namespace OpenJigWare
             //        fAcc_Roll = (float)Math.Atan2((float)asAcc[0], (float)asAcc[2]) * 180 / (float)Math.PI;
             //        fRoll = fRoll * 0.98f + fAcc_Roll * 0.02f;
             //    }
-            //} 
+            //}
+
+            #region Complementary Filter - 기체 좌표계(X=전방, Y=왼쪽, Z=위) / ZYX 오일러
+            // 위의 ComplementaryFilter 는 Pitch=X축, Roll=-(Y축) 규약이고 자이로 감도가 ±500°/s(65.536) 고정이라
+            // 센서 설정이 다르면 맞지 않는다. 아래 함수들은 물리 단위 입력 + 표준 규약을 쓴다.
+            //   Roll = X축 회전, Pitch = Y축 회전, Yaw = Z축 회전 (모두 오른손 법칙)
+            //   R = Rz(Yaw)·Ry(Pitch)·Rx(Roll)
+
+            // 각도를 (-180, 180] 범위로 감기
+            public static float Wrap180(float fDeg)
+            {
+                if (float.IsNaN(fDeg) || float.IsInfinity(fDeg)) return fDeg;
+                fDeg = fDeg % 360.0f;
+                if (fDeg > 180.0f) fDeg -= 360.0f;
+                else if (fDeg <= -180.0f) fDeg += 360.0f;
+                return fDeg;
+            }
+            // ±180 으로 감긴 각도를 이어진 각도로 풀기: 직전 연속값에 가장 가까운 등가각을 돌려준다
+            // (±180° 경계에서 필터·선형 보정이 360° 단차로 깨지지 않게 할 때 사용)
+            public static float Unwrap_Deg(float fPrevContinuous, float fWrapped)
+            {
+                return fPrevContinuous + Wrap180(fWrapped - fPrevContinuous);
+            }
+
+            // 몸체 각속도(자이로 X/Y/Z, deg/s) → ZYX 오일러각 변화율(deg/s)
+            //   RollDot  = p + (q·sinφ + r·cosφ)·tanθ
+            //   PitchDot = q·cosφ − r·sinφ
+            //   YawDot   = (q·sinφ + r·cosφ) / cosθ
+            // 한 축만 돌 때는 단순 적분과 같고, 두 축 이상이 섞여 돌 때도 3D 회전 순서(Z→Y→X)와 맞는다.
+            // Pitch = ±90° 에서는 Roll·Yaw 가 정의되지 않으므로(짐벌락) |cosθ| 를 0.01(≈89.4°)로 하한 처리한다.
+            public static void EulerRate_Zyx(float fRoll, float fPitch, float fGyroX_Dps, float fGyroY_Dps, float fGyroZ_Dps,
+                                             out float fRollDot, out float fPitchDot, out float fYawDot)
+            {
+                double dRoll = fRoll * Math.PI / 180.0;
+                double dPitch = fPitch * Math.PI / 180.0;
+                double dSinR = Math.Sin(dRoll);
+                double dCosR = Math.Cos(dRoll);
+                double dCosP = Math.Cos(dPitch);
+                if (Math.Abs(dCosP) < 0.01) dCosP = (dCosP < 0) ? -0.01 : 0.01;
+                double dTanP = Math.Sin(dPitch) / dCosP;
+                double dQR = fGyroY_Dps * dSinR + fGyroZ_Dps * dCosR;
+                fRollDot = (float)(fGyroX_Dps + dQR * dTanP);
+                fPitchDot = (float)(fGyroY_Dps * dCosR - fGyroZ_Dps * dSinR);
+                fYawDot = (float)(dQR / dCosP);
+            }
+
+            // 상보 필터 (Roll/Pitch) — 입력: 가속도[g], 자이로[deg/s] (자이로 바이어스는 호출 측에서 빼서 넘길 것)
+            //   fAlpha: 자이로 가중치 (가속도 가중치 = 1-fAlpha). 0 을 넘기면 가속도 각도로 바로 초기화된다
+            //           (단, 가속도 크기가 아래 범위 안일 때만 — 초기화가 됐는지는 반환값으로 확인).
+            //   가속도 크기가 fAccMin_G ~ fAccMax_G 를 벗어나면(급가속·충격) 가속도 보정을 건너뛴다.
+            //   Roll 은 ±180° 를 넘어가도(뒤집힌 자세) 튀지 않도록 차이를 감아서 섞는다.
+            //   return: 이번 샘플에 가속도 보정을 했으면 true
+            public static bool ComplementaryFilter_Zyx(float fAccX_G, float fAccY_G, float fAccZ_G,
+                                                       float fGyroX_Dps, float fGyroY_Dps, float fGyroZ_Dps,
+                                                       ref float fRoll, ref float fPitch, float fDt, float fAlpha,
+                                                       float fAccMin_G, float fAccMax_G)
+            {
+                if (float.IsNaN(fDt) || (fDt < 0)) fDt = 0;
+                if (float.IsNaN(fRoll) || float.IsInfinity(fRoll)) fRoll = 0;
+                if (float.IsNaN(fPitch) || float.IsInfinity(fPitch)) fPitch = 0;
+
+                // 1) 자이로 예측: 각속도를 오일러각 변화율로 바꿔 적분
+                float fRollDot, fPitchDot, fYawDot;
+                EulerRate_Zyx(fRoll, fPitch, fGyroX_Dps, fGyroY_Dps, fGyroZ_Dps, out fRollDot, out fPitchDot, out fYawDot);
+                float fRoll_G = fRoll + fRollDot * fDt;
+                float fPitch_G = fPitch + fPitchDot * fDt;
+
+                // 2) 가속도 보정: 정지(1g 근처)일 때 중력 방향으로 Roll/Pitch 를 끌어당김
+                double dNorm = Math.Sqrt((double)fAccX_G * fAccX_G + (double)fAccY_G * fAccY_G + (double)fAccZ_G * fAccZ_G);
+                bool bAcc = (dNorm > fAccMin_G) && (dNorm < fAccMax_G);
+                if (bAcc)
+                {
+                    float fAcc_Roll = (float)(Math.Atan2(fAccY_G, fAccZ_G) * 180.0 / Math.PI);
+                    float fAcc_Pitch = (float)(Math.Atan2(-fAccX_G, Math.Sqrt((double)fAccY_G * fAccY_G + (double)fAccZ_G * fAccZ_G)) * 180.0 / Math.PI);
+                    fRoll_G += (1.0f - fAlpha) * Wrap180(fAcc_Roll - fRoll_G);
+                    fPitch_G += (1.0f - fAlpha) * (fAcc_Pitch - fPitch_G);
+                }
+
+                fRoll = Wrap180(fRoll_G);
+                fPitch = (fPitch_G > 90.0f) ? 90.0f : ((fPitch_G < -90.0f) ? -90.0f : fPitch_G);
+                return bAcc;
+            }
+            public static bool ComplementaryFilter_Zyx(float fAccX_G, float fAccY_G, float fAccZ_G,
+                                                       float fGyroX_Dps, float fGyroY_Dps, float fGyroZ_Dps,
+                                                       ref float fRoll, ref float fPitch, float fDt, float fAlpha)
+            {
+                return ComplementaryFilter_Zyx(fAccX_G, fAccY_G, fAccZ_G, fGyroX_Dps, fGyroY_Dps, fGyroZ_Dps, ref fRoll, ref fPitch, fDt, fAlpha, 0.5f, 1.5f);
+            }
+            #endregion Complementary Filter - 기체 좌표계(X=전방, Y=왼쪽, Z=위) / ZYX 오일러
+
+            // 1차원 선형 칼만(A=H=1, 상수 Q·R — CKalman.SimpleKalman(1) 과 같은 모델)의 정상상태 칼만 이득
+            //   예측 분산 P⁻ 가 수렴하는 값: P⁻² − Q·P⁻ − Q·R = 0 → P⁻ = (Q + √(Q² + 4QR)) / 2,  K = P⁻ / (P⁻ + R)
+            //   K 는 Q/R 비율로만 정해지고, 정상상태의 칼만은 α = K 인 LowPass 와 같다. Q = 0 이면 0 (상수 추정)
+            public static double Kalman1D_SteadyGain(double dQ, double dR)
+            {
+                if ((dQ <= 0) || (dR <= 0) || double.IsNaN(dQ) || double.IsNaN(dR)) return (dR <= 0) ? 1.0 : 0.0;
+                double dPp = (dQ + Math.Sqrt(dQ * dQ + 4.0 * dQ * dR)) / 2.0;
+                return dPp / (dPp + dR);
+            }
             #endregion Complementary Filter
             #endregion Filter
 
@@ -4100,5 +4198,120 @@ namespace OpenJigWare
             }
         }
         #endregion Kalman Filter - made by Dongjune Chang from the book - "MATLAB 활용 칼만필터의 이해(저자 김성필)"
+
+        #region PID 제어 + 1축 가상 모터 (교육용 시뮬레이션)
+        // PID 제어기: u = Kp·e + Ki·∫e dt + Kd·(미분항),  e = 목표 − 측정
+        //   - 미분항은 측정값 기준 −d(측정)/dt: 목표가 갑자기 바뀔 때 출력이 튀는 현상(derivative kick)을 막는다
+        //     (목표가 일정하면 de/dt 와 같다)
+        //   - 출력 제한(OutputLimit)에 걸려 있고 오차가 같은 방향이면 적분을 멈춘다 (적분 와인드업 방지)
+        public class CPid
+        {
+            public double Kp = 1.0, Ki = 0.0, Kd = 0.0;
+            public double OutputLimit = 0.0;    // 0 이하 = 제한 없음
+            private double m_dIntegral = 0.0;
+            private double m_dPrevMeasured = 0.0;
+            private bool m_bFirst = true;
+            public double Error { get; private set; }
+            public double Output { get; private set; }
+            public double PTerm { get; private set; }
+            public double ITerm { get; private set; }
+            public double DTerm { get; private set; }
+
+            public void Reset()
+            {
+                m_dIntegral = 0.0;
+                m_bFirst = true;
+                Error = Output = PTerm = ITerm = DTerm = 0.0;
+            }
+
+            public double Update(double dTarget, double dMeasured, double dDt)
+            {
+                double dError = dTarget - dMeasured;
+                double dDeriv = 0.0;
+                if ((m_bFirst == false) && (dDt > 0)) dDeriv = -(dMeasured - m_dPrevMeasured) / dDt;
+                m_bFirst = false;
+                m_dPrevMeasured = dMeasured;
+
+                double dIntegral = m_dIntegral + dError * ((dDt > 0) ? dDt : 0.0);
+                double dOut = Kp * dError + Ki * dIntegral + Kd * dDeriv;
+                bool bSaturated = false;
+                if (OutputLimit > 0)
+                {
+                    if (dOut > OutputLimit) { dOut = OutputLimit; bSaturated = true; }
+                    else if (dOut < -OutputLimit) { dOut = -OutputLimit; bSaturated = true; }
+                }
+                if ((bSaturated == false) || (Math.Sign(dError) != Math.Sign(dOut))) m_dIntegral = dIntegral;
+
+                Error = dError;
+                PTerm = Kp * dError;
+                ITerm = Ki * m_dIntegral;
+                DTerm = Kd * dDeriv;
+                Output = dOut;
+                return dOut;
+            }
+        }
+
+        // 1축 회전 가상 모터: J·θ'' = u − B·θ' − 부하   (θ: deg, u: 토크 단위는 임의)
+        //   Inertia(J)·Damping(B)가 클수록 느리게 반응. Load 는 늘 걸려 있는 외란 토크(중력 같은 것) —
+        //   P 제어만으로는 Load/Kp 만큼 정상상태 오차가 남고, I 를 넣으면 사라진다
+        public class CMotorSim1D
+        {
+            public double Inertia = 0.05;
+            public double Damping = 0.2;
+            public double Load = 0.0;
+            public double Angle = 0.0;
+            public double Velocity = 0.0;
+
+            public void Reset(double dAngle)
+            {
+                Angle = dAngle;
+                Velocity = 0.0;
+            }
+            // 반암시적 오일러 (속도 먼저 갱신) — 작은 dt 에서 안정적
+            public void Step(double dTorque, double dDt)
+            {
+                double dJ = (Inertia > 1e-9) ? Inertia : 1e-9;
+                double dAcc = (dTorque - Damping * Velocity - Load) / dJ;
+                Velocity += dAcc * dDt;
+                Angle += Velocity * dDt;
+            }
+        }
+
+        // PID + 가상 모터 묶음: 목표 각도를 받아 dDt 동안 내부적으로 dSubStep 간격(기본 1ms)으로 제어·모터를 함께 진행
+        //   (제어 주기를 센서 수신 주기(약 50ms)보다 훨씬 짧게 해 실제 서보처럼 동작시킨다)
+        //   bWrapAngle = true 면 오차를 ±180° 로 감아 계산 (Yaw 처럼 감기는 각도를 목표로 쓸 때)
+        public class CPidSim
+        {
+            public CPid Pid = new CPid();
+            public CMotorSim1D Motor = new CMotorSim1D();
+
+            public void Reset(double dAngle)
+            {
+                Pid.Reset();
+                Motor.Reset(dAngle);
+            }
+
+            public double Step(double dTarget, double dDt, bool bWrapAngle, double dSubStep)
+            {
+                if ((dDt <= 0) || double.IsNaN(dDt) || double.IsNaN(dTarget)) return Motor.Angle;
+                if (dSubStep <= 0) dSubStep = 0.001;
+                int nSteps = (int)Math.Ceiling(dDt / dSubStep);
+                if (nSteps > 10000) nSteps = 10000;
+                double dH = dDt / nSteps;
+                for (int i = 0; i < nSteps; i++)
+                {
+                    double dGoal = dTarget;
+                    if (bWrapAngle) dGoal = Motor.Angle + CMath.Wrap180((float)(dTarget - Motor.Angle));
+                    double dTorque = Pid.Update(dGoal, Motor.Angle, dH);
+                    Motor.Step(dTorque, dH);
+                }
+                return Motor.Angle;
+            }
+            public double Step(double dTarget, double dDt, bool bWrapAngle)
+            {
+                return Step(dTarget, dDt, bWrapAngle, 0.001);
+            }
+        }
+        #endregion PID 제어 + 1축 가상 모터 (교육용 시뮬레이션)
     }
 }
