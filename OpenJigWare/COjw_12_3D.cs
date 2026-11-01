@@ -2433,7 +2433,16 @@ namespace OpenJigWare
                 return string.Format("@[{0},-8355712,1.0],[0,-1],[0,0,0],[0,0,0]", strFileName);
             }
 
-            /// <summary>EDH 텍스트에서 유니크 모터 ID 목록 추출 (등장 순서 유지).
+            /// <summary>DH 문자열(수식 텍스트·EDH·.ojw 의 기구학 문자열)에서 모터 ID 목록 — 등장 순서, 중복 제외, '!' 뒤 포함,
+            /// 더미축(255) 제외. 모델을 만들기 전에 문자열만으로 모터 구성을 알 때 쓴다 (Edh_ExtractMotorIds 의 일반용 이름)</summary>
+            public static List<int> GetMotorIDs_FromDh(string strDhText)
+            {
+                List<int> lst = Edh_ExtractMotorIds(strDhText ?? "");
+                lst.RemoveAll(n => n == CDhParamAll._AXIS_DUMMY);
+                return lst;
+            }
+
+            /// <summary>EDH 텍스트에서 유니크 모터 ID 목록 추출 (등장 순서 유지). 일반 용도는 GetMotorIDs_FromDh.
             /// DH 라인 = parts[4](Axis), 트랙 @ 확장 라인 = parts[16](track axis).</summary>
             public static List<int> Edh_ExtractMotorIds(string strDhText)
             {
@@ -10882,6 +10891,7 @@ namespace OpenJigWare
                     m_fMoveToolX = fX; m_fMoveToolY = fY; m_fMoveToolZ = fZ;
                     m_fMoveToolPitch = fRyDeg;
                     m_nMoveToolTime = nTime_ms;
+                    m_nXyzSolveMode = -1; m_afXyzSolveTg = null;    // 결과 판정 기록 초기화 (Step 이 채운다)
                     m_bMoveToolPending = true;                      // 마지막에 세팅 = 활성화
                     return true;
                 }
@@ -10941,6 +10951,7 @@ namespace OpenJigWare
                         //      (굽힘 시드 해는 팔 구성이 반전될 수 있어 큰 스윙을 만든다)
                         float[] afSol = null;
                         string strSolveMode = "";
+                        float fSolveRelax = -1;                     // 결과 판정용: 0 = 요청 피치 그대로, >0 = 완화
                         // ★처짐 보상 — 모델이 로드돼 있으면 목표를 (목표 − 예상 처짐) 으로 바꿔 IK 에 넣는다.
                         //   로드 안 됐으면 그대로(비용 0). 사용자 목표(m_fMoveToolX…)는 건드리지 않는다. (COjw_12_3D_SagComp.cs)
                         float fTgX = m_fMoveToolX, fTgY = m_fMoveToolY, fTgZ = m_fMoveToolZ;
@@ -10949,14 +10960,14 @@ namespace OpenJigWare
                         {
                             afSol = CalcInv_Tool_Continuous(m_nMoveToolFunc, fTgX, fTgY, fTgZ,
                                                             m_fMoveToolPitch - fRelax, m_nMoveToolWrist, m_anMoveToolPosIDs, 1.0);
-                            if (afSol != null) strSolveMode = "cont relax=" + fRelax;
+                            if (afSol != null) { strSolveMode = "cont relax=" + fRelax; fSolveRelax = fRelax; }
                         }
                         // 2차: 그래도 안 되면 굽힘 시드 포함 재탐색
                         for (float fRelax = 0; fRelax <= 30 && afSol == null; fRelax += 10)
                         {
                             afSol = CalcInv_Tool(m_nMoveToolFunc, fTgX, fTgY, fTgZ,
                                                  m_fMoveToolPitch - fRelax, m_nMoveToolWrist, m_anMoveToolPosIDs);
-                            if (afSol != null) strSolveMode = "bent relax=" + fRelax;
+                            if (afSol != null) { strSolveMode = "bent relax=" + fRelax; fSolveRelax = fRelax; }
                         }
                         int[] anIds;
                         if (afSol != null)
@@ -10989,6 +11000,9 @@ namespace OpenJigWare
                             for (int i = 0; i < afSol.Length; i++) m_sbPathLog.AppendFormat("{0:F1} ", afSol[i]);
                             m_sbPathLog.Append("\r\n");
                         }
+                        // PlayXyz 결과 판정용 — IK 가 실제로 겨눈 점(처짐 보상 반영)과 풀이 방식
+                        m_afXyzSolveTg = new[] { fTgX, fTgY, fTgZ };
+                        m_nXyzSolveMode = (strSolveMode == "ccd") ? 2 : ((fSolveRelax > 0) ? 1 : 0);
                         MoveJoints_Activate(m_nMoveToolTime, anIds, afSol);
                         m_bMoveToolPending = false;   // IDs 활성 후 — IsMoving 이 한 순간도 꺼지지 않는다
                     }
@@ -11014,7 +11028,7 @@ namespace OpenJigWare
                                 m_dPathLen += Math.Sqrt(dDx * dDx + dDy * dDy + dDz * dDz);
                                 m_adPathCum[i] = m_dPathLen;
                             }
-                            if (m_dPathLen < 1e-6) { m_bPathRun = false; return; }
+                            if (m_dPathLen < 1e-6) { m_bPathReachedEnd = true; m_bPathRun = false; return; }   // 이미 끝점
                             m_nPathStartTick = MotionTick_ms();
                             m_nPathLastTick = m_nPathStartTick;
                             m_bPathStarted = true;
@@ -11078,6 +11092,8 @@ namespace OpenJigWare
                         if (afPSol != null)
                         {
                             m_fPathPitchCur = fPUse;
+                            m_afPathLastTg = new[] { fPxC, fPyC, fPzC };  // 결과 판정용 — 이 틱에 IK 가 겨눈 점
+                            if (dTp >= 1.0) m_bPathReachedEnd = true;     // 마지막 점까지 풀렸다
                             SetData(m_anPathPosIDs[0], afPSol[0]);
                             SetData(m_anPathPosIDs[1], afPSol[1]);
                             SetData(m_anPathPosIDs[2], afPSol[2]);
@@ -11152,7 +11168,9 @@ namespace OpenJigWare
                 /// 툴 자세를 3축 각도(도)로 지정해 TCP 를 (x,y,z)로 이동하고 끝날 때까지 대기.
                 /// Rx=롤, Ry=피치(90=수직 아래, 0=수평), Rz=요. 현 손목분리 구현은 피치를 손목으로
                 /// 실현한다(요=팔 구조상 위치 종속, 롤=롤 관절을 Play 로 별도 제어).
-                /// IK 와 보간 전부 라이브러리 내부. 지정 자세 불가 지점은 위치 전용 폴백.</summary>
+                /// IK 와 보간 전부 라이브러리 내부. 지정 자세 불가 지점은 피치를 완화하거나 위치 전용으로 푼다.
+                /// 반환: 위치에 도달했으면 true(자세가 바뀐 경우 포함), 해가 없거나 위치에 못 갔으면 false.
+                /// 요청 자세까지 맞았는지는 PlayXyz_GetResult() == 0 (이유 문장은 PlayXyz_GetResultText())</summary>
                 public bool PlayXyz(int nTime_ms, int nDelay_ms, int nFunctionNumber,
                                     float fX, float fY, float fZ,
                                     float fRxDeg, float fRyDeg, float fRzDeg,
@@ -11160,10 +11178,14 @@ namespace OpenJigWare
                 {
                     // 현재 TCP 자세·모터 구성 기억 — 이후 축약형 PlayXyz(t,d,수식,x,y,z) / PlayXyzPath(t,d,수식,점배열) 는 "현재 자세 유지" 로 움직인다 (2026-09-22)
                     XyzParam_Remember(nFunctionNumber, fRxDeg, fRyDeg, fRzDeg, nWristID, anPosMotorIDs);
-                    if (!MoveTool_Start(nFunctionNumber, fX, fY, fZ, nTime_ms, fRxDeg, fRyDeg, fRzDeg, nWristID, anPosMotorIDs)) return false;
-                    bool bOk = Play_Wait(nTime_ms, nDelay_ms, null, null);
+                    if (!MoveTool_Start(nFunctionNumber, fX, fY, fZ, nTime_ms, fRxDeg, fRyDeg, fRzDeg, nWristID, anPosMotorIDs))
+                        return XyzResult_Set(XYZ_BAD_ARGS, "인자 오류 — 위치 관절 ID 는 3개여야 한다");
+                    Play_Wait(nTime_ms, nDelay_ms, null, null);
                     m_afLastXyzTarget = new[] { fX, fY, fZ };   // ARCH 시작점 추정용
-                    return bOk;
+                    if (m_nXyzSolveMode < 0)
+                        return XyzResult_Set(XYZ_NO_SOLUTION, string.Format(CultureInfo.InvariantCulture,
+                            "해 없음 — ({0:F1}, {1:F1}, {2:F1}) 로 가는 관절각을 찾지 못해 움직이지 않았다", fX, fY, fZ));
+                    return XyzResult_Measure(nFunctionNumber, nWristID, m_afXyzSolveTg ?? new[] { fX, fY, fZ }, fRyDeg, m_nXyzSolveMode, true);
                 }
                 // ※ (자세 생략형: ..., x, y, z, 손목ID, 관절...) 오버로드는 두지 않는다 — 파이썬(pythonnet)에서 정수 인자만 넘기면
                 //    짧은 오버로드로 잘못 결합되어(손목ID 자리에 Rx 가 들어감) 조용히 실패한다. 실측 확인.
@@ -11179,8 +11201,10 @@ namespace OpenJigWare
                                         float fRxDeg, float fRyDeg, float fRzDeg,
                                         int nWristID, int[] anPosMotorIDs)
                 {
-                    if (afXyzPoints == null || afXyzPoints.Length < 3 || (afXyzPoints.Length % 3) != 0) return false;
-                    if (anPosMotorIDs == null || anPosMotorIDs.Length != 3) return false;
+                    if (afXyzPoints == null || afXyzPoints.Length < 3 || (afXyzPoints.Length % 3) != 0)
+                        return XyzResult_Set(XYZ_BAD_ARGS, "인자 오류 — 점배열은 x, y, z 를 3개씩 이어 쓴 것이어야 한다");
+                    if (anPosMotorIDs == null || anPosMotorIDs.Length != 3)
+                        return XyzResult_Set(XYZ_BAD_ARGS, "인자 오류 — 위치 관절 ID 는 3개여야 한다");
                     XyzParam_Remember(nFunctionNumber, fRxDeg, fRyDeg, fRzDeg, nWristID, anPosMotorIDs);   // 현재 자세·구성 기억 (축약형이 이어받음)
                     m_anMoveJointIDs = null;
                     m_bMoveToolPending = false;
@@ -11194,11 +11218,15 @@ namespace OpenJigWare
                     m_sbPathLog = new System.Text.StringBuilder(
                         "ms,pitch,tgtx,tgty,tgtz,tcpx,tcpy,tcpz,w14x,w14y,w14z,q0,q1,q2,qw\r\n");
                     m_bPathStarted = false;
+                    m_afPathLastTg = null; m_bPathReachedEnd = false;   // 결과 판정 기록 초기화 (틱이 채운다)
                     m_bPathRun = true;                              // 마지막에 세팅 = 활성화
-                    bool bOkPath = Play_Wait(nTime_ms, nDelay_ms, null, null);
+                    Play_Wait(nTime_ms, nDelay_ms, null, null);
                     int nLastIdx = afXyzPoints.Length - 3;
                     m_afLastXyzTarget = new[] { afXyzPoints[nLastIdx], afXyzPoints[nLastIdx + 1], afXyzPoints[nLastIdx + 2] };
-                    return bOkPath;
+                    // 끝점까지 풀렸으면 마지막 틱이 겨눈 점(처짐 보상 반영)과 비교, 아니면 끝점과의 남은 거리를 알린다
+                    bool bEnd = m_bPathReachedEnd;
+                    return XyzResult_Measure(nFunctionNumber, nWristID, (bEnd && m_afPathLastTg != null) ? m_afPathLastTg : m_afLastXyzTarget,
+                                             fRyDeg, (m_fPathPitchCur < m_fPathPitch - 0.01f) ? 1 : 0, bEnd);
                 }
 
                 /// <summary>중간형 PlayXyzPath(시간ms, 딜레이ms, 수식, 점배열[x,y,z 반복], Rx, Ry, Rz) —
@@ -11375,7 +11403,7 @@ namespace OpenJigWare
                         double dEndErr = Math.Sqrt((fEx - fX) * (fEx - fX) + (fEy - fY) * (fEy - fY) + (fEz - fZ) * (fEz - fZ));
                         if (dEndErr > 0.8)
                             bOk = PlayXyz(Math.Max(150, nTime_ms / 8), 0, nFunctionNumber, fX, fY, fZ,
-                                          fRx, fRy, fRz, p.nWristID, p.anPosIDs) && bOk;
+                                          fRx, fRy, fRz, p.nWristID, p.anPosIDs);   // 정착 이동이 최종 자세 — 그 결과가 최종 결과
                     }
                     else
                     {
@@ -11385,6 +11413,70 @@ namespace OpenJigWare
                     m_afLastXyzTarget = new[] { fX, fY, fZ };
                     return bOk;
                 }
+
+                #region PlayXyz 결과 — 요청한 위치·자세로 실제로 갔는가 (2026-11-01)
+                // 모션이 끝난 뒤 FK 로 판정한다: 위치 = IK 가 겨눈 점(처짐 보상 모델이 있으면 보정된 점)과 TCP 의 거리,
+                // 자세 = 툴 피치(CalcToolPitch, 수평 0 / 수직 아래 90)와 요청 Ry 의 차. 롤·요는 이 구현에서 지정 대상이 아니라 보지 않는다.
+                // 반환값(PlayXyz / PlayXyzPath, 중간형·축약형 포함): 위치에 도달했으면 true — 자세까지 맞았는지는 PlayXyz_GetResult() == XYZ_OK.
+                public const int XYZ_OK = 0;              // 요청한 위치·자세로 도달
+                public const int XYZ_POSE_CHANGED = 1;    // 위치는 도달, 툴 피치가 허용치 밖 (요청 자세로는 닿지 않아 자세를 바꿔 풂)
+                public const int XYZ_NOT_REACHED = 2;     // 위치에 못 감 (경로가 도중에 막힘 포함)
+                public const int XYZ_NO_SOLUTION = 3;     // 해가 없어 움직이지 않음
+                public const int XYZ_BAD_ARGS = 4;        // 인자 오류
+                private volatile int m_nXyzSolveMode = -1;      // Step 기록: 0 요청 피치 / 1 피치 완화 / 2 위치 전용 폴백 / -1 해 없음
+                private float[] m_afXyzSolveTg = null;          // Step 기록: IK 가 겨눈 점
+                private float[] m_afPathLastTg = null;          // 경로 틱 기록: 마지막으로 풀린 틱이 겨눈 점
+                private volatile bool m_bPathReachedEnd = false; // 경로 틱 기록: 끝점(τ=1)까지 풀렸다
+                private int m_nXyzResult = XYZ_OK;
+                private float m_fXyzErrPos = 0, m_fXyzErrPitch = 0, m_fXyzPitch = 90;
+                private float m_fXyzCheckPos = 5.0f, m_fXyzCheckPitch = 5.0f;
+                private string m_strXyzResult = "";
+
+                /// <summary>결과 판정 허용치 — 위치(mm), 툴 피치(도). 기본 5 mm / 5°</summary>
+                public void PlayXyz_SetCheck(float fPosMm, float fPitchDeg)
+                {
+                    if (fPosMm > 0) m_fXyzCheckPos = fPosMm;
+                    if (fPitchDeg > 0) m_fXyzCheckPitch = fPitchDeg;
+                }
+                /// <summary>직전 PlayXyz / PlayXyzPath 결과: 0 요청대로 도달 / 1 위치는 도달, 자세(피치)가 다름 /
+                /// 2 위치에 못 감 / 3 해가 없어 움직이지 않음 / 4 인자 오류 (상수 XYZ_*)</summary>
+                public int PlayXyz_GetResult() { return m_nXyzResult; }
+                /// <summary>직전 결과의 설명 문장 (예: "자세가 다름 — 툴 피치 70.0° (요청 90°, 허용 ±5°), 위치 오차 0.4 mm")</summary>
+                public string PlayXyz_GetResultText() { return m_strXyzResult; }
+                /// <summary>직전 결과의 위치 오차(mm) — IK 가 겨눈 점과 도착한 TCP 의 거리</summary>
+                public float PlayXyz_GetErrPos() { return m_fXyzErrPos; }
+                /// <summary>직전 결과의 툴 피치 오차(도) — |도착한 피치 − 요청 Ry|</summary>
+                public float PlayXyz_GetErrPitch() { return m_fXyzErrPitch; }
+
+                private bool XyzResult_Set(int nResult, string strText)
+                {
+                    m_nXyzResult = nResult;
+                    m_strXyzResult = strText;
+                    if ((nResult == XYZ_NO_SOLUTION) || (nResult == XYZ_BAD_ARGS)) { m_fXyzErrPos = float.NaN; m_fXyzErrPitch = float.NaN; }
+                    return (nResult == XYZ_OK) || (nResult == XYZ_POSE_CHANGED);
+                }
+                private bool XyzResult_Measure(int nFunc, int nWristID, float[] afTarget, float fPitchReq, int nSolveMode, bool bReachedEnd)
+                {
+                    float fCx, fCy, fCz;
+                    CalcF(nFunc, -1, false, out fCx, out fCy, out fCz);
+                    double dEx = afTarget[0] - fCx, dEy = afTarget[1] - fCy, dEz = afTarget[2] - fCz;
+                    m_fXyzErrPos = (float)Math.Sqrt(dEx * dEx + dEy * dEy + dEz * dEz);
+                    m_fXyzPitch = CalcToolPitch(nFunc, nWristID);
+                    m_fXyzErrPitch = Math.Abs(m_fXyzPitch - fPitchReq);
+                    CultureInfo ci = CultureInfo.InvariantCulture;
+                    if (!bReachedEnd || (m_fXyzErrPos > m_fXyzCheckPos))
+                        return XyzResult_Set(XYZ_NOT_REACHED, string.Format(ci,
+                            "위치에 못 감 — 목표까지 {0:F1} mm 남음 (허용 {1:F0} mm){2}", m_fXyzErrPos, m_fXyzCheckPos,
+                            bReachedEnd ? "" : ". 경로가 도달할 수 없는 구간에서 멈췄다"));
+                    if (m_fXyzErrPitch > m_fXyzCheckPitch)
+                        return XyzResult_Set(XYZ_POSE_CHANGED, string.Format(ci,
+                            "자세가 다름 — 툴 피치 {0:F1}° (요청 {1:F0}°, 허용 ±{2:F0}°), 위치 오차 {3:F1} mm. {4}",
+                            m_fXyzPitch, fPitchReq, m_fXyzCheckPitch, m_fXyzErrPos,
+                            (nSolveMode == 2) ? "요청 자세로 풀리지 않아 위치만 맞췄다" : "요청 자세로는 닿지 않아 피치를 바꿔 풀었다"));
+                    return XyzResult_Set(XYZ_OK, string.Format(ci,
+                        "요청대로 도달 — 위치 오차 {0:F1} mm, 툴 피치 {1:F1}° (요청 {2:F0}°)", m_fXyzErrPos, m_fXyzPitch, fPitchReq));
+                }
+                #endregion PlayXyz 결과
 
                 private bool Play_Wait(int nTime_ms, int nDelay_ms, int[] anIds, float[] afDegs)
                 {
@@ -16446,6 +16538,58 @@ namespace OpenJigWare
                 //    if (m.Msg != 0x14)
                 //        base.OnNotifyMessage(m);
                 //}
+                // ── freeglut.dll 준비 (2026-11-01) ──
+                // 예전에는 C3d 를 만들 때마다 현재 폴더에 풀었다 → 파이썬 예제처럼 현재 폴더가 스크립트 폴더면 그곳이 지저분해졌다.
+                // 이제 OpenJigWare.dll 이 있는 폴더에 풀고(이미 같은 파일이 있으면 그대로) 그 전체 경로로 LoadLibrary 해 둔다.
+                // 같은 이름의 모듈이 이미 적재돼 있으면 Tao 의 DllImport("freeglut.dll") 는 그것을 쓴다(윈도 로더 규칙) —
+                // 그래서 DLL 폴더가 실행 폴더·현재 폴더와 달라도 찾는다. 이미 적재돼 있으면 파일도 건드리지 않는다
+                // (예전 방식은 두 번째 C3d 에서 적재된 파일을 덮어쓰려 했다).
+                // DLL 폴더에 쓸 수 없으면 임시 폴더, 그것도 안 되면 예전처럼 현재 폴더.
+                [System.Runtime.InteropServices.DllImport("kernel32.dll", EntryPoint = "LoadLibraryW", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+                private static extern IntPtr Freeglut_LoadLibrary(string strPath);
+                [System.Runtime.InteropServices.DllImport("kernel32.dll", EntryPoint = "GetModuleHandleW", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+                private static extern IntPtr Freeglut_GetModuleHandle(string strName);
+                private static readonly object s_objFreeglutLock = new object();
+                private static string s_strFreeglutPath = null;
+                /// <summary>freeglut.dll 을 둔(또는 적재한) 경로 — 진단용. 아직 C3d 를 만들지 않았으면 null</summary>
+                public static string GetFreeglutPath() { return s_strFreeglutPath; }
+                private static void Freeglut_Prepare()
+                {
+                    lock (s_objFreeglutLock)
+                    {
+                        if (s_strFreeglutPath != null) return;
+                        if (Freeglut_GetModuleHandle("freeglut.dll") != IntPtr.Zero) { s_strFreeglutPath = "(already loaded)"; return; }
+                        byte[] abyDll = OpenJigWare.Properties.Resources.freeglut;
+                        List<string> lstDir = new List<string>();
+                        try
+                        {
+                            string strAsm = typeof(C3d).Assembly.Location;
+                            if (!string.IsNullOrEmpty(strAsm)) lstDir.Add(System.IO.Path.GetDirectoryName(strAsm));
+                        }
+                        catch { }
+                        lstDir.Add(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "OpenJigWare_freeglut_" + (IntPtr.Size == 8 ? "x64" : "x86")));
+                        foreach (string strDir in lstDir)
+                        {
+                            try
+                            {
+                                string strPath = System.IO.Path.Combine(strDir, "freeglut.dll");
+                                if (!System.IO.File.Exists(strPath) || (new System.IO.FileInfo(strPath).Length != abyDll.Length))
+                                {
+                                    System.IO.Directory.CreateDirectory(strDir);
+                                    System.IO.File.WriteAllBytes(strPath, abyDll);
+                                }
+                                // 비트 수가 다른 프로세스면 적재는 실패한다(예전에도 쓰이지 않던 경우) — 파일을 둔 것으로 끝
+                                Freeglut_LoadLibrary(strPath);
+                                s_strFreeglutPath = strPath;
+                                return;
+                            }
+                            catch { }   // 쓸 수 없는 폴더 → 다음 후보
+                        }
+                        try { System.IO.File.WriteAllBytes("freeglut.dll", abyDll); s_strFreeglutPath = System.IO.Path.GetFullPath("freeglut.dll"); }
+                        catch { }
+                    }
+                }
+
                 public C3d()//CCsgl()
                     : base()
                 {
@@ -16498,9 +16642,8 @@ namespace OpenJigWare
 #else
                     // 이분 꼼수 방법(스스로 꼼수라 칭함) 참조 - 이 방법이 제일 마음에 든다. 로그인 해서 감사인사 하고 싶어도... 해당 계정이 휴면 계정이라서인지 티스토리에서 비 로그인시 댓글 허용이 안된다... ㅠ.ㅠ                            
                     // http://imjuni.tistory.com/437
-                    FileStream fs = new FileStream("freeglut.dll", FileMode.Create);
-                    fs.Write(OpenJigWare.Properties.Resources.freeglut, 0, OpenJigWare.Properties.Resources.freeglut.Length);
-                    fs.Close();
+                    // 2026-11-01: 현재 폴더가 아니라 OpenJigWare.dll 이 있는 폴더에 풀고 그 경로로 먼저 적재한다 (Freeglut_Prepare)
+                    Freeglut_Prepare();
 
                     //fs = new FileStream("Tao.FreeGlut.dll", FileMode.Create);
                     //fs.Write(OpenJigWare.Properties.Resources.Tao_FreeGlut, 0, OpenJigWare.Properties.Resources.Tao_FreeGlut.Length);
@@ -35723,6 +35866,22 @@ namespace OpenJigWare
                 public int GetHeader_nModelNum() { return m_CHeader.nModelNum; }
                 public String GetHeader_strModelNum() { return m_CHeader.strModelNum; }
                 public int GetHeader_nMotorCnt() { return m_CHeader.nMotorCnt; }
+                /// <summary>모델의 모터 ID 목록(오름차순). 모터 정보 GetHeader_pSMotorInfo(ID) 는 ID 로 색인되므로 0~nMotorCnt 가 아니라 이 목록으로 돌 것.
+                /// 그림 모델을 컴파일한 경우 = 그 모델의 모터(m_CHeader.anMotorIDs). 그림 없이 수식만 있는 모델(CreateOmx 등)은
+                /// 수식(DH) 문자열 전부에 나오는 모터를 모아 돌려준다('!' 뒤 포함). 아무것도 없으면 빈 배열</summary>
+                public int[] GetHeader_anMotorIDs()
+                {
+                    if ((m_CHeader.anMotorIDs != null) && (m_CHeader.anMotorIDs.Length > 0)) return m_CHeader.anMotorIDs;
+                    List<int> lst = new List<int>();
+                    if (m_CHeader.pstrKinematics != null)
+                        foreach (string strDh in m_CHeader.pstrKinematics)
+                        {
+                            if (string.IsNullOrEmpty(strDh)) continue;
+                            foreach (int nID in GetMotorIDs_FromDh(strDh)) if (!lst.Contains(nID)) lst.Add(nID);
+                        }
+                    lst.Sort();
+                    return lst.ToArray();
+                }
                 public int GetHeader_nVersion() { return m_CHeader.nVersion; }
                 public int GetHeader_nWheelCounter_2() { return m_CHeader.nWheelCounter_2; }
                 public int GetHeader_nWheelCounter_3() { return m_CHeader.nWheelCounter_3; }
@@ -35734,6 +35893,7 @@ namespace OpenJigWare
                 public SEncryption_t[] GetHeader_pSEncryptInverseKinematics_encryption() { return m_CHeader.pSEncryptInverseKinematics_encryption; }
                 public SEncryption_t[] GetHeader_pSEncryptKinematics_encryption() { return m_CHeader.pSEncryptKinematics_encryption; }
                 public SMotorInfo_t[] GetHeader_pSMotorInfo() { return m_CHeader.pSMotorInfo; }
+                /// <summary>모터 정보 — nAxis 는 모터 ID 다(등록 순서 번호가 아님). 등록된 ID 목록은 GetHeader_anMotorIDs()</summary>
                 public SMotorInfo_t GetHeader_pSMotorInfo(int nAxis) { return m_CHeader.pSMotorInfo[nAxis]; }
                 public SOjwCode_t[] GetHeader_pSOjwCode() { return m_CHeader.pSOjwCode; }
                 public String[] GetHeader_pstrGroupName() { return m_CHeader.pstrGroupName; }
@@ -40766,7 +40926,17 @@ namespace OpenJigWare
             public int [] GetInfo_Forward_Numbers() { return GetForward_Numbers(); }
             public int[] GetInfo_Inverse_Numbers() { return GetInverse_Numbers(); }
             public int GetInfo_Forward_Count_Motors(int nIndex) { return GetHeader_pDhParamAll()[nIndex].GetMotors().Length; }
+            /// <summary>수식 nIndex 가 계산하는 기구학 체인의 모터 — DH 문자열에서 '!'(수식 종료 표시) 앞 관절만이다(예: OMX 팔로워 = 11~14).
+            /// '!' 뒤(그리퍼처럼 표시만 하는 관절)까지 포함한 목록은 GetInfo_Forward_Motors_All, 모델 전체 등록 ID 는 GetHeader_anMotorIDs</summary>
             public int[] GetInfo_Forward_Motors(int nIndex) { return GetHeader_pDhParamAll()[nIndex].GetMotors(); }
+            /// <summary>수식 nIndex 의 DH 문자열에 나오는 모터 전부 — '!' 뒤 포함, 등장 순서, 중복·더미축(255) 제외 (예: OMX 팔로워 = 11~16)</summary>
+            public int[] GetInfo_Forward_Motors_All(int nIndex)
+            {
+                if ((nIndex < 0) || (m_CHeader.pstrKinematics == null) || (nIndex >= m_CHeader.pstrKinematics.Length)) return new int[0];
+                string strDh = m_CHeader.pstrKinematics[nIndex];
+                if (string.IsNullOrEmpty(strDh)) return new int[0];
+                return GetMotorIDs_FromDh(strDh).ToArray();
+            }
             public int GetInfo_Inverse_Count_Motors(int nIndex) { return m_CHeader.pSOjwCode[nIndex].nMotor_Max; }
             public int[] GetInfo_Inverse_Motors(int nIndex) { return m_CHeader.pSOjwCode[nIndex].pnMotor_Number; }
             public string[] GetInfo_Forward_Text_All(int nIndex_Forward) { return m_CHeader.pstrKinematics; }

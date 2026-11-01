@@ -93,6 +93,7 @@ namespace OpenJigWare
                     {
                         for (int i = 0; i < m_nModelCount; i++)
                             m_anHistory[i, m_nIndex] = anData[i];
+                        lock (m_objMarkLock) m_lPushCount++;   // 마커가 붙을 샘플 번호 (0 부터)
                         if (m_bOver == false)
                         {
                             if ((m_nIndex + 1) == m_nHistorySize) m_bOver = true;
@@ -122,6 +123,116 @@ namespace OpenJigWare
                 return 0;
             }
             public int GetCount_Model() { return m_nModelCount; }
+
+            #region 마커(점) — 그래프 중간의 특정 샘플에 점 + 라벨 (예: 최솟값 "best 0.31 @ 9")
+            // 점은 Push 한 샘플에 붙는다. 스크롤 모드에서는 데이터와 함께 흘러가고(덮어쓰기 모드에서는 그 칸에 머문다),
+            // 그 샘플이 버퍼에서 밀려나면 점도 함께 사라진다.
+            // 사용 예) 새 최솟값이 들어올 때마다 점을 옮기기:
+            //     CGrp.Push(nTrain, nVal);
+            //     if (nVal < nBest) { nBest = nVal; CGrp.ClearMark(1); CGrp.Mark(1, Color.Red, "best " + nBest); }
+            //   지나간 샘플에 찍기: CGrp.Mark(1, 8, Color.Red, "best")  ← 8 번 전에 Push 한 샘플
+            private class CMark_t
+            {
+                public int nModel;          // 선(모델) 번호
+                public long lSeq;           // 몇 번째 Push 의 샘플인가 (0 부터)
+                public int nValue;          // 점의 값 = 그 샘플의 값
+                public Color cColor;
+                public int nSize;           // 지름(픽셀)
+                public string strLabel;     // 점 옆 글자 (null 또는 "" = 없음)
+            }
+            private readonly List<CMark_t> m_lstMark = new List<CMark_t>();
+            private readonly object m_objMarkLock = new object();
+            private long m_lPushCount = 0;  // 지금까지 받아들인 Push 횟수
+
+            /// <summary>가장 최근에 Push 한 샘플(선 nModel)에 점을 찍는다. strLabel = 점 옆 글자, nSize = 지름(픽셀)</summary>
+            public bool Mark(int nModel, Color cColor, string strLabel = null, int nSize = 8)
+            {
+                return Mark(nModel, 0, cColor, strLabel, nSize);
+            }
+            /// <summary>nAgo 번 전에 Push 한 샘플(0 = 가장 최근)에 점을 찍는다 — 지나고 나서 찾은 최솟값·최댓값 표시용.
+            /// 버퍼에 없는 샘플(nAgo 가 음수이거나 기록 길이 이상)이면 false</summary>
+            public bool Mark(int nModel, int nAgo, Color cColor, string strLabel = null, int nSize = 8)
+            {
+                if ((m_bValid == false) || (nModel < 0) || (nModel >= m_nModelCount)) return false;
+                lock (m_objMarkLock)
+                {
+                    long lAvail = Math.Min(m_lPushCount, (long)m_nHistorySize);
+                    if ((nAgo < 0) || (nAgo >= lAvail)) return false;
+                    CMark_t CMark = new CMark_t();
+                    CMark.nModel = nModel;
+                    CMark.lSeq = m_lPushCount - 1 - nAgo;
+                    CMark.nValue = m_anHistory[nModel, (int)(CMark.lSeq % m_nHistorySize)];
+                    CMark.cColor = cColor;
+                    CMark.nSize = Math.Max(2, nSize);
+                    CMark.strLabel = strLabel;
+                    m_lstMark.Add(CMark);
+                }
+                return true;
+            }
+            /// <summary>모든 점 지우기</summary>
+            public void ClearMark() { lock (m_objMarkLock) m_lstMark.Clear(); }
+            /// <summary>선 nModel 의 점만 지우기 (새 최솟값으로 점을 옮길 때)</summary>
+            public void ClearMark(int nModel) { lock (m_objMarkLock) m_lstMark.RemoveAll(m => m.nModel == nModel); }
+            /// <summary>화면에 남아 있는 점 개수</summary>
+            public int GetCount_Mark()
+            {
+                lock (m_objMarkLock)
+                {
+                    RemoveExpiredMark();
+                    return m_lstMark.Count;
+                }
+            }
+            // 버퍼에서 밀려난 샘플의 점은 지운다 (lock 안에서 호출)
+            private void RemoveExpiredMark()
+            {
+                long lCount = m_lPushCount;
+                int nSize = m_nHistorySize;
+                m_lstMark.RemoveAll(m => (lCount - 1 - m.lSeq) >= nSize);
+            }
+            private void DrawMark(Graphics g, float fStretchWidth, float fStretchHeight)
+            {
+                CMark_t[] aCMark;
+                long lCount;
+                lock (m_objMarkLock)
+                {
+                    RemoveExpiredMark();
+                    if (m_lstMark.Count == 0) return;
+                    aCMark = m_lstMark.ToArray();
+                    lCount = m_lPushCount;
+                }
+                // 점 테두리 = 배경과 대비되는 색 (밝은 배경 → 검정, 어두운 배경 → 흰색)
+                float fLum = 0.299f * m_cBackColor.R + 0.587f * m_cBackColor.G + 0.114f * m_cBackColor.B;
+                Color cEdge = (fLum > 128.0f) ? Color.Black : Color.White;
+                Font font = m_lbDraw.Font;
+                int nWidth = m_lbDraw.Width;
+                using (Pen penEdge = new Pen(cEdge, 1))
+                {
+                    foreach (CMark_t CMark in aCMark)
+                    {
+                        long lAge = lCount - 1 - CMark.lSeq;                       // 0 = 가장 최근 샘플
+                        int nSlot = (int)(CMark.lSeq % m_nHistorySize);           // 버퍼 칸
+                        // 선과 같은 규칙으로 위치를 잡는다: 스크롤 = 최근 샘플이 왼쪽(x=0) / 덮어쓰기 = 버퍼 칸 위치
+                        float fX = (float)Math.Round((m_bOverwrite ? nSlot : lAge) * fStretchWidth, 0);
+                        float fY = m_anOffsetY[CMark.nModel] - (float)Math.Round(CMark.nValue * fStretchHeight, 0);
+                        float fR = CMark.nSize / 2.0f;
+                        using (SolidBrush brush = new SolidBrush(CMark.cColor))
+                        {
+                            g.FillEllipse(brush, fX - fR, fY - fR, CMark.nSize, CMark.nSize);
+                            g.DrawEllipse(penEdge, fX - fR, fY - fR, CMark.nSize, CMark.nSize);
+                            if (string.IsNullOrEmpty(CMark.strLabel)) continue;
+                            SizeF szText = g.MeasureString(CMark.strLabel, font);
+                            float fTx = fX + fR + 3;                                    // 점 오른쪽 위
+                            if (fTx + szText.Width > nWidth) fTx = fX - fR - 3 - szText.Width;   // 오른쪽 끝이면 왼쪽에
+                            if (fTx < 0) fTx = 0;
+                            float fTy = fY - fR - szText.Height;
+                            if (fTy < 0) fTy = fY + fR;                                 // 위가 모자라면 아래에
+                            g.DrawString(CMark.strLabel, font, brush, fTx, fTy);
+                        }
+                    }
+                }
+            }
+            #endregion 마커(점)
+
             public int GetCount_History() { return m_nHistorySize; }
             public int Pop(int nModelNum, int nIndex) 
             {
@@ -267,6 +378,8 @@ namespace OpenJigWare
                         }
                         #endregion 세로라인들...
                         pen.Dispose();
+
+                        DrawMark(g, fStretchWidth, fStretchHeight);   // 마커(점) — 선·격자 위에 그린다
                     } // using
 
                     if (m_abmpDisp[m_nBmpIndex] != null) m_abmpDisp[m_nBmpIndex].Dispose();

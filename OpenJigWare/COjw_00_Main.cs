@@ -138,8 +138,12 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {
-        public const string strVersion = "02.06.00";
+        public const string strVersion = "02.07.00";
         public const string strHistory = (String)(
+                "[V02.07.00]\r\n" +
+                "  COjw_21_Graph.cs -> CGraph 마커(점+라벨) 추가: Mark(), ClearMark()" + "\r\n" +
+                "  COjw_12_3D.cs -> PlayXyz 결과 판정 추가(PlayXyz_SetCheck(), PlayXyz_GetResult(), PlayXyz_GetResultText()), GetMotorIDs_FromDh() 추가" + "\r\n" +
+                "========================================\r\n" + // Release
                 "[V02.06.00]\r\n" +
                 "  COjw_39_TextEditor.cs 파일 추가 -> CTextEditor 클래스를 이용한 수식컴파일러의 팔레트 추가, 파이썬 모드(SetPythonMode())도 추가" + "\r\n" +
                 "========================================\r\n" + // Release  
