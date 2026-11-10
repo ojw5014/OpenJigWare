@@ -327,6 +327,13 @@ namespace OpenJigWare
                 m_SerialPort.Read(abyteBuffer, 0, nCount);
                 return abyteBuffer;
             }
+            /// <summary>지금 와 있는 바이트를 실제로 읽은 개수만큼 돌려준다 (GetBytes 와 달리 짧게 읽혀도 빈 칸을 만들지 않는다). 없으면 0</summary>
+            public int ReadAvailable(byte[] abyBuffer, int nOffset, int nMax)
+            {
+                if (IsConnect() == false) return 0;
+                int nCount = Math.Min(m_SerialPort.BytesToRead, nMax);
+                return (nCount > 0) ? m_SerialPort.Read(abyBuffer, nOffset, nCount) : 0;
+            }
             public int GetBuffer_Length()
             {
                 try

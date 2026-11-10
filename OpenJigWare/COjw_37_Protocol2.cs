@@ -12,7 +12,7 @@ namespace OpenJigWare
 {
     partial class Ojw
     {
-        public class CProtocol2
+        public partial class CProtocol2   // 일괄 SyncRead(SyncReadBlock·SyncReadFastBlock)는 COjw_37_Protocol2_SyncBlock.cs
         {
             public CProtocol2()
             {
@@ -2155,6 +2155,57 @@ namespace OpenJigWare
             }
             #endregion Calc
 
+            #region Read block -> angle cache
+            // 읽은 블록 [nAddress, nAddress+nLen) 에 모터별 필드(주소·크기 설정)가 통째로 들어 있을 때만 그 오프셋에서 값을 꺼낸다.
+            //   값은 부호 있는 리틀 엔디안 (1/2/4바이트). 일부만 걸치거나 없으면 false — 캐시를 건드리지 않는다
+            internal static bool TryGetField_InBlock(byte[] aby, int nOffset, int nAddress, int nLen, int nFieldAddress, int nFieldSize, out int nVal)
+            {
+                nVal = 0;
+                if ((nFieldAddress < 0) || (nFieldAddress < nAddress) || (nFieldAddress + nFieldSize > nAddress + nLen)) return false;
+                int nAt = nOffset + (nFieldAddress - nAddress);
+                if ((nAt < 0) || (nAt + nFieldSize > aby.Length)) return false;
+                switch (nFieldSize)
+                {
+                    case 1: nVal = aby[nAt]; return true;
+                    case 2: nVal = (short)(aby[nAt] | (aby[nAt + 1] << 8)); return true;
+                    case 4: nVal = aby[nAt] | (aby[nAt + 1] << 8) | (aby[nAt + 2] << 16) | (aby[nAt + 3] << 24); return true;
+                }
+                return false;
+            }
+            // 검증(ID·길이·CRC·오류)을 통과한 한 모터의 읽기 자료를 캐시에 반영한다. 요청 시작 주소가 아니라 "필드가 블록 안에 통째로 있는가" 로 판단하므로
+            //   128/8, 128/19, 116/31 처럼 위치를 포함한 큰 블록도 같은 값을 준다 (예전엔 132/4 요청에서만 갱신했고, 길이 1·2·4 외에는 0 이 들어갔다).
+            //   - 현재 위치(m_nGet_Position_Address) 포함: m_anMot_Pose/m_afMot_Pose 와 m_anMot/m_afMot 갱신 (GetAngle, Move_NoWait 의 CalcPosition_Time 기준)
+            //   - 현재 위치 없이 목표 위치(m_nSet_Position_Address)만 포함: 예전 116/4 읽기와 같이 m_anMot/m_afMot 만 갱신 (m_afMot_Pose 는 그대로)
+            //   - 전류(m_nGet_Current_Address)·토크(m_nSet_Torq_Address) 도 예전과 같은 칸에 반영. 각도 변환은 모터별 CalcEvd2Angle (방향·중앙·배율)
+            internal void ApplyReadBlock_ToCache(int nID, byte[] aby, int nOffset, int nAddress, int nLen)
+            {
+                if ((nID < 0) || (nID >= m_aCParam.Length) || (m_aCParam[nID] == null)) return;
+                CParam_t P = m_aCParam[nID];
+                int nVal;
+                bool bPose = TryGetField_InBlock(aby, nOffset, nAddress, nLen, P.m_nGet_Position_Address, P.m_nGet_Position_Size, out nVal);
+                if (bPose)
+                {
+                    m_anMot_Seq[nID]++;
+                    m_anMot_Pose[nID] = nVal;
+                    m_afMot_Pose[nID] = CalcEvd2Angle(nID, nVal);
+                    m_anMot[nID] = m_anMot_Pose[nID];
+                    m_afMot[nID] = m_afMot_Pose[nID];
+                }
+                else if (TryGetField_InBlock(aby, nOffset, nAddress, nLen, P.m_nSet_Position_Address, P.m_nSet_Position_Size, out nVal))
+                {
+                    m_anMot[nID] = nVal;
+                    m_afMot[nID] = CalcEvd2Angle(nID, nVal);
+                }
+                if (TryGetField_InBlock(aby, nOffset, nAddress, nLen, P.m_nGet_Current_Address, P.m_nGet_Current_Size, out nVal))
+                {
+                    if (!bPose) m_anMot_Seq[nID]++;
+                    m_anMot_Curr[nID] = nVal;
+                }
+                if (TryGetField_InBlock(aby, nOffset, nAddress, nLen, P.m_nSet_Torq_Address, P.m_nSet_Torq_Size, out nVal))
+                    m_abMot[nID] = (nVal != 0);
+            }
+            #endregion Read block -> angle cache
+
             #region Read Command
             private int m_nRequest_Address = 0;
             private int m_nRequest_Address_Size = 0;
@@ -2773,38 +2824,8 @@ namespace OpenJigWare
                                                 byte[] pbyData = new byte[m_anReceive_Datas.Count];
                                                 for (int nBuffer = 0; nBuffer < m_anReceive_Datas.Count; nBuffer++) { pbyData[nBuffer] = (byte)(m_anReceive_Datas[nBuffer] & 0xff); }
 
-                                                int nVal = 0;
-                                                switch (CReceive.nLength_Data)
-                                                {
-                                                    case 1: nVal = (byte)(pbyData[0]); break;
-                                                    case 2: nVal = Ojw.CConvert.BytesToShort(pbyData, 0); break;
-                                                    case 4: nVal = Ojw.CConvert.BytesToInt(pbyData, 0); break;
-                                                }
-
-                                                if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Position_Address)
-                                                {
-                                                    m_anMot[m_nReceive_ID] = nVal;
-                                                    m_afMot[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
-                                                }
-                                                else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nGet_Position_Address)
-                                                {
-                                                    m_anMot_Seq[m_nReceive_ID]++;
-
-                                                    m_anMot_Pose[m_nReceive_ID] = nVal;
-                                                    m_afMot_Pose[m_nReceive_ID] = CalcEvd2Angle(CReceive.nID, nVal);
-
-                                                    m_anMot[m_nReceive_ID] = m_anMot_Pose[m_nReceive_ID];
-                                                    m_afMot[m_nReceive_ID] = m_afMot_Pose[m_nReceive_ID];
-                                                }
-                                                else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nGet_Current_Address)
-                                                {
-                                                    m_anMot_Seq[m_nReceive_ID]++;
-                                                    m_anMot_Curr[m_nReceive_ID] = nVal;
-                                                }
-                                                else if (m_nRequest_Address == m_aCParam[m_nReceive_ID].m_nSet_Torq_Address)
-                                                {
-                                                    m_abMot[m_nReceive_ID] = ((nVal == 0) ? false : true);
-                                                }
+                                                // 위치·전류·토크 필드가 이 블록 안에 통째로 있으면 그 오프셋에서 꺼내 캐시에 반영 (요청 시작 주소 일치·길이 1/2/4 조건을 대신한다)
+                                                ApplyReadBlock_ToCache(m_nReceive_ID, pbyData, 0, m_nRequest_Address, pbyData.Length);
                                             }
                                         }
 

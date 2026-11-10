@@ -138,8 +138,16 @@ namespace OpenJigWare
     // OJW5014_20151012
     public struct SVersion_T
     {
-        public const string strVersion = "02.07.00";
+        public const string strVersion = "02.09.00";
         public const string strHistory = (String)(
+                "[V02.09.00]\r\n" +
+                "  COjw_37_Protocol2_SyncBlock.cs -> SyncReadBlock()/SyncReadFastBlock() 성공 시 각도 캐시(GetAngle, Move_NoWait 기준각) 갱신, 실패한 호출은 m_abyMap·캐시 불변" + "\r\n" +
+                "  COjw_37_Protocol2.cs, COjw_41_Protocol.cs -> 위치를 포함한 블록 읽기(128/8, 128/19, 116/31 등)도 각도 캐시 갱신, 132/8·116/31 읽기의 -180도 오염 수정" + "\r\n" +
+                "========================================\r\n" + // Release
+                "[V02.08.00]\r\n" +
+                "  COjw_37_Protocol2_SyncBlock.cs 추가 -> CProtocol2 일괄 SyncRead: SyncReadBlock(), SyncReadFastBlock(), SyncRead_SetPollSleep()" + "\r\n" +
+                "  COjw_13_Serial.cs -> CSerial.ReadAvailable() 추가" + "\r\n" +
+                "========================================\r\n" + // Release
                 "[V02.07.00]\r\n" +
                 "  COjw_21_Graph.cs -> CGraph 마커(점+라벨) 추가: Mark(), ClearMark()" + "\r\n" +
                 "  COjw_12_3D.cs -> PlayXyz 결과 판정 추가(PlayXyz_SetCheck(), PlayXyz_GetResult(), PlayXyz_GetResultText()), GetMotorIDs_FromDh() 추가" + "\r\n" +

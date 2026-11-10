@@ -153,6 +153,7 @@
     <Compile Include="COjw_35_Walking_c.Amp.cs" />
     <Compile Include="COjw_35_Walking_c.Step.cs" />
     <Compile Include="COjw_37_Protocol2.cs" />
+    <Compile Include="COjw_37_Protocol2_SyncBlock.cs" />
     <Compile Include="COjw_39_TextEditor.cs" />
     <Compile Include="COjw_40_Protocol1.cs" />
     <Compile Include="COjw_41_Protocol.cs" />
